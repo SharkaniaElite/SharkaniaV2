@@ -4,6 +4,12 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
+// --- AÑADE ESTO AQUÍ ---
+console.log("--- DEBUG SUPABASE ---");
+console.log("URL detectada:", supabaseUrl ? "SÍ" : "NO (VACÍA)");
+console.log("Longitud de la Key:", supabaseAnonKey ? supabaseAnonKey.length : 0);
+// -----------------------
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
     "⚠️ Supabase environment variables not set. Running in demo mode."
