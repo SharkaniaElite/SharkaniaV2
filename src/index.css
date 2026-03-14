@@ -1,0 +1,163 @@
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+
+/* ══════════════════════════════════════════════════════════
+   SHARKANIA — Global Styles & CSS Variables
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Google Fonts (loaded in index.html) ── */
+
+/* ── CSS Custom Properties ── */
+:root {
+  --sk-bg-0: #09090b;
+  --sk-bg-1: #0c0d10;
+  --sk-bg-2: #111214;
+  --sk-bg-3: #18191c;
+  --sk-bg-4: #1f2023;
+  --sk-bg-5: #27282c;
+
+  --sk-border-1: rgba(255, 255, 255, 0.06);
+  --sk-border-2: rgba(255, 255, 255, 0.09);
+  --sk-border-3: rgba(255, 255, 255, 0.14);
+
+  --sk-text-1: #fafafa;
+  --sk-text-2: #a1a1aa;
+  --sk-text-3: #71717a;
+  --sk-text-4: #52525b;
+
+  --sk-accent: #22d3ee;
+  --sk-accent-hover: #06b6d4;
+  --sk-accent-dim: rgba(34, 211, 238, 0.1);
+  --sk-accent-glow: rgba(34, 211, 238, 0.2);
+  --sk-accent-solid: #0891b2;
+
+  --sk-green: #34d399;
+  --sk-green-dim: rgba(52, 211, 153, 0.1);
+  --sk-red: #f87171;
+  --sk-red-dim: rgba(248, 113, 113, 0.1);
+  --sk-gold: #fbbf24;
+  --sk-gold-dim: rgba(251, 191, 36, 0.1);
+  --sk-orange: #fb923c;
+  --sk-orange-dim: rgba(251, 146, 60, 0.1);
+  --sk-purple: #a78bfa;
+  --sk-purple-dim: rgba(167, 139, 250, 0.1);
+  --sk-silver: #cbd5e1;
+  --sk-bronze: #d97706;
+
+  --sk-font: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif,
+    "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
+  --sk-font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", "Fira Code",
+    monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
+
+  --sk-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --sk-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --sk-dur-fast: 120ms;
+  --sk-dur-base: 200ms;
+  --sk-dur-slow: 350ms;
+
+  color-scheme: dark;
+}
+
+/* ── Base Reset ── */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--sk-font);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--sk-text-2);
+  background: var(--sk-bg-1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  min-height: 100dvh;
+  font-variant-emoji: emoji;
+}
+
+/* ── Grain Overlay ── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0.25;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--sk-bg-5);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sk-text-4);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sk-bg-5) transparent;
+}
+
+/* ── Focus & Selection ── */
+:focus-visible {
+  outline: 2px solid var(--sk-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+::selection {
+  background: var(--sk-accent-dim);
+  color: var(--sk-accent);
+}
+
+/* ── Accessibility: Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ── High Contrast ── */
+@media (prefers-contrast: high) {
+  :root {
+    --sk-border-1: rgba(255, 255, 255, 0.15);
+    --sk-border-2: rgba(255, 255, 255, 0.25);
+    --sk-text-3: #a1a1aa;
+    --sk-text-4: #71717a;
+  }
+}
+
+/* ── Intersection Observer Reveal ── */
+.sk-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s var(--sk-ease), transform 0.6s var(--sk-ease);
+}
+.sk-reveal--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Animation Delays ── */
+.sk-delay-1 { animation-delay: 0.05s; }
+.sk-delay-2 { animation-delay: 0.1s; }
+.sk-delay-3 { animation-delay: 0.15s; }
+.sk-delay-4 { animation-delay: 0.2s; }
+.sk-delay-5 { animation-delay: 0.25s; }
+.sk-delay-6 { animation-delay: 0.3s; }
