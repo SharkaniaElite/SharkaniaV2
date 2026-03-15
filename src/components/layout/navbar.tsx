@@ -85,7 +85,7 @@ export function Navbar() {
           <svg width="26" height="26" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M7,36 L18,4 L38,24 L33,36 Z" fill="#22d3ee"/>
           </svg>
-          <span className="text-sk-md font-extrabold text-sk-text-1 tracking-tight hidden xs:block sm:block">
+          <span className="text-sk-md font-extrabold text-sk-text-1 tracking-tight">
             Sharkania
           </span>
         </Link>
