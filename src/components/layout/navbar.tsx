@@ -164,30 +164,33 @@ export function Navbar() {
           )
         )}
 
+        {/* Hamburger — always visible on non-desktop, forced color and size */}
         <button
-          className="lg:hidden flex items-center justify-center w-9 h-9 rounded-md text-sk-text-2 hover:text-sk-text-1 hover:bg-white/[0.04] transition-colors"
+          style={{ color: "#a1a1aa", minWidth: "36px", minHeight: "36px" }}
+          className="lg:hidden flex items-center justify-center rounded-md"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
         >
           {mobileOpen ? (
-            <X size={20} />
+            <X size={22} />
           ) : (
-            <Menu size={20} />
+            <Menu size={22} />
           )}
         </button>
       </div>
 
       {/* Mobile search */}
       {searchOpen && (
-        <div className="md:hidden absolute top-14 left-0 right-0 bg-sk-bg-1 border-b border-sk-border-2 p-4 z-[200]">
+        <div className="md:hidden absolute top-14 left-0 right-0 border-b border-sk-border-2 p-4 z-[200]" style={{ background: "#0c0d10" }}>
           <GlobalSearch variant="full" />
         </div>
       )}
 
-      {/* Mobile menu */}
+      {/* Mobile menu — fondo sólido garantizado con style inline */}
       <div
+        style={{ background: "#0c0d10" }}
         className={cn(
-          "lg:hidden fixed top-14 left-0 right-0 bottom-0 bg-sk-bg-1 flex flex-col p-8 gap-1",
+          "lg:hidden fixed top-14 left-0 right-0 bottom-0 flex flex-col p-8 gap-1",
           "border-t border-sk-border-2 z-[200]",
           "transition-transform duration-300 ease-out",
           mobileOpen ? "translate-x-0" : "translate-x-full"
