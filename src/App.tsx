@@ -18,6 +18,8 @@ import { RegisterPage } from "./pages/register";
 import { PlayerDashboardPage } from "./pages/player-dashboard";
 import { ClubAdminPage } from "./pages/club-admin";
 import { SuperAdminPage } from "./pages/super-admin";
+import BlogPage from "./pages/blog";
+import BlogPostPage from "./pages/blog-post";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +63,10 @@ export function App() {
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+
+            {/* Blog */}
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
 
             {/* Protected: any authenticated user */}
             <Route

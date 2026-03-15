@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { label: "Clubes", href: "/clubs" },
   { label: "Ligas", href: "/leagues" },
   { label: "Comparador", href: "/compare" },
+  { label: "Blog", href: "/blog" },
 ];
 
 export function Navbar() {
@@ -55,9 +56,9 @@ export function Navbar() {
     >
       {/* Logo */}
       <Link to="/" className="flex items-center gap-2 no-underline shrink-0">
-        <div className="w-7 h-7 rounded-sm bg-gradient-to-br from-sk-accent to-sk-accent-solid flex items-center justify-center font-black text-sk-sm text-sk-bg-0">
-          🦈
-        </div>
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M7,36 L18,4 L38,24 L33,36 Z" fill="#22d3ee"/>
+</svg>
         <span className="text-sk-md font-extrabold text-sk-text-1 tracking-tight">
           Sharkania
         </span>
@@ -96,7 +97,6 @@ export function Navbar() {
 
         {!isLoading && (
           isAuthenticated && profile ? (
-            // Logged in: show avatar + dropdown
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -149,7 +149,6 @@ export function Navbar() {
               )}
             </div>
           ) : (
-            // Not logged in: show buttons
             <>
               <Link to="/login">
                 <Button variant="secondary" size="sm" className="hidden md:inline-flex">
