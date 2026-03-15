@@ -151,12 +151,12 @@ export function Navbar() {
           ) : (
             <>
               <Link to="/login">
-                <Button variant="secondary" size="sm" className="hidden md:inline-flex">
+                <Button variant="secondary" size="sm" className="hidden lg:inline-flex">
                   Iniciar Sesión
                 </Button>
               </Link>
               <Link to="/register">
-                <Button variant="accent" size="sm" className="hidden sm:inline-flex">
+                <Button variant="accent" size="sm" className="hidden md:inline-flex">
                   Registrarse
                 </Button>
               </Link>
