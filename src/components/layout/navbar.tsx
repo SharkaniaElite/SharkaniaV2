@@ -56,9 +56,9 @@ export function Navbar() {
     >
       {/* Logo */}
       <Link to="/" className="flex items-center gap-2 no-underline shrink-0">
-        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M7,36 L18,4 L38,24 L33,36 Z" fill="#22d3ee"/>
-</svg>
+        <div className="w-7 h-7 rounded-sm bg-gradient-to-br from-sk-accent to-sk-accent-solid flex items-center justify-center font-black text-sk-sm text-sk-bg-0">
+          🦈
+        </div>
         <span className="text-sk-md font-extrabold text-sk-text-1 tracking-tight">
           Sharkania
         </span>
@@ -165,14 +165,14 @@ export function Navbar() {
         )}
 
         <button
-          className="lg:hidden flex flex-col justify-center gap-1 w-8 h-8 p-1.5"
+          className="lg:hidden flex items-center justify-center w-9 h-9 rounded-md text-sk-text-2 hover:text-sk-text-1 hover:bg-white/[0.04] transition-colors"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
         >
           {mobileOpen ? (
-            <X size={20} className="text-sk-text-2" />
+            <X size={20} />
           ) : (
-            <Menu size={20} className="text-sk-text-2" />
+            <Menu size={20} />
           )}
         </button>
       </div>
