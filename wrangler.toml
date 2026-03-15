@@ -1,0 +1,14 @@
+# wrangler.toml
+# Configuración de Cloudflare Pages para Sharkania
+
+name = "sharkania"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+# Variables de entorno para las Pages Functions
+# IMPORTANTE: Los valores reales van en el dashboard de Cloudflare
+# Settings → Environment Variables → Production
+[vars]
+# No pongas los valores reales aquí — usa el dashboard de Cloudflare
+# SUPABASE_URL = "https://tu-proyecto.supabase.co"
+# SUPABASE_ANON_KEY = "tu-anon-key"
