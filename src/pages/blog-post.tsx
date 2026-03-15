@@ -291,13 +291,13 @@ export default function BlogPostPage() {
               </h3>
               <p className="text-sk-sm text-sk-text-2 mb-6 max-w-md mx-auto">
                 Rankings ELO en tiempo real, calendario de torneos y estadísticas de jugadores.
-                La demo está disponible ahora.
+                Gestiona tu Club con funciones básicas gratuitas y premium. Los primeros 10 Clubs registrados obtendrán las funciones premium gratis por 3 meses!
               </p>
               <Link
                 to="/register"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold hover:bg-sk-accent-hover transition-colors"
               >
-                Ver demo gratuita <ChevronRight size={14} />
+                Registrar mi Club <ChevronRight size={14} />
               </Link>
             </div>
 
