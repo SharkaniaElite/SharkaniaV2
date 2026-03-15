@@ -139,7 +139,7 @@ export function HomePage() {
     supabase
       .from("leagues")
       .select("*, league_clubs(is_primary, clubs(id,name,country_code)), league_rooms(poker_rooms(id,name))")
-      .in("status", ["active","upcoming"])
+      .in("status", ["active","upcoming","finished"])
       .order("start_date", { ascending:false })
       .limit(20)
       .then(({ data }) => { if (data) setLeagues(shuffle(data).slice(0,2)); })
@@ -166,15 +166,8 @@ export function HomePage() {
   return (
     <PageShell>
 
-      {/* ══ BETA BANNER ══ */}
-      <div style={{ background:"rgba(251,191,36,0.08)", borderBottom:"1px solid rgba(251,191,36,0.2)" }}
-        className="py-2 px-6 text-center text-[11px] text-sk-gold font-medium">
-        ⚠️ <strong>Sharkania está en Beta.</strong> Los datos actuales son de demostración.
-        A medida que los clubes se inscriban y carguen torneos reales, esta plataforma se irá llenando de datos verificados.
-      </div>
-
       {/* ══ HERO ══ */}
-      <section className="relative min-h-dvh flex flex-col items-center justify-center text-center px-6 py-24 overflow-hidden max-md:min-h-auto max-md:py-16 max-md:pt-[calc(4rem+56px)]">
+      <section className="relative min-h-dvh flex flex-col items-center justify-center text-center px-6 py-24 overflow-hidden max-md:py-16">
         <div className="absolute inset-0 -z-20" style={{
           background:"radial-gradient(ellipse 60% 40% at 50% 0%, var(--sk-accent-dim), transparent 70%), radial-gradient(ellipse 40% 30% at 70% 80%, var(--sk-purple-dim), transparent 60%), var(--sk-bg-1)"
         }} />
@@ -485,23 +478,39 @@ export function HomePage() {
                 ? <div className="animate-sk-pulse h-48 rounded bg-sk-bg-3" />
                 : <>
                   <div className="grid grid-cols-[1fr_60px_1fr] gap-4 items-center">
-                    {[compA, compB].map((player, i) => (
-                      <div key={player.id} className="text-center">
-                        <div className={cn("w-16 h-16 rounded-full bg-sk-bg-4 border-2 flex items-center justify-center text-sk-xl font-extrabold mx-auto mb-3", i===0?"border-sk-accent text-sk-accent":"border-sk-purple text-sk-purple")}>
-                          {cleanName(player.nickname).charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex items-center justify-center gap-2 flex-wrap">
-                          <span className="font-bold text-sk-text-1 text-sk-md">{player.country_code} {cleanName(player.nickname)}</span>
-                          {(player as any).is_demo && <DemoBadge />}
-                        </div>
-                        <div className={cn("font-mono font-bold text-sk-lg mt-2", i===0?"text-sk-accent":"text-sk-purple")}>
-                          {Math.round(player.elo_rating).toLocaleString("es")}
-                        </div>
-                        <div className="text-[11px] text-sk-text-2">ELO Rating</div>
+                    {/* Player A */}
+                    <div className="text-center">
+                      <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-xl font-extrabold text-sk-accent mx-auto mb-3">
+                        {cleanName(compA.nickname).charAt(0).toUpperCase()}
                       </div>
-                    ))}
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        <span className="font-bold text-sk-text-1 text-sk-md">{compA.country_code} {cleanName(compA.nickname)}</span>
+                        {(compA as any).is_demo && <DemoBadge />}
+                      </div>
+                      <div className="font-mono font-bold text-sk-lg mt-2 text-sk-accent">
+                        {Math.round(compA.elo_rating).toLocaleString("es")}
+                      </div>
+                      <div className="text-[11px] text-sk-text-2">ELO Rating</div>
+                    </div>
+
+                    {/* VS */}
                     <div className="text-center">
                       <div className="text-sk-2xl font-black text-sk-text-3 tracking-tight">VS</div>
+                    </div>
+
+                    {/* Player B */}
+                    <div className="text-center">
+                      <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-purple flex items-center justify-center text-sk-xl font-extrabold text-sk-purple mx-auto mb-3">
+                        {cleanName(compB.nickname).charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        <span className="font-bold text-sk-text-1 text-sk-md">{compB.country_code} {cleanName(compB.nickname)}</span>
+                        {(compB as any).is_demo && <DemoBadge />}
+                      </div>
+                      <div className="font-mono font-bold text-sk-lg mt-2 text-sk-purple">
+                        {Math.round(compB.elo_rating).toLocaleString("es")}
+                      </div>
+                      <div className="text-[11px] text-sk-text-2">ELO Rating</div>
                     </div>
                   </div>
                   <div className="w-full h-px my-6 bg-gradient-to-r from-transparent via-sk-accent-dim to-transparent" />
