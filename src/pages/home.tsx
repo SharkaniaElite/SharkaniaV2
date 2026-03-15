@@ -1,5 +1,6 @@
 // src/pages/home.tsx
 import { useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { RevealSection } from "../components/landing/reveal-section";
 import { CountdownTimer } from "../components/landing/countdown-timer";
@@ -332,7 +333,7 @@ export function HomePage() {
                   </div>
 
                   <div className="text-center py-4">
-                    <Button variant="ghost" size="sm">Ver ranking completo →</Button>
+                    <Link to="/ranking"><Button variant="ghost" size="sm">Ver ranking completo →</Button></Link>
                   </div>
                 </div>
 
@@ -398,7 +399,7 @@ export function HomePage() {
                   </div>
 
                   <div className="text-center py-4">
-                    <Button variant="ghost" size="sm">Ver calendario completo →</Button>
+                    <Link to="/calendar"><Button variant="ghost" size="sm">Ver calendario completo →</Button></Link>
                   </div>
                 </div>
               </div>
@@ -497,7 +498,7 @@ export function HomePage() {
           </RevealSection>
 
           <RevealSection className="text-center mt-8">
-            <Button variant="secondary" size="lg">Ver todos los clubes →</Button>
+            <Link to="/clubs"><Button variant="secondary" size="lg">Ver todos los clubes →</Button></Link>
           </RevealSection>
         </div>
       </section>
@@ -590,7 +591,7 @@ export function HomePage() {
               </div>
 
               <div className="text-center pt-4">
-                <Button variant="accent" size="lg">⚔️ Comparar jugadores</Button>
+                <Link to="/compare"><Button variant="accent" size="lg">⚔️ Comparar jugadores</Button></Link>
               </div>
             </div>
           </RevealSection>
@@ -673,7 +674,7 @@ export function HomePage() {
           </RevealSection>
 
           <RevealSection className="text-center mt-8">
-            <Button variant="secondary" size="lg">Ver todas las ligas →</Button>
+            <Link to="/leagues"><Button variant="secondary" size="lg">Ver todas las ligas →</Button></Link>
           </RevealSection>
         </div>
       </section>
@@ -711,7 +712,7 @@ export function HomePage() {
           </RevealSection>
 
           <RevealSection className="text-center mt-8">
-            <Button variant="primary" size="xl">🏛️ Registrar mi Club</Button>
+            <Link to="/register"><Button variant="primary" size="xl">🏛️ Registrar mi Club</Button></Link>
           </RevealSection>
         </div>
       </section>
@@ -727,8 +728,8 @@ export function HomePage() {
             Únete a miles de jugadores que ya están rankeados en Sharkania. Gratis para siempre. Premium para los que quieren más.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
-            <Button variant="accent" size="xl">Crear cuenta gratis</Button>
-            <Button variant="secondary" size="xl">Registrar mi club</Button>
+            <Link to="/register"><Button variant="accent" size="xl">Crear cuenta gratis</Button></Link>
+<Link to="/register"><Button variant="secondary" size="xl">Registrar mi club</Button></Link>
           </div>
           <p className="mt-4 text-[11px] text-sk-text-3">
             No se requiere tarjeta de crédito · Gratis para siempre · Setup en 2 minutos
