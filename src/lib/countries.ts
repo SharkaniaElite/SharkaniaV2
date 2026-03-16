@@ -1,33 +1,68 @@
 // src/lib/countries.ts
 
-const COUNTRY_FLAGS: Record<string, string> = {
-  BR: "🇧🇷", AR: "🇦🇷", MX: "🇲🇽", CL: "🇨🇱", CO: "🇨🇴",
-  ES: "🇪🇸", PE: "🇵🇪", UY: "🇺🇾", VE: "🇻🇪", EC: "🇪🇨",
-  PY: "🇵🇾", BO: "🇧🇴", CR: "🇨🇷", PA: "🇵🇦", DO: "🇩🇴",
-  GT: "🇬🇹", HN: "🇭🇳", NI: "🇳🇮", SV: "🇸🇻", CU: "🇨🇺",
-  US: "🇺🇸", CA: "🇨🇦", PT: "🇵🇹", GB: "🇬🇧", FR: "🇫🇷",
-  DE: "🇩🇪", IT: "🇮🇹",
-};
-
 const COUNTRY_NAMES: Record<string, string> = {
-  BR: "Brasil", AR: "Argentina", MX: "México", CL: "Chile", CO: "Colombia",
-  ES: "España", PE: "Perú", UY: "Uruguay", VE: "Venezuela", EC: "Ecuador",
-  PY: "Paraguay", BO: "Bolivia", CR: "Costa Rica", PA: "Panamá", DO: "Rep. Dominicana",
-  GT: "Guatemala", HN: "Honduras", NI: "Nicaragua", SV: "El Salvador", CU: "Cuba",
-  US: "Estados Unidos", CA: "Canadá", PT: "Portugal", GB: "Reino Unido", FR: "Francia",
-  DE: "Alemania", IT: "Italia",
+  AR: "Argentina",
+  BO: "Bolivia",
+  BR: "Brasil",
+  CA: "Canadá",
+  CL: "Chile",
+  CO: "Colombia",
+  CR: "Costa Rica",
+  CU: "Cuba",
+  DO: "República Dominicana",
+  EC: "Ecuador",
+  ES: "España",
+  GQ: "Guinea Ecuatorial",
+  GT: "Guatemala",
+  HN: "Honduras",
+  MX: "México",
+  NI: "Nicaragua",
+  PA: "Panamá",
+  PE: "Perú",
+  PR: "Puerto Rico",
+  PY: "Paraguay",
+  SV: "El Salvador",
+  US: "Estados Unidos",
+  UY: "Uruguay",
+  VE: "Venezuela",
 };
 
+/**
+ * Devuelve la URL de la bandera SVG local
+ * Ejemplo: /flags/cl.svg
+ */
+export function getFlagUrl(countryCode: string | null): string {
+  if (!countryCode) return "/flags/unknown.svg";
+
+  const code = countryCode.toLowerCase();
+
+  return `/flags/${code}.svg`;
+}
+
+/**
+ * Mantiene compatibilidad con código antiguo
+ */
 export function getFlag(countryCode: string | null): string {
   if (!countryCode) return "🌍";
-  return COUNTRY_FLAGS[countryCode.toUpperCase()] ?? "🏳️";
+  return countryCode.toUpperCase();
 }
 
+/**
+ * Nombre del país
+ */
 export function getCountryName(countryCode: string | null): string {
   if (!countryCode) return "Global";
-  return COUNTRY_NAMES[countryCode.toUpperCase()] ?? countryCode;
+
+  const code = countryCode.toUpperCase();
+
+  return COUNTRY_NAMES[code] ?? code;
 }
 
+/**
+ * Lista única de países
+ */
 export function getUniqueCountries(codes: (string | null)[]): string[] {
-  return [...new Set(codes.filter((c): c is string => c !== null))].sort();
+  return [...new Set(codes.filter((c): c is string => c !== null))]
+    .map((c) => c.toUpperCase())
+    .sort();
 }

@@ -20,6 +20,7 @@ export function PlayerDashboardPage() {
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.display_name ?? "");
   const [countryCode, setCountryCode] = useState(profile?.country_code ?? "");
+  const [whatsapp, setWhatsapp] = useState(profile?.whatsapp ?? "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [claimOpen, setClaimOpen] = useState(false);
@@ -63,6 +64,7 @@ export function PlayerDashboardPage() {
       await updateProfile(user.id, {
         display_name: displayName.trim() || null,
         country_code: cleanCountry.length === 2 ? cleanCountry : null,
+        whatsapp: whatsapp.trim() || null,
       });
       await refreshProfile();
       setEditing(false);
@@ -101,14 +103,31 @@ export function PlayerDashboardPage() {
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2"><User size={18} /> Mi Perfil</h2>
-              <Button variant="ghost" size="sm" onClick={() => { setEditing(!editing); if (!editing) { setDisplayName(profile.display_name ?? ""); setCountryCode(profile.country_code ?? ""); } }}>
+              <Button variant="ghost" size="sm" onClick={() => { setEditing(!editing); if (!editing) { setDisplayName(profile.display_name ?? ""); setCountryCode(profile.country_code ?? ""); setWhatsapp(profile.whatsapp ?? ""); } }}>
                 <Settings size={14} /> {editing ? "Cancelar" : "Editar"}
               </Button>
             </div>
 
             {editing ? (
               <div className="space-y-4">
-                <div><label className={labelClass}>Nombre</label><input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className={inputClass} /></div>
+                <div>
+                  <label className={labelClass}>Nombre</label>
+                  <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>WhatsApp</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sk-text-3 text-sk-sm">+</span>
+                    <input
+                      type="tel"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      placeholder="52 55 1234 5678"
+                      className={`${inputClass} pl-7`}
+                    />
+                  </div>
+                  <p className="text-[11px] text-sk-text-3 mt-1">Con código de país, ej: 52 55 1234 5678</p>
+                </div>
                 <div>
                   <label className={labelClass}>País (código de 2 letras)</label>
                   <input type="text" value={countryCode} onChange={(e) => setCountryCode(e.target.value.toUpperCase().slice(0, 2))} placeholder="CL, AR, BR..." maxLength={2} className={inputClass} />
@@ -120,6 +139,15 @@ export function PlayerDashboardPage() {
               <div className="grid grid-cols-2 gap-4 text-sk-sm">
                 <div><span className="text-sk-text-2">Email:</span><p className="text-sk-text-1 font-semibold">{profile.email ?? user.email}</p></div>
                 <div><span className="text-sk-text-2">Nombre:</span><p className="text-sk-text-1 font-semibold">{profile.display_name ?? "—"}</p></div>
+                <div>
+                  <span className="text-sk-text-2">WhatsApp:</span>
+                  <p className="text-sk-text-1 font-semibold">
+                    {profile.whatsapp
+                      ? <a href={`https://wa.me/${profile.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer" className="text-sk-green hover:underline">+{profile.whatsapp}</a>
+                      : <span className="text-sk-text-3">No definido</span>
+                    }
+                  </p>
+                </div>
                 <div><span className="text-sk-text-2">País:</span><p className="text-sk-text-1 font-semibold">{profile.country_code ? `${getFlag(profile.country_code)} ${getCountryName(profile.country_code)}` : "No definido"}</p></div>
                 <div><span className="text-sk-text-2">Rol:</span><p className="text-sk-text-1 font-semibold capitalize">{profile.role}</p></div>
               </div>

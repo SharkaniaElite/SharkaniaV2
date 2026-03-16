@@ -58,7 +58,7 @@ export function SuperAdminPage() {
 
   const { data: clubRequests } = useQuery({
     queryKey: ["admin-club-requests"],
-    queryFn: async () => { const { data } = await supabase.from("club_registration_requests").select("*, profiles(display_name, email)").order("created_at", { ascending: false }); return data ?? []; },
+    queryFn: async () => { const { data } = await supabase.from("club_registration_requests").select("*, profiles(display_name, email, whatsapp, country_code)").order("created_at", { ascending: false }); return data ?? []; },
     enabled: tab === "requests",
   });
 
@@ -125,6 +125,14 @@ export function SuperAdminPage() {
     { key: "is_approved", label: "Aprobado", type: "checkbox" as const },
   ];
 
+  // Campos editables del perfil del admin del club
+  const clubAdminProfileFields = [
+    { key: "display_name", label: "Nombre del Admin", type: "text" as const },
+    { key: "email", label: "Email", type: "text" as const },
+    { key: "whatsapp", label: "WhatsApp (con código país)", type: "text" as const, placeholder: "56 9 1234 5678" },
+    { key: "country_code", label: "País (2 letras)", type: "text" as const },
+  ];
+
   const scoringFields = [
     { key: "name", label: "Nombre", type: "text" as const, required: true },
     { key: "description", label: "Descripción", type: "textarea" as const },
@@ -175,13 +183,23 @@ export function SuperAdminPage() {
                 <Button variant="accent" size="sm" onClick={() => setEntityForm({ table: "clubs", title: "Club", fields: clubFields, data: null })}><Plus size={14} /> Crear</Button>
               </div>
               <AdminTable
-                headers={["Club", "País", "Aprobado", ""]}
+                headers={["Club", "País", "Aprobado", "Admin", ""]}
                 rows={(clubs ?? []).map((c) => ({
                   id: c.id,
                   cells: [
                     <span className="font-semibold text-sk-text-1">{c.name}</span>,
                     <span>{getFlag(c.country_code)} {c.country_code}</span>,
                     <Badge variant={c.is_approved ? "green" : "orange"}>{c.is_approved ? "Sí" : "No"}</Badge>,
+                    <button
+                      onClick={c.created_by ? async () => {
+                        const { data: prof } = await supabase.from("profiles").select("*").eq("id", c.created_by).single();
+                        if (prof) setEntityForm({ table: "profiles", title: "Admin del Club", fields: clubAdminProfileFields, data: prof });
+                      } : undefined}
+                      className="text-sk-xs text-sk-accent hover:underline disabled:opacity-30"
+                      disabled={!c.created_by}
+                    >
+                      Editar Admin
+                    </button>,
                   ],
                   onEdit: () => setEntityForm({ table: "clubs", title: "Club", fields: clubFields, data: c }),
                   onDelete: () => handleDeleteEntity("clubs", c.id, c.name),
@@ -238,23 +256,75 @@ export function SuperAdminPage() {
                 {(clubRequests ?? []).length === 0 ? (
                   <p className="text-sk-text-2 text-sk-sm">Sin solicitudes</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {(clubRequests ?? []).map((req) => (
-                      <div key={req.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-4 flex items-center justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="text-sk-text-1 font-semibold">{req.club_name}</p>
-                          <p className="text-sk-xs text-sk-text-2 truncate">Por: {req.profiles?.display_name ?? req.profiles?.email} · {new Date(req.created_at).toLocaleDateString("es-CL")}</p>
-                          {req.description && <p className="text-sk-xs text-sk-text-2 mt-1 line-clamp-1">{req.description}</p>}
+                      <div key={req.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                          <div>
+                            <p className="text-sk-md font-bold text-sk-text-1">{req.club_name}</p>
+                            <p className="text-sk-xs text-sk-text-3 mt-0.5">
+                              Recibida el {new Date(req.created_at).toLocaleDateString("es-CL", { day:"numeric", month:"long", year:"numeric" })}
+                            </p>
+                          </div>
+                          <Badge variant={req.status === "pending" ? "orange" : req.status === "approved" ? "green" : "red"}>
+                            {req.status}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Badge variant={req.status === "pending" ? "orange" : req.status === "approved" ? "green" : "red"}>{req.status}</Badge>
-                          {req.status === "pending" && (
-                            <>
-                              <Button variant="accent" size="xs" onClick={() => handleApproveClub(req)}><Check size={12} /></Button>
-                              <Button variant="danger" size="xs" onClick={() => handleRejectRequest(req.id, "club_registration_requests")}><XIcon size={12} /></Button>
-                            </>
-                          )}
+
+                        {/* Datos del solicitante */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-3 rounded-md bg-sk-bg-3 border border-sk-border-2">
+                          <div>
+                            <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">Nombre</p>
+                            <p className="text-sk-sm font-semibold text-sk-text-1">{req.profiles?.display_name ?? "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">Email</p>
+                            <a href={`mailto:${req.profiles?.email}`} className="text-sk-sm text-sk-accent hover:underline break-all">
+                              {req.profiles?.email ?? "—"}
+                            </a>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">WhatsApp</p>
+                            {req.profiles?.whatsapp
+                              ? (
+                                <a
+                                  href={`https://wa.me/${req.profiles.whatsapp.replace(/\D/g,"")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sk-sm text-sk-green hover:underline"
+                                >
+                                  +{req.profiles.whatsapp}
+                                </a>
+                              )
+                              : <span className="text-sk-sm text-sk-text-3">—</span>
+                            }
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">País del Club</p>
+                            <p className="text-sk-sm text-sk-text-1">{req.country_code ? `${getFlag(req.country_code)} ${req.country_code}` : "—"}</p>
+                          </div>
                         </div>
+
+                        {/* Descripción */}
+                        {req.description && (
+                          <div className="mb-4">
+                            <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">Descripción</p>
+                            <p className="text-sk-sm text-sk-text-2 leading-relaxed">{req.description}</p>
+                          </div>
+                        )}
+
+                        {/* Acciones */}
+                        {req.status === "pending" && (
+                          <div className="flex gap-2 pt-3 border-t border-sk-border-2">
+                            <Button variant="accent" size="sm" onClick={() => handleApproveClub(req)}>
+                              <Check size={13} /> Aprobar Club
+                            </Button>
+                            <Button variant="danger" size="sm" onClick={() => handleRejectRequest(req.id, "club_registration_requests")}>
+                              <XIcon size={13} /> Rechazar
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
