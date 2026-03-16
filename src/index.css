@@ -170,3 +170,46 @@ body::before {
 .sk-delay-4 { animation-delay: 0.2s; }
 .sk-delay-5 { animation-delay: 0.25s; }
 .sk-delay-6 { animation-delay: 0.3s; }
+
+/* ─────────────────────────────────
+   Real Wind Flag Animation
+   ───────────────────────────────── */
+
+.flag-wind {
+  display: inline-block;
+  overflow: hidden;
+}
+
+.flag-wind img {
+  display: block;
+  animation: flagWind 1.4s infinite cubic-bezier(.36,.07,.19,.97);
+  transform-origin: left center;
+}
+
+/* onda de tela */
+
+@keyframes flagWind {
+  0% {
+    transform: skewX(0deg) translateX(0px);
+  }
+
+  20% {
+    transform: skewX(-10deg) translateX(-1px);
+  }
+
+  40% {
+    transform: skewX(6deg) translateX(1px);
+  }
+
+  60% {
+    transform: skewX(-8deg) translateX(-1px);
+  }
+
+  80% {
+    transform: skewX(4deg) translateX(1px);
+  }
+
+  100% {
+    transform: skewX(0deg) translateX(0px);
+  }
+}
