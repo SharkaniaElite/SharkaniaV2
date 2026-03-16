@@ -13,6 +13,7 @@ import { EmptyState } from "../components/ui/empty-state";
 import { useLeague, useLeagueStandings } from "../hooks/use-leagues";
 import { useTournamentsByLeague } from "../hooks/use-tournaments";
 import { getFlag } from "../lib/countries";
+import { FlagIcon } from "../components/ui/flag-icon";
 import { ArrowLeft } from "lucide-react";
 import type { TournamentWithDetails } from "../types";
 import { cn } from "../lib/cn";
@@ -105,7 +106,7 @@ export function LeagueDetailPage() {
                   to={`/clubs/${lc.clubs?.id}`}
                   className="text-sk-xs text-sk-accent hover:opacity-80 transition-opacity"
                 >
-                  {getFlag(lc.clubs?.country_code ?? null)} {lc.clubs?.name}
+                  <FlagIcon countryCode={lc.clubs?.country_code ?? null} /> {lc.clubs?.name}
                   {lc.is_primary && " ★"}
                 </Link>
               ))}

@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { getFlag } from "../../lib/countries";
+import { FlagIcon } from "../ui/flag-icon";
 import { formatElo, formatNumber } from "../../lib/format";
 import { RankBadge } from "../ranking/rank-badge";
 import { EmptyState } from "../ui/empty-state";
@@ -55,7 +56,7 @@ export function LeagueStandingsTable({ standings, isLoading }: LeagueStandingsTa
                   to={`/ranking/${s.player_id}`}
                   className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                 >
-                  <span>{getFlag(s.players?.country_code ?? null)}</span>
+                  <span><FlagIcon countryCode={s.players?.country_code ?? null} /></span>
                   <span className="font-semibold text-sk-text-1">
                     {s.players?.nickname ?? "—"}
                   </span>

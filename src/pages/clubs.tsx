@@ -8,6 +8,7 @@ import { Spinner } from "../components/ui/spinner";
 import { EmptyState } from "../components/ui/empty-state";
 import { useClubs } from "../hooks/use-clubs";
 import { getFlag } from "../lib/countries";
+import { FlagIcon } from "../components/ui/flag-icon";
 
 export function ClubsPage() {
   const { data: clubs, isLoading } = useClubs();
@@ -70,7 +71,7 @@ export function ClubsPage() {
                     className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 cursor-pointer transition-all duration-200 ease-out hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 flex flex-col gap-4"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl leading-none">{getFlag(club.country_code)}</span>
+                      <FlagIcon countryCode={club.country_code} />
                       <div>
                         <h3 className="text-sk-md font-bold text-sk-text-1 tracking-tight">
                           {club.name}

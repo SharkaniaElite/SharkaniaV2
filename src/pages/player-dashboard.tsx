@@ -10,6 +10,7 @@ import { NicknameClaim } from "../components/admin/nickname-claim";
 import { useAuthStore } from "../stores/auth-store";
 import { updateProfile } from "../lib/api/auth";
 import { getFlag, getCountryName } from "../lib/countries";
+import { FlagIcon } from "../components/ui/flag-icon";
 import { Settings, User, LogOut, Link as LinkIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
@@ -148,7 +149,7 @@ export function PlayerDashboardPage() {
                     }
                   </p>
                 </div>
-                <div><span className="text-sk-text-2">País:</span><p className="text-sk-text-1 font-semibold">{profile.country_code ? `${getFlag(profile.country_code)} ${getCountryName(profile.country_code)}` : "No definido"}</p></div>
+                <div><span className="text-sk-text-2">País:</span><p className="text-sk-text-1 font-semibold">{profile.country_code ? <span className="inline-flex items-center gap-1.5"><FlagIcon countryCode={profile.country_code} /> {getCountryName(profile.country_code)}</span> : "No definido"}</p></div>
                 <div><span className="text-sk-text-2">Rol:</span><p className="text-sk-text-1 font-semibold capitalize">{profile.role}</p></div>
               </div>
             )}

@@ -12,6 +12,7 @@ import { calculateElo, reverseElo } from "../lib/api/elo-engine";
 import { cn } from "../lib/cn";
 import { formatNumber } from "../lib/format";
 import { getFlag } from "../lib/countries";
+import { FlagIcon } from "../components/ui/flag-icon";
 import { Check, X as XIcon, Plus, Trash2, Pencil, RefreshCw } from "lucide-react";
 
 type AdminTab = "overview" | "clubs" | "players" | "tournaments" | "requests" | "rooms" | "scoring";
@@ -188,7 +189,7 @@ export function SuperAdminPage() {
                   id: c.id,
                   cells: [
                     <span className="font-semibold text-sk-text-1">{c.name}</span>,
-                    <span>{getFlag(c.country_code)} {c.country_code}</span>,
+                    <span className="inline-flex items-center gap-1.5"><FlagIcon countryCode={c.country_code} /> {c.country_code}</span>,
                     <Badge variant={c.is_approved ? "green" : "orange"}>{c.is_approved ? "Sí" : "No"}</Badge>,
                     <button
                       onClick={c.created_by ? async () => {
@@ -217,7 +218,7 @@ export function SuperAdminPage() {
                 cells: [
                   <span className="font-semibold text-sk-text-1">{p.nickname}</span>,
                   <span className="text-sk-text-2">{p.poker_rooms?.name}</span>,
-                  <span>{getFlag(p.country_code)}</span>,
+                  <span><FlagIcon countryCode={p.country_code} /></span>,
                   <span className="font-mono font-bold text-sk-accent">{Math.round(p.elo_rating)}</span>,
                   <span className="font-mono text-sk-text-1">{p.total_tournaments}</span>,
                 ],
@@ -302,7 +303,7 @@ export function SuperAdminPage() {
                           </div>
                           <div>
                             <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">País del Club</p>
-                            <p className="text-sk-sm text-sk-text-1">{req.country_code ? `${getFlag(req.country_code)} ${req.country_code}` : "—"}</p>
+                            <p className="text-sk-sm text-sk-text-1">{req.country_code ? <span className="inline-flex items-center gap-1.5"><FlagIcon countryCode={req.country_code} /> {req.country_code}</span> : "—"}</p>
                           </div>
                         </div>
 

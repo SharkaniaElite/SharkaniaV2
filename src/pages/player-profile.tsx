@@ -13,6 +13,7 @@ import {
   usePlayerTournamentResults,
 } from "../hooks/use-players";
 import { getFlag, getCountryName } from "../lib/countries";
+import { FlagIcon } from "../components/ui/flag-icon";
 import { formatElo } from "../lib/format";
 import { ArrowLeft } from "lucide-react";
 
@@ -83,7 +84,7 @@ export function PlayerProfilePage() {
                   <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
                     {player.nickname}
                   </h1>
-                  <span className="text-2xl">{getFlag(player.country_code)}</span>
+                  <FlagIcon countryCode={player.country_code} size={32} />
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                   <Chip>{player.poker_rooms?.name ?? "—"}</Chip>

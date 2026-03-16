@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { Badge } from "../ui/badge";
 import { getFlag } from "../../lib/countries";
+import { FlagIcon } from "../ui/flag-icon";
 import { formatCurrency } from "../../lib/format";
 import { Info } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
@@ -111,7 +112,7 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
           )}
         </div>
         <span className="font-mono text-[11px] text-sk-text-1">
-          {timeZoneLabel} {getFlag(t.clubs?.country_code ?? null)}
+          {timeZoneLabel} <FlagIcon countryCode={t.clubs?.country_code ?? null} />
         </span>
       </div>
 
@@ -121,7 +122,7 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
           to={`/clubs/${t.club_id}`}
           className="text-[11px] text-sk-accent font-medium hover:opacity-80 transition-opacity"
         >
-          {getFlag(t.clubs?.country_code ?? null)} {t.clubs?.name}
+          <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {t.clubs?.name}
         </Link>
         {t.leagues ? (
           <Link

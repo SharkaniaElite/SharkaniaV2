@@ -11,6 +11,7 @@ import {
   useSearchPlayers,
 } from "../hooks/use-players";
 import { getFlag } from "../lib/countries";
+import { FlagIcon } from "../components/ui/flag-icon";
 import {
   formatElo,
   formatNumber,
@@ -88,7 +89,7 @@ function PlayerSelector({
                 p.id === selectedId && "bg-white/[0.04]"
               )}
             >
-              <span>{getFlag(p.country_code)}</span>
+              <FlagIcon countryCode={p.country_code} />
               <span className="font-semibold text-sk-text-1">{p.nickname}</span>
             </button>
           ))}
@@ -310,7 +311,7 @@ export function ComparePage() {
                       {playerA.nickname.charAt(0).toUpperCase()}
                     </div>
                     <div className="font-bold text-sk-text-1 text-sk-md">
-                      {getFlag(playerA.country_code)} {playerA.nickname}
+                      <FlagIcon countryCode={playerA.country_code} /> {playerA.nickname}
                     </div>
                     <div className="font-mono text-sk-accent font-bold text-sk-lg mt-2">
                       {formatElo(playerA.elo_rating)}
@@ -331,7 +332,7 @@ export function ComparePage() {
                       {playerB.nickname.charAt(0).toUpperCase()}
                     </div>
                     <div className="font-bold text-sk-text-1 text-sk-md">
-                      {getFlag(playerB.country_code)} {playerB.nickname}
+                      <FlagIcon countryCode={playerB.country_code} /> {playerB.nickname}
                     </div>
                     <div className="font-mono text-sk-purple font-bold text-sk-lg mt-2">
                       {formatElo(playerB.elo_rating)}

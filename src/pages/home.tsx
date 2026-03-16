@@ -14,6 +14,7 @@ import { getPlayers } from "../lib/api/players";
 import { getClubs } from "../lib/api/clubs";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
 import { supabase } from "../lib/supabase";
+import { FlagIcon } from "../components/ui/flag-icon";
 import type { PlayerWithRoom, ClubWithRooms, TournamentWithDetails } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -285,7 +286,7 @@ export function HomePage() {
                                     <div className="w-7 h-7 rounded-full bg-sk-bg-4 border border-sk-border-2 flex items-center justify-center text-[11px] font-bold text-sk-text-3 shrink-0">
                                       {cleanName(p.nickname).charAt(0).toUpperCase()}
                                     </div>
-                                    {p.country_code && <span className="text-xs shrink-0">{p.country_code}</span>}
+                                    {p.country_code && <FlagIcon countryCode={p.country_code} />}
                                     <span className="font-semibold text-sk-text-1 truncate">{cleanName(p.nickname)}</span>
                                     {isDemo && <DemoBadge />}
                                   </div>
@@ -339,7 +340,7 @@ export function HomePage() {
                               </div>
                               <div className="mt-1">
                                 <Link to={`/clubs/${clubData?.id}`} className="text-[11px] text-sk-accent font-medium hover:opacity-80 transition-opacity">
-                                  {clubData?.country_code} {cleanName(clubData?.name ?? "")}
+                                  <FlagIcon countryCode={clubData?.country_code ?? null} /> {cleanName(clubData?.name ?? "")}
                                 </Link>
                               </div>
                             </div>
@@ -416,7 +417,7 @@ export function HomePage() {
                   return (
                     <Link key={c.id} to={`/clubs/${c.id}`} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 cursor-pointer transition-all duration-sk-base hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 flex flex-col gap-4">
                       <div className="flex items-start gap-3">
-                        <span className="text-2xl leading-none">{c.country_code ?? "🌎"}</span>
+                        <FlagIcon countryCode={c.country_code ?? null} size={36} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-sk-md font-bold text-sk-text-1 tracking-tight">{cleanName(c.name)}</h3>
@@ -484,7 +485,10 @@ export function HomePage() {
                         {cleanName(compA.nickname).charAt(0).toUpperCase()}
                       </div>
                       <div className="flex items-center justify-center gap-2 flex-wrap">
-                        <span className="font-bold text-sk-text-1 text-sk-md">{compA.country_code} {cleanName(compA.nickname)}</span>
+                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                          <FlagIcon countryCode={compA.country_code} />
+                          <span className="font-bold text-sk-text-1 text-sk-md">{cleanName(compA.nickname)}</span>
+                        </div>
                         {(compA as any).is_demo && <DemoBadge />}
                       </div>
                       <div className="font-mono font-bold text-sk-lg mt-2 text-sk-accent">
@@ -504,7 +508,10 @@ export function HomePage() {
                         {cleanName(compB.nickname).charAt(0).toUpperCase()}
                       </div>
                       <div className="flex items-center justify-center gap-2 flex-wrap">
-                        <span className="font-bold text-sk-text-1 text-sk-md">{compB.country_code} {cleanName(compB.nickname)}</span>
+                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                          <FlagIcon countryCode={compB.country_code} />
+                          <span className="font-bold text-sk-text-1 text-sk-md">{cleanName(compB.nickname)}</span>
+                        </div>
                         {(compB as any).is_demo && <DemoBadge />}
                       </div>
                       <div className="font-mono font-bold text-sk-lg mt-2 text-sk-purple">

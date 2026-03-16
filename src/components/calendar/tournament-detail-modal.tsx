@@ -3,6 +3,7 @@ import { Modal } from "../ui/modal";
 import { Badge } from "../ui/badge";
 import { Chip } from "../ui/chip";
 import { getFlag } from "../../lib/countries";
+import { FlagIcon } from "../ui/flag-icon";
 import { formatCurrency } from "../../lib/format";
 import type { TournamentWithDetails } from "../../types";
 import { format } from "date-fns";
@@ -69,7 +70,7 @@ export function TournamentDetailModal({
             Club
           </p>
           <p className="text-sk-sm font-semibold text-sk-text-1">
-            {getFlag(t.clubs?.country_code ?? null)} {t.clubs?.name}
+            <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {t.clubs?.name}
           </p>
           {t.leagues && (
             <>

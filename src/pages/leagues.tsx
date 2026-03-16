@@ -7,6 +7,7 @@ import { Spinner } from "../components/ui/spinner";
 import { EmptyState } from "../components/ui/empty-state";
 import { useLeagues } from "../hooks/use-leagues";
 import { getFlag } from "../lib/countries";
+import { FlagIcon } from "../components/ui/flag-icon";
 
 const statusBadge = {
   upcoming: { label: "Próxima", variant: "accent" as const },
@@ -65,7 +66,7 @@ export function LeaguesPage() {
                           {primaryClub && (
                             <>
                               {" · "}
-                              {getFlag(primaryClub.clubs?.country_code ?? null)}{" "}
+                              <FlagIcon countryCode={primaryClub.clubs?.country_code ?? null} />{" "}
                               {primaryClub.clubs?.name}
                             </>
                           )}

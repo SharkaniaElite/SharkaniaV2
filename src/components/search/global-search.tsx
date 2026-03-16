@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { useGlobalSearch } from "../../hooks/use-search";
-import { getFlag } from "../../lib/countries";
 import { Spinner } from "../ui/spinner";
 import type { SearchResult } from "../../types";
 
@@ -172,7 +171,7 @@ export function GlobalSearch({ variant = "full" }: GlobalSearchProps) {
                         {item.subtitle && (
                           <span className="text-[11px] text-sk-text-2 shrink-0">
                             {item.type === "player"
-                              ? getFlag(item.subtitle)
+                              ? item.subtitle?.toUpperCase()
                               : item.subtitle}
                           </span>
                         )}

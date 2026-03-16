@@ -6,7 +6,6 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { usePlayers } from "../hooks/use-players";
 import { usePokerRooms } from "../hooks/use-clubs";
-import { getFlag } from "../lib/countries";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const COUNTRIES = [
