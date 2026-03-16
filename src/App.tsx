@@ -20,6 +20,7 @@ import { ClubAdminPage } from "./pages/club-admin";
 import { SuperAdminPage } from "./pages/super-admin";
 import BlogPage from "./pages/blog";
 import BlogPostPage from "./pages/blog-post";
+import { FloatingCTA } from "./components/marketing/FloatingCTA";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -98,6 +99,7 @@ export function App() {
               }
             />
           </Routes>
+          <FloatingCTA />
         </AuthInitializer>
       </BrowserRouter>
     </QueryClientProvider>
