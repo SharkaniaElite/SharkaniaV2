@@ -10,16 +10,29 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const COUNTRIES = [
   { code: "", label: "Todos los países" },
-  { code: "BR", label: "🇧🇷 Brasil" },
   { code: "AR", label: "🇦🇷 Argentina" },
-  { code: "MX", label: "🇲🇽 México" },
+  { code: "BO", label: "🇧🇴 Bolivia" },
+  { code: "BR", label: "🇧🇷 Brasil" },
   { code: "CL", label: "🇨🇱 Chile" },
   { code: "CO", label: "🇨🇴 Colombia" },
+  { code: "CR", label: "🇨🇷 Costa Rica" },
+  { code: "CU", label: "🇨🇺 Cuba" },
+  { code: "DO", label: "🇩🇴 Rep. Dominicana" },
+  { code: "EC", label: "🇪🇨 Ecuador" },
   { code: "ES", label: "🇪🇸 España" },
+  { code: "GQ", label: "🇬🇶 Guinea Ecuatorial" },
+  { code: "GT", label: "🇬🇹 Guatemala" },
+  { code: "HN", label: "🇭🇳 Honduras" },
+  { code: "MX", label: "🇲🇽 México" },
+  { code: "NI", label: "🇳🇮 Nicaragua" },
+  { code: "PA", label: "🇵🇦 Panamá" },
   { code: "PE", label: "🇵🇪 Perú" },
+  { code: "PR", label: "🇵🇷 Puerto Rico" },
+  { code: "PY", label: "🇵🇾 Paraguay" },
+  { code: "SV", label: "🇸🇻 El Salvador" },
+  { code: "US", label: "🇺🇸 Estados Unidos" },
   { code: "UY", label: "🇺🇾 Uruguay" },
   { code: "VE", label: "🇻🇪 Venezuela" },
-  { code: "EC", label: "🇪🇨 Ecuador" },
 ];
 
 const PAGE_SIZE = 20;

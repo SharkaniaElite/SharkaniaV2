@@ -10,28 +10,44 @@ import { getProfile } from "../lib/api/auth";
 type RegistrationType = "player" | "club";
 
 const COUNTRIES = [
-  { code: "BR", label: "🇧🇷 Brasil" }, { code: "AR", label: "🇦🇷 Argentina" },
-  { code: "MX", label: "🇲🇽 México" }, { code: "CL", label: "🇨🇱 Chile" },
-  { code: "CO", label: "🇨🇴 Colombia" }, { code: "ES", label: "🇪🇸 España" },
-  { code: "PE", label: "🇵🇪 Perú" }, { code: "UY", label: "🇺🇾 Uruguay" },
-  { code: "VE", label: "🇻🇪 Venezuela" }, { code: "EC", label: "🇪🇨 Ecuador" },
-  { code: "PY", label: "🇵🇾 Paraguay" }, { code: "BO", label: "🇧🇴 Bolivia" },
-  { code: "CR", label: "🇨🇷 Costa Rica" }, { code: "PA", label: "🇵🇦 Panamá" },
-  { code: "DO", label: "🇩🇴 Rep. Dominicana" }, { code: "US", label: "🇺🇸 Estados Unidos" },
+  { code: "AR", label: "🇦🇷 Argentina" },
+  { code: "BO", label: "🇧🇴 Bolivia" },
+  { code: "BR", label: "🇧🇷 Brasil" },
+  { code: "CL", label: "🇨🇱 Chile" },
+  { code: "CO", label: "🇨🇴 Colombia" },
+  { code: "CR", label: "🇨🇷 Costa Rica" },
+  { code: "CU", label: "🇨🇺 Cuba" },
+  { code: "DO", label: "🇩🇴 Rep. Dominicana" },
+  { code: "EC", label: "🇪🇨 Ecuador" },
+  { code: "ES", label: "🇪🇸 España" },
+  { code: "GQ", label: "🇬🇶 Guinea Ecuatorial" },
+  { code: "GT", label: "🇬🇹 Guatemala" },
+  { code: "HN", label: "🇭🇳 Honduras" },
+  { code: "MX", label: "🇲🇽 México" },
+  { code: "NI", label: "🇳🇮 Nicaragua" },
+  { code: "PA", label: "🇵🇦 Panamá" },
+  { code: "PE", label: "🇵🇪 Perú" },
+  { code: "PR", label: "🇵🇷 Puerto Rico" },
+  { code: "PY", label: "🇵🇾 Paraguay" },
+  { code: "SV", label: "🇸🇻 El Salvador" },
+  { code: "US", label: "🇺🇸 Estados Unidos" },
+  { code: "UY", label: "🇺🇾 Uruguay" },
+  { code: "VE", label: "🇻🇪 Venezuela" },
 ];
 
 export function RegisterPage() {
-  const [regType, setRegType]               = useState<RegistrationType | null>(null);
-  const [email, setEmail]                   = useState("");
-  const [password, setPassword]             = useState("");
-  const [displayName, setDisplayName]       = useState("");
-  const [whatsapp, setWhatsapp]             = useState("");
-  const [clubName, setClubName]             = useState("");
-  const [clubCountry, setClubCountry]       = useState("");
+  const [regType, setRegType]                 = useState<RegistrationType | null>(null);
+  const [email, setEmail]                     = useState("");
+  const [password, setPassword]               = useState("");
+  const [displayName, setDisplayName]         = useState("");
+  const [whatsapp, setWhatsapp]               = useState("");
+  const [playerCountry, setPlayerCountry]     = useState("");
+  const [clubName, setClubName]               = useState("");
+  const [clubCountry, setClubCountry]         = useState("");
   const [clubDescription, setClubDescription] = useState("");
-  const [error, setError]                   = useState("");
-  const [success, setSuccess]               = useState("");
-  const [loading, setLoading]               = useState(false);
+  const [error, setError]                     = useState("");
+  const [success, setSuccess]                 = useState("");
+  const [loading, setLoading]                 = useState(false);
   const navigate = useNavigate();
 
   const inputClass = "w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-3 focus:outline-none focus:border-sk-accent focus:shadow-[0_0_0_3px_var(--sk-accent-dim)]";
@@ -46,22 +62,10 @@ export function RegisterPage() {
     try {
       const result = await signUp(email, password, displayName, "player");
 
-      // Guardar whatsapp en el perfil
-      if (result.user) {
-        await supabase
-          .from("profiles")
-          .update({ whatsapp })
-          .eq("id", result.user.id);
-      }
-
       if (regType === "club" && result.user) {
-        // Heredar país del club al perfil del admin
         await supabase
           .from("profiles")
-          .update({
-            whatsapp,
-            country_code: clubCountry || null,
-          })
+          .update({ whatsapp, country_code: clubCountry || null })
           .eq("id", result.user.id);
 
         await supabase.from("club_registration_requests").insert({
@@ -70,18 +74,27 @@ export function RegisterPage() {
           country_code: clubCountry || null,
           description: clubDescription || null,
         });
+
         setSuccess("¡Solicitud enviada! Un administrador se contactará contigo por email y WhatsApp para validar los datos de tu club.");
-      } else if (result.session?.user) {
-        const profile = await getProfile(result.session.user.id);
-        useAuthStore.setState({
-          user: result.session.user,
-          profile,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-        navigate("/dashboard");
-      } else {
-        setSuccess("¡Cuenta creada! Revisa tu email para confirmar.");
+
+      } else if (result.user) {
+        await supabase
+          .from("profiles")
+          .update({ whatsapp, country_code: playerCountry || null })
+          .eq("id", result.user.id);
+
+        if (result.session) {
+          const profile = await getProfile(result.session.user.id);
+          useAuthStore.setState({
+            user: result.session.user,
+            profile,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          navigate("/dashboard");
+        } else {
+          setSuccess("¡Cuenta creada! Revisa tu email para confirmar.");
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al registrarse");
@@ -93,6 +106,7 @@ export function RegisterPage() {
   return (
     <div className="min-h-screen bg-sk-bg-1 flex items-center justify-center p-6 pt-24">
       <div className="w-full max-w-sm">
+
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
@@ -152,18 +166,20 @@ export function RegisterPage() {
               ← Cambiar tipo de registro
             </button>
 
-            {/* Aviso para registro de club */}
+            {/* Aviso club */}
             {regType === "club" && (
               <div className="rounded-lg border p-3.5 text-sk-xs leading-relaxed"
                 style={{ background:"rgba(34,211,238,0.06)", borderColor:"rgba(34,211,238,0.2)", color:"#a1a1aa" }}>
                 <p className="font-semibold text-sk-text-1 mb-1">📋 Proceso de validación</p>
-                Un administrador de Sharkania se contactará contigo por <strong style={{color:"#fafafa"}}>email y WhatsApp</strong> para
-                verificar los datos de tu club antes de activarlo. Asegúrate de usar datos reales.
+                Un administrador de Sharkania se contactará contigo por{" "}
+                <strong style={{ color:"#fafafa" }}>email y WhatsApp</strong> para verificar los datos
+                de tu club antes de activarlo. Asegúrate de usar datos reales.
               </div>
             )}
 
+            {/* Nombre */}
             <div>
-              <label className={labelClass}>Nombre</label>
+              <label className={labelClass}>Nombre *</label>
               <input
                 type="text"
                 value={displayName}
@@ -174,6 +190,7 @@ export function RegisterPage() {
               />
             </div>
 
+            {/* Email */}
             <div>
               <label className={labelClass}>Email *</label>
               <input
@@ -191,6 +208,7 @@ export function RegisterPage() {
               )}
             </div>
 
+            {/* WhatsApp */}
             <div>
               <label className={labelClass}>WhatsApp *</label>
               <div className="relative">
@@ -207,12 +225,31 @@ export function RegisterPage() {
               <p className="text-[11px] text-sk-text-3 mt-1">
                 {regType === "club"
                   ? "📱 Número real con código de país. Te contactaremos por aquí para validar tu club."
-                  : "📱 Con código de país, ej: 52 55 1234 5678"}
+                  : "📱 Con código de país, ej: 56 9 1234 5678"}
               </p>
             </div>
 
+            {/* País — jugador */}
+            {regType === "player" && (
+              <div>
+                <label className={labelClass}>País *</label>
+                <select
+                  value={playerCountry}
+                  onChange={(e) => setPlayerCountry(e.target.value)}
+                  required
+                  className={inputClass}
+                >
+                  <option value="">Seleccionar país</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Contraseña */}
             <div>
-              <label className={labelClass}>Contraseña</label>
+              <label className={labelClass}>Contraseña *</label>
               <input
                 type="password"
                 value={password}
@@ -224,6 +261,7 @@ export function RegisterPage() {
               />
             </div>
 
+            {/* Datos del club */}
             {regType === "club" && (
               <>
                 <div className="h-px bg-sk-border-2 my-2" />

@@ -1,5 +1,5 @@
 // src/components/admin/nickname-claim.tsx
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Modal } from "../ui/modal";
@@ -32,21 +32,26 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleSearch = async () => {
-    if (query.length < 2) return;
-    setSearching(true);
-    const { data } = await supabase
-      .from("players")
-      .select("*, poker_rooms(name)")
-      .ilike("nickname", `%${query}%`)
-      .limit(10);
-    setResults((data as SearchResult[]) ?? []);
-    setSearching(false);
-  };
+  // Búsqueda en vivo con debounce de 300ms
+  useEffect(() => {
+    if (query.length < 2) {
+      setResults([]);
+      return;
+    }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSearch();
-  };
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      const { data } = await supabase
+        .from("players")
+        .select("*, poker_rooms(name)")
+        .ilike("nickname", `%${query}%`)
+        .limit(10);
+      setResults((data as SearchResult[]) ?? []);
+      setSearching(false);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const addPlayer = (player: SearchResult) => {
     if (selectedPlayers.some((p) => p.id === player.id)) return;
@@ -70,7 +75,6 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
     const { error } = await supabase.storage.from("screenshots").upload(path, file);
 
     if (error) {
-      // If bucket doesn't exist, just use a placeholder URL
       setScreenshotUrl(`screenshot_${Date.now()}.${ext}`);
     } else {
       const { data: urlData } = supabase.storage.from("screenshots").getPublicUrl(path);
@@ -100,10 +104,8 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
     setMessage(null);
 
     try {
-      // Update profile with whatsapp
       await supabase.from("profiles").update({ whatsapp: whatsapp.trim() }).eq("id", user.id);
 
-      // Create claims for each selected player
       const claims = selectedPlayers.map((p) => ({
         user_id: user.id,
         player_id: p.id,
@@ -140,28 +142,39 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
           Busca tu nickname en el sistema. Puedes reclamar nicknames de distintas salas. Un admin revisará tu solicitud.
         </p>
 
-        {/* Search */}
+        {/* Search — en vivo */}
         <div>
           <label className={labelClass}>Buscar Nickname</label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-sk-text-3" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Escribe tu nickname..."
-                className={`${inputClass} pl-9`}
-              />
-            </div>
-            <Button variant="secondary" size="sm" onClick={handleSearch} isLoading={searching}>
-              Buscar
-            </Button>
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-sk-text-3" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Escribe tu nickname..."
+              className={`${inputClass} pl-9 pr-9`}
+              autoComplete="off"
+            />
+            {searching && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="w-3.5 h-3.5 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin" />
+              </div>
+            )}
+            {query && !searching && (
+              <button
+                onClick={() => { setQuery(""); setResults([]); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sk-text-3 hover:text-sk-text-1 transition-colors"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
+          {query.length === 1 && (
+            <p className="text-[11px] text-sk-text-3 mt-1">Escribe al menos 2 caracteres...</p>
+          )}
         </div>
 
-        {/* Search results */}
+        {/* Resultados en vivo */}
         {results.length > 0 && (
           <div className="border border-sk-border-2 rounded-md overflow-hidden max-h-48 overflow-y-auto">
             {results.map((p) => {
@@ -191,7 +204,14 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
           </div>
         )}
 
-        {/* Selected players */}
+        {/* Sin resultados */}
+        {query.length >= 2 && !searching && results.length === 0 && (
+          <p className="text-[11px] text-sk-text-3 text-center py-2">
+            No se encontraron nicknames para "{query}"
+          </p>
+        )}
+
+        {/* Nicknames seleccionados */}
         {selectedPlayers.length > 0 && (
           <div>
             <label className={labelClass}>Nicknames a Reclamar ({selectedPlayers.length})</label>
@@ -250,17 +270,19 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
           )}
         </div>
 
-        {/* Message */}
+        {/* Mensaje */}
         {message && (
           <div className={cn(
             "rounded-md p-3 text-sk-sm",
-            message.type === "success" ? "bg-sk-green-dim border border-sk-green/20 text-sk-green" : "bg-sk-red-dim border border-sk-red/20 text-sk-red"
+            message.type === "success"
+              ? "bg-sk-green-dim border border-sk-green/20 text-sk-green"
+              : "bg-sk-red-dim border border-sk-red/20 text-sk-red"
           )}>
             {message.text}
           </div>
         )}
 
-        {/* Actions */}
+        {/* Acciones */}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" size="sm" onClick={onClose}>Cancelar</Button>
           <Button variant="accent" size="sm" onClick={handleSubmit} isLoading={submitting}>
