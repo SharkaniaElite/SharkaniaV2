@@ -77,22 +77,42 @@ function PlayerSelector({
       {isOpen && query.length >= 2 && (results ?? []).length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-sk-bg-2 border border-sk-border-2 rounded-md shadow-sk-lg overflow-hidden z-[50]">
           {(results ?? []).map((p) => (
-            <button
-              key={p.id}
-              onClick={() => {
-                onSelect(p.id);
-                setQuery(p.nickname);
-                setIsOpen(false);
-              }}
-              className={cn(
-                "w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-white/[0.03] transition-colors text-sk-sm",
-                p.id === selectedId && "bg-white/[0.04]"
-              )}
-            >
-              <FlagIcon countryCode={p.country_code} />
-              <span className="font-semibold text-sk-text-1">{p.nickname}</span>
-            </button>
-          ))}
+  <button
+    key={p.id}
+    onClick={() => {
+      onSelect(p.id);
+      setQuery(p.nickname);
+      setIsOpen(false);
+    }}
+    className={cn(
+      "w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-white/[0.03] transition-colors text-sk-sm",
+      p.id === selectedId && "bg-white/[0.04]"
+    )}
+  >
+    {/* Avatar */}
+    <div className="w-7 h-7 rounded-full bg-sk-bg-4 overflow-hidden flex items-center justify-center shrink-0">
+      {p.profiles?.avatar_url ? (
+        <img
+          src={`${p.profiles.avatar_url}?t=${Date.now()}`}
+          alt={p.nickname}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span className="text-[11px] font-bold text-sk-accent">
+          {p.nickname.charAt(0).toUpperCase()}
+        </span>
+      )}
+    </div>
+
+    {/* Flag */}
+    <FlagIcon countryCode={p.country_code} />
+
+    {/* Nickname */}
+    <span className="font-semibold text-sk-text-1">
+      {p.nickname}
+    </span>
+  </button>
+))}
         </div>
       )}
     </div>
@@ -307,9 +327,19 @@ export function ComparePage() {
                 <div className="grid grid-cols-[1fr_60px_1fr] gap-4 items-center">
                   {/* Player A */}
                   <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-xl font-extrabold text-sk-accent mx-auto mb-3">
-                      {playerA.nickname.charAt(0).toUpperCase()}
-                    </div>
+                    <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent overflow-hidden flex items-center justify-center mx-auto mb-3">
+  {playerA.profiles?.avatar_url ? (
+    <img
+      src={`${playerA.profiles.avatar_url}?t=${Date.now()}`}
+      alt={playerA.nickname}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <span className="text-sk-xl font-extrabold text-sk-accent">
+      {playerA.nickname.charAt(0).toUpperCase()}
+    </span>
+  )}
+</div>
                     <div className="font-bold text-sk-text-1 text-sk-md">
                       <FlagIcon countryCode={playerA.country_code} /> {playerA.nickname}
                     </div>
@@ -328,9 +358,19 @@ export function ComparePage() {
 
                   {/* Player B */}
                   <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-purple flex items-center justify-center text-sk-xl font-extrabold text-sk-purple mx-auto mb-3">
-                      {playerB.nickname.charAt(0).toUpperCase()}
-                    </div>
+                    <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-purple overflow-hidden flex items-center justify-center mx-auto mb-3">
+  {playerB.profiles?.avatar_url ? (
+    <img
+      src={`${playerB.profiles.avatar_url}?t=${Date.now()}`}
+      alt={playerB.nickname}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <span className="text-sk-xl font-extrabold text-sk-purple">
+      {playerB.nickname.charAt(0).toUpperCase()}
+    </span>
+  )}
+</div>
                     <div className="font-bold text-sk-text-1 text-sk-md">
                       <FlagIcon countryCode={playerB.country_code} /> {playerB.nickname}
                     </div>

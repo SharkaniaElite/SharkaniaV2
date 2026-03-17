@@ -1,5 +1,5 @@
 // src/pages/player-dashboard.tsx
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { StatCard } from "../components/ui/stat-card";
@@ -10,8 +10,7 @@ import { NicknameClaim } from "../components/admin/nickname-claim";
 import { useAuthStore } from "../stores/auth-store";
 import { updateProfile } from "../lib/api/auth";
 import { getFlag, getCountryName } from "../lib/countries";
-import { FlagIcon } from "../components/ui/flag-icon";
-import { Settings, User, LogOut, Link as LinkIcon } from "lucide-react";
+import { Settings, User, LogOut, Link as LinkIcon, Camera } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 
@@ -25,6 +24,9 @@ export function PlayerDashboardPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [claimOpen, setClaimOpen] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const avatarFileRef = useRef<HTMLInputElement>(null);
 
   // Get user's nickname claims
   const { data: myClaims, refetch: refetchClaims } = useQuery({
@@ -57,6 +59,66 @@ export function PlayerDashboardPage() {
     return <PageShell><div className="pt-20 min-h-screen flex items-center justify-center"><Spinner size="lg" /></div></PageShell>;
   }
 
+  const MAX_AVATAR_BYTES = 100 * 1024; // 100 KB
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarError("");
+
+    // 1. Validar tamaño antes de gastar ancho de banda
+    if (file.size > MAX_AVATAR_BYTES) {
+      setAvatarError("size_exceeded");
+      e.target.value = "";
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "avif";
+      
+      /* CLAVE ROBUSTA: 
+         - Usamos solo `${user.id}/...` porque el bucket 'avatars' ya se define en .from()
+         - Agregamos un timestamp para evitar que el navegador cachee la imagen vieja
+      */
+      const fileName = `avatar-${Date.now()}.${ext}`;
+      const path = `${user.id}/${fileName}`;
+
+      // 2. Subida a Storage
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { 
+          upsert: true,
+          contentType: file.type 
+        });
+
+      if (uploadError) {
+        // Esto aparecerá en tu consola (F12) para debuguear si falla el RLS
+        console.error("Error detallado de Supabase Storage:", uploadError);
+        throw uploadError;
+      }
+
+      // 3. Obtener URL Pública
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const avatarUrl = urlData.publicUrl;
+
+      // 4. Actualizar el perfil del usuario con la nueva URL
+      await updateProfile(user.id, { avatar_url: avatarUrl });
+      
+      // 5. Refrescar estado global
+      await refreshProfile();
+      
+      setMessage("Foto de perfil actualizada");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      console.error("Error completo en el proceso:", err);
+      setAvatarError("upload_failed");
+    } finally {
+      setAvatarUploading(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
@@ -84,6 +146,8 @@ export function PlayerDashboardPage() {
     navigate("/");
   };
 
+  
+
   const inputClass = "w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent";
   const labelClass = "font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block";
 
@@ -103,11 +167,50 @@ export function PlayerDashboardPage() {
           {/* Profile card */}
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2"><User size={18} /> Mi Perfil</h2>
+              <div className="flex items-center gap-4">
+                {/* Avatar */}
+                <div className="relative shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-sk-bg-4 border-2 border-sk-border-2 overflow-hidden flex items-center justify-center">
+                    {profile.avatar_url
+  ? <img src={`${profile.avatar_url}?t=${Date.now()}`} alt="Avatar" className="w-full h-full object-cover" />
+                      : <span className="text-sk-xl font-extrabold text-sk-accent">{(profile.display_name ?? "?").charAt(0).toUpperCase()}</span>
+                    }
+                  </div>
+                  <button
+                    onClick={() => { setAvatarError(""); avatarFileRef.current?.click(); }}
+                    disabled={avatarUploading}
+                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-sk-accent flex items-center justify-center hover:bg-sk-accent-hover transition-colors disabled:opacity-50"
+                    title="Cambiar foto"
+                  >
+                    {avatarUploading
+                      ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      : <Camera size={12} className="text-sk-bg-0" />
+                    }
+                  </button>
+                  <input ref={avatarFileRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                </div>
+                <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2"><User size={18} /> Mi Perfil</h2>
+              </div>
               <Button variant="ghost" size="sm" onClick={() => { setEditing(!editing); if (!editing) { setDisplayName(profile.display_name ?? ""); setCountryCode(profile.country_code ?? ""); setWhatsapp(profile.whatsapp ?? ""); } }}>
                 <Settings size={14} /> {editing ? "Cancelar" : "Editar"}
               </Button>
             </div>
+
+            {/* Error avatar */}
+            {avatarError === "size_exceeded" && (
+              <div className="mb-4 bg-sk-red-dim border border-sk-red/20 rounded-md p-3 text-sk-sm text-sk-red leading-relaxed">
+                ⚠️ Tu imagen supera los <strong>100 KB</strong>. Para reducirla te recomendamos usar{" "}
+                <a href="https://squoosh.app/" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:opacity-80">
+                  squoosh.app
+                </a>{" "}
+                — selecciona formato <strong>AVIF</strong> y un tamaño máximo de <strong>1000×1000 px</strong>.
+              </div>
+            )}
+            {avatarError === "upload_failed" && (
+              <div className="mb-4 bg-sk-red-dim border border-sk-red/20 rounded-md p-3 text-sk-sm text-sk-red">
+                Error al subir la imagen. Inténtalo de nuevo.
+              </div>
+            )}
 
             {editing ? (
               <div className="space-y-4">
@@ -149,7 +252,7 @@ export function PlayerDashboardPage() {
                     }
                   </p>
                 </div>
-                <div><span className="text-sk-text-2">País:</span><p className="text-sk-text-1 font-semibold">{profile.country_code ? <span className="inline-flex items-center gap-1.5"><FlagIcon countryCode={profile.country_code} /> {getCountryName(profile.country_code)}</span> : "No definido"}</p></div>
+                <div><span className="text-sk-text-2">País:</span><p className="text-sk-text-1 font-semibold">{profile.country_code ? `${getFlag(profile.country_code)} ${getCountryName(profile.country_code)}` : "No definido"}</p></div>
                 <div><span className="text-sk-text-2">Rol:</span><p className="text-sk-text-1 font-semibold capitalize">{profile.role}</p></div>
               </div>
             )}

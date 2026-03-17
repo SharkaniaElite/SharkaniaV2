@@ -21,6 +21,7 @@ import { SuperAdminPage } from "./pages/super-admin";
 import BlogPage from "./pages/blog";
 import BlogPostPage from "./pages/blog-post";
 import { FloatingCTA } from "./components/marketing/FloatingCTA";
+import { TournamentDetailPage } from "./pages/tournament-detail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +65,7 @@ export function App() {
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/tournament/:id" element={<TournamentDetailPage />} />
 
             {/* Blog */}
             <Route path="/blog" element={<BlogPage />} />

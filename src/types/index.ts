@@ -281,6 +281,7 @@ export interface Subscription {
 
 export interface PlayerWithRoom extends Player {
   poker_rooms: Pick<PokerRoom, "name">;
+  profiles?: { avatar_url: string | null };
 }
 
 export interface TournamentWithDetails extends Tournament {

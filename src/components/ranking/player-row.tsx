@@ -1,4 +1,3 @@
-// src/components/ranking/player-row.tsx
 import { Link } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { FlagIcon } from "../ui/flag-icon";
@@ -14,19 +13,28 @@ interface PlayerRowProps {
 export function PlayerRow({ player, rank }: PlayerRowProps) {
   const itm = calcItm(player.total_cashes, player.total_tournaments);
 
+  // 🔥 Fuente única de avatar (con fallback pro)
+  const avatar =
+    player.profiles?.avatar_url ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      player.nickname
+    )}&background=111827&color=fff`;
+
   return (
     <tr
       className={cn(
-    "group transition-colors duration-150 hover:bg-white/[0.03]",
+        "group transition-colors duration-150 hover:bg-white/[0.03]",
         rank === 1 && "bg-[rgba(251,191,36,0.08)] border-l-2 border-l-sk-gold",
         rank === 2 && "bg-[rgba(203,213,225,0.05)] border-l-2 border-l-sk-silver",
         rank === 3 && "bg-[rgba(217,119,6,0.06)] border-l-2 border-l-sk-bronze"
       )}
     >
+      {/* Rank */}
       <td className="py-3 px-4 border-b border-sk-border-2">
         <RankBadge rank={rank} />
       </td>
 
+      {/* Player */}
       <td className="py-3 px-4 border-b border-sk-border-2">
         <Link
           to={`/ranking/${player.id}`}
@@ -34,19 +42,25 @@ export function PlayerRow({ player, rank }: PlayerRowProps) {
         >
           {/* Avatar */}
           <div className="relative w-7 h-7 shrink-0">
-  {/* Avatar */}
-  <div className="w-7 h-7 rounded-full bg-sk-bg-4 border border-sk-border-2 flex items-center justify-center text-[11px] font-bold text-sk-text-2">
-    {player.nickname.charAt(0).toUpperCase()}
-  </div>
+            <div className="w-7 h-7 rounded-full bg-sk-bg-4 border border-sk-border-2 overflow-hidden">
+              <img
+                src={avatar}
+                alt={player.nickname}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
 
-  {/* Bandera */}
-  <div className="absolute -bottom-1 -right-1 shadow-sm">
-    <FlagIcon countryCode={player.country_code} size={11} />
-  </div>
-</div>
+            {/* Flag */}
+            <div className="absolute -bottom-1 -right-1 shadow-sm">
+              <FlagIcon countryCode={player.country_code} size={11} />
+            </div>
+          </div>
 
           {/* Nombre */}
-          <span className="font-semibold text-sk-text-1 transition-colors group-hover:text-white">{player.nickname}</span>
+          <span className="font-semibold text-sk-text-1 transition-colors group-hover:text-white">
+            {player.nickname}
+          </span>
 
           {/* Sala */}
           <span className="text-[10px] text-sk-text-3 hidden lg:inline">
@@ -55,24 +69,28 @@ export function PlayerRow({ player, rank }: PlayerRowProps) {
         </Link>
       </td>
 
+      {/* ELO */}
       <td className="py-3 px-4 border-b border-sk-border-2 text-right">
         <span className="font-mono font-bold text-sk-accent tracking-tight">
           {formatElo(player.elo_rating)}
         </span>
       </td>
 
+      {/* Torneos */}
       <td className="py-3 px-4 border-b border-sk-border-2 text-right">
         <span className="font-mono text-sk-sm font-semibold text-sk-text-1">
           {formatNumber(player.total_tournaments)}
         </span>
       </td>
 
+      {/* Cobros */}
       <td className="py-3 px-4 border-b border-sk-border-2 text-right">
         <span className="font-mono text-sk-sm font-semibold text-sk-text-1">
           {formatNumber(player.total_cashes)}
         </span>
       </td>
 
+      {/* ITM */}
       <td className="py-3 px-4 border-b border-sk-border-2 text-right">
         <span
           className={cn(
@@ -84,6 +102,7 @@ export function PlayerRow({ player, rank }: PlayerRowProps) {
         </span>
       </td>
 
+      {/* Wins */}
       <td className="py-3 px-4 border-b border-sk-border-2 text-right">
         <span className="font-mono text-sk-sm font-semibold text-sk-text-1">
           {player.total_wins}

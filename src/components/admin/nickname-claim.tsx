@@ -68,20 +68,45 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `claims/${user.id}/${Date.now()}.${ext}`;
-
-    const { error } = await supabase.storage.from("screenshots").upload(path, file);
-
-    if (error) {
-      setScreenshotUrl(`screenshot_${Date.now()}.${ext}`);
-    } else {
-      const { data: urlData } = supabase.storage.from("screenshots").getPublicUrl(path);
-      setScreenshotUrl(urlData.publicUrl);
+    // 1. Validar tamaño (200 KB)
+    const MAX_SIZE = 200 * 1024;
+    if (file.size > MAX_SIZE) {
+      setMessage({ 
+        text: "⚠️ La imagen supera los 200 KB. Por favor redúcela antes de subirla.", 
+        type: "error" 
+      });
+      e.target.value = "";
+      return;
     }
-    setUploading(false);
-    e.target.value = "";
+
+    setUploading(true);
+    setMessage(null);
+
+    try {
+      const ext = file.name.split(".").pop();
+      // Guardamos en el bucket nickverify, carpeta con ID del usuario
+      const path = `${user.id}/${Date.now()}.${ext}`;
+
+      // 2. Subida al bucket nickverify
+      const { error: uploadError } = await supabase.storage
+        .from("nickverify")
+        .upload(path, file);
+
+      if (uploadError) throw uploadError;
+
+      // 3. Obtener URL Pública para que el Admin pueda verla
+      const { data: urlData } = supabase.storage
+        .from("nickverify")
+        .getPublicUrl(path);
+
+      setScreenshotUrl(urlData.publicUrl);
+    } catch (err) {
+      console.error("Error subiendo archivo:", err);
+      setMessage({ text: "Error al subir la imagen a nickverify", type: "error" });
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = "";
+    }
   };
 
   const handleSubmit = async () => {
@@ -104,12 +129,14 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
     setMessage(null);
 
     try {
+      // Actualizamos el WhatsApp en el perfil
       await supabase.from("profiles").update({ whatsapp: whatsapp.trim() }).eq("id", user.id);
 
+      // Creamos los reclamos con la URL pública que obtuvimos en handleFileUpload
       const claims = selectedPlayers.map((p) => ({
         user_id: user.id,
         player_id: p.id,
-        screenshot_url: screenshotUrl,
+        screenshot_url: screenshotUrl, // Esta ya es la URL pública de nickverify
         status: "pending" as const,
       }));
 
@@ -117,7 +144,7 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
       if (error) throw error;
 
       setMessage({
-        text: `✅ ${selectedPlayers.length} claim(s) enviado(s). Un administrador lo revisará pronto.`,
+        text: `✅ Solicitud enviada. Un administrador revisará la captura en nickverify.`,
         type: "success",
       });
 

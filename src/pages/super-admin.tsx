@@ -64,10 +64,22 @@ export function SuperAdminPage() {
   });
 
   const { data: nicknameClaims } = useQuery({
-    queryKey: ["admin-nickname-claims"],
-    queryFn: async () => { const { data } = await supabase.from("nickname_claims").select("*, profiles(display_name), players(nickname)").order("created_at", { ascending: false }); return data ?? []; },
-    enabled: tab === "requests",
-  });
+  queryKey: ["admin-nickname-claims"],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from("nickname_claims")
+      .select(`
+        *,
+        profiles:user_id (display_name, email, whatsapp),
+        players:player_id (nickname)
+      `)
+      .order("created_at", { ascending: false });
+    
+    if (error) throw error;
+    return data ?? [];
+  },
+  enabled: tab === "requests",
+});
 
   const { data: rooms } = useQuery({
     queryKey: ["admin-rooms"],
@@ -249,117 +261,159 @@ export function SuperAdminPage() {
             />
           )}
 
-          {/* Requests */}
-          {tab === "requests" && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Solicitudes de Club ({clubRequests?.length})</h2>
-                {(clubRequests ?? []).length === 0 ? (
-                  <p className="text-sk-text-2 text-sk-sm">Sin solicitudes</p>
-                ) : (
-                  <div className="space-y-3">
-                    {(clubRequests ?? []).map((req) => (
-                      <div key={req.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
-                        {/* Header */}
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                          <div>
-                            <p className="text-sk-md font-bold text-sk-text-1">{req.club_name}</p>
-                            <p className="text-sk-xs text-sk-text-3 mt-0.5">
-                              Recibida el {new Date(req.created_at).toLocaleDateString("es-CL", { day:"numeric", month:"long", year:"numeric" })}
-                            </p>
-                          </div>
-                          <Badge variant={req.status === "pending" ? "orange" : req.status === "approved" ? "green" : "red"}>
-                            {req.status}
-                          </Badge>
-                        </div>
-
-                        {/* Datos del solicitante */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-3 rounded-md bg-sk-bg-3 border border-sk-border-2">
-                          <div>
-                            <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">Nombre</p>
-                            <p className="text-sk-sm font-semibold text-sk-text-1">{req.profiles?.display_name ?? "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">Email</p>
-                            <a href={`mailto:${req.profiles?.email}`} className="text-sk-sm text-sk-accent hover:underline break-all">
-                              {req.profiles?.email ?? "—"}
-                            </a>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">WhatsApp</p>
-                            {req.profiles?.whatsapp
-                              ? (
-                                <a
-                                  href={`https://wa.me/${req.profiles.whatsapp.replace(/\D/g,"")}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sk-sm text-sk-green hover:underline"
-                                >
-                                  +{req.profiles.whatsapp}
-                                </a>
-                              )
-                              : <span className="text-sk-sm text-sk-text-3">—</span>
-                            }
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">País del Club</p>
-                            <p className="text-sk-sm text-sk-text-1">{req.country_code ? <span className="inline-flex items-center gap-1.5"><FlagIcon countryCode={req.country_code} /> {req.country_code}</span> : "—"}</p>
-                          </div>
-                        </div>
-
-                        {/* Descripción */}
-                        {req.description && (
-                          <div className="mb-4">
-                            <p className="text-[10px] font-mono uppercase tracking-wider text-sk-text-3 mb-1">Descripción</p>
-                            <p className="text-sk-sm text-sk-text-2 leading-relaxed">{req.description}</p>
-                          </div>
-                        )}
-
-                        {/* Acciones */}
-                        {req.status === "pending" && (
-                          <div className="flex gap-2 pt-3 border-t border-sk-border-2">
-                            <Button variant="accent" size="sm" onClick={() => handleApproveClub(req)}>
-                              <Check size={13} /> Aprobar Club
-                            </Button>
-                            <Button variant="danger" size="sm" onClick={() => handleRejectRequest(req.id, "club_registration_requests")}>
-                              <XIcon size={13} /> Rechazar
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+   {/* Requests */}
+{tab === "requests" && (
+  <div className="space-y-8">
+    {/* Solicitudes de Club */}
+    <div>
+      <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Solicitudes de Club ({clubRequests?.length || 0})</h2>
+      {(clubRequests ?? []).length === 0 ? (
+        <p className="text-sk-text-2 text-sk-sm">Sin solicitudes de club</p>
+      ) : (
+        <div className="space-y-3">
+          {clubRequests?.map((req) => (
+            <div key={req.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <p className="text-sk-md font-bold text-sk-text-1">{req.club_name}</p>
+                  <p className="text-sk-xs text-sk-text-3">Solicitante: {req.profiles?.display_name}</p>
+                </div>
+                <Badge variant={req.status === "pending" ? "orange" : "green"}>{req.status}</Badge>
               </div>
+              {req.status === "pending" && (
+                <div className="flex gap-2 pt-3 border-t border-sk-border-2">
+                  <Button variant="accent" size="sm" onClick={() => handleApproveClub(req)}>
+                    <Check size={13} className="mr-1" /> Aprobar Club
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleRejectRequest(req.id, "club_registration_requests")}>
+                    <XIcon size={13} className="mr-1" /> Rechazar
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
 
-              <div>
-                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Claims de Nickname ({nicknameClaims?.length})</h2>
-                {(nicknameClaims ?? []).length === 0 ? (
-                  <p className="text-sk-text-2 text-sk-sm">Sin claims</p>
+    {/* Claims de Nickname (Jugadores) */}
+
+<div>
+  <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Claims de Nickname ({nicknameClaims?.length || 0})</h2>
+  {(nicknameClaims ?? []).length === 0 ? (
+    <p className="text-sk-text-2 text-sk-sm">Sin claims pendientes</p>
+  ) : (
+    <div className="grid grid-cols-1 gap-4">
+      {nicknameClaims?.map((claim) => (
+        <div key={claim.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
+          <div className="flex flex-col md:flex-row gap-5">
+            {/* Visualizador de Screenshot */}
+            <div className="shrink-0">
+              <p className="text-[10px] font-mono uppercase text-sk-text-3 mb-2">Prueba (Screenshot)</p>
+              <a 
+                href={claim.screenshot_url} 
+                target="_blank" 
+                rel="noreferrer"
+                className="block group relative w-32 h-32 md:w-40 md:h-40 bg-sk-bg-3 border border-sk-border-2 rounded-md overflow-hidden"
+              >
+                {claim.screenshot_url ? (
+                  <>
+                    <img 
+                      src={claim.screenshot_url} 
+                      alt="Validación" 
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">Ver en grande</span>
+                    </div>
+                  </>
                 ) : (
-                  <div className="space-y-2">
-                    {(nicknameClaims ?? []).map((claim) => (
-                      <div key={claim.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-4 flex items-center justify-between">
-                        <div>
-                          <p className="text-sk-text-1 font-semibold">{claim.players?.nickname}</p>
-                          <p className="text-sk-xs text-sk-text-2">Por: {claim.profiles?.display_name}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={claim.status === "pending" ? "orange" : claim.status === "approved" ? "green" : "red"}>{claim.status}</Badge>
-                          {claim.status === "pending" && (
-                            <>
-                              <Button variant="accent" size="xs" onClick={async () => { await supabase.from("nickname_claims").update({ status: "approved", resolved_at: new Date().toISOString() }).eq("id", claim.id); refresh(); }}><Check size={12} /></Button>
-                              <Button variant="danger" size="xs" onClick={() => handleRejectRequest(claim.id, "nickname_claims")}><XIcon size={12} /></Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <div className="flex items-center justify-center h-full text-sk-text-3 italic text-xs">Sin imagen</div>
                 )}
+              </a>
+            </div>
+
+            {/* Datos y Acciones */}
+            <div className="flex-1 flex flex-col justify-between">
+  <div>
+    <div className="flex items-center justify-between mb-2">
+      <h3 className="text-sk-lg font-bold text-sk-text-1">{claim.players?.nickname}</h3>
+      <Badge variant={claim.status === "pending" ? "orange" : claim.status === "approved" ? "green" : "muted"}>
+        {claim.status}
+      </Badge>
+    </div>
+    
+    <div className="space-y-1.5">
+      <p className="text-sk-sm text-sk-text-2">
+        <span className="text-sk-text-3 font-mono text-[10px] uppercase">Usuario:</span> {claim.profiles?.display_name}
+      </p>
+      
+      <p className="text-sk-sm text-sk-text-2">
+        <span className="text-sk-text-3 font-mono text-[10px] uppercase">Email:</span> {claim.profiles?.email}
+      </p>
+      
+      <p className="text-sk-sm text-sk-text-2 flex items-center gap-2">
+        <span className="text-sk-text-3 font-mono text-[10px] uppercase">WhatsApp:</span> 
+        {claim.profiles?.whatsapp ? (
+          <a 
+            href={`https://wa.me/${claim.profiles.whatsapp.replace(/\D/g, '')}`} 
+            target="_blank" 
+            rel="noreferrer"
+            className="text-sk-green hover:underline flex items-center gap-1"
+          >
+            +{claim.profiles.whatsapp}
+          </a>
+        ) : (
+          <span className="text-sk-text-3 italic">No registrado</span>
+        )}
+      </p>
+
+      <p className="text-xs text-sk-text-3 pt-1">
+        ID Reclamo: <span className="font-mono">{claim.id.split('-')[0]}</span>
+      </p>
+    </div>
+  </div>
+
+              <div className="flex gap-2 mt-4">
+                <Button 
+                  variant="accent" 
+                  className="flex-1"
+                  onClick={async () => {
+                    // 1. Vincular jugador con el perfil (profile_id)
+                    const { error: linkError } = await supabase
+                      .from("players")
+                      .update({ profile_id: claim.user_id })
+                      .eq("id", claim.player_id);
+
+                    if (linkError) return alert("Error vinculando: " + linkError.message);
+
+                    // 2. Marcar claim como aprobado
+                    await supabase
+                      .from("nickname_claims")
+                      .update({ status: "approved", resolved_at: new Date().toISOString() })
+                      .eq("id", claim.id);
+
+                    refresh();
+                  }}
+                >
+                  <Check size={14} className="mr-2" /> Aprobar y Vincular
+                </Button>
+                <Button 
+                  variant="danger" 
+                  onClick={() => handleRejectRequest(claim.id, "nickname_claims")}
+                >
+                  <XIcon size={14} />
+                </Button>
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+  </div>
+)}
 
           {/* Rooms */}
           {tab === "rooms" && (

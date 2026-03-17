@@ -12,12 +12,15 @@ import { useTournamentsByClub } from "../hooks/use-tournaments";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import type { TournamentWithDetails } from "../types";
+import { useNavigate } from "react-router-dom";
 
 export function ClubDetailPage() {
   const { clubId } = useParams<{ clubId: string }>();
+  const navigate = useNavigate();
   const { data: club, isLoading } = useClub(clubId);
   const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByClub(clubId);
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
+  
 
   if (isLoading) {
     return (
@@ -95,12 +98,20 @@ export function ClubDetailPage() {
               </h2>
               <div className="flex flex-col gap-2">
                 {completed.map((t) => (
-                  <TournamentCard
-                    key={t.id}
-                    tournament={t}
-                    onInfoClick={() => setSelectedTournament(t)}
-                  />
-                ))}
+  <div
+    key={t.id}
+    onClick={() => navigate(`/tournament/${t.id}`)}
+    className="cursor-pointer"
+  >
+    <TournamentCard
+      tournament={t}
+      onInfoClick={(e) => {
+        e?.stopPropagation?.(); // 🔥 evita que abra la página
+        setSelectedTournament(t);
+      }}
+    />
+  </div>
+))}
               </div>
             </div>
           )}

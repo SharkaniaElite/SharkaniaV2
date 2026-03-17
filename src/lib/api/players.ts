@@ -1,4 +1,3 @@
-// src/lib/api/players.ts
 import { supabase } from "../supabase";
 import type {
   Player,
@@ -18,6 +17,17 @@ interface PlayersFilters {
   orderDir?: "asc" | "desc";
 }
 
+// 🔥 Query base reutilizable (evita inconsistencias)
+const BASE_PLAYER_SELECT = `
+  *,
+  poker_rooms(name),
+  profiles (
+    id,
+    avatar_url,
+    display_name
+  )
+`;
+
 export async function getPlayers(
   filters: PlayersFilters = {}
 ): Promise<PaginatedResponse<PlayerWithRoom>> {
@@ -33,9 +43,8 @@ export async function getPlayers(
 
   let query = supabase
     .from("players")
-    .select("*, poker_rooms(name)", { count: "exact" });
+    .select(BASE_PLAYER_SELECT, { count: "exact" });
 
-  // Use ilike for partial matching (e.g. "sh" matches "SharkMaster")
   if (search) {
     query = query.ilike("nickname", `%${search}%`);
   }
@@ -73,7 +82,7 @@ export async function getPlayerById(
 ): Promise<PlayerWithRoom | null> {
   const { data, error } = await supabase
     .from("players")
-    .select("*, poker_rooms(name)")
+    .select(BASE_PLAYER_SELECT)
     .eq("id", id)
     .single();
 
@@ -126,13 +135,13 @@ export async function getPlayerTournamentResults(
 export async function searchPlayers(
   query: string,
   limit: number = 10
-): Promise<Player[]> {
+): Promise<PlayerWithRoom[]> {
   const { data, error } = await supabase
     .from("players")
-    .select("*, poker_rooms(name)")
+    .select(BASE_PLAYER_SELECT)
     .ilike("nickname", `%${query}%`)
     .limit(limit);
 
   if (error) throw error;
-  return (data as Player[]) ?? [];
+  return (data as PlayerWithRoom[]) ?? [];
 }
