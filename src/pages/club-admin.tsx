@@ -7,8 +7,10 @@ import { StatCard } from "../components/ui/stat-card";
 import { Spinner } from "../components/ui/spinner";
 import { EmptyState } from "../components/ui/empty-state";
 import { ResultsUpload } from "../components/admin/results-upload";
+import { ResultsEditor } from "../components/admin/results-editor";
 import { TournamentForm } from "../components/admin/tournament-form";
 import { LeagueForm } from "../components/admin/league-form";
+import { ClubPlayersTab } from "../components/admin/club-players-tab";
 import { useAuthStore } from "../stores/auth-store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
@@ -18,26 +20,30 @@ import { cn } from "../lib/cn";
 import { Plus, Trash2, Pencil, Save } from "lucide-react";
 import type { TournamentWithDetails, Tournament, League } from "../types";
 
-type TabKey = "tournaments" | "leagues" | "stats" | "info";
+type TabKey = "tournaments" | "players" | "leagues" | "stats" | "info";
 
 export function ClubAdminPage() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>("tournaments");
   const [uploadTournament, setUploadTournament] = useState<TournamentWithDetails | null>(null);
+  const [editResultsTournament, setEditResultsTournament] = useState<TournamentWithDetails | null>(null);
   const [editTournament, setEditTournament] = useState<Tournament | null | undefined>(undefined);
   const [editLeague, setEditLeague] = useState<League | null | undefined>(undefined);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   // Club info editing
   const [editingInfo, setEditingInfo] = useState(false);
-  const [clubDescription, setClubDescription] = useState("");
+  const [infoForm, setInfoForm] = useState({
+    description: "", email: "", whatsapp: "", website_url: "",
+    discord_url: "", telegram_url: "", instagram_url: "",
+  });
   const [savingInfo, setSavingInfo] = useState(false);
 
   const { data: adminClubs, isLoading } = useQuery({
     queryKey: ["my-admin-clubs", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("club_admins").select("*, clubs(id, name, country_code, description, is_approved)").eq("user_id", user!.id);
+      const { data, error } = await supabase.from("club_admins").select("*, clubs(id, name, country_code, description, is_approved, email, whatsapp, website_url, discord_url, telegram_url, instagram_url)").eq("user_id", user!.id);
       if (error) throw error;
       return data;
     },
@@ -87,10 +93,31 @@ export function ClubAdminPage() {
   const handleSaveInfo = async () => {
     if (!firstClubId) return;
     setSavingInfo(true);
-    await supabase.from("clubs").update({ description: clubDescription }).eq("id", firstClubId);
+    await supabase.from("clubs").update({
+      description: infoForm.description || null,
+      email: infoForm.email || null,
+      whatsapp: infoForm.whatsapp || null,
+      website_url: infoForm.website_url || null,
+      discord_url: infoForm.discord_url || null,
+      telegram_url: infoForm.telegram_url || null,
+      instagram_url: infoForm.instagram_url || null,
+    }).eq("id", firstClubId);
     queryClient.invalidateQueries({ queryKey: ["my-admin-clubs"] });
     setSavingInfo(false);
     setEditingInfo(false);
+  };
+
+  const startEditingInfo = () => {
+    setEditingInfo(true);
+    setInfoForm({
+      description: club?.description ?? "",
+      email: club?.email ?? "",
+      whatsapp: club?.whatsapp ?? "",
+      website_url: club?.website_url ?? "",
+      discord_url: club?.discord_url ?? "",
+      telegram_url: club?.telegram_url ?? "",
+      instagram_url: club?.instagram_url ?? "",
+    });
   };
 
   const refresh = () => {
@@ -107,6 +134,7 @@ export function ClubAdminPage() {
 
   const TABS: { key: TabKey; label: string }[] = [
     { key: "tournaments", label: `Torneos (${tournaments?.length ?? 0})` },
+    { key: "players", label: "Jugadores" },
     { key: "leagues", label: `Ligas (${leagues?.length ?? 0})` },
     { key: "stats", label: "Estadísticas" },
     { key: "info", label: "Info del Club" },
@@ -167,7 +195,7 @@ export function ClubAdminPage() {
                           <td className="py-3 px-4 border-b border-sk-border-2 font-mono text-sk-text-1">{formatCurrency(t.buy_in)}</td>
                           <td className="py-3 px-4 border-b border-sk-border-2 font-mono text-sk-gold font-bold">{t.guaranteed_prize ? formatCurrency(t.guaranteed_prize) : "—"}</td>
                           <td className="py-3 px-4 border-b border-sk-border-2"><Badge variant={t.status === "completed" ? "muted" : t.status === "live" ? "live" : "accent"}>{t.status}</Badge></td>
-                          <td className="py-3 px-4 border-b border-sk-border-2">{t.results_uploaded ? <Badge variant="green">✓ Subidos</Badge> : <Button variant="accent" size="xs" onClick={() => setUploadTournament(t)}>Subir</Button>}</td>
+                          <td className="py-3 px-4 border-b border-sk-border-2">{t.results_uploaded ? <Button variant="secondary" size="xs" onClick={() => setEditResultsTournament(t)}>Ver / Editar</Button> : <Button variant="accent" size="xs" onClick={() => setUploadTournament(t)}>Subir</Button>}</td>
                           <td className="py-3 px-4 border-b border-sk-border-2">
                             <div className="flex gap-1">
                               <button onClick={() => setEditTournament(t as Tournament)} className="text-sk-text-2 hover:text-sk-accent p-1"><Pencil size={13} /></button>
@@ -181,6 +209,11 @@ export function ClubAdminPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Players */}
+          {activeTab === "players" && firstClubId && (
+            <ClubPlayersTab clubId={firstClubId} />
           )}
 
           {/* Leagues */}
@@ -216,35 +249,141 @@ export function ClubAdminPage() {
           {/* Info */}
           {activeTab === "info" && (
             <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-6">
                 <h3 className="text-sk-md font-bold text-sk-text-1">Información del Club</h3>
                 {!editingInfo && (
-                  <Button variant="ghost" size="sm" onClick={() => { setEditingInfo(true); setClubDescription(club?.description ?? ""); }}>
-                    <Pencil size={14} /> Editar Descripción
+                  <Button variant="ghost" size="sm" onClick={startEditingInfo}>
+                    <Pencil size={14} /> Editar
                   </Button>
                 )}
               </div>
-              <div className="space-y-3 text-sk-sm">
-                <p><span className="text-sk-text-2">Nombre:</span> <span className="text-sk-text-1 font-semibold">{club?.name}</span></p>
-                <p><span className="text-sk-text-2">País:</span> <span className="text-sk-text-1 font-semibold">{club?.country_code ?? "No definido"}</span></p>
-                {editingInfo ? (
+
+              {editingInfo ? (
+                <div className="space-y-4">
+                  {/* Read-only */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-3 mb-1 block">Nombre (no editable)</label>
+                      <div className="bg-sk-bg-3 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-2">{club?.name}</div>
+                    </div>
+                    <div>
+                      <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-3 mb-1 block">País (no editable)</label>
+                      <div className="bg-sk-bg-3 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-2">{club?.country_code ?? "—"}</div>
+                    </div>
+                  </div>
+
+                  {/* Description */}
                   <div>
                     <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">Descripción</label>
                     <textarea
-                      value={clubDescription}
-                      onChange={(e) => setClubDescription(e.target.value)}
-                      className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent min-h-[80px] resize-y"
+                      value={infoForm.description}
+                      onChange={(e) => setInfoForm({ ...infoForm, description: e.target.value })}
+                      placeholder="Describe tu club..."
+                      className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent min-h-[80px] resize-y"
                     />
-                    <div className="flex gap-2 mt-3">
-                      <Button variant="accent" size="sm" onClick={handleSaveInfo} isLoading={savingInfo}><Save size={14} /> Guardar</Button>
-                      <Button variant="secondary" size="sm" onClick={() => setEditingInfo(false)}>Cancelar</Button>
+                  </div>
+
+                  {/* Contact */}
+                  <div>
+                    <p className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-accent mb-3">Datos de contacto</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">📧 Email</label>
+                        <input
+                          type="email"
+                          value={infoForm.email}
+                          onChange={(e) => setInfoForm({ ...infoForm, email: e.target.value })}
+                          placeholder="contacto@miclub.com"
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">📱 WhatsApp</label>
+                        <input
+                          type="tel"
+                          value={infoForm.whatsapp}
+                          onChange={(e) => setInfoForm({ ...infoForm, whatsapp: e.target.value })}
+                          placeholder="+56 9 1234 5678"
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent"
+                        />
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  <p><span className="text-sk-text-2">Descripción:</span> <span className="text-sk-text-1">{club?.description ?? "Sin descripción"}</span></p>
-                )}
-                <p className="text-sk-xs text-sk-text-3 mt-4">Para cambiar el nombre o país del club, contacta al super admin.</p>
-              </div>
+
+                  {/* Links */}
+                  <div>
+                    <p className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-accent mb-3">Redes y enlaces</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">🌐 Sitio Web</label>
+                        <input
+                          type="url"
+                          value={infoForm.website_url}
+                          onChange={(e) => setInfoForm({ ...infoForm, website_url: e.target.value })}
+                          placeholder="https://miclub.com"
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">💬 Discord</label>
+                        <input
+                          type="url"
+                          value={infoForm.discord_url}
+                          onChange={(e) => setInfoForm({ ...infoForm, discord_url: e.target.value })}
+                          placeholder="https://discord.gg/..."
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">✈️ Telegram</label>
+                        <input
+                          type="url"
+                          value={infoForm.telegram_url}
+                          onChange={(e) => setInfoForm({ ...infoForm, telegram_url: e.target.value })}
+                          placeholder="https://t.me/..."
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">📸 Instagram</label>
+                        <input
+                          type="url"
+                          value={infoForm.instagram_url}
+                          onChange={(e) => setInfoForm({ ...infoForm, instagram_url: e.target.value })}
+                          placeholder="https://instagram.com/..."
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="accent" size="sm" onClick={handleSaveInfo} isLoading={savingInfo}><Save size={14} /> Guardar</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setEditingInfo(false)}>Cancelar</Button>
+                  </div>
+                  <p className="text-sk-xs text-sk-text-3">Para cambiar el nombre o país del club, contacta al super admin.</p>
+                </div>
+              ) : (
+                <div className="space-y-4 text-sk-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <p><span className="text-sk-text-3">Nombre:</span> <span className="text-sk-text-1 font-semibold">{club?.name}</span></p>
+                    <p><span className="text-sk-text-3">País:</span> <span className="text-sk-text-1 font-semibold">{club?.country_code ?? "No definido"}</span></p>
+                  </div>
+                  <div>
+                    <span className="text-sk-text-3">Descripción:</span>
+                    <p className="text-sk-text-1 mt-1">{club?.description ?? "Sin descripción"}</p>
+                  </div>
+                  <div className="h-px bg-sk-border-2 my-2" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <p><span className="text-sk-text-3">📧 Email:</span> <span className="text-sk-text-1">{club?.email ?? "—"}</span></p>
+                    <p><span className="text-sk-text-3">📱 WhatsApp:</span> <span className="text-sk-text-1">{club?.whatsapp ?? "—"}</span></p>
+                    <p><span className="text-sk-text-3">🌐 Web:</span> {club?.website_url ? <a href={club.website_url} target="_blank" rel="noopener noreferrer" className="text-sk-accent hover:opacity-80">{club.website_url}</a> : <span className="text-sk-text-1">—</span>}</p>
+                    <p><span className="text-sk-text-3">💬 Discord:</span> {club?.discord_url ? <a href={club.discord_url} target="_blank" rel="noopener noreferrer" className="text-sk-accent hover:opacity-80">Enlace</a> : <span className="text-sk-text-1">—</span>}</p>
+                    <p><span className="text-sk-text-3">✈️ Telegram:</span> {club?.telegram_url ? <a href={club.telegram_url} target="_blank" rel="noopener noreferrer" className="text-sk-accent hover:opacity-80">Enlace</a> : <span className="text-sk-text-1">—</span>}</p>
+                    <p><span className="text-sk-text-3">📸 Instagram:</span> {club?.instagram_url ? <a href={club.instagram_url} target="_blank" rel="noopener noreferrer" className="text-sk-accent hover:opacity-80">Enlace</a> : <span className="text-sk-text-1">—</span>}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -253,6 +392,7 @@ export function ClubAdminPage() {
       {editTournament !== undefined && <TournamentForm isOpen onClose={() => setEditTournament(undefined)} onSaved={refresh} clubId={firstClubId!} tournament={editTournament} leagueOptions={leagueOptions} />}
       {editLeague !== undefined && <LeagueForm isOpen onClose={() => setEditLeague(undefined)} onSaved={refresh} clubId={firstClubId!} league={editLeague} />}
       {uploadTournament && <ResultsUpload tournament={uploadTournament} isOpen={!!uploadTournament} onClose={() => setUploadTournament(null)} onComplete={refresh} />}
+      {editResultsTournament && <ResultsEditor tournament={editResultsTournament} isOpen={!!editResultsTournament} onClose={() => setEditResultsTournament(null)} onComplete={refresh} />}
     </PageShell>
   );
 }
