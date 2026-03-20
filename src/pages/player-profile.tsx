@@ -1,4 +1,5 @@
 // src/pages/player-profile.tsx
+import { useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { PlayerStatsGrid } from "../components/players/player-stats-grid";
@@ -19,16 +20,31 @@ import { ArrowLeft } from "lucide-react";
 
 export function PlayerProfilePage() {
   const { playerId } = useParams<{ playerId: string }>();
+  const topRef = useRef<HTMLDivElement>(null);
   const { data: player, isLoading, error } = usePlayer(playerId);
   const { data: eloHistory, isLoading: eloLoading } =
     usePlayerEloHistory(playerId);
   const { data: tournamentResults, isLoading: resultsLoading } =
     usePlayerTournamentResults(playerId);
 
+  // Scroll to top when this page mounts or playerId changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    // Fallback: after render, scroll the ref into view
+    const raf = requestAnimationFrame(() => {
+      topRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [playerId]);
+
   if (isLoading) {
     return (
       <PageShell>
-        <div className="pt-20 min-h-screen flex items-center justify-center">
+        <div ref={topRef} className="pt-20 min-h-screen flex items-center justify-center">
           <Spinner size="lg" />
         </div>
       </PageShell>
@@ -38,7 +54,7 @@ export function PlayerProfilePage() {
   if (error || !player) {
     return (
       <PageShell>
-        <div className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4">
+        <div ref={topRef} className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4">
           <span className="text-5xl">🃏</span>
           <h1 className="text-sk-2xl font-bold text-sk-text-1">
             Jugador no encontrado
@@ -59,7 +75,7 @@ export function PlayerProfilePage() {
 
   return (
     <PageShell>
-      <div className="pt-20 pb-16">
+      <div ref={topRef} className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           {/* Back link */}
           <Link

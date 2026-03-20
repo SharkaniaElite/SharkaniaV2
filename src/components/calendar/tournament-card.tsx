@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { Badge } from "../ui/badge";
-import { getFlag } from "../../lib/countries";
 import { FlagIcon } from "../ui/flag-icon";
 import { formatCurrency } from "../../lib/format";
 import { Info } from "lucide-react";
@@ -12,6 +11,10 @@ import type { TournamentWithDetails } from "../../types";
 interface TournamentCardProps {
   tournament: TournamentWithDetails;
   onInfoClick?: () => void;
+}
+
+function cleanName(s: string) {
+  return s.replace(/^\[DEMO\]\s*/, "").replace(/⚠️ DATOS DEMO.*$/, "").trim();
 }
 
 function useCountdown(targetDate: string) {
@@ -46,6 +49,7 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
   const isCompleted = t.status === "completed";
   const isCancelled = t.status === "cancelled";
   const isUpcoming = t.status === "scheduled" && diff > 0;
+  const isDemo = (t as any).is_demo;
 
   const statusBadge = isLive ? (
     <Badge variant="live">EN VIVO</Badge>
@@ -64,6 +68,15 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
   ) : null;
 
   const startDate = new Date(t.start_datetime);
+
+  // Fecha formateada: dd/MM
+  const dateLabel = startDate.toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: t.timezone,
+  });
+
+  // Hora formateada en timezone del club
   const timeZoneLabel = startDate.toLocaleTimeString("es-CL", {
     hour: "2-digit",
     minute: "2-digit",
@@ -79,21 +92,29 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
     >
       {/* Row 1: Name + Status */}
       <div className="flex justify-between items-center mb-1">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-sk-text-1 text-sk-sm">{t.name}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-semibold text-sk-text-1 text-sk-sm truncate">{cleanName(t.name)}</span>
           {onInfoClick && (
             <button
               onClick={onInfoClick}
               className="w-[18px] h-[18px] rounded-full bg-white/[0.04] text-sk-text-3 hover:bg-sk-accent-dim hover:text-sk-accent text-[11px] flex items-center justify-center transition-colors shrink-0"
+              aria-label="Ver detalles del torneo"
             >
               <Info size={11} />
             </button>
           )}
+          {isDemo && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sk-gold-dim text-sk-gold uppercase tracking-wider shrink-0">
+              ⚠ Demo
+            </span>
+          )}
         </div>
-        {statusBadge}
+        <div className="flex items-center gap-2 shrink-0">
+          {statusBadge}
+        </div>
       </div>
 
-      {/* Row 2: Buy-in, GTD, Time */}
+      {/* Row 2: Buy-in, GTD, Date + Time */}
       <div className="flex justify-between items-center">
         <div className="flex gap-4 text-[11px] text-sk-text-2">
           <span>
@@ -111,8 +132,8 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
             </span>
           )}
         </div>
-        <span className="font-mono text-[11px] text-sk-text-1">
-          {timeZoneLabel} <FlagIcon countryCode={t.clubs?.country_code ?? null} />
+        <span className="font-mono text-[11px] text-sk-text-1 flex items-center gap-1.5">
+          {dateLabel} · {timeZoneLabel} <FlagIcon countryCode={t.clubs?.country_code ?? null} />
         </span>
       </div>
 
@@ -120,16 +141,16 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
       <div className="mt-1 flex justify-between items-center">
         <Link
           to={`/clubs/${t.club_id}`}
-          className="text-[11px] text-sk-accent font-medium hover:opacity-80 transition-opacity"
+          className="text-[11px] text-sk-accent font-medium hover:opacity-80 transition-opacity flex items-center gap-1"
         >
-          <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {t.clubs?.name}
+          <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {cleanName(t.clubs?.name ?? "")}
         </Link>
         {t.leagues ? (
           <Link
             to={`/leagues/${t.league_id}`}
             className="text-[10px] text-sk-text-2 font-mono hover:text-sk-accent transition-colors"
           >
-            Liga: {t.leagues.name}
+            Liga: {cleanName(t.leagues.name)}
           </Link>
         ) : t.actual_prize_pool ? (
           <span className="text-[10px] text-sk-text-2 font-mono">

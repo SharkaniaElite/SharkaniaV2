@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { RevealSection } from "../components/landing/reveal-section";
 import { CountdownTimer } from "../components/landing/countdown-timer";
+import { TournamentDetailModal } from "../components/calendar/tournament-detail-modal";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { StatCard } from "../components/ui/stat-card";
@@ -15,6 +16,7 @@ import { getClubs } from "../lib/api/clubs";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
 import { supabase } from "../lib/supabase";
 import { FlagIcon } from "../components/ui/flag-icon";
+import { format } from "date-fns";
 import type { PlayerWithRoom, ClubWithRooms, TournamentWithDetails } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -100,6 +102,7 @@ export function HomePage() {
   const [loadingTourneys,setLoadingTourneys] = useState(true);
   const [loadingClubs,   setLoadingClubs]   = useState(true);
   const [loadingLeagues, setLoadingLeagues] = useState(true);
+  const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -124,7 +127,23 @@ export function HomePage() {
 
   useEffect(() => {
     getUpcomingTournaments()
-      .then(d => setTournaments(d.slice(0,4)))
+      .then(d => {
+        // ── FILTRO: solo torneos NO completados y NO cancelados ──
+        // Además, para "scheduled", solo mostrar los que aún no pasaron
+        const now = new Date();
+        const filtered = d.filter(t => {
+          // Siempre mostrar torneos en vivo o en late registration
+          if (t.status === "live" || t.status === "late_registration") return true;
+          // Excluir completados y cancelados
+          if (t.status === "completed" || t.status === "cancelled") return false;
+          // Para scheduled: solo si la fecha de inicio es futura
+          if (t.status === "scheduled") {
+            return new Date(t.start_datetime) > now;
+          }
+          return true;
+        });
+        setTournaments(filtered.slice(0,4));
+      })
       .catch(console.error)
       .finally(() => setLoadingTourneys(false));
   }, []);
@@ -282,14 +301,17 @@ export function HomePage() {
                               <tr key={p.id} className={cn("hover:bg-white/[0.015] transition-colors", rank===1&&"bg-[rgba(251,191,36,0.03)]", rank===2&&"bg-[rgba(203,213,225,0.02)]", rank===3&&"bg-[rgba(217,119,6,0.02)]")}>
                                 <td className="py-3 px-4 border-b border-sk-border-2"><RankBadge rank={rank} /></td>
                                 <td className="py-3 px-4 border-b border-sk-border-2">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <div className="w-7 h-7 rounded-full bg-sk-bg-4 border border-sk-border-2 flex items-center justify-center text-[11px] font-bold text-sk-text-3 shrink-0">
+                                  {/* ── CAMBIO: nickname ahora es un link al perfil ── */}
+                                  <Link to={`/ranking/${p.id}`} className="flex items-center gap-2 min-w-0 group">
+                                    <div className="w-7 h-7 rounded-full bg-sk-bg-4 border border-sk-border-2 flex items-center justify-center text-[11px] font-bold text-sk-text-3 shrink-0 group-hover:border-sk-accent/40 transition-colors">
                                       {cleanName(p.nickname).charAt(0).toUpperCase()}
                                     </div>
                                     {p.country_code && <FlagIcon countryCode={p.country_code} />}
-                                    <span className="font-semibold text-sk-text-1 truncate">{cleanName(p.nickname)}</span>
+                                    <span className="font-semibold text-sk-text-1 truncate group-hover:text-sk-accent transition-colors">
+                                      {cleanName(p.nickname)}
+                                    </span>
                                     {isDemo && <DemoBadge />}
-                                  </div>
+                                  </Link>
                                 </td>
                                 <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono font-bold text-sk-accent">{Math.round(p.elo_rating).toLocaleString("es")}</td>
                                 <td className="py-3 px-4 border-b border-sk-border-2 text-right text-sk-text-1">{p.total_tournaments}</td>
@@ -323,25 +345,48 @@ export function HomePage() {
                           const secs = secsUntil(t.start_datetime);
                           const isLive = t.status === "live";
                           const clubData = t.clubs as any;
+                          const startDate = new Date(t.start_datetime);
                           return (
                             <div key={t.id} className={cn("bg-sk-bg-3 border border-sk-border-2 rounded-md p-3 px-4", isLive&&"border-l-2 border-l-sk-green")}>
                               <div className="flex justify-between items-center mb-1">
                                 <span className="font-semibold text-sk-text-1 text-sk-sm flex items-center gap-2 min-w-0">
                                   <span className="truncate">{cleanName(t.name)}</span>
+                                  {/* ── Info icon ── */}
+                                  <button
+                                    onClick={() => setSelectedTournament(t)}
+                                    className="w-[18px] h-[18px] rounded-full bg-white/[0.04] text-sk-text-4 text-[11px] flex items-center justify-center hover:bg-sk-accent-dim hover:text-sk-accent transition-all shrink-0"
+                                    aria-label="Ver detalles del torneo"
+                                  >
+                                    ℹ️
+                                  </button>
                                   {isDemo && <DemoBadge />}
                                 </span>
-                                {isLive ? <Badge variant="live">EN VIVO</Badge> : secs>0 ? <CountdownTimer targetSeconds={secs} variant="soon" /> : null}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {isLive ? <Badge variant="live">EN VIVO</Badge> : secs>0 ? <CountdownTimer targetSeconds={secs} variant="soon" /> : null}
+                                </div>
                               </div>
                               <div className="flex justify-between items-center">
                                 <div className="flex gap-4 text-[11px] text-sk-text-2">
                                   <span>Buy-in: <span className={cn("font-mono font-semibold", t.buy_in===0?"text-sk-green":"text-sk-text-1")}>{t.buy_in===0?"FREE":`$${t.buy_in}`}</span></span>
                                   <span>GTD: <span className="font-mono font-bold text-sk-gold">${(t.guaranteed_prize??0).toLocaleString("es")}</span></span>
                                 </div>
+                                {/* ── Fecha y hora de inicio ── */}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="font-mono text-[11px] text-sk-text-1 font-medium">
+                                    {format(startDate, "dd/MM")} · {format(startDate, "HH:mm")}
+                                  </span>
+                                  <FlagIcon countryCode={clubData?.country_code ?? null} />
+                                </div>
                               </div>
-                              <div className="mt-1">
-                                <Link to={`/clubs/${clubData?.id}`} className="text-[11px] text-sk-accent font-medium hover:opacity-80 transition-opacity">
+                              <div className="mt-1 flex justify-between items-center">
+                                <Link to={`/clubs/${clubData?.id}`} className="text-[11px] text-sk-accent font-medium hover:opacity-80 transition-opacity flex items-center gap-1">
                                   <FlagIcon countryCode={clubData?.country_code ?? null} /> {cleanName(clubData?.name ?? "")}
                                 </Link>
+                                {(t as any).leagues?.name && (
+                                  <span className="text-[10px] font-mono text-sk-text-4">
+                                    Liga: {cleanName((t as any).leagues.name)}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           );
@@ -644,6 +689,11 @@ export function HomePage() {
         </RevealSection>
       </section>
 
+      <TournamentDetailModal
+        tournament={selectedTournament}
+        isOpen={!!selectedTournament}
+        onClose={() => setSelectedTournament(null)}
+      />
     </PageShell>
   );
 }

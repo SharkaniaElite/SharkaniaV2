@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "./stores/auth-store";
 import { ProtectedRoute } from "./components/layout/protected-route";
+import { ScrollToTop } from "./components/layout/scroll-to-top";
 import { HomePage } from "./pages/home";
 import { RankingPage } from "./pages/ranking";
 import { PlayerProfilePage } from "./pages/player-profile";
@@ -51,6 +52,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ScrollToTop />
         <AuthInitializer>
           <Routes>
             {/* Public */}
