@@ -263,7 +263,7 @@ export function BankrollCalculatorPage() {
         title="Calculadora de Bankroll"
         description="Calcula tu bankroll óptimo para torneos de poker. Riesgo de ruina, buy-ins recomendados y proyección de ganancias."
         path="/tools/calculadora-banca"
-        ogImage="https://sharkania.com/images/tools/tool-bankroll.jpg"
+        ogImage="https://sharkania.com/images/tools/tool-bankroll.png"
       />
 
       <div className="pt-20 pb-16">
