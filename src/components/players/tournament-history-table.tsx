@@ -72,9 +72,12 @@ export function TournamentHistoryTable({
                 {format(new Date(r.tournaments.start_datetime), "dd/MM/yy")}
               </td>
               <td className="py-3 px-4 border-b border-sk-border-2">
-                <span className="font-semibold text-sk-text-1">
+                <Link
+                  to={`/tournament/${r.tournaments.id}`}
+                  className="font-semibold text-sk-text-1 hover:text-sk-accent transition-colors"
+                >
                   {r.tournaments.name}
-                </span>
+                </Link>
               </td>
               <td className="py-3 px-4 border-b border-sk-border-2">
                 <Link

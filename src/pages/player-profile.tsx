@@ -27,17 +27,14 @@ export function PlayerProfilePage() {
   const { data: tournamentResults, isLoading: resultsLoading } =
     usePlayerTournamentResults(playerId);
 
-  // Scroll to top when this page mounts or playerId changes
+  // Scroll to top when playerId changes
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-
-    // Fallback: after render, scroll the ref into view
     const raf = requestAnimationFrame(() => {
       topRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
     });
-
     return () => cancelAnimationFrame(raf);
   }, [playerId]);
 
@@ -73,6 +70,12 @@ export function PlayerProfilePage() {
     );
   }
 
+  // Get avatar and display name from profiles if available
+  const profileData = (player as any).profiles;
+  const avatarUrl = profileData?.avatar_url ?? null;
+  const displayName = profileData?.display_name ?? null;
+  const cleanNickname = player.nickname.replace(/^\[DEMO\]\s*/, "");
+
   return (
     <PageShell>
       <div ref={topRef} className="pt-20 pb-16">
@@ -90,15 +93,23 @@ export function PlayerProfilePage() {
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               {/* Avatar */}
-              <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-2xl font-extrabold text-sk-accent shrink-0">
-                {player.nickname.charAt(0).toUpperCase()}
+              <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-2xl font-extrabold text-sk-accent shrink-0 overflow-hidden">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={cleanNickname}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  cleanNickname.charAt(0).toUpperCase()
+                )}
               </div>
 
               {/* Info */}
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
                   <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
-                    {player.nickname}
+                    {cleanNickname}
                   </h1>
                   <FlagIcon countryCode={player.country_code} size={32} />
                 </div>
@@ -107,6 +118,11 @@ export function PlayerProfilePage() {
                   <span className="text-sk-xs text-sk-text-2">
                     {getCountryName(player.country_code)}
                   </span>
+                  {displayName && (
+                    <span className="text-sk-xs text-sk-text-3">
+                      · {displayName}
+                    </span>
+                  )}
                 </div>
               </div>
 
