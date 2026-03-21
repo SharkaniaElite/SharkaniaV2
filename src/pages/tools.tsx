@@ -20,7 +20,7 @@ interface ToolCard {
   slug: string;
   title: string;
   description: string;
-  emoji: string;
+  image: string;
   icon: typeof Calculator;
   color: string;
   colorDim: string;
@@ -34,7 +34,7 @@ const TOOLS: ToolCard[] = [
     title: "¿Qué tipo de jugador eres?",
     description:
       "10 situaciones reales de torneo. Descubre tu perfil competitivo y compártelo con tu mesa.",
-    emoji: "🃏",
+    image: "/images/tools/tool-quiz.avif",
     icon: Brain,
     color: "#a78bfa",
     colorDim: "rgba(167,139,250,0.10)",
@@ -46,36 +46,36 @@ const TOOLS: ToolCard[] = [
     title: "Calculadora ICM",
     description:
       "Calcula tu equity en burbuja y mesa final. Ingresa los stacks y obtén el valor ICM de cada jugador.",
-    emoji: "📊",
+    image: "/images/tools/tool-icm.avif",
     icon: Calculator,
     color: "#22d3ee",
     colorDim: "rgba(34,211,238,0.10)",
-    badge: "Próximamente",
-    available: false,
+    badge: "Nuevo",
+    available: true,
   },
   {
     slug: "/tools/simulador-elo",
     title: "Simulador de ELO",
     description:
       "¿Cuánto subiría tu ELO si ganas este torneo? Simula escenarios y entiende cómo funciona el sistema.",
-    emoji: "📈",
+    image: "/images/tools/tool-elo.avif",
     icon: TrendingUp,
     color: "#34d399",
     colorDim: "rgba(52,211,153,0.10)",
-    badge: "Próximamente",
-    available: false,
+    badge: "Nuevo",
+    available: true,
   },
   {
     slug: "/tools/calculadora-banca",
     title: "Calculadora de Banca",
     description:
       "Ingresa tu bankroll y te decimos qué buy-ins puedes jugar, cuántas mesas y tu riesgo de ruina.",
-    emoji: "💰",
+    image: "/images/tools/tool-bankroll.avif",
     icon: Wallet,
     color: "#fbbf24",
     colorDim: "rgba(251,191,36,0.10)",
-    badge: "Próximamente",
-    available: false,
+    badge: "Nuevo",
+    available: true,
   },
 ];
 
@@ -86,59 +86,67 @@ const TOOLS: ToolCard[] = [
 function ToolCardComponent({ tool }: { tool: ToolCard }) {
   const content = (
     <div
-      className={`group relative bg-sk-bg-2 border border-sk-border-1 rounded-xl p-6 transition-all duration-200 ${
+      className={`group relative bg-sk-bg-2 border border-sk-border-1 rounded-xl overflow-hidden transition-all duration-200 ${
         tool.available
           ? "hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 cursor-pointer"
           : "opacity-60 cursor-default"
       }`}
     >
-      {/* Badge */}
-      {tool.badge && (
-        <span
-          className="absolute top-4 right-4 font-mono text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
-          style={{
-            background: tool.available ? tool.colorDim : "rgba(255,255,255,0.04)",
-            color: tool.available ? tool.color : "#71717a",
-          }}
-        >
-          {tool.badge}
-        </span>
-      )}
+      {/* Image */}
+      <div className="relative w-full h-40 bg-sk-bg-3 overflow-hidden">
+        <img
+          src={tool.image}
+          alt={tool.title}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          loading="lazy"
+        />
+        {/* Gradient overlay for smooth transition to card body */}
+        <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-2 via-transparent to-transparent opacity-60" />
 
-      {/* Icon */}
-      <div
-        className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl mb-4"
-        style={{ background: tool.colorDim }}
-      >
-        {tool.emoji}
+        {/* Badge */}
+        {tool.badge && (
+          <span
+            className="absolute top-3 right-3 font-mono text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full backdrop-blur-sm"
+            style={{
+              background: tool.available
+                ? tool.colorDim.replace("0.10", "0.70")
+                : "rgba(255,255,255,0.08)",
+              color: tool.available ? tool.color : "#71717a",
+            }}
+          >
+            {tool.badge}
+          </span>
+        )}
       </div>
 
       {/* Content */}
-      <h3 className="text-sk-md font-bold text-sk-text-1 mb-2 tracking-tight">
-        {tool.title}
-      </h3>
-      <p className="text-sk-sm text-sk-text-3 leading-relaxed mb-4">
-        {tool.description}
-      </p>
+      <div className="p-5 pt-3">
+        <h3 className="text-sk-md font-bold text-sk-text-1 mb-2 tracking-tight">
+          {tool.title}
+        </h3>
+        <p className="text-sk-sm text-sk-text-3 leading-relaxed mb-4">
+          {tool.description}
+        </p>
 
-      {/* Action */}
-      {tool.available ? (
-        <span
-          className="inline-flex items-center gap-1.5 text-sk-sm font-semibold transition-colors"
-          style={{ color: tool.color }}
-        >
-          Hacer el quiz
-          <ChevronRight
-            size={14}
-            className="transition-transform group-hover:translate-x-0.5"
-          />
-        </span>
-      ) : (
-        <span className="inline-flex items-center gap-1.5 text-sk-xs text-sk-text-4 font-medium">
-          <Sparkles size={12} />
-          En desarrollo
-        </span>
-      )}
+        {/* Action */}
+        {tool.available ? (
+          <span
+            className="inline-flex items-center gap-1.5 text-sk-sm font-semibold transition-colors"
+            style={{ color: tool.color }}
+          >
+            Usar herramienta
+            <ChevronRight
+              size={14}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-sk-xs text-sk-text-4 font-medium">
+            <Sparkles size={12} />
+            En desarrollo
+          </span>
+        )}
+      </div>
     </div>
   );
 
@@ -199,7 +207,7 @@ export function ToolsPage() {
               Si hay algo que necesitas para tu juego, queremos saberlo.
             </p>
             <a
-              href="https://wa.me/56977910256?text=Hola%20Sharkania%2C%20me%20gustaría%20sugerir%20una%20herramienta%3A%20"
+              href="https://wa.me/56912345678?text=Hola%20Sharkania%2C%20me%20gustaría%20sugerir%20una%20herramienta%3A%20"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#25D366]/10 border border-[#25D366]/25 text-[#25D366] text-sk-sm font-semibold hover:bg-[#25D366]/20 transition-colors"

@@ -27,6 +27,9 @@ import { FloatingCTA } from "./components/marketing/FloatingCTA";
 import { TournamentDetailPage } from "./pages/tournament-detail";
 import { ToolsPage } from "./pages/tools";
 import { PokerQuizPage } from "./pages/poker-quiz";
+import { ICMCalculatorPage } from "./pages/icm-calculator";
+import { EloSimulatorPage } from "./pages/elo-simulator";
+import { BankrollCalculatorPage } from "./pages/bankroll-calculator";
 
 
 const queryClient = new QueryClient({
@@ -77,6 +80,9 @@ export function App() {
             <Route path="/tournament/:id" element={<TournamentDetailPage />} />
             <Route path="/tools" element={<ToolsPage />} />
             <Route path="/tools/quiz" element={<PokerQuizPage />} />
+            <Route path="/tools/calculadora-icm" element={<ICMCalculatorPage />} />
+            <Route path="/tools/simulador-elo" element={<EloSimulatorPage />} />
+            <Route path="/tools/calculadora-banca" element={<BankrollCalculatorPage />} />
 
             {/* Blog */}
             <Route path="/blog" element={<BlogPage />} />
