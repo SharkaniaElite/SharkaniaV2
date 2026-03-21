@@ -71,22 +71,22 @@ const OG_MAP: Record<string, OGData> = {
   "/tools/quiz": {
     title: "Quiz: ¿Qué tipo de jugador de poker eres? | Sharkania",
     description: "Descubre tu perfil de jugador con el quiz de Sharkania. 10 preguntas de situaciones reales.",
-    image: `${SITE_URL}/images/tools/og-tool-quiz.png`,
+    image: `${SITE_URL}/images/tools/tool-quiz.png`,
   },
   "/tools/calculadora-icm": {
     title: "Calculadora ICM | Sharkania",
     description: "Calcula tu equity ICM en burbuja y mesa final. Algoritmo Malmuth-Harville.",
-    image: `${SITE_URL}/images/tools/og-tool-icm.png`,
+    image: `${SITE_URL}/images/tools/tool-icm.png`,
   },
   "/tools/simulador-elo": {
     title: "Simulador de ELO | Sharkania",
     description: "Simula cuánto subiría o bajaría tu ELO según tu posición en un torneo.",
-    image: `${SITE_URL}/images/tools/og-tool-elo.png`,
+    image: `${SITE_URL}/images/tools/tool-elo.png`,
   },
   "/tools/calculadora-banca": {
     title: "Calculadora de Bankroll | Sharkania",
     description: "Calcula tu bankroll óptimo para torneos de poker. Riesgo de ruina y buy-ins recomendados.",
-    image: `${SITE_URL}/images/tools/og-tool-bankroll.png`,
+    image: `${SITE_URL}/images/tools/tool-bankroll.png`,
   },
   "/register": {
     title: "Registrarse | Sharkania",
