@@ -579,6 +579,7 @@ export function PokerQuizPage() {
         title="Quiz: ¿Qué tipo de jugador de poker eres?"
         description="Descubre tu perfil de jugador con el quiz de Sharkania. 10 preguntas de situaciones reales. Resultado compartible."
         path="/tools/quiz"
+        ogImage="https://sharkania.com/images/tools/tool-quiz.avif"
       />
 
       <div className="pt-20 pb-16">

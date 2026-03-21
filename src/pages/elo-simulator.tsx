@@ -287,6 +287,7 @@ export function EloSimulatorPage() {
         title="Simulador de ELO"
         description="Simula cuánto subiría o bajaría tu ELO en Sharkania según tu posición en un torneo. Algoritmo real, resultados instantáneos."
         path="/tools/simulador-elo"
+        ogImage="https://sharkania.com/images/tools/tool-elo.avif"
       />
 
       <div className="pt-20 pb-16">
