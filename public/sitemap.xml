@@ -36,6 +36,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://sharkania.com/tools/quiz</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://sharkania.com/login</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>

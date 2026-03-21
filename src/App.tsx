@@ -25,6 +25,9 @@ import BlogPage from "./pages/blog";
 import BlogPostPage from "./pages/blog-post";
 import { FloatingCTA } from "./components/marketing/FloatingCTA";
 import { TournamentDetailPage } from "./pages/tournament-detail";
+import { ToolsPage } from "./pages/tools";
+import { PokerQuizPage } from "./pages/poker-quiz";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +75,8 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/tournament/:id" element={<TournamentDetailPage />} />
+            <Route path="/tools" element={<ToolsPage />} />
+            <Route path="/tools/quiz" element={<PokerQuizPage />} />
 
             {/* Blog */}
             <Route path="/blog" element={<BlogPage />} />
