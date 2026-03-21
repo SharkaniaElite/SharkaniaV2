@@ -1,5 +1,6 @@
 // src/pages/home.tsx
-import { useEffect, useState, useRef } from "react";
+
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { RevealSection } from "../components/landing/reveal-section";
@@ -18,6 +19,7 @@ import { supabase } from "../lib/supabase";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { format } from "date-fns";
 import type { PlayerWithRoom, ClubWithRooms, TournamentWithDetails } from "../types";
+import { SEOHead } from "../components/seo/seo-head";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -157,13 +159,13 @@ export function HomePage() {
 
   useEffect(() => {
     supabase
+      supabase
       .from("leagues")
       .select("*, league_clubs(is_primary, clubs(id,name,country_code)), league_rooms(poker_rooms(id,name))")
       .in("status", ["active","upcoming","finished"])
       .order("start_date", { ascending:false })
       .limit(20)
       .then(({ data }) => { if (data) setLeagues(shuffle(data).slice(0,2)); })
-      .catch(console.error)
       .finally(() => setLoadingLeagues(false));
   }, []);
 
@@ -184,7 +186,12 @@ export function HomePage() {
   const cleanName = (s: string) => s.replace(/^\[DEMO\]\s*/,"").replace(/⚠️ DATOS DEMO.*$/,"").trim();
 
   return (
+   
     <PageShell>
+     <SEOHead
+  title="Inicio"
+  path="/"
+/>
 
       {/* ══ HERO ══ */}
       <section className="relative min-h-dvh flex flex-col items-center justify-center text-center px-6 py-24 overflow-hidden max-md:py-16">

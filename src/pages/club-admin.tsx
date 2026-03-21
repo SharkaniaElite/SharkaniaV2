@@ -19,6 +19,7 @@ import { formatCurrency } from "../lib/format";
 import { cn } from "../lib/cn";
 import { Plus, Trash2, Pencil, Save } from "lucide-react";
 import type { TournamentWithDetails, Tournament, League } from "../types";
+import { SEOHead } from "../components/seo/seo-head";
 
 type TabKey = "tournaments" | "players" | "leagues" | "stats" | "info";
 
@@ -142,6 +143,11 @@ export function ClubAdminPage() {
 
   return (
     <PageShell>
+      <SEOHead
+  title="Admin Club"
+  path="/admin/club"
+  noIndex={true}
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-8">

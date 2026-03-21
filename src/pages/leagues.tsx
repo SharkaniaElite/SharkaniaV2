@@ -8,6 +8,7 @@ import { EmptyState } from "../components/ui/empty-state";
 import { useLeagues } from "../hooks/use-leagues";
 import { getFlag } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
+import { SEOHead } from "../components/seo/seo-head";
 
 const statusBadge = {
   upcoming: { label: "Próxima", variant: "accent" as const },
@@ -20,6 +21,11 @@ export function LeaguesPage() {
 
   return (
     <PageShell>
+    <SEOHead
+  title="Ligas de Poker"
+  description="Ligas organizadas con tabla de posiciones, puntos y premios. Compite en temporadas de poker competitivo."
+  path="/leagues"
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-8">

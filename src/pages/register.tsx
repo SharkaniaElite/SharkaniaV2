@@ -6,6 +6,7 @@ import { signUp } from "../lib/api/auth";
 import { supabase } from "../lib/supabase";
 import { useAuthStore } from "../stores/auth-store";
 import { getProfile } from "../lib/api/auth";
+import { SEOHead } from "../components/seo/seo-head";
 
 type RegistrationType = "player" | "club";
 
@@ -105,6 +106,11 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-sk-bg-1 flex items-center justify-center p-6 pt-24">
+      <SEOHead
+  title="Iniciar Sesión"
+  description="Accede a tu cuenta de Sharkania."
+  path="/login"
+/>
       <div className="w-full max-w-sm">
 
         {/* Logo */}

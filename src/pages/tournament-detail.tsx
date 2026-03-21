@@ -14,6 +14,7 @@ import { formatCurrency } from "../lib/format";
 import { cn } from "../lib/cn";
 import { ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import { SEOHead } from "../components/seo/seo-head";
 
 function cleanName(s: string) {
   return s.replace(/^\[DEMO\]\s*/, "").replace(/⚠️ DATOS DEMO.*$/, "").trim();
@@ -71,6 +72,11 @@ export function TournamentDetailPage() {
 
   return (
     <PageShell>
+      <SEOHead
+  title={`${tournament.name} — Resultados`}
+  description={`Resultados del torneo ${tournament.name}. Posiciones, premios y cambios de ELO.`}
+  path={`/tournament/${id}`}
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[1000px] mx-auto px-6">
 

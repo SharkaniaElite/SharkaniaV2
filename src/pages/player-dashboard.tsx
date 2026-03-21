@@ -13,6 +13,7 @@ import { getFlag, getCountryName } from "../lib/countries";
 import { Settings, User, LogOut, Link as LinkIcon, Camera } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
+import { SEOHead } from "../components/seo/seo-head";
 
 export function PlayerDashboardPage() {
   const { profile, user, refreshProfile, logout } = useAuthStore();
@@ -153,6 +154,11 @@ export function PlayerDashboardPage() {
 
   return (
     <PageShell>
+      <SEOHead
+  title="Mi Panel"
+  path="/dashboard"
+  noIndex={true}
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[900px] mx-auto px-6">
           {/* Header */}

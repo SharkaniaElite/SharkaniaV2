@@ -1,4 +1,6 @@
 // src/App.tsx
+import { GoogleAnalytics } from "./components/seo/google-analytics";
+import { StructuredData } from "./components/seo/structured-data";
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -53,6 +55,8 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ScrollToTop />
+  	<GoogleAnalytics />
+  	<StructuredData />
         <AuthInitializer>
           <Routes>
             {/* Public */}

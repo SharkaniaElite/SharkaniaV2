@@ -17,6 +17,7 @@ import { getFlag, getCountryName } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { formatElo } from "../lib/format";
 import { ArrowLeft } from "lucide-react";
+import { SEOHead } from "../components/seo/seo-head";
 
 export function PlayerProfilePage() {
   const { playerId } = useParams<{ playerId: string }>();
@@ -78,6 +79,11 @@ export function PlayerProfilePage() {
 
   return (
     <PageShell>
+      <SEOHead
+  title={`${cleanNickname} — Perfil`}
+  description={`Perfil de ${cleanNickname}. ELO ${Math.round(Number(player.elo_rating)).toLocaleString()}, ${player.total_tournaments} torneos. ${getCountryName(player.country_code)}.`}
+  path={`/ranking/${playerId}`}
+/>
       <div ref={topRef} className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           {/* Back link */}

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Clock, ArrowRight, TrendingUp } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { getBlogPosts, formatBlogDate, type BlogPost } from "../lib/api/blog";
+import { SEOHead } from "../components/seo/seo-head";
 
 function BlogSkeleton() {
   return (
@@ -52,6 +53,11 @@ export default function BlogPage() {
 
   return (
     <PageShell>
+    <SEOHead
+  title="Blog"
+  description="Estrategia de poker, análisis de datos, mental game y más. Artículos para jugadores competitivos y dueños de clubes."
+  path="/blog"
+/>
       {/* Header — pt-14 compensa el navbar fixed */}
       <div className="border-b border-sk-border-2 bg-sk-bg-0 pt-14">
         <div className="max-w-5xl mx-auto px-6 py-12">

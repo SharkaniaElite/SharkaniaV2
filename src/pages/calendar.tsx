@@ -16,6 +16,8 @@ import { cn } from "../lib/cn";
 import { format } from "date-fns";
 import { getCountryName } from "../lib/countries";
 import type { TournamentWithDetails } from "../types";
+import { SEOHead } from "../components/seo/seo-head";
+
 
 type TabKey = "upcoming" | "history";
 
@@ -99,6 +101,11 @@ export function CalendarPage() {
 
   return (
     <PageShell>
+    <SEOHead
+  title="Ranking ELO Global"
+  description="Los mejores jugadores de poker del mundo ordenados por ELO. Busca, filtra y descubre quién domina."
+  path="/ranking"
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           {/* Header */}

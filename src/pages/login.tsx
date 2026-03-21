@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { signIn } from "../lib/api/auth";
 import { useAuthStore } from "../stores/auth-store";
+import { SEOHead } from "../components/seo/seo-head";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -40,6 +41,11 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-sk-bg-1 flex items-center justify-center p-6">
+      <SEOHead
+  title="Iniciar Sesión"
+  description="Accede a tu cuenta de Sharkania."
+  path="/login"
+/>
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">

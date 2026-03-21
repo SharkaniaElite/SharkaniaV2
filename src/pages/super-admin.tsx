@@ -14,6 +14,7 @@ import { formatNumber } from "../lib/format";
 import { getFlag } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { Check, X as XIcon, Plus, Trash2, Pencil, RefreshCw } from "lucide-react";
+import { SEOHead } from "../components/seo/seo-head";
 
 type AdminTab = "overview" | "clubs" | "players" | "tournaments" | "requests" | "rooms" | "scoring";
 
@@ -164,6 +165,11 @@ export function SuperAdminPage() {
 
   return (
     <PageShell>
+      <SEOHead
+  title="Super Admin"
+  path="/admin"
+  noIndex={true}
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-8">

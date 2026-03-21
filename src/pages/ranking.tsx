@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { usePlayers } from "../hooks/use-players";
 import { usePokerRooms } from "../hooks/use-clubs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { SEOHead } from "../components/seo/seo-head";
 
 const COUNTRIES = [
   { code: "", label: "Todos los países" },
@@ -59,6 +60,11 @@ export function RankingPage() {
 
   return (
     <PageShell>
+    <SEOHead
+  title="Ranking ELO Global"
+  description="Los mejores jugadores de poker del mundo ordenados por ELO. Busca, filtra y descubre quién domina."
+  path="/ranking"
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           {/* Header */}

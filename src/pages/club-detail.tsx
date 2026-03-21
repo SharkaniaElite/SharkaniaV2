@@ -12,6 +12,7 @@ import { useClub } from "../hooks/use-clubs";
 import { useTournamentsByClub } from "../hooks/use-tournaments";
 import { ArrowLeft, Mail, MessageCircle, Globe, ExternalLink } from "lucide-react";
 import type { TournamentWithDetails } from "../types";
+import { SEOHead } from "../components/seo/seo-head";
 
 export function ClubDetailPage() {
   const { clubId } = useParams<{ clubId: string }>();
@@ -58,6 +59,11 @@ export function ClubDetailPage() {
 
   return (
     <PageShell>
+      <SEOHead
+  title={club.name}
+  description={`Club de poker ${club.name}. Torneos, calendario y ranking de jugadores. ${club.description ?? ""}`}
+  path={`/clubs/${clubId}`}
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           <Link

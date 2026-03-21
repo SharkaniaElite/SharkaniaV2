@@ -25,6 +25,7 @@ import { Search, X } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { format } from "date-fns";
 import type { PlayerWithRoom, EloHistory } from "../types";
+import { SEOHead } from "../components/seo/seo-head";
 
 // ── Player Selector with autocomplete ──
 
@@ -281,6 +282,11 @@ export function ComparePage() {
 
   return (
     <PageShell>
+      <SEOHead
+  title="Comparador de Jugadores"
+  description="Compara dos jugadores de poker. ELO, ITM, ROI, torneos en común y evolución histórica."
+  path="/compare"
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[900px] mx-auto px-6">
           {/* Header */}

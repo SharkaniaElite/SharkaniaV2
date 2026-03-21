@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Share2, ChevronRight } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { getBlogPost, formatBlogDate, type BlogPost, type BlogBlock } from "../lib/api/blog";
+import { SEOHead } from "../components/seo/seo-head";
 
 // ── OG Meta helper ────────────────────────────────────────────────────────────
 function setOGMeta(post: BlogPost) {
@@ -73,15 +74,13 @@ function PostSkeleton() {
 }
 
 // ── Block Renderer ────────────────────────────────────────────────────────────
-function BlockRenderer({ block, inlineImage, h2Count }: {
+function BlockRenderer({ block, inlineImage, h2Index }: {
   block: BlogBlock;
   inlineImage: string | null;
-  h2Count: React.MutableRefObject<number>;
+  h2Index: number;
 }) {
   if (block.type === "h2") {
-    h2Count.current += 1;
-    const injectAfter = h2Count.current === 2 && inlineImage;
-
+    const injectAfter = h2Index === 2 && inlineImage;
     return (
       <>
         <h2 className="text-sk-xl font-extrabold text-sk-text-1 tracking-tight mt-12 mb-4 first:mt-0">
@@ -89,16 +88,14 @@ function BlockRenderer({ block, inlineImage, h2Count }: {
         </h2>
         {injectAfter && (
           <div className="my-6 rounded-xl overflow-hidden border border-sk-border-2">
-            <img
-              src={inlineImage!}
-              alt="Ilustración del artículo"
-              className="w-full h-auto"
-            />
+            <img src={inlineImage!} alt="Ilustración del artículo" className="w-full h-auto" />
           </div>
         )}
       </>
     );
   }
+
+  // ... resto igual (h3, callout, stat, list, p)
 
   if (block.type === "h3") {
     return (
@@ -224,6 +221,13 @@ export default function BlogPostPage() {
 
       {!loading && !error && post && (
         <>
+        <SEOHead
+  title={post.title}
+  description={post.excerpt}
+  path={`/blog/${post.slug}`}
+  ogType="article"
+  ogImage={post.image_og ?? undefined}
+/>
           {/* ── Hero Image ── */}
           {post.image_hero && (
             <div className="w-full max-h-[480px] overflow-hidden bg-sk-bg-3">
@@ -271,14 +275,17 @@ export default function BlogPostPage() {
 
             {/* Body */}
             <div>
-              {post.body.map((block, i) => (
-                <BlockRenderer
-                  key={i}
-                  block={block}
-                  inlineImage={post.image_inline}
-                  h2Count={h2Count}
-                />
-              ))}
+              {post.body.map((block, i) => {
+  const h2Index = post.body.slice(0, i + 1).filter(b => b.type === "h2").length;
+  return (
+    <BlockRenderer
+      key={i}
+      block={block}
+      inlineImage={post.image_inline}
+      h2Index={h2Index}
+    />
+  );
+})}
             </div>
 
             {/* CTA */}

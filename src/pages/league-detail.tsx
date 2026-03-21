@@ -17,6 +17,7 @@ import { FlagIcon } from "../components/ui/flag-icon";
 import { ArrowLeft } from "lucide-react";
 import type { TournamentWithDetails } from "../types";
 import { cn } from "../lib/cn";
+import { SEOHead } from "../components/seo/seo-head";
 
 type Tab = "standings" | "calendar" | "info";
 
@@ -72,6 +73,11 @@ export function LeagueDetailPage() {
 
   return (
     <PageShell>
+      <SEOHead
+  title={`${league.name} — Liga`}
+  description={`Liga de poker ${league.name}. Tabla de posiciones, calendario y resultados.`}
+  path={`/leagues/${leagueId}`}
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           <Link

@@ -9,6 +9,7 @@ import { EmptyState } from "../components/ui/empty-state";
 import { useClubs } from "../hooks/use-clubs";
 import { getFlag } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
+import { SEOHead } from "../components/seo/seo-head";
 
 export function ClubsPage() {
   const { data: clubs, isLoading } = useClubs();
@@ -23,6 +24,11 @@ export function ClubsPage() {
 
   return (
     <PageShell>
+    <SEOHead
+  title="Clubes de Poker"
+  description="Encuentra clubes de poker online verificados de toda Latinoamérica y el mundo. PPPoker, PokerBros, ClubGG y más."
+  path="/clubs"
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           {/* Header */}
