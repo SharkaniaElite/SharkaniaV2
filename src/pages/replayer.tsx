@@ -238,8 +238,13 @@ export function ReplayerPage() {
     if (file) handleFile(file);
   }, [handleFile]);
 
-  // ── Auth gate ──
-  if (!isAuthenticated) {
+  // ── Auth gate — solo bloquea si NO hay mano compartida ──
+  const isViewingSharedHand = !!sharedId || !!searchParams.get("hand");
+  const currentPath = sharedId
+    ? `/tools/replayer/h/${sharedId}`
+    : "/tools/replayer";
+
+  if (!isAuthenticated && !isViewingSharedHand) {
     return (
       <PageShell>
         <SEOHead
@@ -259,10 +264,10 @@ export function ReplayerPage() {
               Crea tu cuenta gratis o inicia sesión para acceder.
             </p>
             <div className="flex flex-col gap-3">
-              <Button variant="accent" size="lg" onClick={() => window.location.href = "/register?redirect=/tools/replayer"}>
+              <Button variant="accent" size="lg" onClick={() => window.location.href = `/register?redirect=${encodeURIComponent(currentPath)}`}>
                 Crear cuenta gratis
               </Button>
-              <Button variant="secondary" size="lg" onClick={() => window.location.href = "/login?redirect=/tools/replayer"}>
+              <Button variant="secondary" size="lg" onClick={() => window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`}>
                 Ya tengo cuenta — Iniciar sesión
               </Button>
             </div>
@@ -305,91 +310,112 @@ export function ReplayerPage() {
             </div>
           </div>
 
-          {/* Input section */}
+          {/* Input section — solo si no hay mano cargada */}
           {!hasHand && (
             <div className="space-y-4 mb-8">
-              <div className="flex gap-1 bg-sk-bg-3 rounded-lg p-0.5 border border-sk-border-1 w-fit">
-                <button
-                  onClick={() => setInputMode("upload")}
-                  className={`text-sk-xs font-medium px-4 py-1.5 rounded transition-all ${
-                    inputMode === "upload" ? "bg-sk-bg-1 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3"
-                  }`}
-                >
-                  <Upload size={12} className="inline mr-1.5" />
-                  Subir archivo
-                </button>
-                <button
-                  onClick={() => setInputMode("paste")}
-                  className={`text-sk-xs font-medium px-4 py-1.5 rounded transition-all ${
-                    inputMode === "paste" ? "bg-sk-bg-1 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3"
-                  }`}
-                >
-                  <FileText size={12} className="inline mr-1.5" />
-                  Pegar texto
-                </button>
-              </div>
-
-              {inputMode === "upload" && (
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-xl p-10 text-center transition-all duration-200 ${
-                    dragOver ? "border-sk-accent bg-sk-accent/5" : "border-sk-border-2 hover:border-sk-border-3"
-                  }`}
-                >
-                  <Upload size={32} className="mx-auto mb-3 text-sk-text-3" />
-                  <p className="text-sk-sm text-sk-text-2 mb-1">Arrastra un archivo .txt aquí</p>
-                  <p className="text-sk-xs text-sk-text-4 mb-4">o haz click para seleccionar</p>
-                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold cursor-pointer hover:bg-sk-accent-hover transition-colors">
-                    <Upload size={14} />
-                    Seleccionar archivo
-                    <input
-                      type="file"
-                      accept=".txt,.log"
-                      onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                      className="hidden"
-                    />
-                  </label>
-                  <p className="text-[10px] text-sk-text-4 mt-3">
-                    Soporta: GGPoker, PokerStars, HomeGames PokerStars
+              {/* Si no está autenticado, mostrar CTA en vez del uploader */}
+              {!isAuthenticated ? (
+                <div className="border border-sk-border-2 rounded-xl p-8 text-center bg-sk-bg-2">
+                  <span className="text-3xl block mb-3">🎯</span>
+                  <h3 className="text-sk-md font-bold text-sk-text-1 mb-2">¿Quieres analizar tus propias manos?</h3>
+                  <p className="text-sk-sm text-sk-text-2 mb-6">
+                    Crea una cuenta gratis para subir archivos de manos y usar el replayer completo.
                   </p>
-                </div>
-              )}
-
-              {inputMode === "paste" && (
-                <div>
-                  <textarea
-                    value={pasteText}
-                    onChange={(e) => setPasteText(e.target.value)}
-                    placeholder="Pega aquí el historial de una mano..."
-                    className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-lg py-3 px-4 text-sk-sm text-sk-text-1 font-mono placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent min-h-[200px] resize-y"
-                  />
-                  <div className="flex gap-2 mt-2">
-                    <Button variant="accent" size="sm" onClick={() => processText(pasteText)} disabled={!pasteText.trim()}>
-                      <Play size={14} /> Reproducir
+                  <div className="flex gap-3 justify-center flex-wrap">
+                    <Button variant="accent" size="md" onClick={() => window.location.href = `/register?redirect=${encodeURIComponent(currentPath)}`}>
+                      Crear cuenta gratis
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setPasteText("")}>Limpiar</Button>
+                    <Button variant="secondary" size="md" onClick={() => window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`}>
+                      Iniciar sesión
+                    </Button>
                   </div>
                 </div>
-              )}
-
-              <div className="text-center">
-                <button onClick={loadDemo} className="text-sk-xs text-sk-text-3 hover:text-sk-accent transition-colors">
-                  o prueba con una mano de demostración →
-                </button>
-              </div>
-
-              {parseErrors.length > 0 && (
-                <div className="bg-sk-red-dim border border-sk-red/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle size={14} className="text-sk-red" />
-                    <p className="text-sk-xs font-semibold text-sk-red">Error al procesar el archivo</p>
+              ) : (
+                <>
+                  <div className="flex gap-1 bg-sk-bg-3 rounded-lg p-0.5 border border-sk-border-1 w-fit">
+                    <button
+                      onClick={() => setInputMode("upload")}
+                      className={`text-sk-xs font-medium px-4 py-1.5 rounded transition-all ${
+                        inputMode === "upload" ? "bg-sk-bg-1 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3"
+                      }`}
+                    >
+                      <Upload size={12} className="inline mr-1.5" />
+                      Subir archivo
+                    </button>
+                    <button
+                      onClick={() => setInputMode("paste")}
+                      className={`text-sk-xs font-medium px-4 py-1.5 rounded transition-all ${
+                        inputMode === "paste" ? "bg-sk-bg-1 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3"
+                      }`}
+                    >
+                      <FileText size={12} className="inline mr-1.5" />
+                      Pegar texto
+                    </button>
                   </div>
-                  {parseErrors.map((err, i) => (
-                    <p key={i} className="text-[11px] text-sk-text-3">{err}</p>
-                  ))}
-                </div>
+
+                  {inputMode === "upload" && (
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={handleDrop}
+                      className={`border-2 border-dashed rounded-xl p-10 text-center transition-all duration-200 ${
+                        dragOver ? "border-sk-accent bg-sk-accent/5" : "border-sk-border-2 hover:border-sk-border-3"
+                      }`}
+                    >
+                      <Upload size={32} className="mx-auto mb-3 text-sk-text-3" />
+                      <p className="text-sk-sm text-sk-text-2 mb-1">Arrastra un archivo .txt aquí</p>
+                      <p className="text-sk-xs text-sk-text-4 mb-4">o haz click para seleccionar</p>
+                      <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold cursor-pointer hover:bg-sk-accent-hover transition-colors">
+                        <Upload size={14} />
+                        Seleccionar archivo
+                        <input
+                          type="file"
+                          accept=".txt,.log"
+                          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                          className="hidden"
+                        />
+                      </label>
+                      <p className="text-[10px] text-sk-text-4 mt-3">
+                        Soporta: GGPoker, PokerStars, HomeGames PokerStars
+                      </p>
+                    </div>
+                  )}
+
+                  {inputMode === "paste" && (
+                    <div>
+                      <textarea
+                        value={pasteText}
+                        onChange={(e) => setPasteText(e.target.value)}
+                        placeholder="Pega aquí el historial de una mano..."
+                        className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-lg py-3 px-4 text-sk-sm text-sk-text-1 font-mono placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent min-h-[200px] resize-y"
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <Button variant="accent" size="sm" onClick={() => processText(pasteText)} disabled={!pasteText.trim()}>
+                          <Play size={14} /> Reproducir
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setPasteText("")}>Limpiar</Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-center">
+                    <button onClick={loadDemo} className="text-sk-xs text-sk-text-3 hover:text-sk-accent transition-colors">
+                      o prueba con una mano de demostración →
+                    </button>
+                  </div>
+
+                  {parseErrors.length > 0 && (
+                    <div className="bg-sk-red-dim border border-sk-red/20 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertCircle size={14} className="text-sk-red" />
+                        <p className="text-sk-xs font-semibold text-sk-red">Error al procesar el archivo</p>
+                      </div>
+                      {parseErrors.map((err, i) => (
+                        <p key={i} className="text-[11px] text-sk-text-3">{err}</p>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
