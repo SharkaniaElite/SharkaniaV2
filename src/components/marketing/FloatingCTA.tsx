@@ -60,7 +60,7 @@ export function FloatingCTA() {
 
   return (
     <div
-  className="fixed bottom-6 right-6 z-50 cta-slide"
+  className="fixed bottom-6 right-6 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:right-6 z-50 cta-slide"
   onMouseEnter={() => setExpanded(true)}
   onMouseLeave={() => setExpanded(false)}
 >
@@ -103,7 +103,7 @@ export function FloatingCTA() {
         <div className="p-3">
 
           <div className="text-xs font-semibold text-white">
-            🎁 Bonus WPT
+            🎁 {WPT_PROMO.title}
           </div>
 
           {location.pathname === "/ranking" ? (
@@ -115,7 +115,7 @@ export function FloatingCTA() {
           ) : (
 
             <div className="text-[11px] text-white/60">
-              Juega cash y torneos
+              {WPT_PROMO.description}
             </div>
 
           )}
