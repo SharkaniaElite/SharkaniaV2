@@ -37,9 +37,6 @@ const POS_CFG: Record<string, { color: string; bg: string; glow: string }> = {
   "UTG+2":{ color: "#fca5a5", bg: "#1c0505", glow: "rgba(252,165,165,0.40)" },
 };
 
-// Número de cartas según el tipo de juego (inferido del número de hole cards)
-const FACE_DOWN_PLACEHOLDER: Card[] = [];
-
 function initials(name: string): string {
   const p = name.trim().split(/[\s_\-.]+/);
   if (p.length >= 2) return (p[0][0] + p[1][0]).toUpperCase();
@@ -59,23 +56,16 @@ export function PlayerSeat({
 }: PlayerSeatProps) {
   const { name, isFolded, isAllIn, isHero, holeCards, position, isDealer, currentBet, currentStack } = player;
 
-  const actionCfg = lastAction ? ACTION_CFG[lastAction.type] : null;
-  const posCfg    = position   ? (POS_CFG[position] ?? POS_CFG["UTG"]) : null;
+  const actionCfg   = lastAction ? ACTION_CFG[lastAction.type] : null;
+  const posCfg      = position   ? (POS_CFG[position] ?? POS_CFG["UTG"]) : null;
   const hasKnownCards = holeCards && holeCards.length > 0;
 
-  // ── Qué cartas mostrar ────────────────────────────────
-  // Regla:
-  // 1. Foldeado → sin cartas (null)
-  // 2. Tiene cartas conocidas + (es héroe ó es showdown) → mostrar cara
-  // 3. Tiene cartas conocidas pero no se revelan → mostrar dorso (null en array)
-  // 4. No tiene cartas conocidas pero sigue activo → mostrar 2 dorsos (null, null)
-  //    Esto cubre villanos en GGPoker que no tienen holeCards hasta showdown.
+  // Cartas a mostrar — siempre 2 dorsos si activo, aunque no haya holeCards
   const cardsToShow: (Card | null)[] | null = (() => {
     if (isFolded) return null;
     if (hasKnownCards && (showCards || isHero)) return holeCards!;
     if (hasKnownCards) return holeCards!.map(() => null);
-    // Jugador activo sin cartas conocidas → 2 dorsos siempre
-    return [null, null];
+    return [null, null]; // villano activo sin holeCards conocidas → 2 dorsos
   })();
 
   const hudBg     = isWinner ? "#1a1500" : isActive ? "#071820" : isAllIn ? "#1a0808" : "#111214";
@@ -89,174 +79,193 @@ export function PlayerSeat({
     : "0 2px 14px rgba(0,0,0,0.75), 0 1px 4px rgba(0,0,0,0.5)";
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: "3px",
-      width: "100px",
-      opacity: isFolded ? 0.28 : 1,
-      transition: "opacity 0.4s ease",
-      position: "relative",
-      zIndex: isActive ? 10 : 1,
-    }}>
-
-      {/* ── Cartas en fan tamaño "sm" ── */}
-      <div style={{ height: "48px", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-        {cardsToShow && (
-          <CardGroup
-            cards={cardsToShow}
-            size="sm"
-            highlighted={isActive && isHero}
-            winning={isWinner}
-            fanned={cardsToShow.length >= 2}
-          />
-        )}
-      </div>
-
-      {/* ── HUD box ── */}
-      <div style={{
-        position: "relative",
-        width: "100%",
-        background: hudBg,
-        border: `1.5px solid ${hudBorder}`,
-        borderRadius: "8px",
-        padding: "7px 9px 6px",
-        boxShadow: hudGlow,
-        transition: "background 0.3s, border-color 0.3s, box-shadow 0.3s",
-      }}>
-        {/* Línea acento top */}
-        {(isActive || isWinner) && (
-          <div style={{
-            position: "absolute", top: -1, left: "12%", width: "76%", height: "2px",
-            background: isWinner
-              ? "linear-gradient(90deg, transparent, #fbbf24 50%, transparent)"
-              : "linear-gradient(90deg, transparent, #22d3ee 50%, transparent)",
-          }} />
-        )}
-
-        {/* Dealer button */}
-        {isDealer && (
-          <div style={{
-            position: "absolute", top: "-10px", right: "-10px",
-            width: "18px", height: "18px", borderRadius: "50%",
-            background: "#fbbf24", border: "2px solid #09090b",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "8px", fontFamily: "'JetBrains Mono', monospace",
-            fontWeight: 700, color: "#09090b",
-            boxShadow: "0 0 10px rgba(251,191,36,0.65), 0 2px 6px rgba(0,0,0,0.7)",
-            zIndex: 10,
-          }}>D</div>
-        )}
-
-        {/* Position badge */}
-        {position && posCfg && !isDealer && (
-          <div style={{
-            position: "absolute", top: "-10px", left: "50%", transform: "translateX(-50%)",
-            padding: "1px 7px", borderRadius: "20px",
-            background: posCfg.bg, border: `1.5px solid ${posCfg.color}`,
-            fontSize: "7px", fontFamily: "'JetBrains Mono', monospace",
-            fontWeight: 700, color: posCfg.color, letterSpacing: "0.12em",
-            whiteSpace: "nowrap",
-            boxShadow: `0 0 10px ${posCfg.glow}, 0 2px 6px rgba(0,0,0,0.7)`,
-          }}>{position}</div>
-        )}
-
-        {/* Dot activo */}
-        {isActive && (
-          <span style={{
-            position: "absolute", top: "-4px", left: "9px",
-            width: "6px", height: "6px", borderRadius: "50%",
-            background: "#22d3ee",
-            boxShadow: "0 0 8px #22d3ee, 0 0 16px rgba(34,211,238,0.5)",
-            animation: "sk-seat-pulse 1.1s ease-in-out infinite",
-            display: "block",
-          }} />
-        )}
-
-        {/* Avatar + nombre */}
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <div style={{
-            width: "20px", height: "20px", borderRadius: "50%", flexShrink: 0,
-            background: isHero ? "rgba(34,211,238,0.18)" : "rgba(255,255,255,0.07)",
-            border: `1.5px solid ${isHero ? "#22d3ee" : "rgba(255,255,255,0.18)"}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "7px", fontFamily: "Inter, system-ui, sans-serif",
-            fontWeight: 700, color: isHero ? "#22d3ee" : "#d4d4d8",
-          }}>{initials(name)}</div>
-          <span style={{
-            fontSize: "9px", fontFamily: "Inter, system-ui, sans-serif",
-            fontWeight: 600,
-            color: isHero ? "#22d3ee" : isWinner ? "#fbbf24" : "#f4f4f5",
-            maxWidth: "60px", overflow: "hidden",
-            textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}>{name}</span>
-        </div>
-
-        {/* Stack */}
-        <div style={{
-          marginTop: "4px",
-          fontSize: "13px", fontFamily: "'JetBrains Mono', monospace",
-          fontWeight: 700,
-          color: isWinner ? "#fbbf24" : isActive ? "#ffffff" : "#e4e4e7",
-          letterSpacing: "-0.5px", lineHeight: 1,
-        }}>{fmt(currentStack)}</div>
-
-        {/* ALL-IN */}
-        {isAllIn && !isFolded && (
-          <div style={{
-            marginTop: "3px", display: "inline-block",
-            padding: "1px 6px", borderRadius: "4px",
-            background: "rgba(248,113,113,0.18)", border: "1.5px solid #f87171",
-            fontSize: "7px", fontFamily: "'JetBrains Mono', monospace",
-            fontWeight: 700, color: "#fca5a5", letterSpacing: "0.12em",
-          }}>ALL-IN</div>
-        )}
-      </div>
-
-      {/* Action bubble */}
-      {actionCfg && !isFolded && (
-        <div style={{
-          padding: "2px 8px", borderRadius: "20px",
-          background: actionCfg.bg,
-          border: `1.5px solid ${actionCfg.color}80`,
-          fontSize: "8px", fontFamily: "'JetBrains Mono', monospace",
-          fontWeight: 700, color: actionCfg.color, letterSpacing: "0.10em",
-          whiteSpace: "nowrap",
-          boxShadow: `0 0 10px ${actionCfg.color}35, 0 2px 6px rgba(0,0,0,0.7)`,
-        }}>
-          {actionCfg.label}
-          {lastAction && lastAction.amount > 0 && (
-            <span style={{ opacity: 0.9 }}> {fmt(lastAction.amount)}</span>
-          )}
-        </div>
-      )}
-
-      {/* Bet chip */}
-      {currentBet > 0 && !isFolded && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: "3px",
-          padding: "2px 7px", borderRadius: "20px",
-          background: "#120f00", border: "1.5px solid rgba(251,191,36,0.50)",
-          boxShadow: "0 0 10px rgba(251,191,36,0.20), 0 2px 6px rgba(0,0,0,0.7)",
-        }}>
-          <svg width="8" height="8" viewBox="0 0 10 10">
-            <circle cx="5" cy="5" r="4.5" fill="#fbbf24"/>
-            <circle cx="5" cy="5" r="2.8" fill="none" stroke="#fff" strokeWidth="1.2" opacity="0.45"/>
-          </svg>
-          <span style={{
-            fontSize: "9px", fontFamily: "'JetBrains Mono', monospace",
-            fontWeight: 700, color: "#fbbf24",
-          }}>{fmt(currentBet)}</span>
-        </div>
-      )}
-
+    <>
       <style>{`
-        @keyframes sk-seat-pulse {
-          0%,100% { opacity:1; transform:scale(1); }
-          50% { opacity:0.2; transform:scale(0.55); }
+        .sk-seat-root {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 3px;
+          width: 100px;
+          position: relative;
+          z-index: ${isActive ? 10 : 1};
+          opacity: ${isFolded ? 0.28 : 1};
+          transition: opacity 0.4s ease;
+        }
+        /* En mobile: HUD más compacto */
+        @media (max-width: 520px) {
+          .sk-seat-root { width: 72px; gap: 2px; }
+          .sk-seat-name { font-size: 7px !important; max-width: 44px !important; }
+          .sk-seat-stack { font-size: 10px !important; }
+          .sk-seat-action { font-size: 7px !important; padding: 1px 5px !important; }
+          .sk-seat-chip { font-size: 8px !important; padding: 1px 5px !important; }
+          .sk-seat-cards { height: 34px !important; }
         }
       `}</style>
-    </div>
+
+      <div className="sk-seat-root">
+        {/* Cartas: sm en desktop, xs en mobile */}
+        <div className="sk-seat-cards" style={{ height: "48px", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          {cardsToShow && (
+            <>
+              {/* Desktop: sm */}
+              <span style={{ display: "block" }} className="sk-cards-desktop">
+                <CardGroup
+                  cards={cardsToShow}
+                  size="sm"
+                  highlighted={isActive && isHero}
+                  winning={isWinner}
+                  fanned={cardsToShow.length >= 2}
+                />
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* HUD */}
+        <div style={{
+          position: "relative",
+          width: "100%",
+          background: hudBg,
+          border: `1.5px solid ${hudBorder}`,
+          borderRadius: "7px",
+          padding: "6px 8px 5px",
+          boxShadow: hudGlow,
+          transition: "background 0.3s, border-color 0.3s, box-shadow 0.3s",
+        }}>
+          {/* Línea acento */}
+          {(isActive || isWinner) && (
+            <div style={{
+              position: "absolute", top: -1, left: "12%", width: "76%", height: "2px",
+              background: isWinner
+                ? "linear-gradient(90deg, transparent, #fbbf24 50%, transparent)"
+                : "linear-gradient(90deg, transparent, #22d3ee 50%, transparent)",
+            }} />
+          )}
+
+          {/* Dealer */}
+          {isDealer && (
+            <div style={{
+              position: "absolute", top: "-9px", right: "-9px",
+              width: "17px", height: "17px", borderRadius: "50%",
+              background: "#fbbf24", border: "2px solid #09090b",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "7px", fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 700, color: "#09090b",
+              boxShadow: "0 0 10px rgba(251,191,36,0.65)",
+              zIndex: 10,
+            }}>D</div>
+          )}
+
+          {/* Position badge */}
+          {position && posCfg && !isDealer && (
+            <div style={{
+              position: "absolute", top: "-10px", left: "50%", transform: "translateX(-50%)",
+              padding: "1px 6px", borderRadius: "20px",
+              background: posCfg.bg, border: `1.5px solid ${posCfg.color}`,
+              fontSize: "7px", fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 700, color: posCfg.color, letterSpacing: "0.10em",
+              whiteSpace: "nowrap",
+              boxShadow: `0 0 8px ${posCfg.glow}`,
+            }}>{position}</div>
+          )}
+
+          {/* Dot activo */}
+          {isActive && (
+            <span style={{
+              position: "absolute", top: "-4px", left: "8px",
+              width: "6px", height: "6px", borderRadius: "50%",
+              background: "#22d3ee",
+              boxShadow: "0 0 8px #22d3ee",
+              animation: "sk-seat-pulse 1.1s ease-in-out infinite",
+              display: "block",
+            }} />
+          )}
+
+          {/* Avatar + nombre */}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <div style={{
+              width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0,
+              background: isHero ? "rgba(34,211,238,0.18)" : "rgba(255,255,255,0.07)",
+              border: `1.5px solid ${isHero ? "#22d3ee" : "rgba(255,255,255,0.18)"}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "6px", fontFamily: "Inter, system-ui, sans-serif",
+              fontWeight: 700, color: isHero ? "#22d3ee" : "#d4d4d8",
+            }}>{initials(name)}</div>
+            <span className="sk-seat-name" style={{
+              fontSize: "9px", fontFamily: "Inter, system-ui, sans-serif",
+              fontWeight: 600,
+              color: isHero ? "#22d3ee" : isWinner ? "#fbbf24" : "#f4f4f5",
+              maxWidth: "58px", overflow: "hidden",
+              textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>{name}</span>
+          </div>
+
+          {/* Stack */}
+          <div className="sk-seat-stack" style={{
+            marginTop: "3px",
+            fontSize: "13px", fontFamily: "'JetBrains Mono', monospace",
+            fontWeight: 700,
+            color: isWinner ? "#fbbf24" : isActive ? "#ffffff" : "#e4e4e7",
+            letterSpacing: "-0.5px", lineHeight: 1,
+          }}>{fmt(currentStack)}</div>
+
+          {/* ALL-IN */}
+          {isAllIn && !isFolded && (
+            <div style={{
+              marginTop: "2px", display: "inline-block",
+              padding: "1px 5px", borderRadius: "3px",
+              background: "rgba(248,113,113,0.18)", border: "1.5px solid #f87171",
+              fontSize: "7px", fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 700, color: "#fca5a5", letterSpacing: "0.10em",
+            }}>ALL-IN</div>
+          )}
+        </div>
+
+        {/* Action bubble */}
+        {actionCfg && !isFolded && (
+          <div className="sk-seat-action" style={{
+            padding: "2px 7px", borderRadius: "20px",
+            background: actionCfg.bg,
+            border: `1.5px solid ${actionCfg.color}80`,
+            fontSize: "8px", fontFamily: "'JetBrains Mono', monospace",
+            fontWeight: 700, color: actionCfg.color, letterSpacing: "0.08em",
+            whiteSpace: "nowrap",
+            boxShadow: `0 0 8px ${actionCfg.color}30`,
+          }}>
+            {actionCfg.label}
+            {lastAction && lastAction.amount > 0 && (
+              <span style={{ opacity: 0.9 }}> {fmt(lastAction.amount)}</span>
+            )}
+          </div>
+        )}
+
+        {/* Bet chip */}
+        {currentBet > 0 && !isFolded && (
+          <div className="sk-seat-chip" style={{
+            display: "flex", alignItems: "center", gap: "3px",
+            padding: "2px 6px", borderRadius: "20px",
+            background: "#120f00", border: "1.5px solid rgba(251,191,36,0.50)",
+            boxShadow: "0 0 8px rgba(251,191,36,0.18)",
+          }}>
+            <svg width="8" height="8" viewBox="0 0 10 10">
+              <circle cx="5" cy="5" r="4.5" fill="#fbbf24"/>
+              <circle cx="5" cy="5" r="2.8" fill="none" stroke="#fff" strokeWidth="1.2" opacity="0.45"/>
+            </svg>
+            <span style={{
+              fontSize: "9px", fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 700, color: "#fbbf24",
+            }}>{fmt(currentBet)}</span>
+          </div>
+        )}
+
+        <style>{`
+          @keyframes sk-seat-pulse {
+            0%,100% { opacity:1; transform:scale(1); }
+            50% { opacity:0.2; transform:scale(0.55); }
+          }
+        `}</style>
+      </div>
+    </>
   );
 }
