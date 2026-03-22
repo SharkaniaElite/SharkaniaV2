@@ -2,6 +2,7 @@
 import { type ReactNode } from "react";
 import { Navbar } from "./navbar";
 import { Footer } from "./footer";
+import { AdminAccessBanner } from "./admin-access-banner";
 
 interface PageShellProps {
   children: ReactNode;
@@ -36,6 +37,9 @@ export function PageShell({ children }: PageShellProps) {
 
       <main className="flex-1">{children}</main>
       <Footer />
+
+      {/* Floating admin access buttons — visible for club_admin and super_admin */}
+      <AdminAccessBanner />
     </div>
   );
 }

@@ -42,6 +42,10 @@ export function Navbar() {
   const navigate = useNavigate();
   const { isAuthenticated, profile, isLoading, logout } = useAuthStore();
 
+  const isSuperAdmin = profile?.role === "super_admin";
+  const isClubAdmin = profile?.role === "club_admin";
+  const isAdmin = isSuperAdmin || isClubAdmin;
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -54,7 +58,6 @@ export function Navbar() {
     setUserMenuOpen(false);
   }, [location.pathname]);
 
-  // Bloquea scroll del body cuando el menú está abierto
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -126,7 +129,47 @@ export function Navbar() {
             <Search size={18} />
           </button>
 
-          {/* Auth buttons */}
+          {/* ══════════════════════════════════════════════ */}
+          {/* ADMIN BUTTON — visible directly in navbar     */}
+          {/* ══════════════════════════════════════════════ */}
+          {!isLoading && isAuthenticated && isAdmin && (
+            <Link
+              to="/admin/club"
+              className={cn(
+                "hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-wide transition-all duration-200",
+                isActive("/admin")
+                  ? "bg-sk-accent/20 text-sk-accent border border-sk-accent/30"
+                  : "bg-sk-accent/10 text-sk-accent border border-sk-accent/15 hover:bg-sk-accent/20 hover:border-sk-accent/30"
+              )}
+            >
+              {/* Animated gear icon */}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={cn(
+                  "transition-transform duration-500",
+                  isActive("/admin") ? "" : "group-hover:rotate-90"
+                )}
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+              </svg>
+              {isSuperAdmin ? "Admin" : "Mi Club"}
+              {/* Pulse dot */}
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sk-accent opacity-50" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-sk-accent" />
+              </span>
+            </Link>
+          )}
+
+          {/* Auth buttons / User menu */}
           {!isLoading && (
             isAuthenticated && profile ? (
               <div className="relative">
@@ -143,17 +186,17 @@ export function Navbar() {
                       <p className="text-sk-sm font-semibold text-sk-text-1 truncate">
                         {profile.display_name ?? "Usuario"}
                       </p>
-                      <p className="text-[11px] text-sk-text-2 capitalize">{profile.role}</p>
+                      <p className="text-[11px] text-sk-text-2 capitalize">{profile.role?.replace("_", " ")}</p>
                     </div>
                     <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2.5 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:bg-white/[0.03] transition-colors">
                       <User size={14} /> Mi Panel
                     </Link>
-                    {(profile.role === "club_admin" || profile.role === "super_admin") && (
-                      <Link to="/admin/club" className="flex items-center gap-2 px-4 py-2.5 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:bg-white/[0.03] transition-colors">
-                        <Settings size={14} /> Admin Club
+                    {isAdmin && (
+                      <Link to="/admin/club" className="flex items-center gap-2 px-4 py-2.5 text-sk-sm text-sk-accent hover:bg-white/[0.03] transition-colors">
+                        <Settings size={14} /> {isSuperAdmin ? "Gestionar Clubes" : "Admin de mi Club"}
                       </Link>
                     )}
-                    {profile.role === "super_admin" && (
+                    {isSuperAdmin && (
                       <Link to="/admin" className="flex items-center gap-2 px-4 py-2.5 text-sk-sm text-sk-red hover:bg-white/[0.03] transition-colors">
                         <Shield size={14} /> Super Admin
                       </Link>
@@ -176,7 +219,7 @@ export function Navbar() {
             )
           )}
 
-          {/* Hamburger — siempre visible en mobile, fuera del flujo de auth */}
+          {/* Hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
@@ -210,9 +253,49 @@ export function Navbar() {
         </div>
       )}
 
-      {/* Mobile menu — renderizado fuera del <nav> para evitar overflow */}
+      {/* Mobile menu */}
       {mobileOpen && (
         <div style={MENU_BG} className="lg:hidden">
+          {/* Admin button — prominent at the top of mobile menu */}
+          {isAuthenticated && isAdmin && (
+            <Link
+              to="/admin/club"
+              className="flex items-center gap-3 px-4 py-3.5 mb-2 rounded-lg bg-sk-accent/10 border border-sk-accent/20"
+            >
+              <div className="w-9 h-9 rounded-lg bg-sk-accent/20 flex items-center justify-center">
+                <Settings size={18} className="text-sk-accent" />
+              </div>
+              <div>
+                <p className="text-sk-sm font-bold text-sk-accent">
+                  {isSuperAdmin ? "Gestionar Clubes" : "Admin de mi Club"}
+                </p>
+                <p className="text-[10px] text-sk-text-3">
+                  Torneos, plantillas, resultados
+                </p>
+              </div>
+              <span className="ml-auto relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sk-accent opacity-50" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-sk-accent" />
+              </span>
+            </Link>
+          )}
+
+          {isSuperAdmin && (
+            <Link
+              to="/admin"
+              className="flex items-center gap-3 px-4 py-3 mb-2 rounded-lg bg-sk-red/10 border border-sk-red/20"
+            >
+              <div className="w-9 h-9 rounded-lg bg-sk-red/20 flex items-center justify-center">
+                <Shield size={18} className="text-sk-red" />
+              </div>
+              <div>
+                <p className="text-sk-sm font-bold text-sk-red">Super Admin</p>
+                <p className="text-[10px] text-sk-text-3">Solicitudes, salas, scoring</p>
+              </div>
+            </Link>
+          )}
+
+          {/* Nav links */}
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
