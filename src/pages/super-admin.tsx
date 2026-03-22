@@ -5,7 +5,6 @@ import { PageShell } from "../components/layout/page-shell";
 import { StatCard } from "../components/ui/stat-card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { Spinner } from "../components/ui/spinner";
 import { EmptyState } from "../components/ui/empty-state";
 import { EntityForm, deleteEntity } from "../components/admin/entity-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,14 +20,11 @@ import {
   Pencil,
   ExternalLink,
   Settings,
-  Users,
-  Trophy,
-  Building2,
   AlertCircle,
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 
-type AdminTab = "overview" | "requests" | "rooms" | "scoring";
+type AdminTab = "overview" | "users" | "requests" | "rooms" | "scoring";
 
 export function SuperAdminPage() {
   const [tab, setTab] = useState<AdminTab>("overview");
@@ -45,8 +41,17 @@ export function SuperAdminPage() {
     }>;
     data: Record<string, unknown> | null;
   } | null>(null);
-  const queryClient = useQueryClient();
 
+  // Users tab state
+  const [selectedUser, setSelectedUser] = useState<Record<string, any> | null>(null);
+  const [editingUser, setEditingUser] = useState(false);
+  const [userEditData, setUserEditData] = useState<Record<string, string>>({});
+  const [savingUser, setSavingUser] = useState(false);
+  const [claimSearch, setClaimSearch] = useState("");
+  const [claimResults, setClaimResults] = useState<any[]>([]);
+  const [claimSearching, setClaimSearching] = useState(false);
+
+  const queryClient = useQueryClient();
   const refresh = () => queryClient.invalidateQueries();
 
   // ── Queries ──
@@ -128,6 +133,30 @@ export function SuperAdminPage() {
     enabled: tab === "scoring",
   });
 
+  const { data: profiles } = useQuery({
+    queryKey: ["admin-profiles"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, display_name, email, whatsapp, country_code, avatar_url, role, created_at")
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: tab === "users",
+  });
+
+  const { data: selectedUserPlayers, refetch: refetchSelectedUserPlayers } = useQuery({
+    queryKey: ["admin-user-players", selectedUser?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("players")
+        .select("id, nickname, elo_rating, poker_rooms(name)")
+        .eq("profile_id", selectedUser!.id);
+      return data ?? [];
+    },
+    enabled: !!selectedUser?.id,
+  });
+
   // ── Actions ──
 
   const handleApproveClub = async (req: {
@@ -139,22 +168,12 @@ export function SuperAdminPage() {
   }) => {
     const { data: club } = await supabase
       .from("clubs")
-      .insert({
-        name: req.club_name,
-        country_code: req.country_code,
-        description: req.description,
-        is_approved: true,
-        created_by: req.user_id,
-      })
-      .select()
-      .single();
+      .insert({ name: req.club_name, country_code: req.country_code, description: req.description, is_approved: true, created_by: req.user_id })
+      .select().single();
     if (!club) return;
     await supabase.from("club_admins").insert({ club_id: club.id, user_id: req.user_id, role: "owner" });
     await supabase.from("profiles").update({ role: "club_admin" }).eq("id", req.user_id);
-    await supabase
-      .from("club_registration_requests")
-      .update({ status: "approved", resolved_at: new Date().toISOString() })
-      .eq("id", req.id);
+    await supabase.from("club_registration_requests").update({ status: "approved", resolved_at: new Date().toISOString() }).eq("id", req.id);
     refresh();
   };
 
@@ -169,6 +188,57 @@ export function SuperAdminPage() {
     refresh();
   };
 
+  // ── User management ──
+
+  const handleSaveUser = async () => {
+    if (!selectedUser) return;
+    setSavingUser(true);
+    await supabase.from("profiles").update({
+      display_name: userEditData.display_name || null,
+      email: userEditData.email || null,
+      whatsapp: userEditData.whatsapp || null,
+      country_code: userEditData.country_code?.toUpperCase().slice(0, 2) || null,
+    }).eq("id", selectedUser.id);
+    setSelectedUser({ ...selectedUser, ...userEditData });
+    setEditingUser(false);
+    setSavingUser(false);
+    queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
+  };
+
+  const handleClaimSearch = async (q: string) => {
+    setClaimSearch(q);
+    if (q.length < 2) { setClaimResults([]); return; }
+    setClaimSearching(true);
+    const { data } = await supabase
+      .from("players")
+      .select("id, nickname, poker_rooms(name), profile_id")
+      .ilike("nickname", `%${q}%`)
+      .limit(10);
+    setClaimResults(data ?? []);
+    setClaimSearching(false);
+  };
+
+  const handleAdminClaim = async (playerId: string) => {
+    if (!selectedUser) return;
+    await supabase.from("players").update({ profile_id: selectedUser.id }).eq("id", playerId);
+    await supabase.from("nickname_claims").insert({
+      user_id: selectedUser.id,
+      player_id: playerId,
+      screenshot_url: "admin-claim",
+      status: "approved",
+      resolved_at: new Date().toISOString(),
+    });
+    setClaimSearch("");
+    setClaimResults([]);
+    refetchSelectedUserPlayers();
+  };
+
+  const handleUnlinkPlayer = async (playerId: string) => {
+    if (!confirm("¿Desvincular este nickname del perfil?")) return;
+    await supabase.from("players").update({ profile_id: null }).eq("id", playerId);
+    refetchSelectedUserPlayers();
+  };
+
   // ── Field definitions ──
 
   const roomFields = [
@@ -179,21 +249,14 @@ export function SuperAdminPage() {
   const scoringFields = [
     { key: "name", label: "Nombre", type: "text" as const, required: true },
     { key: "description", label: "Descripción", type: "textarea" as const },
-    {
-      key: "type",
-      label: "Tipo",
-      type: "select" as const,
-      options: [
-        { value: "simple", label: "Simple" },
-        { value: "complex", label: "Complex" },
-      ],
-    },
+    { key: "type", label: "Tipo", type: "select" as const, options: [{ value: "simple", label: "Simple" }, { value: "complex", label: "Complex" }] },
   ];
 
   const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0);
 
   const TABS: { key: AdminTab; label: string; badge?: number }[] = [
     { key: "overview", label: "General" },
+    { key: "users", label: "Usuarios" },
     { key: "requests", label: "Solicitudes", badge: pendingTotal > 0 ? pendingTotal : undefined },
     { key: "rooms", label: "Salas" },
     { key: "scoring", label: "Scoring" },
@@ -204,17 +267,12 @@ export function SuperAdminPage() {
       <SEOHead title="Super Admin" path="/admin" noIndex={true} />
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
-          {/* Header */}
+
           <div className="mb-8">
-            <p className="font-mono text-[11px] font-bold tracking-[0.08em] uppercase text-sk-red mb-3">
-              Super Admin
-            </p>
-            <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1">
-              ⚡ Panel de Administración
-            </h1>
+            <p className="font-mono text-[11px] font-bold tracking-[0.08em] uppercase text-sk-red mb-3">Super Admin</p>
+            <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1">⚡ Panel de Administración</h1>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-px bg-sk-bg-0 rounded-md p-0.5 border border-sk-border-2 mb-6 overflow-x-auto">
             {TABS.map((t) => (
               <button
@@ -222,9 +280,7 @@ export function SuperAdminPage() {
                 onClick={() => setTab(t.key)}
                 className={cn(
                   "text-sk-sm font-medium px-4 py-2 rounded-sm whitespace-nowrap transition-all duration-100 relative",
-                  tab === t.key
-                    ? "bg-sk-bg-3 text-sk-text-1 shadow-sk-xs"
-                    : "text-sk-text-2 hover:text-sk-text-1"
+                  tab === t.key ? "bg-sk-bg-3 text-sk-text-1 shadow-sk-xs" : "text-sk-text-2 hover:text-sk-text-1"
                 )}
               >
                 {t.label}
@@ -237,12 +293,9 @@ export function SuperAdminPage() {
             ))}
           </div>
 
-          {/* ══════════════════════════════════════════════════ */}
-          {/* TAB: Overview                                     */}
-          {/* ══════════════════════════════════════════════════ */}
+          {/* ══ OVERVIEW ══ */}
           {tab === "overview" && (
             <div className="space-y-8">
-              {/* Global stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard label="Jugadores" value={formatNumber(stats?.players ?? 0)} accent="accent" />
                 <StatCard label="Clubes" value={formatNumber(stats?.clubs ?? 0)} accent="green" />
@@ -250,45 +303,29 @@ export function SuperAdminPage() {
                 <StatCard label="Ligas" value={formatNumber(stats?.leagues ?? 0)} />
               </div>
 
-              {/* Pending alerts */}
               {pendingTotal > 0 && (
                 <div className="bg-sk-gold-dim border border-sk-gold/20 rounded-lg p-4 flex items-center gap-3">
                   <AlertCircle size={18} className="text-sk-gold shrink-0" />
                   <div className="flex-1">
-                    <p className="text-sk-sm font-semibold text-sk-gold">
-                      {pendingTotal} solicitud(es) pendiente(s)
-                    </p>
+                    <p className="text-sk-sm font-semibold text-sk-gold">{pendingTotal} solicitud(es) pendiente(s)</p>
                     <p className="text-sk-xs text-sk-text-3">
                       {stats?.pendingClubs ? `${stats.pendingClubs} club(es)` : ""}
                       {stats?.pendingClubs && stats?.pendingClaims ? " · " : ""}
                       {stats?.pendingClaims ? `${stats.pendingClaims} nickname claim(s)` : ""}
                     </p>
                   </div>
-                  <Button variant="secondary" size="sm" onClick={() => setTab("requests")}>
-                    Ver solicitudes
-                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => setTab("requests")}>Ver solicitudes</Button>
                 </div>
               )}
 
-              {/* Clubs quick list with "Gestionar" button */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sk-md font-bold text-sk-text-1">
-                    Clubes ({allClubs?.length ?? 0})
-                  </h2>
-                </div>
-
+                <h2 className="text-sk-md font-bold text-sk-text-1 mb-3">Clubes ({allClubs?.length ?? 0})</h2>
                 <div className="border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-x-auto">
                   <table className="w-full border-collapse text-sk-sm">
                     <thead>
                       <tr>
                         {["Club", "País", "Estado", ""].map((h, i) => (
-                          <th
-                            key={i}
-                            className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap"
-                          >
-                            {h}
-                          </th>
+                          <th key={i} className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -298,26 +335,17 @@ export function SuperAdminPage() {
                           <td className="py-3 px-4 border-b border-sk-border-2">
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-sk-text-1">{c.name}</span>
-                              {c.is_demo && (
-                                <Badge variant="muted">Demo</Badge>
-                              )}
+                              {c.is_demo && <Badge variant="muted">Demo</Badge>}
                             </div>
                           </td>
                           <td className="py-3 px-4 border-b border-sk-border-2">
-                            <span className="inline-flex items-center gap-1.5">
-                              <FlagIcon countryCode={c.country_code} /> {c.country_code ?? "—"}
-                            </span>
+                            <span className="inline-flex items-center gap-1.5"><FlagIcon countryCode={c.country_code} /> {c.country_code ?? "—"}</span>
                           </td>
                           <td className="py-3 px-4 border-b border-sk-border-2">
-                            <Badge variant={c.is_approved ? "green" : "orange"}>
-                              {c.is_approved ? "Aprobado" : "Pendiente"}
-                            </Badge>
+                            <Badge variant={c.is_approved ? "green" : "orange"}>{c.is_approved ? "Aprobado" : "Pendiente"}</Badge>
                           </td>
                           <td className="py-3 px-4 border-b border-sk-border-2">
-                            <Link
-                              to="/admin/club"
-                              className="inline-flex items-center gap-1.5 text-sk-xs font-semibold text-sk-accent hover:underline"
-                            >
+                            <Link to="/admin/club" className="inline-flex items-center gap-1.5 text-sk-xs font-semibold text-sk-accent hover:underline">
                               <Settings size={12} /> Gestionar
                             </Link>
                           </td>
@@ -326,28 +354,192 @@ export function SuperAdminPage() {
                     </tbody>
                   </table>
                 </div>
-
                 <p className="text-[11px] text-sk-text-4 mt-2">
-                  Para gestionar un club (torneos, plantillas, resultados, ligas, jugadores), usa el{" "}
-                  <Link to="/admin/club" className="text-sk-accent hover:underline">
-                    Panel de Club Admin
-                  </Link>{" "}
-                  — ahí puedes seleccionar cualquier club desde el dropdown.
+                  Para gestionar torneos, resultados y ligas usa el{" "}
+                  <Link to="/admin/club" className="text-sk-accent hover:underline">Panel de Club Admin</Link>.
                 </p>
               </div>
             </div>
           )}
 
-          {/* ══════════════════════════════════════════════════ */}
-          {/* TAB: Requests                                     */}
-          {/* ══════════════════════════════════════════════════ */}
+          {/* ══ USUARIOS ══ */}
+          {tab === "users" && (
+            <div className="flex gap-6 min-h-[600px]">
+              {/* Lista izquierda */}
+              <div className={`flex flex-col gap-2 overflow-y-auto ${selectedUser ? "w-72 shrink-0" : "w-full"}`}>
+                <h2 className="text-sk-md font-bold text-sk-text-1 mb-2">Usuarios ({profiles?.length ?? 0})</h2>
+                {(profiles ?? []).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => { setSelectedUser(p); setEditingUser(false); setClaimSearch(""); setClaimResults([]); }}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all",
+                      selectedUser?.id === p.id
+                        ? "bg-sk-accent-dim border-sk-accent"
+                        : "bg-sk-bg-2 border-sk-border-2 hover:border-sk-border-3"
+                    )}
+                  >
+                    <div className="w-9 h-9 rounded-full bg-sk-bg-4 border border-sk-border-2 overflow-hidden shrink-0 flex items-center justify-center">
+                      {p.avatar_url
+                        ? <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
+                        : <span className="text-sk-sm font-bold text-sk-accent">{(p.display_name ?? p.email ?? "?").charAt(0).toUpperCase()}</span>
+                      }
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sk-sm font-semibold text-sk-text-1 truncate">{p.display_name ?? "—"}</p>
+                      <p className="text-[11px] text-sk-text-3 truncate">{p.email}</p>
+                    </div>
+                    <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0",
+                      p.role === "super_admin" ? "bg-sk-red-dim text-sk-red"
+                      : p.role === "club_admin" ? "bg-sk-accent-dim text-sk-accent"
+                      : "bg-sk-bg-4 text-sk-text-3"
+                    )}>
+                      {p.role}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Panel derecho */}
+              {selectedUser && (
+                <div className="flex-1 bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 overflow-y-auto">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-border-2 overflow-hidden flex items-center justify-center">
+                        {selectedUser.avatar_url
+                          ? <img src={selectedUser.avatar_url} alt="" className="w-full h-full object-cover" />
+                          : <span className="text-sk-xl font-bold text-sk-accent">{(selectedUser.display_name ?? selectedUser.email ?? "?").charAt(0).toUpperCase()}</span>
+                        }
+                      </div>
+                      <div>
+                        <h3 className="text-sk-lg font-bold text-sk-text-1">{selectedUser.display_name ?? "Sin nombre"}</h3>
+                        <p className="text-[10px] text-sk-text-4 font-mono mt-0.5">{selectedUser.id}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="secondary" size="sm" onClick={() => {
+                        setEditingUser(!editingUser);
+                        setUserEditData({
+                          display_name: selectedUser.display_name ?? "",
+                          email: selectedUser.email ?? "",
+                          whatsapp: selectedUser.whatsapp ?? "",
+                          country_code: selectedUser.country_code ?? "",
+                        });
+                      }}>
+                        <Pencil size={13} /> {editingUser ? "Cancelar" : "Editar"}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedUser(null)}>
+                        <XIcon size={13} />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Edición */}
+                  {editingUser ? (
+                    <div className="space-y-3 mb-6 p-4 bg-sk-bg-3 rounded-lg border border-sk-border-2">
+                      {[
+                        { key: "display_name", label: "Nombre", placeholder: "Nombre completo" },
+                        { key: "email", label: "Email", placeholder: "correo@ejemplo.com" },
+                        { key: "whatsapp", label: "WhatsApp", placeholder: "56 9 1234 5678" },
+                        { key: "country_code", label: "País (2 letras)", placeholder: "CL" },
+                      ].map((f) => (
+                        <div key={f.key}>
+                          <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1 block">{f.label}</label>
+                          <input
+                            type="text"
+                            value={userEditData[f.key] ?? ""}
+                            onChange={(e) => setUserEditData({ ...userEditData, [f.key]: e.target.value })}
+                            placeholder={f.placeholder}
+                            className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
+                          />
+                        </div>
+                      ))}
+                      <Button variant="accent" size="sm" onClick={handleSaveUser} isLoading={savingUser}>
+                        <Check size={13} /> Guardar cambios
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      {[
+                        { label: "Email", value: selectedUser.email },
+                        { label: "WhatsApp", value: selectedUser.whatsapp ? `+${selectedUser.whatsapp}` : null },
+                        { label: "País", value: selectedUser.country_code },
+                        { label: "Rol", value: selectedUser.role },
+                      ].map((item) => (
+                        <div key={item.label} className="bg-sk-bg-3 rounded-md p-3">
+                          <p className="text-[10px] font-mono uppercase tracking-wide text-sk-text-3 mb-1">{item.label}</p>
+                          <p className="text-sk-sm font-semibold text-sk-text-1">{item.value ?? "—"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Nicknames vinculados */}
+                  <div className="mb-6">
+                    <h4 className="text-sk-sm font-bold text-sk-text-1 mb-3">Nicknames vinculados</h4>
+                    {(selectedUserPlayers ?? []).length === 0
+                      ? <p className="text-sk-xs text-sk-text-3">Sin nicknames vinculados</p>
+                      : (selectedUserPlayers ?? []).map((p: any) => (
+                        <div key={p.id} className="flex items-center justify-between bg-sk-bg-3 rounded-md px-3 py-2 mb-2">
+                          <div>
+                            <span className="font-mono font-semibold text-sk-text-1 text-sk-sm">{p.nickname}</span>
+                            <span className="text-sk-xs text-sk-text-3 ml-2">({p.poker_rooms?.name ?? "—"}) · ELO: {Math.round(p.elo_rating)}</span>
+                          </div>
+                          <button onClick={() => handleUnlinkPlayer(p.id)} className="text-sk-text-3 hover:text-sk-red transition-colors p-1" title="Desvincular">
+                            <XIcon size={13} />
+                          </button>
+                        </div>
+                      ))
+                    }
+                  </div>
+
+                  {/* Vincular nickname */}
+                  <div>
+                    <h4 className="text-sk-sm font-bold text-sk-text-1 mb-3">Vincular nickname (como admin)</h4>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={claimSearch}
+                        onChange={(e) => handleClaimSearch(e.target.value)}
+                        placeholder="Buscar nickname..."
+                        className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 pl-3 pr-8 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
+                      />
+                      {claimSearching && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin" />
+                      )}
+                    </div>
+                    {claimResults.length > 0 && (
+                      <div className="mt-1 border border-sk-border-2 rounded-md overflow-hidden bg-sk-bg-2">
+                        {claimResults.map((p: any) => (
+                          <button
+                            key={p.id}
+                            onClick={() => handleAdminClaim(p.id)}
+                            className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-white/[0.03] border-b border-sk-border-2 last:border-b-0 transition-colors"
+                          >
+                            <div>
+                              <span className="font-mono font-semibold text-sk-text-1 text-sk-sm">{p.nickname}</span>
+                              <span className="text-sk-xs text-sk-text-3 ml-2">{p.poker_rooms?.name ?? "—"}</span>
+                            </div>
+                            {p.profile_id
+                              ? <Badge variant="orange">Ya vinculado</Badge>
+                              : <span className="text-sk-xs text-sk-accent font-semibold">Vincular →</span>
+                            }
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ══ SOLICITUDES ══ */}
           {tab === "requests" && (
             <div className="space-y-8">
-              {/* Club registration requests */}
               <div>
-                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">
-                  Solicitudes de Club ({clubRequests?.length || 0})
-                </h2>
+                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Solicitudes de Club ({clubRequests?.length || 0})</h2>
                 {(clubRequests ?? []).length === 0 ? (
                   <EmptyState icon="📋" title="Sin solicitudes de club" />
                 ) : (
@@ -359,45 +551,26 @@ export function SuperAdminPage() {
                             <p className="text-sk-md font-bold text-sk-text-1">{req.club_name}</p>
                             <p className="text-sk-xs text-sk-text-3">
                               Solicitante: {req.profiles?.display_name}
-                              {req.profiles?.email && (
-                                <span className="ml-2 text-sk-text-4">({req.profiles.email})</span>
-                              )}
+                              {req.profiles?.email && <span className="ml-2 text-sk-text-4">({req.profiles.email})</span>}
                             </p>
                             {req.profiles?.whatsapp && (
-                              <a
-                                href={`https://wa.me/${req.profiles.whatsapp.replace(/\D/g, "")}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-sk-xs text-sk-green hover:underline"
-                              >
+                              <a href={`https://wa.me/${req.profiles.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="text-sk-xs text-sk-green hover:underline">
                                 WhatsApp: +{req.profiles.whatsapp}
                               </a>
                             )}
-                            {req.description && (
-                              <p className="text-sk-xs text-sk-text-2 mt-1">{req.description}</p>
-                            )}
+                            {req.description && <p className="text-sk-xs text-sk-text-2 mt-1">{req.description}</p>}
                             {req.country_code && (
                               <span className="inline-flex items-center gap-1 mt-1 text-sk-xs text-sk-text-3">
                                 <FlagIcon countryCode={req.country_code} /> {req.country_code}
                               </span>
                             )}
                           </div>
-                          <Badge variant={req.status === "pending" ? "orange" : req.status === "approved" ? "green" : "muted"}>
-                            {req.status}
-                          </Badge>
+                          <Badge variant={req.status === "pending" ? "orange" : req.status === "approved" ? "green" : "muted"}>{req.status}</Badge>
                         </div>
                         {req.status === "pending" && (
                           <div className="flex gap-2 pt-3 border-t border-sk-border-2">
-                            <Button variant="accent" size="sm" onClick={() => handleApproveClub(req)}>
-                              <Check size={13} /> Aprobar Club
-                            </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => handleRejectRequest(req.id, "club_registration_requests")}
-                            >
-                              <XIcon size={13} /> Rechazar
-                            </Button>
+                            <Button variant="accent" size="sm" onClick={() => handleApproveClub(req)}><Check size={13} /> Aprobar Club</Button>
+                            <Button variant="danger" size="sm" onClick={() => handleRejectRequest(req.id, "club_registration_requests")}><XIcon size={13} /> Rechazar</Button>
                           </div>
                         )}
                       </div>
@@ -406,11 +579,8 @@ export function SuperAdminPage() {
                 )}
               </div>
 
-              {/* Nickname claims */}
               <div>
-                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">
-                  Claims de Nickname ({nicknameClaims?.length || 0})
-                </h2>
+                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Claims de Nickname ({nicknameClaims?.length || 0})</h2>
                 {(nicknameClaims ?? []).length === 0 ? (
                   <EmptyState icon="🏷️" title="Sin claims pendientes" />
                 ) : (
@@ -418,121 +588,50 @@ export function SuperAdminPage() {
                     {nicknameClaims?.map((claim) => (
                       <div key={claim.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
                         <div className="flex flex-col md:flex-row gap-5">
-                          {/* Screenshot */}
                           <div className="shrink-0">
-                            <p className="text-[10px] font-mono uppercase text-sk-text-3 mb-2">
-                              Prueba (Screenshot)
-                            </p>
-                            <a
-                              href={claim.screenshot_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="block group relative w-32 h-32 md:w-40 md:h-40 bg-sk-bg-3 border border-sk-border-2 rounded-md overflow-hidden"
-                            >
+                            <p className="text-[10px] font-mono uppercase text-sk-text-3 mb-2">Prueba (Screenshot)</p>
+                            <a href={claim.screenshot_url} target="_blank" rel="noreferrer" className="block group relative w-32 h-32 md:w-40 md:h-40 bg-sk-bg-3 border border-sk-border-2 rounded-md overflow-hidden">
                               {claim.screenshot_url ? (
                                 <>
-                                  <img
-                                    src={claim.screenshot_url}
-                                    alt="Validación"
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                                  />
+                                  <img src={claim.screenshot_url} alt="Validación" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <span className="text-white text-xs font-bold">Ver en grande</span>
                                   </div>
                                 </>
                               ) : (
-                                <div className="flex items-center justify-center h-full text-sk-text-3 italic text-xs">
-                                  Sin imagen
-                                </div>
+                                <div className="flex items-center justify-center h-full text-sk-text-3 italic text-xs">Sin imagen</div>
                               )}
                             </a>
                           </div>
-
-                          {/* Data */}
                           <div className="flex-1 flex flex-col justify-between">
                             <div>
                               <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-sk-lg font-bold text-sk-text-1">
-                                  {claim.players?.nickname}
-                                </h3>
-                                <Badge
-                                  variant={
-                                    claim.status === "pending"
-                                      ? "orange"
-                                      : claim.status === "approved"
-                                      ? "green"
-                                      : "muted"
-                                  }
-                                >
-                                  {claim.status}
-                                </Badge>
+                                <h3 className="text-sk-lg font-bold text-sk-text-1">{claim.players?.nickname}</h3>
+                                <Badge variant={claim.status === "pending" ? "orange" : claim.status === "approved" ? "green" : "muted"}>{claim.status}</Badge>
                               </div>
-
                               <div className="space-y-1.5">
-                                <p className="text-sk-sm text-sk-text-2">
-                                  <span className="text-sk-text-3 font-mono text-[10px] uppercase">
-                                    Usuario:
-                                  </span>{" "}
-                                  {claim.profiles?.display_name}
-                                </p>
-                                <p className="text-sk-sm text-sk-text-2">
-                                  <span className="text-sk-text-3 font-mono text-[10px] uppercase">
-                                    Email:
-                                  </span>{" "}
-                                  {claim.profiles?.email}
-                                </p>
+                                <p className="text-sk-sm text-sk-text-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">Usuario:</span> {claim.profiles?.display_name}</p>
+                                <p className="text-sk-sm text-sk-text-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">Email:</span> {claim.profiles?.email}</p>
                                 <p className="text-sk-sm text-sk-text-2 flex items-center gap-2">
-                                  <span className="text-sk-text-3 font-mono text-[10px] uppercase">
-                                    WhatsApp:
-                                  </span>
-                                  {claim.profiles?.whatsapp ? (
-                                    <a
-                                      href={`https://wa.me/${claim.profiles.whatsapp.replace(/\D/g, "")}`}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-sk-green hover:underline"
-                                    >
-                                      +{claim.profiles.whatsapp}
-                                    </a>
-                                  ) : (
-                                    <span className="text-sk-text-3 italic">No registrado</span>
-                                  )}
-                                </p>
-                                <p className="text-xs text-sk-text-3 pt-1">
-                                  ID: <span className="font-mono">{claim.id.split("-")[0]}</span>
+                                  <span className="text-sk-text-3 font-mono text-[10px] uppercase">WhatsApp:</span>
+                                  {claim.profiles?.whatsapp
+                                    ? <a href={`https://wa.me/${claim.profiles.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="text-sk-green hover:underline">+{claim.profiles.whatsapp}</a>
+                                    : <span className="text-sk-text-3 italic">No registrado</span>
+                                  }
                                 </p>
                               </div>
                             </div>
-
                             {claim.status === "pending" && (
                               <div className="flex gap-2 mt-4">
-                                <Button
-                                  variant="accent"
-                                  className="flex-1"
-                                  onClick={async () => {
-                                    const { error: linkError } = await supabase
-                                      .from("players")
-                                      .update({ profile_id: claim.user_id })
-                                      .eq("id", claim.player_id);
-                                    if (linkError) return alert("Error vinculando: " + linkError.message);
-                                    await supabase
-                                      .from("nickname_claims")
-                                      .update({
-                                        status: "approved",
-                                        resolved_at: new Date().toISOString(),
-                                      })
-                                      .eq("id", claim.id);
-                                    refresh();
-                                  }}
-                                >
+                                <Button variant="accent" className="flex-1" onClick={async () => {
+                                  const { error: linkError } = await supabase.from("players").update({ profile_id: claim.user_id }).eq("id", claim.player_id);
+                                  if (linkError) return alert("Error vinculando: " + linkError.message);
+                                  await supabase.from("nickname_claims").update({ status: "approved", resolved_at: new Date().toISOString() }).eq("id", claim.id);
+                                  refresh();
+                                }}>
                                   <Check size={14} /> Aprobar y Vincular
                                 </Button>
-                                <Button
-                                  variant="danger"
-                                  onClick={() => handleRejectRequest(claim.id, "nickname_claims")}
-                                >
-                                  <XIcon size={14} />
-                                </Button>
+                                <Button variant="danger" onClick={() => handleRejectRequest(claim.id, "nickname_claims")}><XIcon size={14} /></Button>
                               </div>
                             )}
                           </div>
@@ -545,27 +644,12 @@ export function SuperAdminPage() {
             </div>
           )}
 
-          {/* ══════════════════════════════════════════════════ */}
-          {/* TAB: Rooms                                        */}
-          {/* ══════════════════════════════════════════════════ */}
+          {/* ══ SALAS ══ */}
           {tab === "rooms" && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-sk-md font-bold text-sk-text-1">Salas ({rooms?.length})</h2>
-                <Button
-                  variant="accent"
-                  size="sm"
-                  onClick={() =>
-                    setEntityForm({
-                      table: "poker_rooms",
-                      title: "Sala",
-                      fields: roomFields,
-                      data: null,
-                    })
-                  }
-                >
-                  <Plus size={14} /> Crear
-                </Button>
+                <Button variant="accent" size="sm" onClick={() => setEntityForm({ table: "poker_rooms", title: "Sala", fields: roomFields, data: null })}><Plus size={14} /> Crear</Button>
               </div>
               <AdminTable
                 headers={["Sala", "Website"]}
@@ -573,55 +657,23 @@ export function SuperAdminPage() {
                   id: r.id,
                   cells: [
                     <span className="font-semibold text-sk-text-1">{r.name}</span>,
-                    r.website_url ? (
-                      <a
-                        href={r.website_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sk-accent text-sk-xs hover:underline inline-flex items-center gap-1"
-                      >
-                        {r.website_url} <ExternalLink size={10} />
-                      </a>
-                    ) : (
-                      <span className="text-sk-text-3 text-sk-xs">—</span>
-                    ),
+                    r.website_url
+                      ? <a href={r.website_url} target="_blank" rel="noreferrer" className="text-sk-accent text-sk-xs hover:underline inline-flex items-center gap-1">{r.website_url} <ExternalLink size={10} /></a>
+                      : <span className="text-sk-text-3 text-sk-xs">—</span>,
                   ],
-                  onEdit: () =>
-                    setEntityForm({
-                      table: "poker_rooms",
-                      title: "Sala",
-                      fields: roomFields,
-                      data: r,
-                    }),
+                  onEdit: () => setEntityForm({ table: "poker_rooms", title: "Sala", fields: roomFields, data: r }),
                   onDelete: () => handleDeleteEntity("poker_rooms", r.id, r.name),
                 }))}
               />
             </div>
           )}
 
-          {/* ══════════════════════════════════════════════════ */}
-          {/* TAB: Scoring                                      */}
-          {/* ══════════════════════════════════════════════════ */}
+          {/* ══ SCORING ══ */}
           {tab === "scoring" && (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-sk-md font-bold text-sk-text-1">
-                  Scoring Systems ({scoringSystems?.length})
-                </h2>
-                <Button
-                  variant="accent"
-                  size="sm"
-                  onClick={() =>
-                    setEntityForm({
-                      table: "scoring_systems",
-                      title: "Scoring System",
-                      fields: scoringFields,
-                      data: null,
-                    })
-                  }
-                >
-                  <Plus size={14} /> Crear
-                </Button>
+                <h2 className="text-sk-md font-bold text-sk-text-1">Scoring Systems ({scoringSystems?.length})</h2>
+                <Button variant="accent" size="sm" onClick={() => setEntityForm({ table: "scoring_systems", title: "Scoring System", fields: scoringFields, data: null })}><Plus size={14} /> Crear</Button>
               </div>
               <AdminTable
                 headers={["Nombre", "Tipo", "Descripción"]}
@@ -630,26 +682,18 @@ export function SuperAdminPage() {
                   cells: [
                     <span className="font-semibold text-sk-text-1">{s.name}</span>,
                     <Badge variant="accent">{s.type}</Badge>,
-                    <span className="text-sk-text-2 text-sk-xs line-clamp-1">
-                      {s.description ?? "—"}
-                    </span>,
+                    <span className="text-sk-text-2 text-sk-xs line-clamp-1">{s.description ?? "—"}</span>,
                   ],
-                  onEdit: () =>
-                    setEntityForm({
-                      table: "scoring_systems",
-                      title: "Scoring System",
-                      fields: scoringFields,
-                      data: s,
-                    }),
+                  onEdit: () => setEntityForm({ table: "scoring_systems", title: "Scoring System", fields: scoringFields, data: s }),
                   onDelete: () => handleDeleteEntity("scoring_systems", s.id, s.name),
                 }))}
               />
             </div>
           )}
+
         </div>
       </div>
 
-      {/* Entity Form Modal */}
       {entityForm && (
         <EntityForm
           isOpen={true}
@@ -667,17 +711,9 @@ export function SuperAdminPage() {
 
 // ── Reusable Admin Table ──
 
-function AdminTable({
-  headers,
-  rows,
-}: {
+function AdminTable({ headers, rows }: {
   headers: string[];
-  rows: Array<{
-    id: string;
-    cells: React.ReactNode[];
-    onEdit?: () => void;
-    onDelete?: () => void;
-  }>;
+  rows: Array<{ id: string; cells: React.ReactNode[]; onEdit?: () => void; onDelete?: () => void }>;
 }) {
   return (
     <div className="border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-x-auto">
@@ -685,12 +721,7 @@ function AdminTable({
         <thead>
           <tr>
             {headers.map((h, i) => (
-              <th
-                key={i}
-                className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap"
-              >
-                {h}
-              </th>
+              <th key={i} className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap">{h}</th>
             ))}
             <th className="bg-sk-bg-3 py-3 px-4 border-b border-sk-border-2 w-20"></th>
           </tr>
@@ -699,30 +730,12 @@ function AdminTable({
           {rows.map((row) => (
             <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
               {row.cells.map((cell, i) => (
-                <td key={i} className="py-3 px-4 border-b border-sk-border-2">
-                  {cell}
-                </td>
+                <td key={i} className="py-3 px-4 border-b border-sk-border-2">{cell}</td>
               ))}
               <td className="py-3 px-4 border-b border-sk-border-2">
                 <div className="flex gap-1">
-                  {row.onEdit && (
-                    <button
-                      onClick={row.onEdit}
-                      className="text-sk-text-2 hover:text-sk-accent transition-colors p-1"
-                      title="Editar"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                  )}
-                  {row.onDelete && (
-                    <button
-                      onClick={row.onDelete}
-                      className="text-sk-text-2 hover:text-sk-red transition-colors p-1"
-                      title="Eliminar"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
+                  {row.onEdit && <button onClick={row.onEdit} className="text-sk-text-2 hover:text-sk-accent transition-colors p-1" title="Editar"><Pencil size={13} /></button>}
+                  {row.onDelete && <button onClick={row.onDelete} className="text-sk-text-2 hover:text-sk-red transition-colors p-1" title="Eliminar"><Trash2 size={13} /></button>}
                 </div>
               </td>
             </tr>
