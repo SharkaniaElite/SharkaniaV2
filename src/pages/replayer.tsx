@@ -47,13 +47,15 @@ export function ReplayerPage() {
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [loadingSharedHand, setLoadingSharedHand] = useState(!!sharedId);
 
   // Playback
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Cargar mano desde ID corto (nueva ruta /tools/replayer/h/:id) ──
+  // ── Cargar mano desde ID corto ──
   useEffect(() => {
     if (!sharedId) return;
+    setLoadingSharedHand(true);
     loadHandFromShare(sharedId).then((hand) => {
       if (hand) {
         setHands([hand]);
@@ -61,6 +63,8 @@ export function ReplayerPage() {
         setReplayState(initReplayState(hand));
         setDetectedRoom("Mano compartida");
       }
+    }).finally(() => {
+      setLoadingSharedHand(false);
     });
   }, [sharedId]);
 
@@ -281,6 +285,26 @@ export function ReplayerPage() {
   }
 
   const hasHand = replayState !== null;
+
+  // Mientras carga la mano compartida, mostrar spinner
+  if (loadingSharedHand) {
+    return (
+      <PageShell>
+        <SEOHead
+          title="Replayer de Manos — Sharkania"
+          description="Revive cualquier mano de torneo paso a paso."
+          path="/tools/replayer"
+          ogImage="/images/tools/og-replayer-share.jpg"
+        />
+        <div className="pt-20 pb-16 min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-10 h-10 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sk-sm text-sk-text-3">Cargando mano...</p>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell>
