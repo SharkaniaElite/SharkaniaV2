@@ -16,69 +16,71 @@ const STREET_CFG: Record<Street, { label: string; color: string; glow: string; r
   showdown: { label: "SHOWDOWN", color: "#c4b5fd", glow: "rgba(196,181,253,0.6)", railOpacity: 0.65 },
 };
 
-// Posiciones en % relativas al contenedor TOTAL (incluyendo padding)
-// El óvalo ocupa del 12% al 88% horizontal y del 14% al 86% vertical
-// Los asientos se posicionan alrededor del borde del óvalo
+// ── Posiciones de asientos ────────────────────────────────
+// REGLA: top mínimo = 14% para que las cartas del fan no salgan por arriba.
+// El fan de cartas ocupa ~55px hacia arriba desde el HUD.
+// Con un contenedor de 400px de alto, 55px = 13.75% → mínimo 15%.
+// Los asientos inferiores pueden llegar a 85% (cartas salen hacia arriba = OK).
 function getSeatPositions(n: number): { top: number; left: number }[] {
   const pos: Record<number, { top: number; left: number }[]> = {
     2: [
-      { top: 86, left: 50 },
-      { top:  8, left: 50 },
+      { top: 84, left: 50 },  // hero abajo
+      { top: 16, left: 50 },  // arriba — mínimo 16% para que las cartas no salgan
     ],
     3: [
-      { top: 86, left: 50 },
-      { top: 20, left: 10 },
-      { top: 20, left: 90 },
+      { top: 84, left: 50 },
+      { top: 22, left: 12 },
+      { top: 22, left: 88 },
     ],
     4: [
-      { top: 86, left: 50 },
-      { top: 48, left:  6 },
-      { top:  8, left: 50 },
-      { top: 48, left: 94 },
+      { top: 84, left: 50 },
+      { top: 46, left:  5 },
+      { top: 16, left: 50 },
+      { top: 46, left: 95 },
     ],
     5: [
-      { top: 86, left: 50 },
-      { top: 64, left:  5 },
-      { top: 14, left: 18 },
-      { top: 14, left: 82 },
-      { top: 64, left: 95 },
+      { top: 84, left: 50 },
+      { top: 63, left:  5 },
+      { top: 18, left: 18 },
+      { top: 18, left: 82 },
+      { top: 63, left: 95 },
     ],
     6: [
-      { top: 86, left: 50 },
-      { top: 66, left:  5 },
-      { top: 16, left: 14 },
-      { top:  6, left: 50 },
-      { top: 16, left: 86 },
-      { top: 66, left: 95 },
+      { top: 84, left: 50 },
+      { top: 66, left:  4 },
+      { top: 20, left: 14 },
+      { top: 14, left: 50 },  // top center — 14% mínimo
+      { top: 20, left: 86 },
+      { top: 66, left: 96 },
     ],
     7: [
-      { top: 86, left: 50 },
+      { top: 84, left: 50 },
       { top: 70, left:  4 },
       { top: 36, left:  3 },
-      { top:  8, left: 24 },
-      { top:  8, left: 76 },
+      { top: 15, left: 26 },
+      { top: 15, left: 74 },
       { top: 36, left: 97 },
       { top: 70, left: 96 },
     ],
     8: [
-      { top: 86, left: 50 },
+      { top: 84, left: 50 },
       { top: 74, left:  4 },
       { top: 42, left:  2 },
-      { top:  8, left: 20 },
-      { top:  6, left: 50 },
-      { top:  8, left: 80 },
+      { top: 15, left: 20 },
+      { top: 14, left: 50 },
+      { top: 15, left: 80 },
       { top: 42, left: 98 },
       { top: 74, left: 96 },
     ],
     9: [
-      { top: 86, left: 50 },
+      { top: 84, left: 50 },
       { top: 76, left:  4 },
-      { top: 46, left:  1 },
-      { top: 14, left: 10 },
-      { top:  4, left: 34 },
-      { top:  4, left: 66 },
-      { top: 14, left: 90 },
-      { top: 46, left: 99 },
+      { top: 47, left:  1 },
+      { top: 18, left: 11 },
+      { top: 14, left: 35 },
+      { top: 14, left: 65 },
+      { top: 18, left: 89 },
+      { top: 47, left: 99 },
       { top: 76, left: 96 },
     ],
   };
@@ -126,12 +128,9 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
     ...Array(5 - communityCards.length).fill(null),
   ];
 
-  // El contenedor principal tiene padding para que los asientos no se corten.
-  // El óvalo (mesa) ocupa el área interior descontando el padding.
-  // padding horizontal: 12% del width
-  // padding vertical:   14% del height
-  const PAD_H = "12%";
-  const PAD_V = "14%";
+  // Padding % para que los asientos tengan espacio fuera del óvalo
+  const PH = "12%"; // horizontal
+  const PV = "14%"; // vertical
 
   return (
     <div
@@ -139,14 +138,15 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
       style={{
         position: "relative",
         width: "100%",
-        // Aspect ratio del contenedor TOTAL (mesa + espacio para asientos)
         aspectRatio: "16 / 10",
+        // overflow visible para que los asientos en los bordes se vean
+        overflow: "visible",
       }}
     >
       {/* Halo ambiental */}
       <div style={{
         position: "absolute",
-        top: PAD_V, left: PAD_H, right: PAD_H, bottom: PAD_V,
+        top: PV, left: PH, right: PH, bottom: PV,
         borderRadius: "50%",
         background: `radial-gradient(ellipse, ${streetCfg.glow} 0%, transparent 68%)`,
         filter: "blur(32px)",
@@ -158,7 +158,7 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
       {/* Rail madera */}
       <div style={{
         position: "absolute",
-        top: PAD_V, left: PAD_H, right: PAD_H, bottom: PAD_V,
+        top: PV, left: PH, right: PH, bottom: PV,
         borderRadius: "50%",
         background: "radial-gradient(ellipse at 50% 25%, #221a08 0%, #110e04 100%)",
         boxShadow: "0 0 50px rgba(0,0,0,0.8), inset 0 2px 0 rgba(255,255,255,0.04)",
@@ -167,10 +167,10 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
       {/* Neon rail */}
       <div style={{
         position: "absolute",
-        top: `calc(${PAD_V} + 1.5%)`,
-        left: `calc(${PAD_H} + 1.5%)`,
-        right: `calc(${PAD_H} + 1.5%)`,
-        bottom: `calc(${PAD_V} + 1.5%)`,
+        top: `calc(${PV} + 1.5%)`,
+        left: `calc(${PH} + 1.5%)`,
+        right: `calc(${PH} + 1.5%)`,
+        bottom: `calc(${PV} + 1.5%)`,
         borderRadius: "50%",
         border: `2.5px solid ${streetCfg.color}`,
         opacity: streetCfg.railOpacity,
@@ -182,15 +182,15 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
       {/* Felt */}
       <div style={{
         position: "absolute",
-        top: `calc(${PAD_V} + 3%)`,
-        left: `calc(${PAD_H} + 3%)`,
-        right: `calc(${PAD_H} + 3%)`,
-        bottom: `calc(${PAD_V} + 3%)`,
+        top: `calc(${PV} + 3%)`,
+        left: `calc(${PH} + 3%)`,
+        right: `calc(${PH} + 3%)`,
+        bottom: `calc(${PV} + 3%)`,
         borderRadius: "50%",
         background: "radial-gradient(ellipse at 50% 35%, #1e5c40 0%, #134030 40%, #0a2820 100%)",
         overflow: "hidden",
       }}>
-        <svg style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity:0.05 }}>
+        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.05 }}>
           <defs>
             <pattern id="felt-grain" width="5" height="5" patternUnits="userSpaceOnUse">
               <line x1="0" y1="0" x2="5" y2="5" stroke="#fff" strokeWidth="0.5"/>
@@ -199,18 +199,18 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
           <rect width="100%" height="100%" fill="url(#felt-grain)"/>
         </svg>
         <div style={{
-          position:"absolute", inset:0,
-          background:"radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.05) 0%, transparent 58%)",
+          position: "absolute", inset: 0,
+          background: "radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.05) 0%, transparent 58%)",
         }} />
       </div>
 
       {/* Centro: badge + cartas + pot */}
       <div style={{
         position: "absolute",
-        top: `calc(${PAD_V} + 3%)`,
-        left: `calc(${PAD_H} + 3%)`,
-        right: `calc(${PAD_H} + 3%)`,
-        bottom: `calc(${PAD_V} + 3%)`,
+        top: `calc(${PV} + 3%)`,
+        left: `calc(${PH} + 3%)`,
+        right: `calc(${PH} + 3%)`,
+        bottom: `calc(${PV} + 3%)`,
         borderRadius: "50%",
         display: "flex",
         flexDirection: "column",
@@ -225,7 +225,7 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
           borderRadius: "20px",
           background: `${streetCfg.color}18`,
           border: `1px solid ${streetCfg.color}55`,
-          fontSize: "clamp(8px, 1vw, 11px)",
+          fontSize: "clamp(7px, 0.9vw, 11px)",
           fontFamily: "'JetBrains Mono', monospace",
           fontWeight: 700,
           color: streetCfg.color,
@@ -238,7 +238,7 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
         </div>
 
         {/* Cartas comunitarias */}
-        <div style={{ display: "flex", alignItems: "center", gap: "clamp(3px, 0.5%, 6px)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "clamp(2px, 0.5%, 6px)" }}>
           {displayCards.map((card, i) => {
             const revealed = i < communityCards.length;
             return (
@@ -277,7 +277,7 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
               <circle cx="6" cy="6" r="1.8" fill="#fff" opacity="0.25"/>
             </svg>
             <span style={{
-              fontSize: "clamp(12px, 1.4vw, 16px)",
+              fontSize: "clamp(11px, 1.3vw, 16px)",
               fontFamily: "'JetBrains Mono', monospace",
               fontWeight: 700, color: "#fbbf24", letterSpacing: "-0.3px",
             }}>
@@ -292,7 +292,7 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
         )}
       </div>
 
-      {/* Asientos — posicionados sobre el contenedor TOTAL */}
+      {/* Asientos */}
       {players.map((player, idx) => {
         const pos = seatPositions[idx];
         if (!pos) return null;
@@ -334,11 +334,8 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
               <div key={i}>
                 <div style={{
                   fontSize: "9px", fontFamily: "'JetBrains Mono', monospace",
-                  fontWeight: 700, color: "#fbbf24",
-                  letterSpacing: "0.22em", marginBottom: "3px",
-                }}>
-                  ★ GANADOR
-                </div>
+                  fontWeight: 700, color: "#fbbf24", letterSpacing: "0.22em", marginBottom: "3px",
+                }}>★ GANADOR</div>
                 <div style={{
                   fontSize: "clamp(13px, 1.5vw, 17px)",
                   fontFamily: "Inter, system-ui, sans-serif",

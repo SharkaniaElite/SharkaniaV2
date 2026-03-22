@@ -24,13 +24,6 @@ function makeState(hand: HandHistory, speed = 1): ReplayState {
   return { ...initReplayState(hand), isPlaying: false, playbackSpeed: speed };
 }
 
-// ── Cuánto espacio NO es la mesa en modo normal ───────────
-// navbar:56 + banner:32 + metabar:44 + controls:255 + padding:28 = 415
-// Le damos margen extra → 440px
-const NORMAL_OFFSET = 440;
-// En fullscreen no hay navbar/banner, solo metabar+controls+padding = 345
-const FS_OFFSET = 345;
-
 export function ReplayerPage() {
   const { isAuthenticated } = useAuthStore();
   const [searchParams]      = useSearchParams();
@@ -55,7 +48,6 @@ export function ReplayerPage() {
   const rsRef       = useRef<ReplayState | null>(null);
   rsRef.current = rs;
 
-  // ── Shared hand ───────────────────────────────────────
   useEffect(() => {
     if (!sharedId) return;
     setLoadingShared(true);
@@ -75,7 +67,6 @@ export function ReplayerPage() {
     setHands([hand]); setSelectedIdx(0); setRS(makeState(hand)); setDetectedRoom("Mano compartida");
   }, [searchParams, sharedId]);
 
-  // ── Fullscreen ────────────────────────────────────────
   const toggleFS = useCallback(() => {
     if (!fsRef.current) return;
     if (!document.fullscreenElement) fsRef.current.requestFullscreen().catch(() => {});
@@ -97,7 +88,6 @@ export function ReplayerPage() {
     return () => window.removeEventListener("keydown", cb);
   }, [toggleFS]);
 
-  // ── File handling ─────────────────────────────────────
   const processText = useCallback((text: string) => {
     setParseErrors([]);
     const result = parseHandHistory(text);
@@ -119,7 +109,6 @@ export function ReplayerPage() {
     if (file) handleFile(file);
   }, [handleFile]);
 
-  // ── Playback ──────────────────────────────────────────
   const stopInterval = useCallback(() => {
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
   }, []);
@@ -164,7 +153,10 @@ export function ReplayerPage() {
         clearInterval(intervalRef.current);
         intervalRef.current = setInterval(() => {
           setRS((cur) => {
-            if (!cur || cur.isFinished) { clearInterval(intervalRef.current!); intervalRef.current = null; return cur ? { ...cur, isPlaying: false } : null; }
+            if (!cur || cur.isFinished) {
+              clearInterval(intervalRef.current!); intervalRef.current = null;
+              return cur ? { ...cur, isPlaying: false } : null;
+            }
             return stepForward(cur);
           });
         }, 1000 / speed);
@@ -206,9 +198,6 @@ export function ReplayerPage() {
   }, [rs]);
 
   const hasHand = hands.length > 0 && rs !== null;
-
-  // El offset que usamos según el modo
-  const offset = isFS ? FS_OFFSET : NORMAL_OFFSET;
 
   return (
     <>
@@ -317,26 +306,47 @@ export function ReplayerPage() {
         </div>
 
       ) : (
+        /*
+          ╔══════════════════════════════════════════════════════╗
+          ║  LAYOUT CON MANO — SOLUCIÓN DEFINITIVA               ║
+          ║                                                      ║
+          ║  Principio: el contenedor ocupa exactamente          ║
+          ║  el viewport disponible. Los hijos usan flex         ║
+          ║  para distribuirse. La mesa usa flex:1 con           ║
+          ║  min-height:0 para ceder espacio a los controles.    ║
+          ║                                                      ║
+          ║  La clave: PokerTable tiene aspectRatio en CSS.      ║
+          ║  Si el contenedor de la mesa tiene height limitado   ║
+          ║  por flex, el aspectRatio hace que el width se       ║
+          ║  reduzca automáticamente para mantener proporciones. ║
+          ║                                                      ║
+          ║  Modo normal:  height = 100dvh - 88px (header)       ║
+          ║  Modo fullscreen: height = 100dvh                    ║
+          ╚══════════════════════════════════════════════════════╝
+        */
         <div
           ref={fsRef}
-          style={isFS ? {
-            position: "fixed", inset: 0, zIndex: 9999,
-            background: "#09090b",
-            display: "flex", flexDirection: "column",
-          } : {
-            paddingTop: "88px",
-            minHeight: "100dvh",
+          style={{
+            position: isFS ? "fixed" : "relative",
+            top: isFS ? 0 : undefined,
+            left: isFS ? 0 : undefined,
+            right: isFS ? 0 : undefined,
+            bottom: isFS ? 0 : undefined,
+            marginTop: isFS ? 0 : "88px",
+            height: isFS ? "100dvh" : "calc(100dvh - 88px)",
+            zIndex: isFS ? 9999 : undefined,
             background: "#09090b",
             display: "flex",
             flexDirection: "column",
+            overflow: "hidden",        // CRÍTICO: sin esto flex no funciona
           }}
         >
-          {/* Metabar */}
+          {/* ── Metabar (altura natural, flexShrink:0) ── */}
           <div style={{
+            flexShrink: 0,
             display: "flex", alignItems: "center", justifyContent: "space-between",
             gap: "10px", flexWrap: "wrap",
             padding: "6px 16px",
-            flexShrink: 0,
             background: "rgba(255,255,255,0.02)",
             borderBottom: "1px solid rgba(255,255,255,0.05)",
           }}>
@@ -386,51 +396,63 @@ export function ReplayerPage() {
             </div>
           </div>
 
-          {/* Área principal */}
+          {/* ── Área central: mesa arriba, controles abajo ── */}
           <div style={{
             flex: 1,
+            minHeight: 0,              // CRÍTICO: permite que flex comprima este div
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            padding: "8px 16px 12px",
             gap: "8px",
-            // overflow auto para pantallas muy pequeñas
-            overflowY: "auto",
-            overflowX: "hidden",
-            minHeight: 0,
+            padding: "8px 16px 10px",
+            overflow: "hidden",
           }}>
+
             {/*
-              Dimensionado de la mesa:
-              ─────────────────────────────────────────────────────────
-              La mesa tiene aspectRatio 16:10 (definido en poker-table.tsx).
+              Contenedor de la mesa:
+              - flex: 1 con minHeight:0 → ocupa el espacio sobrante después de los controles
+              - width: 100% del padre
+              - El div interno usa aspectRatio para mantener proporciones
 
-              Necesitamos garantizar que su ALTURA no supere el espacio
-              disponible. Lo logramos limitando el ANCHO con maxWidth:
-
-                max_altura_mesa = 100dvh - offset
-                max_ancho_mesa  = max_altura_mesa * 1.6  (ratio 16:10)
-
-              También limitamos con min(98vw, ...) para no desbordar
-              horizontalmente en pantallas anchas y bajas.
-
-              NORMAL_OFFSET = 440px  (navbar+banner+metabar+controls+padding)
-              FS_OFFSET     = 345px  (metabar+controls+padding)
-              ─────────────────────────────────────────────────────────
+              Cuando la mesa es "demasiado alta" para el espacio disponible,
+              flex la comprime → minHeight:0 activa → la mesa se hace más pequeña
+              → el aspectRatio ajusta el ancho automáticamente.
+              Funciona en CUALQUIER tamaño de pantalla sin JavaScript.
             */}
             <div style={{
+              flex: 1,
+              minHeight: 0,
               width: "100%",
-              maxWidth: `min(98vw, calc((100dvh - ${offset}px) * 1.6))`,
-              maxHeight: `calc(100dvh - ${offset}px)`,
-              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
             }}>
-              <PokerTable state={rs} />
+              {/* Este div interior mantiene el aspect ratio */}
+              <div style={{
+                /*
+                  Truco CSS puro para aspect ratio con altura máxima:
+                  - height: 100% del padre flex (que ya está limitado)
+                  - width: auto → el browser calcula el ancho por aspectRatio
+                  - maxWidth: 100% → no desborda horizontalmente
+                  - aspectRatio: 16/10 → la mesa siempre es proporcional
+                */
+                height: "100%",
+                maxHeight: "100%",
+                aspectRatio: "16 / 10",
+                maxWidth: "100%",
+                width: "auto",
+              }}>
+                <PokerTable state={rs} />
+              </div>
             </div>
 
+            {/* Controles: altura natural, no se comprime */}
             <div style={{
-              width: "100%",
-              maxWidth: `min(98vw, calc((100dvh - ${offset}px) * 1.6))`,
               flexShrink: 0,
+              width: "100%",
+              maxWidth: "860px",
             }}>
               <ReplayControls
                 state={rs}
