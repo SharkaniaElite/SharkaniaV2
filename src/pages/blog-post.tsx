@@ -5,6 +5,7 @@ import { ArrowLeft, Clock, Share2, ChevronRight } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { getBlogPost, formatBlogDate, type BlogPost, type BlogBlock } from "../lib/api/blog";
 import { SEOHead } from "../components/seo/seo-head";
+import { renderWithLinks } from "../lib/render-inline-links";
 
 // ── OG Meta helper ────────────────────────────────────────────────────────────
 function setOGMeta(post: BlogPost) {
@@ -84,7 +85,7 @@ function BlockRenderer({ block, inlineImage, h2Index }: {
     return (
       <>
         <h2 className="text-sk-xl font-extrabold text-sk-text-1 tracking-tight mt-12 mb-4 first:mt-0">
-          {block.content}
+          {renderWithLinks(block.content ?? "")}
         </h2>
         {injectAfter && (
           <div className="my-6 rounded-xl overflow-hidden border border-sk-border-2">
@@ -100,7 +101,7 @@ function BlockRenderer({ block, inlineImage, h2Index }: {
   if (block.type === "h3") {
     return (
       <h3 className="text-sk-md font-bold text-sk-text-1 mt-8 mb-3">
-        {block.content}
+        {renderWithLinks(block.content ?? "")}
       </h3>
     );
   }
@@ -109,7 +110,7 @@ function BlockRenderer({ block, inlineImage, h2Index }: {
     return (
       <div className="my-8 rounded-lg border border-sk-accent/20 bg-sk-accent-dim px-6 py-5">
         <p className="text-sk-base text-sk-text-1 font-medium leading-relaxed">
-          {block.content}
+          {renderWithLinks(block.content ?? "")}
         </p>
       </div>
     );
@@ -121,7 +122,7 @@ function BlockRenderer({ block, inlineImage, h2Index }: {
         <span className="text-[2.5rem] font-extrabold text-sk-accent leading-none shrink-0">
           {block.value}
         </span>
-        <p className="text-sk-base text-sk-text-2 leading-snug">{block.content}</p>
+        <p className="text-sk-base text-sk-text-2 leading-snug">{renderWithLinks(block.content ?? "")}</p>
       </div>
     );
   }
@@ -132,7 +133,7 @@ function BlockRenderer({ block, inlineImage, h2Index }: {
         {(block.items ?? []).map((item, j) => (
           <li key={j} className="flex items-start gap-3 text-sk-base text-sk-text-2 leading-relaxed">
             <span className="mt-[6px] w-1.5 h-1.5 rounded-full bg-sk-accent shrink-0" />
-            {item}
+            {renderWithLinks(item)}
           </li>
         ))}
       </ul>
@@ -141,7 +142,7 @@ function BlockRenderer({ block, inlineImage, h2Index }: {
 
   return (
     <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">
-      {block.content}
+      {renderWithLinks(block.content ?? "")}
     </p>
   );
 }
