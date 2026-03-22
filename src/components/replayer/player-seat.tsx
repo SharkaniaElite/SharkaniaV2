@@ -1,5 +1,5 @@
 // src/components/replayer/player-seat.tsx
-import type { PlayerState, Action } from "../../types/replayer";
+import type { PlayerState, Action, Card } from "../../types/replayer";
 import { CardGroup } from "./card-svg";
 
 interface PlayerSeatProps {
@@ -37,6 +37,9 @@ const POS_CFG: Record<string, { color: string; bg: string; glow: string }> = {
   "UTG+2":{ color: "#fca5a5", bg: "#1c0505", glow: "rgba(252,165,165,0.40)" },
 };
 
+// Número de cartas según el tipo de juego (inferido del número de hole cards)
+const FACE_DOWN_PLACEHOLDER: Card[] = [];
+
 function initials(name: string): string {
   const p = name.trim().split(/[\s_\-.]+/);
   if (p.length >= 2) return (p[0][0] + p[1][0]).toUpperCase();
@@ -58,13 +61,22 @@ export function PlayerSeat({
 
   const actionCfg = lastAction ? ACTION_CFG[lastAction.type] : null;
   const posCfg    = position   ? (POS_CFG[position] ?? POS_CFG["UTG"]) : null;
-  const hasCards  = holeCards && holeCards.length > 0;
+  const hasKnownCards = holeCards && holeCards.length > 0;
 
-  const cards: (import("../../types/replayer").Card | null)[] | null = isFolded
-    ? null
-    : (showCards && hasCards) || (isHero && hasCards)
-    ? holeCards!
-    : hasCards ? Array(holeCards!.length).fill(null) : null;
+  // ── Qué cartas mostrar ────────────────────────────────
+  // Regla:
+  // 1. Foldeado → sin cartas (null)
+  // 2. Tiene cartas conocidas + (es héroe ó es showdown) → mostrar cara
+  // 3. Tiene cartas conocidas pero no se revelan → mostrar dorso (null en array)
+  // 4. No tiene cartas conocidas pero sigue activo → mostrar 2 dorsos (null, null)
+  //    Esto cubre villanos en GGPoker que no tienen holeCards hasta showdown.
+  const cardsToShow: (Card | null)[] | null = (() => {
+    if (isFolded) return null;
+    if (hasKnownCards && (showCards || isHero)) return holeCards!;
+    if (hasKnownCards) return holeCards!.map(() => null);
+    // Jugador activo sin cartas conocidas → 2 dorsos siempre
+    return [null, null];
+  })();
 
   const hudBg     = isWinner ? "#1a1500" : isActive ? "#071820" : isAllIn ? "#1a0808" : "#111214";
   const hudBorder = isActive ? "#22d3ee" : isWinner ? "#fbbf24" : isAllIn ? "#f87171" : "rgba(255,255,255,0.14)";
@@ -89,16 +101,15 @@ export function PlayerSeat({
       zIndex: isActive ? 10 : 1,
     }}>
 
-      {/* ── Cartas: tamaño "sm" para que el fan no se salga ── */}
-      {/* "sm" = 38x54px, fan ocupa ~46px de alto → total ~50px controlado */}
+      {/* ── Cartas en fan tamaño "sm" ── */}
       <div style={{ height: "48px", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-        {cards && (
+        {cardsToShow && (
           <CardGroup
-            cards={cards}
+            cards={cardsToShow}
             size="sm"
             highlighted={isActive && isHero}
             winning={isWinner}
-            fanned={cards.length >= 2}
+            fanned={cardsToShow.length >= 2}
           />
         )}
       </div>
