@@ -317,7 +317,58 @@ function formatAmount(amount: number): string {
   return amount.toFixed(2);
 }
 
-// ── URL sharing: encode/decode ───────────────────────────
+// ── URL sharing: guardar en Supabase y devolver ID corto ─────
+
+import { supabase } from "./supabase";
+
+export async function saveHandForShare(hand: HandHistory): Promise<string> {
+  // Extraer resumen para el OG
+  const winner = hand.result?.winners[0];
+  const winnerPlayer = winner ? hand.players[winner.playerIndex] : null;
+  const totalPot = hand.result?.winners.reduce((s, w) => s + w.amount, 0) ?? 0;
+  const board = hand.streets
+    .flatMap((s) => s.communityCards)
+    .map(cardToString)
+    .join(" ");
+
+  const summary = {
+    winner: winnerPlayer?.name ?? null,
+    hand_description: winner?.handDescription ?? null,
+    pot: totalPot,
+    board: board || null,
+    players_count: hand.players.length,
+    game_type: hand.config.gameType,
+    blinds: `${hand.config.smallBlind}/${hand.config.bigBlind}`,
+  };
+
+  const { data, error } = await supabase
+    .from("shared_hands")
+    .insert({ hand_data: hand, hand_summary: summary })
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return data.id;
+}
+
+export async function loadHandFromShare(id: string): Promise<HandHistory | null> {
+  const { data, error } = await supabase
+    .from("shared_hands")
+    .select("hand_data")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) return null;
+
+  // Incrementar contador de vistas
+  await supabase.rpc("increment_hand_views", { hand_id: id }).catch(() => {});
+
+  const hand = data.hand_data as HandHistory;
+  assignPositions(hand);
+  return hand;
+}
+
+// ── Mantener compatibilidad con URLs viejas (Base64) ─────────
 
 export function encodeHandForURL(hand: HandHistory): string {
   const compact = {
@@ -366,7 +417,6 @@ export function encodeHandForURL(hand: HandHistory): string {
   };
 
   const json = JSON.stringify(compact);
-  // Use base64url encoding (URL-safe)
   const encoded = btoa(json)
     .replace(/\+/g, "-")
     .replace(/\//g, "_")

@@ -84,7 +84,7 @@ export function App() {
             <Route path="/tools/calculadora-icm" element={<ICMCalculatorPage />} />
             <Route path="/tools/simulador-elo" element={<EloSimulatorPage />} />
             <Route path="/tools/calculadora-banca" element={<BankrollCalculatorPage />} />
-
+            <Route path="/tools/replayer/h/:id" element={<ReplayerPage />} />
             <Route path="/tools/replayer" element={
   <ProtectedRoute>
     <ReplayerPage />
