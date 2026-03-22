@@ -237,7 +237,12 @@ export function ReplayerPage() {
   if (!isAuthenticated) {
     return (
       <PageShell>
-        <SEOHead title="Hand Replayer" description="Reproduce y analiza manos de poker visualmente." path="/tools/replayer" noIndex />
+        <SEOHead
+  title="Replayer de Manos — Sharkania"
+  description="Revive cualquier mano de torneo paso a paso. Analiza decisiones, detecta errores y comparte la acción con tu coach."
+  path="/tools/replayer"
+  ogImage="/images/tools/og-tool-replayer.png"
+/>
         <div className="pt-20 pb-16">
           <div className="max-w-xl mx-auto px-6 text-center py-20">
             <span className="text-4xl mb-4 block">🔒</span>
@@ -259,7 +264,12 @@ export function ReplayerPage() {
 
   return (
     <PageShell>
-      <SEOHead title="Hand Replayer" description="Reproduce y analiza manos de poker visualmente." path="/tools/replayer" noIndex />
+      <SEOHead
+  title="Replayer de Manos — Sharkania"
+  description="Revive cualquier mano de torneo paso a paso. Analiza decisiones, detecta errores y comparte la acción con tu coach."
+  path="/tools/replayer"
+  ogImage="/images/tools/og-tool-replayer.png"
+/>
 
       <div className="pt-20 pb-16">
         <div className="max-w-[900px] mx-auto px-6">

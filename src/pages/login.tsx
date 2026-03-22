@@ -1,6 +1,6 @@
 // src/pages/login.tsx
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { signIn } from "../lib/api/auth";
 import { useAuthStore } from "../stores/auth-store";
@@ -12,6 +12,8 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = new URLSearchParams(location.search).get("redirect") ?? "/dashboard";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +32,7 @@ export function LoginPage() {
           isAuthenticated: true,
           isLoading: false,
         });
-        navigate("/dashboard");
+        navigate(redirectTo);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión");

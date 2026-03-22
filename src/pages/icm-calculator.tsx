@@ -387,7 +387,7 @@ export function ICMCalculatorPage() {
         title="Calculadora ICM"
         description="Calcula tu equity ICM en burbuja y mesa final. Algoritmo Malmuth-Harville. Ingresa stacks y premios, obtén resultados instantáneos."
         path="/tools/calculadora-icm"
-        ogImage="https://sharkania.com/images/tools/tool-icm.avif"
+        ogImage="https://sharkania.com/images/tools/og-tool-icm.png"
       />
 
       <div className="pt-20 pb-16">
