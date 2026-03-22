@@ -360,8 +360,12 @@ export async function loadHandFromShare(id: string): Promise<HandHistory | null>
 
   if (error || !data) return null;
 
-  // Incrementar contador de vistas
-  await supabase.rpc("increment_hand_views", { hand_id: id }).catch(() => {});
+  // Incrementar contador de vistas — sin bloquear ni crashear
+  try {
+    await supabase.rpc("increment_hand_views", { hand_id: id });
+  } catch {
+    // silencioso — las vistas no son críticas
+  }
 
   const hand = data.hand_data as HandHistory;
   assignPositions(hand);
