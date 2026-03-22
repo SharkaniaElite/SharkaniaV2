@@ -1,190 +1,165 @@
 // src/components/replayer/card-svg.tsx
-// ══════════════════════════════════════════════════════════
-// SVG Playing Card — Renders a single card face-up or face-down
-// Dark mode, Sharkania design system
-// ══════════════════════════════════════════════════════════
-
 import type { Card } from "../../types/replayer";
-import { SUIT_SYMBOLS, SUIT_COLORS, RANK_DISPLAY } from "../../types/replayer";
+import { RANK_DISPLAY } from "../../types/replayer";
 
-interface CardSVGProps {
-  card: Card | null;   // null = face down
-  size?: "sm" | "md" | "lg";
-  className?: string;
+export interface CardSVGProps {
+  card: Card | null;
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
   highlighted?: boolean;
+  winning?: boolean;
   dimmed?: boolean;
+  faceDown?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export interface CardGroupProps {
+  cards: (Card | null)[];
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  highlighted?: boolean;
+  winning?: boolean;
+  dimmed?: boolean;
+  fanned?: boolean;
 }
 
 const SIZES = {
-  sm: { w: 32, h: 44, fontSize: 11, suitSize: 10, rx: 3 },
-  md: { w: 42, h: 58, fontSize: 14, suitSize: 13, rx: 4 },
-  lg: { w: 56, h: 78, fontSize: 18, suitSize: 17, rx: 5 },
-};
+  xs: { w: 28,  h: 40  },
+  sm: { w: 38,  h: 54  },
+  md: { w: 52,  h: 73  },
+  lg: { w: 68,  h: 95  },
+  xl: { w: 90,  h: 126 },
+} as const;
 
-export function CardSVG({ card, size = "md", className = "", highlighted = false, dimmed = false }: CardSVGProps) {
-  const s = SIZES[size];
+export function CardSVG({
+  card,
+  size = "md",
+  highlighted = false,
+  winning = false,
+  dimmed = false,
+  faceDown = false,
+  className = "",
+  style,
+}: CardSVGProps) {
+  const { w, h } = SIZES[size];
 
-  if (!card) {
-    // Face-down card
-    return (
-      <svg
-        width={s.w}
-        height={s.h}
-        viewBox={`0 0 ${s.w} ${s.h}`}
-        className={className}
-        style={{ opacity: dimmed ? 0.3 : 1 }}
-      >
-        <rect
-          x="0.5"
-          y="0.5"
-          width={s.w - 1}
-          height={s.h - 1}
-          rx={s.rx}
-          fill="#1a1b20"
-          stroke="rgba(255,255,255,0.12)"
-          strokeWidth="1"
-        />
-        {/* Back pattern — subtle grid */}
-        <pattern id={`back-${size}`} width="6" height="6" patternUnits="userSpaceOnUse">
-          <rect width="6" height="6" fill="none" />
-          <circle cx="3" cy="3" r="0.5" fill="rgba(34,211,238,0.15)" />
-        </pattern>
-        <rect
-          x="3"
-          y="3"
-          width={s.w - 6}
-          height={s.h - 6}
-          rx={s.rx - 1}
-          fill={`url(#back-${size})`}
-          stroke="rgba(34,211,238,0.08)"
-          strokeWidth="0.5"
-        />
-        {/* Sharkania logo hint */}
-        <text
-          x={s.w / 2}
-          y={s.h / 2 + 1}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fill="rgba(34,211,238,0.2)"
-          fontSize={s.fontSize - 2}
-          fontFamily="system-ui"
-          fontWeight="700"
-        >
-          S
-        </text>
-      </svg>
-    );
-  }
+  // null card OR faceDown prop => show back
+  const showBack = faceDown || card === null;
+  const filename = showBack ? "back.svg" : `${card.rank}${card.suit}.svg`;
+  const src = `/cards/${filename}`;
 
-  const color = SUIT_COLORS[card.suit];
-  const symbol = SUIT_SYMBOLS[card.suit];
-  const rank = RANK_DISPLAY[card.rank];
-  const isRed = card.suit === "h" || card.suit === "d";
+  const borderColor = winning
+    ? "rgba(251,191,36,0.80)"
+    : highlighted
+    ? "rgba(34,211,238,0.75)"
+    : showBack
+    ? "rgba(34,211,238,0.15)"
+    : "rgba(0,0,0,0.12)";
+
+  const shadow = winning
+    ? "0 0 16px rgba(251,191,36,0.50), 0 0 32px rgba(251,191,36,0.22), 0 4px 10px rgba(0,0,0,0.6)"
+    : highlighted
+    ? "0 0 16px rgba(34,211,238,0.45), 0 0 32px rgba(34,211,238,0.20), 0 4px 10px rgba(0,0,0,0.6)"
+    : showBack
+    ? "0 2px 12px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(34,211,238,0.08)"
+    : "0 3px 10px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.4)";
+
+  const rx = Math.round(w * 0.085);
 
   return (
-    <svg
-      width={s.w}
-      height={s.h}
-      viewBox={`0 0 ${s.w} ${s.h}`}
+    <span
       className={className}
       style={{
-        opacity: dimmed ? 0.3 : 1,
-        filter: highlighted ? `drop-shadow(0 0 6px ${color}50)` : undefined,
-        transition: "opacity 0.2s, filter 0.2s",
+        display: "inline-block",
+        width: `${w}px`,
+        height: `${h}px`,
+        flexShrink: 0,
+        borderRadius: `${rx}px`,
+        overflow: "hidden",
+        outline: `1.5px solid ${borderColor}`,
+        boxShadow: shadow,
+        opacity: dimmed ? 0.20 : 1,
+        transition: "opacity 0.3s ease, box-shadow 0.3s ease",
+        filter: (highlighted || winning) ? "brightness(1.08)" : "none",
+        ...style,
       }}
     >
-      {/* Card background */}
-      <rect
-        x="0.5"
-        y="0.5"
-        width={s.w - 1}
-        height={s.h - 1}
-        rx={s.rx}
-        fill="#f8f8f8"
-        stroke={highlighted ? color : "rgba(255,255,255,0.15)"}
-        strokeWidth={highlighted ? 1.5 : 1}
+      <img
+        src={src}
+        width={w}
+        height={h}
+        alt={showBack ? "carta boca abajo" : `${RANK_DISPLAY[card!.rank]}${card!.suit}`}
+        style={{
+          display: "block",
+          width: "100%",
+          height: "100%",
+          userSelect: "none",
+          pointerEvents: "none",
+        }}
+        draggable={false}
       />
-
-      {/* Top-left rank */}
-      <text
-        x={4}
-        y={s.fontSize + 2}
-        fill={color}
-        fontSize={s.fontSize}
-        fontFamily="'JetBrains Mono', monospace"
-        fontWeight="700"
-      >
-        {rank}
-      </text>
-
-      {/* Top-left suit */}
-      <text
-        x={4}
-        y={s.fontSize + s.suitSize + 3}
-        fill={color}
-        fontSize={s.suitSize}
-        fontFamily="system-ui"
-      >
-        {symbol}
-      </text>
-
-      {/* Center suit (large) */}
-      <text
-        x={s.w / 2}
-        y={s.h / 2 + 2}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill={color}
-        fontSize={s.suitSize * 1.8}
-        fontFamily="system-ui"
-        opacity="0.85"
-      >
-        {symbol}
-      </text>
-
-      {/* Bottom-right rank (inverted) */}
-      <text
-        x={s.w - 4}
-        y={s.h - 4}
-        textAnchor="end"
-        fill={color}
-        fontSize={s.fontSize}
-        fontFamily="'JetBrains Mono', monospace"
-        fontWeight="700"
-        transform={`rotate(180 ${s.w - 4} ${s.h - s.fontSize / 2 - 2})`}
-      >
-        {rank}
-      </text>
-    </svg>
+    </span>
   );
 }
 
-// ── Card group (e.g. hole cards, community cards) ────────
+export function CardGroup({
+  cards,
+  size = "md",
+  highlighted = false,
+  winning = false,
+  dimmed = false,
+  fanned = false,
+}: CardGroupProps) {
+  const { w } = SIZES[size];
 
-interface CardGroupProps {
-  cards: (Card | null)[];
-  size?: "sm" | "md" | "lg";
-  overlap?: boolean;
-  highlighted?: boolean;
-  dimmed?: boolean;
-}
+  if (!fanned) {
+    return (
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "3px" }}>
+        {cards.map((card, i) => (
+          <CardSVG
+            key={i}
+            card={card}
+            size={size}
+            highlighted={highlighted}
+            winning={winning}
+            dimmed={dimmed}
+          />
+        ))}
+      </div>
+    );
+  }
 
-export function CardGroup({ cards, size = "md", overlap = false, highlighted = false, dimmed = false }: CardGroupProps) {
-  const s = SIZES[size];
-  const gap = overlap ? -s.w * 0.3 : 3;
+  const count    = cards.length;
+  const spreadDeg = count <= 2 ? 10 : 7;
+  const midIdx   = (count - 1) / 2;
+  const overlapPx = Math.round(w * 0.30);
 
   return (
-    <div className="inline-flex items-center" style={{ gap: `${gap}px` }}>
-      {cards.map((card, i) => (
-        <CardSVG
-          key={i}
-          card={card}
-          size={size}
-          highlighted={highlighted}
-          dimmed={dimmed}
-          className={overlap && i > 0 ? "relative" : ""}
-        />
-      ))}
+    <div style={{ display: "flex", alignItems: "flex-end" }}>
+      {cards.map((card, i) => {
+        const angle = (i - midIdx) * spreadDeg;
+        const lift  = Math.abs(i - midIdx) * 2;
+        return (
+          <div
+            key={i}
+            style={{
+              marginLeft: i > 0 ? `-${overlapPx}px` : "0",
+              zIndex: i,
+              position: "relative",
+              transform: `rotate(${angle}deg) translateY(${lift}px)`,
+              transformOrigin: "bottom center",
+              transition: "transform 0.35s cubic-bezier(0.34,1.56,0.64,1)",
+            }}
+          >
+            <CardSVG
+              card={card}
+              size={size}
+              highlighted={highlighted}
+              winning={winning}
+              dimmed={dimmed}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }

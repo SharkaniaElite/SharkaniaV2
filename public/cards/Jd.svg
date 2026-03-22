@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 168" width="120" height="168">
+<rect x="0.5" y="0.5" width="119" height="167" rx="10" fill="#ffffff" stroke="#1a56db30" stroke-width="1"/>
+<rect x="4" y="4" width="112" height="160" rx="7" fill="none" stroke="#1a56db" stroke-width="0.8" opacity="0.20"/>
+<text x="9" y="30" fill="#1a56db" font-size="26" font-family="Georgia,serif" font-weight="700" dominant-baseline="hanging">J</text>
+<text x="9" y="58" fill="#1a56db" font-size="18" font-family="system-ui" dominant-baseline="hanging">♦</text>
+<polygon points="60,56 80,84 60,112 40,84" fill="none" stroke="#1a56db" stroke-width="2.5"/><circle cx="60" cy="84" r="4" fill="#1a56db"/><text x="60" y="90" text-anchor="middle" font-size="22" font-family="Georgia,serif" font-weight="700" fill="#1a56db">J</text>
+<g transform="rotate(180 60 84)">
+<text x="9" y="30" fill="#1a56db" font-size="26" font-family="Georgia,serif" font-weight="700" dominant-baseline="hanging">J</text>
+<text x="9" y="58" fill="#1a56db" font-size="18" font-family="system-ui" dominant-baseline="hanging">♦</text>
+</g>
+</svg>

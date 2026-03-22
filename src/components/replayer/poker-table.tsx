@@ -1,246 +1,362 @@
 // src/components/replayer/poker-table.tsx
-// ══════════════════════════════════════════════════════════
-// Poker Table — Oval table with dynamic player positions
-// Supports 2-9 seats, community cards, pot display
-// ══════════════════════════════════════════════════════════
-
-import type { ReplayState, Card, Street } from "../../types/replayer";
+import type { ReplayState, Street } from "../../types/replayer";
 import { PlayerSeat } from "./player-seat";
-import { CardGroup } from "./card-svg";
+import { CardSVG } from "./card-svg";
 
 interface PokerTableProps {
   state: ReplayState;
   className?: string;
 }
 
-// ── Seat positions around the oval (percentages) ─────────
-// Positions are [top%, left%] relative to the table container
-// Arranged clockwise starting from bottom-center (hero position)
-
-function getSeatPositions(numPlayers: number): { top: number; left: number }[] {
-  const positions: Record<number, { top: number; left: number }[]> = {
-    2: [
-      { top: 88, left: 50 },  // seat 0 (bottom center — hero)
-      { top: 5, left: 50 },   // seat 1 (top center)
-    ],
-    3: [
-      { top: 88, left: 50 },
-      { top: 20, left: 15 },
-      { top: 20, left: 85 },
-    ],
-    4: [
-      { top: 88, left: 50 },
-      { top: 45, left: 5 },
-      { top: 5, left: 50 },
-      { top: 45, left: 95 },
-    ],
-    5: [
-      { top: 88, left: 50 },
-      { top: 60, left: 5 },
-      { top: 10, left: 20 },
-      { top: 10, left: 80 },
-      { top: 60, left: 95 },
-    ],
-    6: [
-      { top: 88, left: 50 },
-      { top: 65, left: 5 },
-      { top: 12, left: 15 },
-      { top: 5, left: 50 },
-      { top: 12, left: 85 },
-      { top: 65, left: 95 },
-    ],
-    7: [
-      { top: 88, left: 50 },
-      { top: 70, left: 5 },
-      { top: 30, left: 5 },
-      { top: 5, left: 28 },
-      { top: 5, left: 72 },
-      { top: 30, left: 95 },
-      { top: 70, left: 95 },
-    ],
-    8: [
-      { top: 88, left: 50 },
-      { top: 75, left: 5 },
-      { top: 38, left: 3 },
-      { top: 5, left: 22 },
-      { top: 5, left: 50 },
-      { top: 5, left: 78 },
-      { top: 38, left: 97 },
-      { top: 75, left: 95 },
-    ],
-    9: [
-      { top: 88, left: 50 },
-      { top: 78, left: 5 },
-      { top: 45, left: 2 },
-      { top: 12, left: 12 },
-      { top: 2, left: 35 },
-      { top: 2, left: 65 },
-      { top: 12, left: 88 },
-      { top: 45, left: 98 },
-      { top: 78, left: 95 },
-    ],
-  };
-
-  return positions[numPlayers] ?? positions[6];
-}
-
-// ── Street label ─────────────────────────────────────────
-
-const STREET_LABELS: Record<Street, { label: string; color: string }> = {
-  preflop:  { label: "PREFLOP", color: "#a1a1aa" },
-  flop:     { label: "FLOP", color: "#22d3ee" },
-  turn:     { label: "TURN", color: "#fbbf24" },
-  river:    { label: "RIVER", color: "#f87171" },
-  showdown: { label: "SHOWDOWN", color: "#a78bfa" },
+const STREET_CFG: Record<Street, { label: string; color: string; glow: string; railOpacity: number }> = {
+  preflop:  { label: "PREFLOP",  color: "#94a3b8", glow: "rgba(148,163,184,0.4)", railOpacity: 0.40 },
+  flop:     { label: "FLOP",     color: "#22d3ee", glow: "rgba(34,211,238,0.6)",  railOpacity: 0.65 },
+  turn:     { label: "TURN",     color: "#fbbf24", glow: "rgba(251,191,36,0.6)",  railOpacity: 0.65 },
+  river:    { label: "RIVER",    color: "#f87171", glow: "rgba(248,113,113,0.6)", railOpacity: 0.65 },
+  showdown: { label: "SHOWDOWN", color: "#c4b5fd", glow: "rgba(196,181,253,0.6)", railOpacity: 0.65 },
 };
 
-// ── Format pot ───────────────────────────────────────────
-
-function formatPot(amount: number): string {
-  if (amount === 0) return "0";
-  if (amount >= 10000) return `${(amount / 1000).toFixed(1)}K`;
-  if (Number.isInteger(amount)) return String(amount);
-  return amount.toFixed(2);
+// Posiciones en % relativas al contenedor TOTAL (incluyendo padding)
+// El óvalo ocupa del 12% al 88% horizontal y del 14% al 86% vertical
+// Los asientos se posicionan alrededor del borde del óvalo
+function getSeatPositions(n: number): { top: number; left: number }[] {
+  const pos: Record<number, { top: number; left: number }[]> = {
+    2: [
+      { top: 86, left: 50 },
+      { top:  8, left: 50 },
+    ],
+    3: [
+      { top: 86, left: 50 },
+      { top: 20, left: 10 },
+      { top: 20, left: 90 },
+    ],
+    4: [
+      { top: 86, left: 50 },
+      { top: 48, left:  6 },
+      { top:  8, left: 50 },
+      { top: 48, left: 94 },
+    ],
+    5: [
+      { top: 86, left: 50 },
+      { top: 64, left:  5 },
+      { top: 14, left: 18 },
+      { top: 14, left: 82 },
+      { top: 64, left: 95 },
+    ],
+    6: [
+      { top: 86, left: 50 },
+      { top: 66, left:  5 },
+      { top: 16, left: 14 },
+      { top:  6, left: 50 },
+      { top: 16, left: 86 },
+      { top: 66, left: 95 },
+    ],
+    7: [
+      { top: 86, left: 50 },
+      { top: 70, left:  4 },
+      { top: 36, left:  3 },
+      { top:  8, left: 24 },
+      { top:  8, left: 76 },
+      { top: 36, left: 97 },
+      { top: 70, left: 96 },
+    ],
+    8: [
+      { top: 86, left: 50 },
+      { top: 74, left:  4 },
+      { top: 42, left:  2 },
+      { top:  8, left: 20 },
+      { top:  6, left: 50 },
+      { top:  8, left: 80 },
+      { top: 42, left: 98 },
+      { top: 74, left: 96 },
+    ],
+    9: [
+      { top: 86, left: 50 },
+      { top: 76, left:  4 },
+      { top: 46, left:  1 },
+      { top: 14, left: 10 },
+      { top:  4, left: 34 },
+      { top:  4, left: 66 },
+      { top: 14, left: 90 },
+      { top: 46, left: 99 },
+      { top: 76, left: 96 },
+    ],
+  };
+  return pos[n] ?? pos[6];
 }
 
-// ── Main component ───────────────────────────────────────
+function fmtPot(n: number): string {
+  if (n === 0) return "0";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000)    return `${(n / 1_000).toFixed(1)}K`;
+  if (Number.isInteger(n)) return String(n);
+  return n.toFixed(2);
+}
 
 export function PokerTable({ state, className = "" }: PokerTableProps) {
-  const { hand, players, pot, communityCards, currentStreetIndex, currentActionIndex } = state;
-  const numPlayers = players.length;
+  const {
+    hand, players, pot, communityCards,
+    currentStreetIndex, currentActionIndex, isFinished,
+  } = state;
+
+  const numPlayers    = players.length;
   const seatPositions = getSeatPositions(numPlayers);
-
   const currentStreet = hand.streets[currentStreetIndex];
-  const streetInfo = currentStreet ? STREET_LABELS[currentStreet.street] : STREET_LABELS.preflop;
+  const streetCfg     = currentStreet ? STREET_CFG[currentStreet.street] : STREET_CFG.preflop;
 
-  // Determine which player is currently acting
-  const activePlayerIndex = currentStreet && currentActionIndex >= 0 && currentActionIndex < currentStreet.actions.length
+  const activeIdx = currentStreet
+    && currentActionIndex >= 0
+    && currentActionIndex < currentStreet.actions.length
     ? currentStreet.actions[currentActionIndex].playerIndex
     : -1;
 
-  // Get last action for each player (for action bubble display)
   const lastActions = players.map((_, idx) => {
     if (!currentStreet) return null;
     for (let i = currentActionIndex; i >= 0; i--) {
-      if (currentStreet.actions[i]?.playerIndex === idx) {
-        return currentStreet.actions[i];
-      }
+      if (currentStreet.actions[i]?.playerIndex === idx) return currentStreet.actions[i];
     }
     return null;
   });
 
-  // Should we show cards? (showdown or hero)
-  const isShowdown = currentStreet?.street === "showdown" || state.isFinished;
+  const isShowdown    = currentStreet?.street === "showdown" || isFinished;
+  const winnerIndices = new Set(hand.result?.winners.map((w) => w.playerIndex) ?? []);
+
+  const displayCards: (import("../../types/replayer").Card | null)[] = [
+    ...communityCards,
+    ...Array(5 - communityCards.length).fill(null),
+  ];
+
+  // El contenedor principal tiene padding para que los asientos no se corten.
+  // El óvalo (mesa) ocupa el área interior descontando el padding.
+  // padding horizontal: 12% del width
+  // padding vertical:   14% del height
+  const PAD_H = "12%";
+  const PAD_V = "14%";
 
   return (
-    <div className={`relative w-full max-w-[700px] mx-auto ${className}`} style={{ aspectRatio: "7 / 5" }}>
-      {/* Table felt (oval) */}
-      <div
-        className="absolute inset-[8%] rounded-[50%] border-2"
-        style={{
-          background: "radial-gradient(ellipse at 50% 40%, #1a3a2a 0%, #0f2a1e 50%, #0a1f15 100%)",
-          borderColor: "rgba(34,211,238,0.12)",
-          boxShadow: "inset 0 2px 20px rgba(0,0,0,0.5), 0 0 40px rgba(0,0,0,0.3)",
-        }}
-      >
-        {/* Table rail (outer glow) */}
-        <div
-          className="absolute -inset-[3px] rounded-[50%] -z-10"
-          style={{
-            background: "linear-gradient(180deg, rgba(60,50,40,0.8) 0%, rgba(40,30,20,0.9) 100%)",
-            border: "1px solid rgba(255,255,255,0.04)",
-          }}
-        />
+    <div
+      className={className}
+      style={{
+        position: "relative",
+        width: "100%",
+        // Aspect ratio del contenedor TOTAL (mesa + espacio para asientos)
+        aspectRatio: "16 / 10",
+      }}
+    >
+      {/* Halo ambiental */}
+      <div style={{
+        position: "absolute",
+        top: PAD_V, left: PAD_H, right: PAD_H, bottom: PAD_V,
+        borderRadius: "50%",
+        background: `radial-gradient(ellipse, ${streetCfg.glow} 0%, transparent 68%)`,
+        filter: "blur(32px)",
+        opacity: 0.45,
+        pointerEvents: "none",
+        transition: "background 0.6s ease",
+      }} />
 
-        {/* Center content: street label + community cards + pot */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-          {/* Street badge */}
-          <span
-            className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] px-2.5 py-0.5 rounded-full"
-            style={{
-              color: streetInfo.color,
-              background: `${streetInfo.color}12`,
-              border: `1px solid ${streetInfo.color}25`,
-            }}
-          >
-            {streetInfo.label}
-          </span>
+      {/* Rail madera */}
+      <div style={{
+        position: "absolute",
+        top: PAD_V, left: PAD_H, right: PAD_H, bottom: PAD_V,
+        borderRadius: "50%",
+        background: "radial-gradient(ellipse at 50% 25%, #221a08 0%, #110e04 100%)",
+        boxShadow: "0 0 50px rgba(0,0,0,0.8), inset 0 2px 0 rgba(255,255,255,0.04)",
+      }} />
 
-          {/* Community cards */}
-          <div className="flex items-center gap-1 min-h-[62px]">
-            {communityCards.length > 0 ? (
-              <CardGroup cards={communityCards} size="md" />
-            ) : (
-              <div className="flex gap-1">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="w-[42px] h-[58px] rounded border border-dashed"
-                    style={{
-                      borderColor: "rgba(255,255,255,0.06)",
-                      background: "rgba(255,255,255,0.02)",
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+      {/* Neon rail */}
+      <div style={{
+        position: "absolute",
+        top: `calc(${PAD_V} + 1.5%)`,
+        left: `calc(${PAD_H} + 1.5%)`,
+        right: `calc(${PAD_H} + 1.5%)`,
+        bottom: `calc(${PAD_V} + 1.5%)`,
+        borderRadius: "50%",
+        border: `2.5px solid ${streetCfg.color}`,
+        opacity: streetCfg.railOpacity,
+        boxShadow: `0 0 8px ${streetCfg.color}, 0 0 24px ${streetCfg.glow}, 0 0 50px ${streetCfg.glow}, inset 0 0 20px ${streetCfg.glow}`,
+        pointerEvents: "none",
+        transition: "border-color 0.5s, box-shadow 0.5s, opacity 0.5s",
+      }} />
 
-          {/* Pot */}
-          {pot.totalPot > 0 && (
-            <div className="flex items-center gap-1.5">
-              {/* Chip icon */}
-              <svg width="14" height="14" viewBox="0 0 16 16">
-                <circle cx="8" cy="8" r="7" fill="#fbbf24" opacity="0.8" />
-                <circle cx="8" cy="8" r="5" fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.4" />
-                <circle cx="8" cy="8" r="2.5" fill="#fff" opacity="0.3" />
-              </svg>
-              <span className="font-mono text-[13px] font-bold text-sk-gold">
-                {formatPot(pot.totalPot)}
-              </span>
-            </div>
-          )}
-        </div>
+      {/* Felt */}
+      <div style={{
+        position: "absolute",
+        top: `calc(${PAD_V} + 3%)`,
+        left: `calc(${PAD_H} + 3%)`,
+        right: `calc(${PAD_H} + 3%)`,
+        bottom: `calc(${PAD_V} + 3%)`,
+        borderRadius: "50%",
+        background: "radial-gradient(ellipse at 50% 35%, #1e5c40 0%, #134030 40%, #0a2820 100%)",
+        overflow: "hidden",
+      }}>
+        <svg style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity:0.05 }}>
+          <defs>
+            <pattern id="felt-grain" width="5" height="5" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="5" y2="5" stroke="#fff" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#felt-grain)"/>
+        </svg>
+        <div style={{
+          position:"absolute", inset:0,
+          background:"radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.05) 0%, transparent 58%)",
+        }} />
       </div>
 
-      {/* Player seats */}
+      {/* Centro: badge + cartas + pot */}
+      <div style={{
+        position: "absolute",
+        top: `calc(${PAD_V} + 3%)`,
+        left: `calc(${PAD_H} + 3%)`,
+        right: `calc(${PAD_H} + 3%)`,
+        bottom: `calc(${PAD_V} + 3%)`,
+        borderRadius: "50%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "clamp(4px, 1%, 10px)",
+        pointerEvents: "none",
+      }}>
+        {/* Street badge */}
+        <div style={{
+          padding: "3px 12px",
+          borderRadius: "20px",
+          background: `${streetCfg.color}18`,
+          border: `1px solid ${streetCfg.color}55`,
+          fontSize: "clamp(8px, 1vw, 11px)",
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 700,
+          color: streetCfg.color,
+          letterSpacing: "0.20em",
+          boxShadow: `0 0 14px ${streetCfg.glow}`,
+          transition: "all 0.4s ease",
+          whiteSpace: "nowrap",
+        }}>
+          {streetCfg.label}
+        </div>
+
+        {/* Cartas comunitarias */}
+        <div style={{ display: "flex", alignItems: "center", gap: "clamp(3px, 0.5%, 6px)" }}>
+          {displayCards.map((card, i) => {
+            const revealed = i < communityCards.length;
+            return (
+              <div key={i} style={{
+                transition: "opacity 0.35s ease, transform 0.35s ease",
+                opacity: revealed ? 1 : 0.08,
+                transform: revealed ? "translateY(0) scale(1)" : "translateY(4px) scale(0.97)",
+              }}>
+                {revealed ? (
+                  <CardSVG card={card} size="lg" />
+                ) : (
+                  <div style={{
+                    width: "68px", height: "95px", borderRadius: "6px",
+                    border: "1px dashed rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.015)",
+                  }} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Pot */}
+        {pot.totalPot > 0 && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: "6px",
+            padding: "4px 14px", borderRadius: "20px",
+            background: "#120f00",
+            border: "1.5px solid rgba(251,191,36,0.45)",
+            boxShadow: "0 0 16px rgba(251,191,36,0.18), 0 2px 8px rgba(0,0,0,0.7)",
+            whiteSpace: "nowrap",
+          }}>
+            <svg width="13" height="13" viewBox="0 0 12 12">
+              <circle cx="6" cy="6" r="5.5" fill="#fbbf24"/>
+              <circle cx="6" cy="6" r="3.5" fill="none" stroke="#fff" strokeWidth="0.9" opacity="0.45"/>
+              <circle cx="6" cy="6" r="1.8" fill="#fff" opacity="0.25"/>
+            </svg>
+            <span style={{
+              fontSize: "clamp(12px, 1.4vw, 16px)",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 700, color: "#fbbf24", letterSpacing: "-0.3px",
+            }}>
+              {fmtPot(pot.totalPot)}
+            </span>
+            {pot.sidePots.length > 0 && (
+              <span style={{ fontSize: "9px", fontFamily: "'JetBrains Mono', monospace", color: "rgba(251,191,36,0.50)" }}>
+                +{pot.sidePots.length} side
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Asientos — posicionados sobre el contenedor TOTAL */}
       {players.map((player, idx) => {
         const pos = seatPositions[idx];
         if (!pos) return null;
         return (
-          <div
-            key={idx}
-            className="absolute -translate-x-1/2 -translate-y-1/2"
-            style={{ top: `${pos.top}%`, left: `${pos.left}%` }}
-          >
+          <div key={idx} style={{
+            position: "absolute",
+            top: `${pos.top}%`,
+            left: `${pos.left}%`,
+            transform: "translate(-50%, -50%)",
+            zIndex: idx === activeIdx ? 20 : 5,
+          }}>
             <PlayerSeat
               player={player}
               lastAction={lastActions[idx]}
-              isActive={idx === activePlayerIndex}
+              isActive={idx === activeIdx}
               showCards={isShowdown}
+              isWinner={winnerIndices.has(idx)}
             />
           </div>
         );
       })}
 
-      {/* Winner overlay */}
-      {state.isFinished && hand.result && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div
-            className="bg-sk-bg-0/80 backdrop-blur-sm border border-sk-gold/30 rounded-xl px-5 py-3 text-center"
-            style={{ boxShadow: "0 0 30px rgba(251,191,36,0.1)" }}
-          >
+      {/* Overlay ganador */}
+      {isFinished && hand.result && hand.result.winners.length > 0 && (
+        <div style={{
+          position: "absolute",
+          top: "50%", left: "50%",
+          transform: "translate(-50%, -50%)",
+          textAlign: "center", pointerEvents: "none", zIndex: 30,
+          whiteSpace: "nowrap",
+        }}>
+          <div style={{
+            padding: "10px 24px", borderRadius: "12px",
+            background: "#0d0d00",
+            border: "1.5px solid rgba(251,191,36,0.55)",
+            boxShadow: "0 0 30px rgba(251,191,36,0.22), 0 8px 30px rgba(0,0,0,0.8)",
+          }}>
             {hand.result.winners.map((w, i) => (
               <div key={i}>
-                <p className="font-mono text-[10px] text-sk-gold uppercase tracking-wider">Ganador</p>
-                <p className="text-sk-md font-bold text-sk-text-1">
+                <div style={{
+                  fontSize: "9px", fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: 700, color: "#fbbf24",
+                  letterSpacing: "0.22em", marginBottom: "3px",
+                }}>
+                  ★ GANADOR
+                </div>
+                <div style={{
+                  fontSize: "clamp(13px, 1.5vw, 17px)",
+                  fontFamily: "Inter, system-ui, sans-serif",
+                  fontWeight: 700, color: "#fafafa",
+                }}>
                   {players[w.playerIndex]?.name ?? "???"}
-                </p>
-                <p className="font-mono text-sk-sm font-bold text-sk-gold">
-                  +{formatPot(w.amount)}
-                </p>
+                </div>
+                <div style={{
+                  fontSize: "clamp(11px, 1.2vw, 14px)",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: 700, color: "#fbbf24", marginTop: "2px",
+                }}>
+                  +{fmtPot(w.amount)}
+                </div>
                 {w.handDescription && (
-                  <p className="text-[10px] text-sk-text-3 mt-0.5">{w.handDescription}</p>
+                  <div style={{ fontSize: "10px", color: "rgba(251,191,36,0.65)", marginTop: "3px" }}>
+                    {w.handDescription}
+                  </div>
                 )}
               </div>
             ))}

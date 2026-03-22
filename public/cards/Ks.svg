@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 168" width="120" height="168">
+<rect x="0.5" y="0.5" width="119" height="167" rx="10" fill="#ffffff" stroke="#1a1a2e30" stroke-width="1"/>
+<rect x="4" y="4" width="112" height="160" rx="7" fill="none" stroke="#1a1a2e" stroke-width="0.8" opacity="0.20"/>
+<text x="9" y="30" fill="#1a1a2e" font-size="26" font-family="Georgia,serif" font-weight="700" dominant-baseline="hanging">K</text>
+<text x="9" y="58" fill="#1a1a2e" font-size="18" font-family="system-ui" dominant-baseline="hanging">♠</text>
+<path d="M60,56 L80,68 L80,92 Q80,114 60,120 Q40,114 40,92 L40,68 Z" fill="#1a1a2e" opacity="0.18" stroke="#1a1a2e" stroke-width="2"/><line x1="60" y1="64" x2="60" y2="110" stroke="#1a1a2e" stroke-width="2.5" opacity="0.7"/><line x1="47" y1="82" x2="73" y2="82" stroke="#1a1a2e" stroke-width="2.5" opacity="0.7"/><circle cx="60" cy="82" r="3" fill="#1a1a2e" opacity="0.8"/><text x="60" y="104" text-anchor="middle" font-size="16" font-family="Georgia,serif" font-weight="700" fill="#1a1a2e">K</text>
+<g transform="rotate(180 60 84)">
+<text x="9" y="30" fill="#1a1a2e" font-size="26" font-family="Georgia,serif" font-weight="700" dominant-baseline="hanging">K</text>
+<text x="9" y="58" fill="#1a1a2e" font-size="18" font-family="system-ui" dominant-baseline="hanging">♠</text>
+</g>
+</svg>
