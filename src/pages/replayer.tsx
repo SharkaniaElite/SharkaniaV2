@@ -52,21 +52,25 @@ export function ReplayerPage() {
   // Playback
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Cargar mano desde ID corto ──
-  useEffect(() => {
-    if (!sharedId) return;
-    setLoadingSharedHand(true);
-    loadHandFromShare(sharedId).then((hand) => {
-      if (hand) {
-        setHands([hand]);
-        setSelectedHandIndex(0);
-        setReplayState(initReplayState(hand));
-        setDetectedRoom("Mano compartida");
-      }
-    }).finally(() => {
-      setLoadingSharedHand(false);
-    });
-  }, [sharedId]);
+  // Cambia temporalmente en replayer.tsx el useEffect del sharedId por esto:
+useEffect(() => {
+  if (!sharedId) return;
+  setLoadingSharedHand(true);
+  loadHandFromShare(sharedId).then((hand) => {
+    console.log("HAND LOADED:", hand);
+    console.log("SHARED ID:", sharedId);
+    if (hand) {
+      setHands([hand]);
+      setSelectedHandIndex(0);
+      setReplayState(initReplayState(hand));
+      setDetectedRoom("Mano compartida");
+    }
+  }).catch((err) => {
+    console.error("ERROR LOADING HAND:", err);
+  }).finally(() => {
+    setLoadingSharedHand(false);
+  });
+}, [sharedId]);
 
   // ── Compatibilidad con URLs viejas (?hand=base64) ──
   useEffect(() => {
