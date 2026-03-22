@@ -30,6 +30,7 @@ import { PokerQuizPage } from "./pages/poker-quiz";
 import { ICMCalculatorPage } from "./pages/icm-calculator";
 import { EloSimulatorPage } from "./pages/elo-simulator";
 import { BankrollCalculatorPage } from "./pages/bankroll-calculator";
+import { ReplayerPage } from "./pages/replayer";
 
 
 const queryClient = new QueryClient({
@@ -83,6 +84,12 @@ export function App() {
             <Route path="/tools/calculadora-icm" element={<ICMCalculatorPage />} />
             <Route path="/tools/simulador-elo" element={<EloSimulatorPage />} />
             <Route path="/tools/calculadora-banca" element={<BankrollCalculatorPage />} />
+
+            <Route path="/tools/replayer" element={
+  <ProtectedRoute>
+    <ReplayerPage />
+  </ProtectedRoute>
+} />
 
             {/* Blog */}
             <Route path="/blog" element={<BlogPage />} />
