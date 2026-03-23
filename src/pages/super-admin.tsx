@@ -13,18 +13,221 @@ import { cn } from "../lib/cn";
 import { formatNumber } from "../lib/format";
 import { FlagIcon } from "../components/ui/flag-icon";
 import {
-  Check,
-  X as XIcon,
-  Plus,
-  Trash2,
-  Pencil,
-  ExternalLink,
-  Settings,
-  AlertCircle,
+  Check, X as XIcon, Plus, Trash2, Pencil,
+  ExternalLink, Settings, AlertCircle,
+  Image, Save, Eye, RefreshCw,
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
+import {
+  getBannersConfig, saveBannersConfig,
+  DEFAULT_BANNERS,
+  type BannersConfig, type BannerConfig,
+} from "../lib/api/site-settings";
 
-type AdminTab = "overview" | "users" | "requests" | "rooms" | "scoring";
+// ── Tipos ─────────────────────────────────────────────────
+
+type AdminTab = "overview" | "users" | "requests" | "rooms" | "scoring" | "banners";
+
+// ── Descripción de cada slot de banner ───────────────────
+
+const SLOT_INFO = {
+  mid: {
+    title: "Banner Mid-Article",
+    description: "Aparece dentro del artículo después del 3er título H2.",
+    desktop: { size: "728×90 px", label: "Leaderboard horizontal", hint: "Formato estándar editorial. Máximo impacto sin interrumpir la lectura." },
+    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Se escala al ancho completo de la pantalla en móvil." },
+  },
+  final: {
+    title: "Banner Final de Artículo",
+    description: "Aparece al terminar el contenido del artículo, antes del CTA de Sharkania.",
+    desktop: { size: "870×200 px", label: "Wide banner", hint: "Zona de alta intención: el lector terminó el artículo." },
+    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Mismo banner en móvil al final del artículo." },
+  },
+  sidebar: {
+    title: "Banner Sidebar (Sticky)",
+    description: "Columna derecha en desktop. Flota mientras el lector scrollea. No aparece en móvil.",
+    desktop: { size: "300×250 px", label: "Medium Rectangle", hint: "El formato de mejor CTR en sidebar. Solo visible en pantallas ≥1024px." },
+    mobile:  null,
+  },
+} as const;
+
+type SlotKey = keyof typeof SLOT_INFO;
+
+// ── Componente BannerSlotEditor ───────────────────────────
+
+function BannerSlotEditor({
+  slotKey,
+  value,
+  onChange,
+}: {
+  slotKey: SlotKey;
+  value: BannersConfig["slots"][SlotKey];
+  onChange: (v: BannersConfig["slots"][SlotKey]) => void;
+}) {
+  const info = SLOT_INFO[slotKey];
+
+  const updateSide = (side: "desktop" | "mobile", field: keyof BannerConfig, val: string | number) => {
+    const current = value[side] ?? {
+      src: "", href: "", width: 0, height: 0, label: "",
+    };
+    onChange({ ...value, [side]: { ...current, [field]: val } });
+  };
+
+  const clearSide = (side: "desktop" | "mobile") => {
+    onChange({ ...value, [side]: null });
+  };
+
+  const resetSide = (side: "desktop" | "mobile") => {
+    const def = DEFAULT_BANNERS.slots[slotKey][side];
+    onChange({ ...value, [side]: def });
+  };
+
+  const sides: Array<{ key: "desktop" | "mobile"; label: string; info: typeof info.desktop | null }> = [
+    { key: "desktop", label: "Desktop", info: info.desktop },
+    ...(info.mobile ? [{ key: "mobile" as const, label: "Mobile", info: info.mobile }] : []),
+  ];
+
+  return (
+    <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl overflow-hidden">
+      {/* Header del slot */}
+      <div className="px-6 py-4 border-b border-sk-border-2 bg-sk-bg-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Image size={15} className="text-sk-accent" />
+          <h3 className="text-sk-md font-bold text-sk-text-1">{info.title}</h3>
+        </div>
+        <p className="text-sk-xs text-sk-text-3">{info.description}</p>
+      </div>
+
+      <div className={`grid gap-0 ${sides.length > 1 ? "md:grid-cols-2" : "grid-cols-1"}`}>
+        {sides.map(({ key: side, info: sideInfo }, i) => {
+          if (!sideInfo) return null;
+          const banner = value[side];
+          const isEmpty = !banner?.src && !banner?.href;
+
+          return (
+            <div
+              key={side}
+              className={cn(
+                "p-5",
+                i < sides.length - 1 && "md:border-r border-b md:border-b-0 border-sk-border-2"
+              )}
+            >
+              {/* Cabecera del side */}
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={cn(
+                      "text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded",
+                      side === "desktop" ? "bg-sk-accent-dim text-sk-accent" : "bg-sk-purple-dim text-sk-purple"
+                    )}>
+                      {side === "desktop" ? "💻 Desktop" : "📱 Mobile"}
+                    </span>
+                    <span className="text-[10px] font-mono text-sk-text-4">{sideInfo.size}</span>
+                  </div>
+                  <p className="text-[11px] text-sk-text-3">{sideInfo.label}</p>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => resetSide(side)}
+                    title="Restaurar valor por defecto"
+                    className="text-sk-text-3 hover:text-sk-accent transition-colors p-1"
+                  >
+                    <RefreshCw size={12} />
+                  </button>
+                  {banner?.src && (
+                    <button
+                      onClick={() => window.open(banner.src, "_blank")}
+                      title="Vista previa de imagen"
+                      className="text-sk-text-3 hover:text-sk-accent transition-colors p-1"
+                    >
+                      <Eye size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Hint */}
+              <div className="bg-sk-bg-3 border border-sk-border-1 rounded-md px-3 py-2 mb-4">
+                <p className="text-[10px] text-sk-text-3 leading-relaxed">
+                  💡 {sideInfo.hint}
+                </p>
+              </div>
+
+              {/* Preview de la imagen actual */}
+              {banner?.src && (
+                <div className="mb-4 rounded-lg overflow-hidden border border-sk-border-2 bg-sk-bg-3">
+                  <img
+                    src={banner.src}
+                    alt="Preview banner"
+                    style={{ width: "100%", height: "auto", display: "block", maxHeight: "120px", objectFit: "contain" }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                </div>
+              )}
+
+              {/* Campos */}
+              <div className="space-y-3">
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 flex items-center gap-1.5 block">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sk-accent" />
+                    URL de la imagen (src)
+                    <span className="text-sk-text-4 normal-case ml-auto">{sideInfo.size}</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={banner?.src ?? ""}
+                    onChange={(e) => updateSide(side, "src", e.target.value)}
+                    placeholder={`https://wptpartners.ck-cdn.com/tn/serve/?cid=XXXXXX`}
+                    className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 flex items-center gap-1.5 block">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sk-gold" />
+                    Link de destino (href / tracking)
+                  </label>
+                  <input
+                    type="url"
+                    value={banner?.href ?? ""}
+                    onChange={(e) => updateSide(side, "href", e.target.value)}
+                    placeholder="https://tracking.wptpartners.com/visit/?bta=35660&nci=XXXXX"
+                    className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
+                  />
+                </div>
+
+                {/* Estado */}
+                {isEmpty ? (
+                  <div className="flex items-center gap-2 text-[11px] text-sk-text-4">
+                    <XIcon size={11} className="text-sk-red" />
+                    Sin banner configurado
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-[11px] text-sk-green">
+                    <Check size={11} />
+                    Banner configurado
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Si sidebar no tiene mobile, mostrar info */}
+        {slotKey === "sidebar" && (
+          <div className="p-5 flex items-center justify-center border-t border-sk-border-2 md:border-t-0 md:border-l md:border-sk-border-2">
+            <div className="text-center">
+              <span className="text-2xl block mb-2">📵</span>
+              <p className="text-sk-xs text-sk-text-3">El sidebar no aparece<br />en dispositivos móviles</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────
 
 export function SuperAdminPage() {
   const [tab, setTab] = useState<AdminTab>("overview");
@@ -32,8 +235,7 @@ export function SuperAdminPage() {
     table: string;
     title: string;
     fields: Array<{
-      key: string;
-      label: string;
+      key: string; label: string;
       type: "text" | "number" | "select" | "textarea" | "checkbox";
       required?: boolean;
       options?: Array<{ value: string; label: string }>;
@@ -43,16 +245,22 @@ export function SuperAdminPage() {
   } | null>(null);
 
   // Users tab state
-  const [selectedUser, setSelectedUser] = useState<Record<string, any> | null>(null);
-  const [editingUser, setEditingUser] = useState(false);
-  const [userEditData, setUserEditData] = useState<Record<string, string>>({});
-  const [savingUser, setSavingUser] = useState(false);
-  const [claimSearch, setClaimSearch] = useState("");
-  const [claimResults, setClaimResults] = useState<any[]>([]);
+  const [selectedUser, setSelectedUser]   = useState<Record<string, any> | null>(null);
+  const [editingUser, setEditingUser]     = useState(false);
+  const [userEditData, setUserEditData]   = useState<Record<string, string>>({});
+  const [savingUser, setSavingUser]       = useState(false);
+  const [claimSearch, setClaimSearch]     = useState("");
+  const [claimResults, setClaimResults]   = useState<any[]>([]);
   const [claimSearching, setClaimSearching] = useState(false);
 
+  // Banners tab state
+  const [bannersConfig, setBannersConfig] = useState<BannersConfig | null>(null);
+  const [bannersSaving, setBannersSaving] = useState(false);
+  const [bannersSaved, setBannersSaved]   = useState(false);
+  const [bannersLoading, setBannersLoading] = useState(false);
+
   const queryClient = useQueryClient();
-  const refresh = () => queryClient.invalidateQueries();
+  const refresh     = () => queryClient.invalidateQueries();
 
   // ── Queries ──
 
@@ -68,12 +276,9 @@ export function SuperAdminPage() {
         supabase.from("nickname_claims").select("*", { count: "exact", head: true }).eq("status", "pending"),
       ]);
       return {
-        players: players.count ?? 0,
-        clubs: clubs.count ?? 0,
-        tournaments: tournaments.count ?? 0,
-        leagues: leagues.count ?? 0,
-        pendingClubs: pendingClubs.count ?? 0,
-        pendingClaims: pendingClaims.count ?? 0,
+        players: players.count ?? 0, clubs: clubs.count ?? 0,
+        tournaments: tournaments.count ?? 0, leagues: leagues.count ?? 0,
+        pendingClubs: pendingClubs.count ?? 0, pendingClaims: pendingClaims.count ?? 0,
       };
     },
   });
@@ -81,10 +286,7 @@ export function SuperAdminPage() {
   const { data: allClubs } = useQuery({
     queryKey: ["admin-all-clubs"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("clubs")
-        .select("id, name, country_code, is_approved, is_demo, created_by")
-        .order("name");
+      const { data } = await supabase.from("clubs").select("id, name, country_code, is_approved, is_demo, created_by").order("name");
       return data ?? [];
     },
     enabled: tab === "overview",
@@ -93,10 +295,7 @@ export function SuperAdminPage() {
   const { data: clubRequests } = useQuery({
     queryKey: ["admin-club-requests"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("club_registration_requests")
-        .select("*, profiles(display_name, email, whatsapp, country_code)")
-        .order("created_at", { ascending: false });
+      const { data } = await supabase.from("club_registration_requests").select("*, profiles(display_name, email, whatsapp, country_code)").order("created_at", { ascending: false });
       return data ?? [];
     },
     enabled: tab === "requests",
@@ -105,10 +304,7 @@ export function SuperAdminPage() {
   const { data: nicknameClaims } = useQuery({
     queryKey: ["admin-nickname-claims"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("nickname_claims")
-        .select("*, profiles:user_id (display_name, email, whatsapp), players:player_id (nickname)")
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("nickname_claims").select("*, profiles:user_id (display_name, email, whatsapp), players:player_id (nickname)").order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -136,10 +332,7 @@ export function SuperAdminPage() {
   const { data: profiles } = useQuery({
     queryKey: ["admin-profiles"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, display_name, email, whatsapp, country_code, avatar_url, role, created_at")
-        .order("created_at", { ascending: false });
+      const { data } = await supabase.from("profiles").select("id, display_name, email, whatsapp, country_code, avatar_url, role, created_at").order("created_at", { ascending: false });
       return data ?? [];
     },
     enabled: tab === "users",
@@ -148,28 +341,55 @@ export function SuperAdminPage() {
   const { data: selectedUserPlayers, refetch: refetchSelectedUserPlayers } = useQuery({
     queryKey: ["admin-user-players", selectedUser?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("players")
-        .select("id, nickname, elo_rating, poker_rooms(name)")
-        .eq("profile_id", selectedUser!.id);
+      const { data } = await supabase.from("players").select("id, nickname, elo_rating, poker_rooms(name)").eq("profile_id", selectedUser!.id);
       return data ?? [];
     },
     enabled: !!selectedUser?.id,
   });
 
+  // ── Cargar banners al entrar a la tab ──
+
+  const handleLoadBanners = async () => {
+    if (bannersConfig) return; // ya cargados
+    setBannersLoading(true);
+    try {
+      const cfg = await getBannersConfig();
+      setBannersConfig(cfg);
+    } finally {
+      setBannersLoading(false);
+    }
+  };
+
+  const handleSaveBanners = async () => {
+    if (!bannersConfig) return;
+    setBannersSaving(true);
+    try {
+      await saveBannersConfig(bannersConfig);
+      // Invalidar caché del hook useBanners para que los cambios se reflejen
+      queryClient.invalidateQueries({ queryKey: ["site-settings-banners"] });
+      setBannersSaved(true);
+      setTimeout(() => setBannersSaved(false), 3000);
+    } catch (err: any) {
+      alert("Error al guardar: " + err.message);
+    } finally {
+      setBannersSaving(false);
+    }
+  };
+
+  const handleReloadBanners = async () => {
+    setBannersLoading(true);
+    try {
+      const cfg = await getBannersConfig();
+      setBannersConfig(cfg);
+    } finally {
+      setBannersLoading(false);
+    }
+  };
+
   // ── Actions ──
 
-  const handleApproveClub = async (req: {
-    id: string;
-    user_id: string;
-    club_name: string;
-    country_code?: string;
-    description?: string;
-  }) => {
-    const { data: club } = await supabase
-      .from("clubs")
-      .insert({ name: req.club_name, country_code: req.country_code, description: req.description, is_approved: true, created_by: req.user_id })
-      .select().single();
+  const handleApproveClub = async (req: { id: string; user_id: string; club_name: string; country_code?: string; description?: string }) => {
+    const { data: club } = await supabase.from("clubs").insert({ name: req.club_name, country_code: req.country_code, description: req.description, is_approved: true, created_by: req.user_id }).select().single();
     if (!club) return;
     await supabase.from("club_admins").insert({ club_id: club.id, user_id: req.user_id, role: "owner" });
     await supabase.from("profiles").update({ role: "club_admin" }).eq("id", req.user_id);
@@ -187,8 +407,6 @@ export function SuperAdminPage() {
     await deleteEntity(table, id);
     refresh();
   };
-
-  // ── User management ──
 
   const handleSaveUser = async () => {
     if (!selectedUser) return;
@@ -209,11 +427,7 @@ export function SuperAdminPage() {
     setClaimSearch(q);
     if (q.length < 2) { setClaimResults([]); return; }
     setClaimSearching(true);
-    const { data } = await supabase
-      .from("players")
-      .select("id, nickname, poker_rooms(name), profile_id")
-      .ilike("nickname", `%${q}%`)
-      .limit(10);
+    const { data } = await supabase.from("players").select("id, nickname, poker_rooms(name), profile_id").ilike("nickname", `%${q}%`).limit(10);
     setClaimResults(data ?? []);
     setClaimSearching(false);
   };
@@ -221,15 +435,8 @@ export function SuperAdminPage() {
   const handleAdminClaim = async (playerId: string) => {
     if (!selectedUser) return;
     await supabase.from("players").update({ profile_id: selectedUser.id }).eq("id", playerId);
-    await supabase.from("nickname_claims").insert({
-      user_id: selectedUser.id,
-      player_id: playerId,
-      screenshot_url: "admin-claim",
-      status: "approved",
-      resolved_at: new Date().toISOString(),
-    });
-    setClaimSearch("");
-    setClaimResults([]);
+    await supabase.from("nickname_claims").insert({ user_id: selectedUser.id, player_id: playerId, screenshot_url: "admin-claim", status: "approved", resolved_at: new Date().toISOString() });
+    setClaimSearch(""); setClaimResults([]);
     refetchSelectedUserPlayers();
   };
 
@@ -255,11 +462,12 @@ export function SuperAdminPage() {
   const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0);
 
   const TABS: { key: AdminTab; label: string; badge?: number }[] = [
-    { key: "overview", label: "General" },
-    { key: "users", label: "Usuarios" },
-    { key: "requests", label: "Solicitudes", badge: pendingTotal > 0 ? pendingTotal : undefined },
-    { key: "rooms", label: "Salas" },
-    { key: "scoring", label: "Scoring" },
+    { key: "overview",  label: "General" },
+    { key: "users",     label: "Usuarios" },
+    { key: "requests",  label: "Solicitudes", badge: pendingTotal > 0 ? pendingTotal : undefined },
+    { key: "rooms",     label: "Salas" },
+    { key: "scoring",   label: "Scoring" },
+    { key: "banners",   label: "Banners" },
   ];
 
   return (
@@ -273,11 +481,15 @@ export function SuperAdminPage() {
             <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1">⚡ Panel de Administración</h1>
           </div>
 
+          {/* Tabs */}
           <div className="flex gap-px bg-sk-bg-0 rounded-md p-0.5 border border-sk-border-2 mb-6 overflow-x-auto">
             {TABS.map((t) => (
               <button
                 key={t.key}
-                onClick={() => setTab(t.key)}
+                onClick={() => {
+                  setTab(t.key);
+                  if (t.key === "banners") handleLoadBanners();
+                }}
                 className={cn(
                   "text-sk-sm font-medium px-4 py-2 rounded-sm whitespace-nowrap transition-all duration-100 relative",
                   tab === t.key ? "bg-sk-bg-3 text-sk-text-1 shadow-sk-xs" : "text-sk-text-2 hover:text-sk-text-1"
@@ -302,7 +514,6 @@ export function SuperAdminPage() {
                 <StatCard label="Torneos" value={formatNumber(stats?.tournaments ?? 0)} accent="gold" />
                 <StatCard label="Ligas" value={formatNumber(stats?.leagues ?? 0)} />
               </div>
-
               {pendingTotal > 0 && (
                 <div className="bg-sk-gold-dim border border-sk-gold/20 rounded-lg p-4 flex items-center gap-3">
                   <AlertCircle size={18} className="text-sk-gold shrink-0" />
@@ -317,47 +528,26 @@ export function SuperAdminPage() {
                   <Button variant="secondary" size="sm" onClick={() => setTab("requests")}>Ver solicitudes</Button>
                 </div>
               )}
-
               <div>
                 <h2 className="text-sk-md font-bold text-sk-text-1 mb-3">Clubes ({allClubs?.length ?? 0})</h2>
                 <div className="border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-x-auto">
                   <table className="w-full border-collapse text-sk-sm">
                     <thead>
-                      <tr>
-                        {["Club", "País", "Estado", ""].map((h, i) => (
-                          <th key={i} className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap">{h}</th>
-                        ))}
-                      </tr>
+                      <tr>{["Club","País","Estado",""].map((h,i) => <th key={i} className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap">{h}</th>)}</tr>
                     </thead>
                     <tbody>
                       {(allClubs ?? []).map((c) => (
                         <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="py-3 px-4 border-b border-sk-border-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-sk-text-1">{c.name}</span>
-                              {c.is_demo && <Badge variant="muted">Demo</Badge>}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 border-b border-sk-border-2">
-                            <span className="inline-flex items-center gap-1.5"><FlagIcon countryCode={c.country_code} /> {c.country_code ?? "—"}</span>
-                          </td>
-                          <td className="py-3 px-4 border-b border-sk-border-2">
-                            <Badge variant={c.is_approved ? "green" : "orange"}>{c.is_approved ? "Aprobado" : "Pendiente"}</Badge>
-                          </td>
-                          <td className="py-3 px-4 border-b border-sk-border-2">
-                            <Link to="/admin/club" className="inline-flex items-center gap-1.5 text-sk-xs font-semibold text-sk-accent hover:underline">
-                              <Settings size={12} /> Gestionar
-                            </Link>
-                          </td>
+                          <td className="py-3 px-4 border-b border-sk-border-2"><div className="flex items-center gap-2"><span className="font-semibold text-sk-text-1">{c.name}</span>{c.is_demo && <Badge variant="muted">Demo</Badge>}</div></td>
+                          <td className="py-3 px-4 border-b border-sk-border-2"><span className="inline-flex items-center gap-1.5"><FlagIcon countryCode={c.country_code} /> {c.country_code ?? "—"}</span></td>
+                          <td className="py-3 px-4 border-b border-sk-border-2"><Badge variant={c.is_approved ? "green" : "orange"}>{c.is_approved ? "Aprobado" : "Pendiente"}</Badge></td>
+                          <td className="py-3 px-4 border-b border-sk-border-2"><Link to="/admin/club" className="inline-flex items-center gap-1.5 text-sk-xs font-semibold text-sk-accent hover:underline"><Settings size={12} /> Gestionar</Link></td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <p className="text-[11px] text-sk-text-4 mt-2">
-                  Para gestionar torneos, resultados y ligas usa el{" "}
-                  <Link to="/admin/club" className="text-sk-accent hover:underline">Panel de Club Admin</Link>.
-                </p>
+                <p className="text-[11px] text-sk-text-4 mt-2">Para gestionar torneos, resultados y ligas usa el <Link to="/admin/club" className="text-sk-accent hover:underline">Panel de Club Admin</Link>.</p>
               </div>
             </div>
           )}
@@ -365,52 +555,28 @@ export function SuperAdminPage() {
           {/* ══ USUARIOS ══ */}
           {tab === "users" && (
             <div className="flex gap-6 min-h-[600px]">
-              {/* Lista izquierda */}
               <div className={`flex flex-col gap-2 overflow-y-auto ${selectedUser ? "w-72 shrink-0" : "w-full"}`}>
                 <h2 className="text-sk-md font-bold text-sk-text-1 mb-2">Usuarios ({profiles?.length ?? 0})</h2>
                 {(profiles ?? []).map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => { setSelectedUser(p); setEditingUser(false); setClaimSearch(""); setClaimResults([]); }}
-                    className={cn(
-                      "w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all",
-                      selectedUser?.id === p.id
-                        ? "bg-sk-accent-dim border-sk-accent"
-                        : "bg-sk-bg-2 border-sk-border-2 hover:border-sk-border-3"
-                    )}
-                  >
+                  <button key={p.id} onClick={() => { setSelectedUser(p); setEditingUser(false); setClaimSearch(""); setClaimResults([]); }}
+                    className={cn("w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all", selectedUser?.id === p.id ? "bg-sk-accent-dim border-sk-accent" : "bg-sk-bg-2 border-sk-border-2 hover:border-sk-border-3")}>
                     <div className="w-9 h-9 rounded-full bg-sk-bg-4 border border-sk-border-2 overflow-hidden shrink-0 flex items-center justify-center">
-                      {p.avatar_url
-                        ? <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
-                        : <span className="text-sk-sm font-bold text-sk-accent">{(p.display_name ?? p.email ?? "?").charAt(0).toUpperCase()}</span>
-                      }
+                      {p.avatar_url ? <img src={p.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-sk-sm font-bold text-sk-accent">{(p.display_name ?? p.email ?? "?").charAt(0).toUpperCase()}</span>}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sk-sm font-semibold text-sk-text-1 truncate">{p.display_name ?? "—"}</p>
                       <p className="text-[11px] text-sk-text-3 truncate">{p.email}</p>
                     </div>
-                    <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0",
-                      p.role === "super_admin" ? "bg-sk-red-dim text-sk-red"
-                      : p.role === "club_admin" ? "bg-sk-accent-dim text-sk-accent"
-                      : "bg-sk-bg-4 text-sk-text-3"
-                    )}>
-                      {p.role}
-                    </span>
+                    <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0", p.role === "super_admin" ? "bg-sk-red-dim text-sk-red" : p.role === "club_admin" ? "bg-sk-accent-dim text-sk-accent" : "bg-sk-bg-4 text-sk-text-3")}>{p.role}</span>
                   </button>
                 ))}
               </div>
-
-              {/* Panel derecho */}
               {selectedUser && (
                 <div className="flex-1 bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 overflow-y-auto">
-                  {/* Header */}
                   <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-border-2 overflow-hidden flex items-center justify-center">
-                        {selectedUser.avatar_url
-                          ? <img src={selectedUser.avatar_url} alt="" className="w-full h-full object-cover" />
-                          : <span className="text-sk-xl font-bold text-sk-accent">{(selectedUser.display_name ?? selectedUser.email ?? "?").charAt(0).toUpperCase()}</span>
-                        }
+                        {selectedUser.avatar_url ? <img src={selectedUser.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-sk-xl font-bold text-sk-accent">{(selectedUser.display_name ?? selectedUser.email ?? "?").charAt(0).toUpperCase()}</span>}
                       </div>
                       <div>
                         <h3 className="text-sk-lg font-bold text-sk-text-1">{selectedUser.display_name ?? "Sin nombre"}</h3>
@@ -418,55 +584,25 @@ export function SuperAdminPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="secondary" size="sm" onClick={() => {
-                        setEditingUser(!editingUser);
-                        setUserEditData({
-                          display_name: selectedUser.display_name ?? "",
-                          email: selectedUser.email ?? "",
-                          whatsapp: selectedUser.whatsapp ?? "",
-                          country_code: selectedUser.country_code ?? "",
-                        });
-                      }}>
+                      <Button variant="secondary" size="sm" onClick={() => { setEditingUser(!editingUser); setUserEditData({ display_name: selectedUser.display_name ?? "", email: selectedUser.email ?? "", whatsapp: selectedUser.whatsapp ?? "", country_code: selectedUser.country_code ?? "" }); }}>
                         <Pencil size={13} /> {editingUser ? "Cancelar" : "Editar"}
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedUser(null)}>
-                        <XIcon size={13} />
-                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedUser(null)}><XIcon size={13} /></Button>
                     </div>
                   </div>
-
-                  {/* Edición */}
                   {editingUser ? (
                     <div className="space-y-3 mb-6 p-4 bg-sk-bg-3 rounded-lg border border-sk-border-2">
-                      {[
-                        { key: "display_name", label: "Nombre", placeholder: "Nombre completo" },
-                        { key: "email", label: "Email", placeholder: "correo@ejemplo.com" },
-                        { key: "whatsapp", label: "WhatsApp", placeholder: "56 9 1234 5678" },
-                        { key: "country_code", label: "País (2 letras)", placeholder: "CL" },
-                      ].map((f) => (
+                      {[{ key: "display_name", label: "Nombre", placeholder: "Nombre completo" }, { key: "email", label: "Email", placeholder: "correo@ejemplo.com" }, { key: "whatsapp", label: "WhatsApp", placeholder: "56 9 1234 5678" }, { key: "country_code", label: "País (2 letras)", placeholder: "CL" }].map((f) => (
                         <div key={f.key}>
                           <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1 block">{f.label}</label>
-                          <input
-                            type="text"
-                            value={userEditData[f.key] ?? ""}
-                            onChange={(e) => setUserEditData({ ...userEditData, [f.key]: e.target.value })}
-                            placeholder={f.placeholder}
-                            className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
-                          />
+                          <input type="text" value={userEditData[f.key] ?? ""} onChange={(e) => setUserEditData({ ...userEditData, [f.key]: e.target.value })} placeholder={f.placeholder} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent" />
                         </div>
                       ))}
-                      <Button variant="accent" size="sm" onClick={handleSaveUser} isLoading={savingUser}>
-                        <Check size={13} /> Guardar cambios
-                      </Button>
+                      <Button variant="accent" size="sm" onClick={handleSaveUser} isLoading={savingUser}><Check size={13} /> Guardar cambios</Button>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 mb-6">
-                      {[
-                        { label: "Email", value: selectedUser.email },
-                        { label: "WhatsApp", value: selectedUser.whatsapp ? `+${selectedUser.whatsapp}` : null },
-                        { label: "País", value: selectedUser.country_code },
-                        { label: "Rol", value: selectedUser.role },
-                      ].map((item) => (
+                      {[{ label: "Email", value: selectedUser.email }, { label: "WhatsApp", value: selectedUser.whatsapp ? `+${selectedUser.whatsapp}` : null }, { label: "País", value: selectedUser.country_code }, { label: "Rol", value: selectedUser.role }].map((item) => (
                         <div key={item.label} className="bg-sk-bg-3 rounded-md p-3">
                           <p className="text-[10px] font-mono uppercase tracking-wide text-sk-text-3 mb-1">{item.label}</p>
                           <p className="text-sk-sm font-semibold text-sk-text-1">{item.value ?? "—"}</p>
@@ -474,57 +610,27 @@ export function SuperAdminPage() {
                       ))}
                     </div>
                   )}
-
-                  {/* Nicknames vinculados */}
                   <div className="mb-6">
                     <h4 className="text-sk-sm font-bold text-sk-text-1 mb-3">Nicknames vinculados</h4>
-                    {(selectedUserPlayers ?? []).length === 0
-                      ? <p className="text-sk-xs text-sk-text-3">Sin nicknames vinculados</p>
-                      : (selectedUserPlayers ?? []).map((p: any) => (
-                        <div key={p.id} className="flex items-center justify-between bg-sk-bg-3 rounded-md px-3 py-2 mb-2">
-                          <div>
-                            <span className="font-mono font-semibold text-sk-text-1 text-sk-sm">{p.nickname}</span>
-                            <span className="text-sk-xs text-sk-text-3 ml-2">({p.poker_rooms?.name ?? "—"}) · ELO: {Math.round(p.elo_rating)}</span>
-                          </div>
-                          <button onClick={() => handleUnlinkPlayer(p.id)} className="text-sk-text-3 hover:text-sk-red transition-colors p-1" title="Desvincular">
-                            <XIcon size={13} />
-                          </button>
-                        </div>
-                      ))
-                    }
+                    {(selectedUserPlayers ?? []).length === 0 ? <p className="text-sk-xs text-sk-text-3">Sin nicknames vinculados</p> : (selectedUserPlayers ?? []).map((p: any) => (
+                      <div key={p.id} className="flex items-center justify-between bg-sk-bg-3 rounded-md px-3 py-2 mb-2">
+                        <div><span className="font-mono font-semibold text-sk-text-1 text-sk-sm">{p.nickname}</span><span className="text-sk-xs text-sk-text-3 ml-2">({p.poker_rooms?.name ?? "—"}) · ELO: {Math.round(p.elo_rating)}</span></div>
+                        <button onClick={() => handleUnlinkPlayer(p.id)} className="text-sk-text-3 hover:text-sk-red transition-colors p-1"><XIcon size={13} /></button>
+                      </div>
+                    ))}
                   </div>
-
-                  {/* Vincular nickname */}
                   <div>
                     <h4 className="text-sk-sm font-bold text-sk-text-1 mb-3">Vincular nickname (como admin)</h4>
                     <div className="relative">
-                      <input
-                        type="text"
-                        value={claimSearch}
-                        onChange={(e) => handleClaimSearch(e.target.value)}
-                        placeholder="Buscar nickname..."
-                        className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 pl-3 pr-8 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
-                      />
-                      {claimSearching && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin" />
-                      )}
+                      <input type="text" value={claimSearch} onChange={(e) => handleClaimSearch(e.target.value)} placeholder="Buscar nickname..." className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 pl-3 pr-8 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent" />
+                      {claimSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin" />}
                     </div>
                     {claimResults.length > 0 && (
                       <div className="mt-1 border border-sk-border-2 rounded-md overflow-hidden bg-sk-bg-2">
                         {claimResults.map((p: any) => (
-                          <button
-                            key={p.id}
-                            onClick={() => handleAdminClaim(p.id)}
-                            className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-white/[0.03] border-b border-sk-border-2 last:border-b-0 transition-colors"
-                          >
-                            <div>
-                              <span className="font-mono font-semibold text-sk-text-1 text-sk-sm">{p.nickname}</span>
-                              <span className="text-sk-xs text-sk-text-3 ml-2">{p.poker_rooms?.name ?? "—"}</span>
-                            </div>
-                            {p.profile_id
-                              ? <Badge variant="orange">Ya vinculado</Badge>
-                              : <span className="text-sk-xs text-sk-accent font-semibold">Vincular →</span>
-                            }
+                          <button key={p.id} onClick={() => handleAdminClaim(p.id)} className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-white/[0.03] border-b border-sk-border-2 last:border-b-0 transition-colors">
+                            <div><span className="font-mono font-semibold text-sk-text-1 text-sk-sm">{p.nickname}</span><span className="text-sk-xs text-sk-text-3 ml-2">{p.poker_rooms?.name ?? "—"}</span></div>
+                            {p.profile_id ? <Badge variant="orange">Ya vinculado</Badge> : <span className="text-sk-xs text-sk-accent font-semibold">Vincular →</span>}
                           </button>
                         ))}
                       </div>
@@ -540,30 +646,17 @@ export function SuperAdminPage() {
             <div className="space-y-8">
               <div>
                 <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Solicitudes de Club ({clubRequests?.length || 0})</h2>
-                {(clubRequests ?? []).length === 0 ? (
-                  <EmptyState icon="📋" title="Sin solicitudes de club" />
-                ) : (
+                {(clubRequests ?? []).length === 0 ? <EmptyState icon="📋" title="Sin solicitudes de club" /> : (
                   <div className="space-y-3">
                     {clubRequests?.map((req) => (
                       <div key={req.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <p className="text-sk-md font-bold text-sk-text-1">{req.club_name}</p>
-                            <p className="text-sk-xs text-sk-text-3">
-                              Solicitante: {req.profiles?.display_name}
-                              {req.profiles?.email && <span className="ml-2 text-sk-text-4">({req.profiles.email})</span>}
-                            </p>
-                            {req.profiles?.whatsapp && (
-                              <a href={`https://wa.me/${req.profiles.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="text-sk-xs text-sk-green hover:underline">
-                                WhatsApp: +{req.profiles.whatsapp}
-                              </a>
-                            )}
+                            <p className="text-sk-xs text-sk-text-3">Solicitante: {req.profiles?.display_name}{req.profiles?.email && <span className="ml-2 text-sk-text-4">({req.profiles.email})</span>}</p>
+                            {req.profiles?.whatsapp && <a href={`https://wa.me/${req.profiles.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" className="text-sk-xs text-sk-green hover:underline">WhatsApp: +{req.profiles.whatsapp}</a>}
                             {req.description && <p className="text-sk-xs text-sk-text-2 mt-1">{req.description}</p>}
-                            {req.country_code && (
-                              <span className="inline-flex items-center gap-1 mt-1 text-sk-xs text-sk-text-3">
-                                <FlagIcon countryCode={req.country_code} /> {req.country_code}
-                              </span>
-                            )}
+                            {req.country_code && <span className="inline-flex items-center gap-1 mt-1 text-sk-xs text-sk-text-3"><FlagIcon countryCode={req.country_code} /> {req.country_code}</span>}
                           </div>
                           <Badge variant={req.status === "pending" ? "orange" : req.status === "approved" ? "green" : "muted"}>{req.status}</Badge>
                         </div>
@@ -578,12 +671,9 @@ export function SuperAdminPage() {
                   </div>
                 )}
               </div>
-
               <div>
                 <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Claims de Nickname ({nicknameClaims?.length || 0})</h2>
-                {(nicknameClaims ?? []).length === 0 ? (
-                  <EmptyState icon="🏷️" title="Sin claims pendientes" />
-                ) : (
+                {(nicknameClaims ?? []).length === 0 ? <EmptyState icon="🏷️" title="Sin claims pendientes" /> : (
                   <div className="grid grid-cols-1 gap-4">
                     {nicknameClaims?.map((claim) => (
                       <div key={claim.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
@@ -591,16 +681,7 @@ export function SuperAdminPage() {
                           <div className="shrink-0">
                             <p className="text-[10px] font-mono uppercase text-sk-text-3 mb-2">Prueba (Screenshot)</p>
                             <a href={claim.screenshot_url} target="_blank" rel="noreferrer" className="block group relative w-32 h-32 md:w-40 md:h-40 bg-sk-bg-3 border border-sk-border-2 rounded-md overflow-hidden">
-                              {claim.screenshot_url ? (
-                                <>
-                                  <img src={claim.screenshot_url} alt="Validación" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="text-white text-xs font-bold">Ver en grande</span>
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="flex items-center justify-center h-full text-sk-text-3 italic text-xs">Sin imagen</div>
-                              )}
+                              {claim.screenshot_url ? (<><img src={claim.screenshot_url} alt="Validación" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" /><div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><span className="text-white text-xs font-bold">Ver en grande</span></div></>) : (<div className="flex items-center justify-center h-full text-sk-text-3 italic text-xs">Sin imagen</div>)}
                             </a>
                           </div>
                           <div className="flex-1 flex flex-col justify-between">
@@ -612,13 +693,7 @@ export function SuperAdminPage() {
                               <div className="space-y-1.5">
                                 <p className="text-sk-sm text-sk-text-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">Usuario:</span> {claim.profiles?.display_name}</p>
                                 <p className="text-sk-sm text-sk-text-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">Email:</span> {claim.profiles?.email}</p>
-                                <p className="text-sk-sm text-sk-text-2 flex items-center gap-2">
-                                  <span className="text-sk-text-3 font-mono text-[10px] uppercase">WhatsApp:</span>
-                                  {claim.profiles?.whatsapp
-                                    ? <a href={`https://wa.me/${claim.profiles.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="text-sk-green hover:underline">+{claim.profiles.whatsapp}</a>
-                                    : <span className="text-sk-text-3 italic">No registrado</span>
-                                  }
-                                </p>
+                                <p className="text-sk-sm text-sk-text-2 flex items-center gap-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">WhatsApp:</span>{claim.profiles?.whatsapp ? <a href={`https://wa.me/${claim.profiles.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" className="text-sk-green hover:underline">+{claim.profiles.whatsapp}</a> : <span className="text-sk-text-3 italic">No registrado</span>}</p>
                               </div>
                             </div>
                             {claim.status === "pending" && (
@@ -628,9 +703,7 @@ export function SuperAdminPage() {
                                   if (linkError) return alert("Error vinculando: " + linkError.message);
                                   await supabase.from("nickname_claims").update({ status: "approved", resolved_at: new Date().toISOString() }).eq("id", claim.id);
                                   refresh();
-                                }}>
-                                  <Check size={14} /> Aprobar y Vincular
-                                </Button>
+                                }}><Check size={14} /> Aprobar y Vincular</Button>
                                 <Button variant="danger" onClick={() => handleRejectRequest(claim.id, "nickname_claims")}><XIcon size={14} /></Button>
                               </div>
                             )}
@@ -655,12 +728,7 @@ export function SuperAdminPage() {
                 headers={["Sala", "Website"]}
                 rows={(rooms ?? []).map((r) => ({
                   id: r.id,
-                  cells: [
-                    <span className="font-semibold text-sk-text-1">{r.name}</span>,
-                    r.website_url
-                      ? <a href={r.website_url} target="_blank" rel="noreferrer" className="text-sk-accent text-sk-xs hover:underline inline-flex items-center gap-1">{r.website_url} <ExternalLink size={10} /></a>
-                      : <span className="text-sk-text-3 text-sk-xs">—</span>,
-                  ],
+                  cells: [<span className="font-semibold text-sk-text-1">{r.name}</span>, r.website_url ? <a href={r.website_url} target="_blank" rel="noreferrer" className="text-sk-accent text-sk-xs hover:underline inline-flex items-center gap-1">{r.website_url} <ExternalLink size={10} /></a> : <span className="text-sk-text-3 text-sk-xs">—</span>],
                   onEdit: () => setEntityForm({ table: "poker_rooms", title: "Sala", fields: roomFields, data: r }),
                   onDelete: () => handleDeleteEntity("poker_rooms", r.id, r.name),
                 }))}
@@ -679,15 +747,99 @@ export function SuperAdminPage() {
                 headers={["Nombre", "Tipo", "Descripción"]}
                 rows={(scoringSystems ?? []).map((s) => ({
                   id: s.id,
-                  cells: [
-                    <span className="font-semibold text-sk-text-1">{s.name}</span>,
-                    <Badge variant="accent">{s.type}</Badge>,
-                    <span className="text-sk-text-2 text-sk-xs line-clamp-1">{s.description ?? "—"}</span>,
-                  ],
+                  cells: [<span className="font-semibold text-sk-text-1">{s.name}</span>, <Badge variant="accent">{s.type}</Badge>, <span className="text-sk-text-2 text-sk-xs line-clamp-1">{s.description ?? "—"}</span>],
                   onEdit: () => setEntityForm({ table: "scoring_systems", title: "Scoring System", fields: scoringFields, data: s }),
                   onDelete: () => handleDeleteEntity("scoring_systems", s.id, s.name),
                 }))}
               />
+            </div>
+          )}
+
+          {/* ══ BANNERS ══ */}
+          {tab === "banners" && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h2 className="text-sk-md font-bold text-sk-text-1 mb-1">Gestión de Banners</h2>
+                  <p className="text-sk-xs text-sk-text-3">
+                    Los cambios se guardan en Supabase y se aplican en todos los artículos del blog sin necesidad de redeploy.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={handleReloadBanners} isLoading={bannersLoading}>
+                    <RefreshCw size={13} /> Recargar
+                  </Button>
+                  <Button
+                    variant={bannersSaved ? "secondary" : "accent"}
+                    size="sm"
+                    onClick={handleSaveBanners}
+                    isLoading={bannersSaving}
+                    disabled={!bannersConfig || bannersSaving}
+                  >
+                    {bannersSaved ? <><Check size={13} /> ¡Guardado!</> : <><Save size={13} /> Guardar cambios</>}
+                  </Button>
+                </div>
+              </div>
+
+              {bannersLoading && (
+                <div className="flex items-center justify-center py-20 gap-3">
+                  <div className="w-5 h-5 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin" />
+                  <span className="text-sk-sm text-sk-text-3">Cargando configuración...</span>
+                </div>
+              )}
+
+              {!bannersLoading && bannersConfig && (
+                <>
+                  {/* Código de bono */}
+                  <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-lg">🎁</span>
+                      <div>
+                        <h3 className="text-sk-sm font-bold text-sk-text-1">Código de bono</h3>
+                        <p className="text-sk-xs text-sk-text-3">Se muestra debajo de cada banner como recordatorio para el usuario.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="text"
+                        value={bannersConfig.bonusCode}
+                        onChange={(e) => setBannersConfig({ ...bannersConfig, bonusCode: e.target.value.toUpperCase() })}
+                        placeholder="FPHL"
+                        maxLength={12}
+                        className="w-40 bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-md text-sk-accent font-mono font-bold tracking-widest uppercase focus:outline-none focus:border-sk-accent"
+                      />
+                      <span className="text-sk-xs text-sk-text-3">Aparece como: <span className="text-sk-accent font-mono font-bold">{bannersConfig.bonusCode || "FPHL"}</span></span>
+                    </div>
+                  </div>
+
+                  {/* Slots */}
+                  {(Object.keys(SLOT_INFO) as SlotKey[]).map((slotKey) => (
+                    <BannerSlotEditor
+                      key={slotKey}
+                      slotKey={slotKey}
+                      value={bannersConfig.slots[slotKey]}
+                      onChange={(v) => setBannersConfig({
+                        ...bannersConfig,
+                        slots: { ...bannersConfig.slots, [slotKey]: v },
+                      })}
+                    />
+                  ))}
+
+                  {/* Botón guardar al fondo */}
+                  <div className="flex justify-end pt-4 border-t border-sk-border-2">
+                    <Button
+                      variant={bannersSaved ? "secondary" : "accent"}
+                      size="md"
+                      onClick={handleSaveBanners}
+                      isLoading={bannersSaving}
+                      disabled={bannersSaving}
+                    >
+                      {bannersSaved ? <><Check size={14} /> ¡Cambios guardados!</> : <><Save size={14} /> Guardar todos los cambios</>}
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -709,7 +861,7 @@ export function SuperAdminPage() {
   );
 }
 
-// ── Reusable Admin Table ──
+// ── Reusable Admin Table ──────────────────────────────────
 
 function AdminTable({ headers, rows }: {
   headers: string[];
@@ -720,18 +872,14 @@ function AdminTable({ headers, rows }: {
       <table className="w-full border-collapse text-sk-sm">
         <thead>
           <tr>
-            {headers.map((h, i) => (
-              <th key={i} className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap">{h}</th>
-            ))}
+            {headers.map((h, i) => <th key={i} className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap">{h}</th>)}
             <th className="bg-sk-bg-3 py-3 px-4 border-b border-sk-border-2 w-20"></th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
-              {row.cells.map((cell, i) => (
-                <td key={i} className="py-3 px-4 border-b border-sk-border-2">{cell}</td>
-              ))}
+              {row.cells.map((cell, i) => <td key={i} className="py-3 px-4 border-b border-sk-border-2">{cell}</td>)}
               <td className="py-3 px-4 border-b border-sk-border-2">
                 <div className="flex gap-1">
                   {row.onEdit && <button onClick={row.onEdit} className="text-sk-text-2 hover:text-sk-accent transition-colors p-1" title="Editar"><Pencil size={13} /></button>}
