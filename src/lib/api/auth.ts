@@ -6,16 +6,35 @@ export async function signUp(
   email: string,
   password: string,
   displayName: string,
-  role: UserRole = "player"
+  role: UserRole = "player",
+  extra?: { country_code?: string; whatsapp?: string }
 ) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { display_name: displayName, role },
+      data: {
+        display_name: displayName,
+        role,
+        // Supabase trigger leerá estos campos para poblar profiles
+        country_code: extra?.country_code ?? null,
+        whatsapp: extra?.whatsapp ?? null,
+      },
     },
   });
   if (error) throw error;
+
+  // Si el trigger no escribe whatsapp/country_code, lo hacemos manualmente
+  if (data.user && (extra?.country_code || extra?.whatsapp)) {
+    await supabase
+      .from("profiles")
+      .update({
+        country_code: extra?.country_code ?? null,
+        whatsapp: extra?.whatsapp ?? null,
+      })
+      .eq("id", data.user.id);
+  }
+
   return data;
 }
 
@@ -57,7 +76,6 @@ export async function updateProfile(
   userId: string,
   updates: Partial<Pick<Profile, "display_name" | "country_code" | "whatsapp" | "avatar_url">>
 ) {
-  // Do update without returning data to avoid RLS read-back issues
   const { error } = await supabase
     .from("profiles")
     .update(updates)
@@ -65,7 +83,6 @@ export async function updateProfile(
 
   if (error) throw error;
 
-  // Fetch fresh profile separately (uses SELECT policy which works)
   const profile = await getProfile(userId);
   if (!profile) throw new Error("Profile not found after update");
   return profile;
