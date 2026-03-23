@@ -25,7 +25,7 @@ interface ResultRow {
   nickname: string;
   playerId: string;
   prizeWon: number;
-  leaguePoints: number;
+  leaguePoints: number; // 0 es válido — nunca null aquí
   status: "pending" | "found" | "not_found" | "created";
 }
 
@@ -71,7 +71,7 @@ interface ParsedCSVRow {
   position: number | null;
   nickname: string;
   prize: number;
-  points: number;
+  points: number; // vacío en CSV → 0
 }
 
 function parseCSVSmart(
@@ -111,13 +111,14 @@ function parseCSVSmart(
   const rows: ParsedCSVRow[] = [];
   const errors: CSVValidationError[] = [];
 
-  // Check missing required columns
+  // Solo nickname es realmente obligatorio
   if (!("nickname" in headerMap)) {
     errors.push({ row: 0, field: "nickname", message: 'No se encontró la columna "nickname" (o "jugador", "nick", "player"). Es obligatoria.' });
   }
-  if (hasLeague && !("points" in headerMap)) {
-    errors.push({ row: 0, field: "puntos", message: 'Este torneo pertenece a una liga. Se requiere la columna "puntos" (o "points", "pts", "puntaje") en el CSV.' });
-  }
+
+  // ── CAMBIO 1: puntos ya NO son obligatorios en el CSV ──
+  // Si no hay columna puntos en torneo de liga, se asume 0 para todos.
+  // Solo avisamos (info), no bloqueamos.
 
   for (let i = startIndex; i < lines.length; i++) {
     const parts = lines[i]!.split(sep).map((s) => s.trim().replace(/^["']|["']$/g, ""));
@@ -128,9 +129,9 @@ function parseCSVSmart(
       return idx !== undefined && parts[idx] !== undefined ? parts[idx]! : "";
     };
 
-    const posRaw = getValue("position");
-    const nickRaw = getValue("nickname");
-    const prizeRaw = getValue("prize");
+    const posRaw    = getValue("position");
+    const nickRaw   = getValue("nickname");
+    const prizeRaw  = getValue("prize");
     const pointsRaw = getValue("points");
 
     let position: number | null = null;
@@ -141,21 +142,20 @@ function parseCSVSmart(
     }
 
     const nickname = nickRaw.trim();
-    const prize = prizeRaw ? parseFloat(prizeRaw.replace(/[$,\s]/g, "")) || 0 : 0;
-    const points = pointsRaw ? parseFloat(pointsRaw.replace(/[$,\s]/g, "")) || 0 : 0;
+    const prize    = prizeRaw  ? parseFloat(prizeRaw.replace(/[$,\s]/g, ""))  || 0 : 0;
+    // ── CAMBIO 1b: celda vacía → 0, nunca error ──
+    const points   = pointsRaw ? parseFloat(pointsRaw.replace(/[$,\s]/g, "")) || 0 : 0;
 
     if (!nickname) {
       errors.push({ row: rowNum, field: "nickname", message: `Fila ${rowNum}: falta el "nickname" (obligatorio)` });
     }
 
-    if (hasLeague && "points" in headerMap && !pointsRaw) {
-      errors.push({ row: rowNum, field: "puntos", message: `Fila ${rowNum}: faltan "puntos" (obligatorio para torneos con liga)` });
-    }
+    // Eliminada la validación que generaba error por puntos vacíos
 
     rows.push({ position, nickname, prize, points });
   }
 
-  // Auto-assign positions if no position column
+  // Auto-assign positions si no hay columna position
   if (!("position" in headerMap)) {
     rows.forEach((r, i) => { r.position = i + 1; });
   } else {
@@ -282,7 +282,7 @@ export function ResultsUpload({
           nickname: p.nickname,
           playerId: "",
           prizeWon: p.prize,
-          leaguePoints: p.points,
+          leaguePoints: p.points, // ya es 0 si estaba vacío
           status: "pending" as const,
         }))
       );
@@ -324,18 +324,16 @@ export function ResultsUpload({
     }
 
     const duplicateNicknames = rows.filter(
-      (r, i, arr) => r.nickname.trim() && arr.findIndex((a) => a.nickname.toLowerCase().trim() === r.nickname.toLowerCase().trim()) !== i
+      (r, i, arr) =>
+        r.nickname.trim() &&
+        arr.findIndex((a) => a.nickname.toLowerCase().trim() === r.nickname.toLowerCase().trim()) !== i
     );
     if (duplicateNicknames.length > 0) {
       validationErrors.push(`Nicknames duplicados: ${[...new Set(duplicateNicknames.map((r) => r.nickname))].join(", ")}`);
     }
 
-    if (hasLeague) {
-      const missingPoints = rows.filter((r) => r.leaguePoints === 0 && r.nickname.trim());
-      if (missingPoints.length > 0) {
-        validationErrors.push(`${missingPoints.length} jugador(es) sin puntos de liga (obligatorio para torneos con liga)`);
-      }
-    }
+    // ── CAMBIO 2: eliminada la validación que bloqueaba leaguePoints === 0 ──
+    // 0 es un valor válido. No se genera ningún error por puntos en cero o vacíos.
 
     if (validationErrors.length > 0) {
       setMessage({ text: validationErrors.join("\n"), type: "error" });
@@ -368,9 +366,10 @@ export function ResultsUpload({
         return;
       }
 
-      setMessage({ text: createdCount > 0
-        ? `${createdCount} jugadores nuevos creados con ELO 1200. Subiendo resultados...`
-        : "Todos los jugadores encontrados. Subiendo resultados...",
+      setMessage({
+        text: createdCount > 0
+          ? `${createdCount} jugadores nuevos creados con ELO 1200. Subiendo resultados...`
+          : "Todos los jugadores encontrados. Subiendo resultados...",
         type: "info",
       });
 
@@ -381,7 +380,7 @@ export function ResultsUpload({
         position: r.position,
         prize_won: r.prizeWon,
         bounties_won: 0,
-        league_points_earned: r.leaguePoints,
+        league_points_earned: r.leaguePoints, // 0 es válido
       }));
 
       const { error: insertError } = await supabase
@@ -397,7 +396,10 @@ export function ResultsUpload({
       const eloResult = await calculateElo(tournament.id);
 
       if (eloResult.success) {
-        setMessage({ text: `✅ ${eloResult.message}. ${createdCount > 0 ? `${createdCount} jugadores nuevos creados.` : ""}`, type: "success" });
+        setMessage({
+          text: `✅ ${eloResult.message}. ${createdCount > 0 ? `${createdCount} jugadores nuevos creados.` : ""}`,
+          type: "success",
+        });
         setTimeout(() => { onComplete(); onClose(); }, 2500);
       } else {
         setMessage({ text: `⚠️ Resultados subidos pero ELO falló: ${eloResult.message}`, type: "error" });
@@ -420,14 +422,12 @@ export function ResultsUpload({
           <div className="flex items-center gap-2 px-3 py-2 bg-sk-purple-dim border border-sk-purple/20 rounded-md">
             <Badge variant="purple">Liga</Badge>
             <span className="text-sk-xs text-sk-purple">
-              Este torneo pertenece a la liga <strong>{(tournament as any).leagues?.name ?? "—"}</strong>. Los puntos de liga son <strong>obligatorios</strong>.
+              Este torneo pertenece a la liga <strong>{(tournament as any).leagues?.name ?? "—"}</strong>. Jugadores sin puntos registrados recibirán <strong>0 puntos</strong>.
             </span>
           </div>
         )}
 
-        {/* ════════════════════════════════════════════════════════
-            STEP 1: CSV Upload instructions + file picker
-            ════════════════════════════════════════════════════════ */}
+        {/* STEP 1: CSV Upload */}
         {!imported && (
           <div className="space-y-4">
             <div className="bg-sk-bg-3 border border-sk-border-2 rounded-md p-4 space-y-3">
@@ -463,33 +463,32 @@ export function ResultsUpload({
                   </div>
                   <div className="flex items-start gap-2">
                     <Badge variant={hasLeague ? "purple" : "muted"} className="mt-0.5 shrink-0">
-                      {hasLeague ? "Obligatorio" : "Opcional"}
+                      {hasLeague ? "Opcional" : "Opcional"}
                     </Badge>
                     <div>
                       <span className="font-mono text-sk-accent font-semibold">puntos</span>
                       <span className="text-sk-text-3 block text-[10px]">
                         points, pts, score, puntaje
-                        {hasLeague && <span className="text-sk-purple font-semibold"> — requerido (liga)</span>}
+                        {hasLeague && <span className="text-sk-purple font-semibold"> — vacío = 0</span>}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Example CSV */}
                 <div className="mt-3 p-3 bg-sk-bg-0 rounded-md font-mono text-[11px] text-sk-text-2 leading-relaxed border border-sk-border-2">
                   <span className="text-sk-text-4 text-[10px] block mb-1">Ejemplo:</span>
                   <span className="text-sk-text-3">lugar</span>,<span className="text-sk-text-3">nickname</span>,<span className="text-sk-text-3">premio</span>{hasLeague && <>,<span className="text-sk-purple">puntos</span></>}<br />
                   <span className="text-sk-text-1">1</span>,<span className="text-sk-accent">SharkMaster_BR</span>,<span className="text-sk-gold">150</span>{hasLeague && <>,<span className="text-sk-purple">100</span></>}<br />
                   <span className="text-sk-text-1">2</span>,<span className="text-sk-accent">RiverKing_AR</span>,<span className="text-sk-gold">90</span>{hasLeague && <>,<span className="text-sk-purple">75</span></>}<br />
-                  <span className="text-sk-text-1">3</span>,<span className="text-sk-accent">AceHunter_MX</span>,<span className="text-sk-gold"></span>{hasLeague && <>,<span className="text-sk-purple">50</span></>}
+                  <span className="text-sk-text-1">3</span>,<span className="text-sk-accent">AceHunter_MX</span>,<span className="text-sk-gold">0</span>{hasLeague && <>,<span className="text-sk-purple">0</span></>}
                 </div>
 
                 <p className="text-[10px] text-sk-text-3 mt-1">
-                  💡 Si no hay columna "lugar", las posiciones se asignan por orden. Si "premio" queda vacío, se asume $0. Las columnas que no se reconocen son ignoradas.
+                  💡 Si no hay columna "lugar", las posiciones se asignan por orden. Si "premio" o "puntos" quedan vacíos, se asume 0. Las columnas no reconocidas son ignoradas.
                 </p>
               </div>
 
-              <a
+   <a           
                 href="/blog/como-crear-csv-resultados"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -500,7 +499,6 @@ export function ResultsUpload({
               </a>
             </div>
 
-            {/* File input */}
             <input ref={fileRef} type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />
             <Button variant="accent" size="md" onClick={() => fileRef.current?.click()}>
               <Upload size={14} /> Seleccionar archivo CSV
@@ -529,12 +527,9 @@ export function ResultsUpload({
           </div>
         )}
 
-        {/* ════════════════════════════════════════════════════════
-            STEP 2: Preview & edit imported data
-            ════════════════════════════════════════════════════════ */}
+        {/* STEP 2: Preview & edit */}
         {imported && rows.length > 0 && (
           <>
-            {/* Detected columns feedback */}
             {detectedCols.length > 0 && csvErrors.filter((e) => e.row === 0).length === 0 && (
               <div className="flex items-center gap-2 flex-wrap text-sk-xs text-sk-green">
                 <CheckCircle2 size={12} />
@@ -549,7 +544,6 @@ export function ResultsUpload({
               Revisa los datos importados. Puedes editar cualquier celda antes de subir. Si un nickname no existe, se creará automáticamente con ELO 1200.
             </p>
 
-            {/* Results table */}
             <div className="border border-sk-border-2 rounded-md overflow-x-auto">
               <table className="w-full text-sk-xs">
                 <thead>
@@ -558,7 +552,10 @@ export function ResultsUpload({
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left">Nickname</th>
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-24">Premio</th>
                     {hasLeague && (
-                      <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-purple py-2 px-2 text-left w-20">Puntos</th>
+                      <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-purple py-2 px-2 text-left w-20">
+                        Puntos
+                        <span className="ml-1 text-sk-text-4 normal-case font-normal">(vacío=0)</span>
+                      </th>
                     )}
                     <th className="bg-sk-bg-3 w-8 py-2 px-2"></th>
                   </tr>
@@ -593,8 +590,8 @@ export function ResultsUpload({
                         <td className="py-2 px-2">
                           <input
                             type="number"
-                            value={row.leaguePoints || ""}
-                            onChange={(e) => updateRow(i, "leaguePoints", Number(e.target.value))}
+                            value={row.leaguePoints === 0 ? "0" : row.leaguePoints || ""}
+                            onChange={(e) => updateRow(i, "leaguePoints", e.target.value === "" ? 0 : Number(e.target.value))}
                             placeholder="0" min={0}
                             className="w-full bg-sk-bg-0 border border-sk-purple/30 rounded-md py-1.5 px-2 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-purple"
                           />
@@ -620,7 +617,6 @@ export function ResultsUpload({
               </Button>
             </div>
 
-            {/* Status indicators */}
             {rows.some((r) => r.status !== "pending") && (
               <div className="flex gap-3 text-[10px]">
                 <span className="flex items-center gap-1 text-sk-green">✓ Encontrado</span>
