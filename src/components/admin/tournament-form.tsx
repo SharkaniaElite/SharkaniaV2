@@ -11,9 +11,32 @@ interface TournamentFormProps {
   onClose: () => void;
   onSaved: () => void;
   clubId: string;
-  tournament?: Tournament | null; // null = create, object = edit
+  tournament?: Tournament | null;
   leagueOptions?: Array<{ id: string; name: string }>;
 }
+
+// Monedas disponibles: globales + todas las latinoamericanas relevantes
+const CURRENCIES = [
+  { value: "USD", label: "USD — Dólar estadounidense" },
+  { value: "EUR", label: "EUR — Euro" },
+  { value: "ARS", label: "ARS — Peso argentino" },
+  { value: "BOB", label: "BOB — Boliviano" },
+  { value: "BRL", label: "BRL — Real brasileño" },
+  { value: "CLP", label: "CLP — Peso chileno" },
+  { value: "COP", label: "COP — Peso colombiano" },
+  { value: "CRC", label: "CRC — Colón costarricense" },
+  { value: "CUP", label: "CUP — Peso cubano" },
+  { value: "DOP", label: "DOP — Peso dominicano" },
+  { value: "GTQ", label: "GTQ — Quetzal guatemalteco" },
+  { value: "HNL", label: "HNL — Lempira hondureño" },
+  { value: "MXN", label: "MXN — Peso mexicano" },
+  { value: "NIO", label: "NIO — Córdoba nicaragüense" },
+  { value: "PAB", label: "PAB — Balboa panameño" },
+  { value: "PEN", label: "PEN — Sol peruano" },
+  { value: "PYG", label: "PYG — Guaraní paraguayo" },
+  { value: "UYU", label: "UYU — Peso uruguayo" },
+  { value: "VES", label: "VES — Bolívar venezolano" },
+] as const;
 
 export function TournamentForm({
   isOpen,
@@ -169,9 +192,9 @@ export function TournamentForm({
           <div>
             <label className={labelClass}>Moneda</label>
             <select value={form.currency} onChange={(e) => update("currency", e.target.value)} className={inputClass}>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="BRL">BRL</option>
+              {CURRENCIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
             </select>
           </div>
         </div>
