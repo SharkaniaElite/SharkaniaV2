@@ -13,16 +13,17 @@ import { Save, AlertTriangle, Trash2, Plus, RotateCcw } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
 
 interface EditableRow {
-  id: string; // tournament_result id
+  id: string;
   position: number;
   nickname: string;
   playerId: string;
   prizeWon: number;
-  leaguePoints: number;
+  // null = celda vacía (el usuario no ingresó nada), number = valor explícito (incluyendo 0)
+  leaguePoints: number | null;
   eloChange: number | null;
   countryCode: string | null;
-  isNew: boolean; // true if added by user (not from DB)
-  isDirty: boolean; // true if any field changed
+  isNew: boolean;
+  isDirty: boolean;
   originalNickname: string;
   originalPrize: number;
   originalPoints: number;
@@ -35,7 +36,6 @@ interface ResultsEditorProps {
   onComplete: () => void;
 }
 
-// Resolve nickname to player ID (find or create)
 async function resolvePlayer(
   nickname: string,
   roomId: string,
@@ -80,7 +80,6 @@ export function ResultsEditor({
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Load existing results
   useEffect(() => {
     if (!isOpen) return;
     setLoading(true);
@@ -94,7 +93,8 @@ export function ResultsEditor({
         nickname: r.players?.nickname ?? "",
         playerId: r.player_id,
         prizeWon: Number(r.prize_won) || 0,
-        leaguePoints: Number(r.league_points_earned) || 0,
+        // Registros existentes en BD siempre tienen número (puede ser 0)
+        leaguePoints: Number(r.league_points_earned) ?? 0,
         eloChange: r.elo_change ? Number(r.elo_change) : null,
         countryCode: r.players?.country_code ?? null,
         isNew: false,
@@ -111,14 +111,13 @@ export function ResultsEditor({
     });
   }, [isOpen, tournament.id]);
 
-  const updateRow = (index: number, field: string, value: string | number) => {
+  const updateRow = (index: number, field: string, value: string | number | null) => {
     const newRows = [...rows];
     const row = newRows[index];
     if (!row) return;
 
     const updated = { ...row, [field]: value };
 
-    // Mark as dirty if anything changed from original
     if (!row.isNew) {
       updated.isDirty =
         updated.nickname !== row.originalNickname ||
@@ -133,6 +132,17 @@ export function ResultsEditor({
     setHasChanges(newRows.some((r) => r.isDirty || r.isNew));
   };
 
+  // Maneja el cambio del input de puntos de liga:
+  // - Si el campo queda vacío → null (para mostrar placeholder)
+  // - Si tiene valor → number (0 es válido)
+  const updateLeaguePoints = (index: number, raw: string) => {
+    if (raw === "") {
+      updateRow(index, "leaguePoints", null);
+    } else {
+      updateRow(index, "leaguePoints", Number(raw));
+    }
+  };
+
   const addRow = () => {
     const newPos = rows.length + 1;
     setRows([...rows, {
@@ -141,7 +151,7 @@ export function ResultsEditor({
       nickname: "",
       playerId: "",
       prizeWon: 0,
-      leaguePoints: 0,
+      leaguePoints: null, // vacío por defecto — el usuario debe ingresar o dejar en blanco (= 0)
       eloChange: null,
       countryCode: null,
       isNew: true,
@@ -160,7 +170,6 @@ export function ResultsEditor({
   };
 
   const handleSave = async () => {
-    // Validate
     const errors: string[] = [];
 
     const emptyNicks = rows.filter((r) => !r.nickname.trim());
@@ -169,29 +178,35 @@ export function ResultsEditor({
     }
 
     const dupeNicks = rows.filter(
-      (r, i, arr) => r.nickname.trim() && arr.findIndex((a) => a.nickname.toLowerCase().trim() === r.nickname.toLowerCase().trim()) !== i
+      (r, i, arr) =>
+        r.nickname.trim() &&
+        arr.findIndex((a) => a.nickname.toLowerCase().trim() === r.nickname.toLowerCase().trim()) !== i
     );
     if (dupeNicks.length > 0) {
       errors.push(`Nicknames duplicados: ${[...new Set(dupeNicks.map((r) => r.nickname))].join(", ")}`);
     }
 
-    if (hasLeague) {
-      const missingPts = rows.filter((r) => r.leaguePoints === 0 && r.nickname.trim());
-      if (missingPts.length > 0) {
-        errors.push(`${missingPts.length} jugador(es) sin puntos de liga (obligatorio)`);
-      }
-    }
+    // ── CAMBIO CLAVE ──
+    // Ya NO validamos que leaguePoints === 0 como error.
+    // Solo validamos que no sea null (celda realmente vacía).
+    // Si es null al guardar, lo tratamos como 0 automáticamente.
+    // No hay error — simplemente se normaliza.
 
     if (errors.length > 0) {
       setMessage({ text: errors.join("\n"), type: "error" });
       return;
     }
 
+    // Normalizar: null → 0 antes de guardar
+    const normalizedRows = rows.map((r) => ({
+      ...r,
+      leaguePoints: r.leaguePoints ?? 0,
+    }));
+
     setSaving(true);
     setMessage({ text: "Paso 1/4: Revirtiendo ELO anterior...", type: "info" });
 
     try {
-      // STEP 1: Reverse existing ELO
       const reverseResult = await reverseElo(tournament.id);
       if (!reverseResult.success) {
         setMessage({ text: `Error revirtiendo ELO: ${reverseResult.message}`, type: "error" });
@@ -199,7 +214,6 @@ export function ResultsEditor({
         return;
       }
 
-      // STEP 2: Delete old results
       setMessage({ text: "Paso 2/4: Eliminando resultados anteriores...", type: "info" });
       const { error: deleteErr } = await supabase
         .from("tournament_results")
@@ -212,44 +226,29 @@ export function ResultsEditor({
         return;
       }
 
-      // STEP 3: Resolve players and insert new results
-      setMessage({ text: "Paso 3/4: Resolviendo jugadores y subiendo resultados...", type: "info" });
+      setMessage({ text: "Paso 3/4: Resolviendo jugadores e insertando resultados...", type: "info" });
 
-      const inserts: Array<{
-        tournament_id: string;
-        player_id: string;
-        position: number;
-        prize_won: number;
-        bounties_won: number;
-        league_points_earned: number;
-      }> = [];
-
-      for (const row of rows) {
-        let playerId = row.playerId;
-
-        // If nickname changed or is new, resolve the player
-        if (row.isNew || row.nickname.trim().toLowerCase() !== row.originalNickname.trim().toLowerCase()) {
-          const resolved = await resolvePlayer(
-            row.nickname,
-            tournament.room_id,
-            tournament.clubs?.country_code ?? null
-          );
-          playerId = resolved.id;
-        }
-
-        inserts.push({
-          tournament_id: tournament.id,
-          player_id: playerId,
-          position: row.position,
-          prize_won: row.prizeWon,
-          bounties_won: 0,
-          league_points_earned: row.leaguePoints,
-        });
-      }
+      const insertData = await Promise.all(
+        normalizedRows.map(async (row) => {
+          let playerId = row.playerId;
+          if (row.isNew || !playerId) {
+            const resolved = await resolvePlayer(row.nickname, tournament.room_id, row.countryCode);
+            playerId = resolved.id;
+          }
+          return {
+            tournament_id: tournament.id,
+            player_id: playerId,
+            position: row.position,
+            prize_won: row.prizeWon,
+            league_points_earned: row.leaguePoints,
+            bounties_won: 0,
+          };
+        })
+      );
 
       const { error: insertErr } = await supabase
         .from("tournament_results")
-        .insert(inserts);
+        .insert(insertData);
 
       if (insertErr) {
         setMessage({ text: `Error insertando resultados: ${insertErr.message}`, type: "error" });
@@ -257,19 +256,36 @@ export function ResultsEditor({
         return;
       }
 
-      // STEP 4: Recalculate ELO
-      setMessage({ text: "Paso 4/4: Recalculando ELO...", type: "info" });
-      const eloResult = await calculateElo(tournament.id);
-
-      if (eloResult.success) {
-        setMessage({ text: `✅ Resultados actualizados y ELO recalculado para ${rows.length} jugadores.`, type: "success" });
-        setTimeout(() => {
-          onComplete();
-          onClose();
-        }, 2000);
-      } else {
-        setMessage({ text: `⚠️ Resultados guardados pero ELO falló: ${eloResult.message}`, type: "error" });
+      setMessage({ text: "Paso 4/4: Calculando nuevo ELO...", type: "info" });
+      const calcResult = await calculateElo(tournament.id);
+      if (!calcResult.success) {
+        setMessage({ text: `Error calculando ELO: ${calcResult.message}`, type: "error" });
+        setSaving(false);
+        return;
       }
+
+      setMessage({ text: `✅ Resultados guardados. ELO recalculado para ${calcResult.playersUpdated ?? normalizedRows.length} jugadores.`, type: "success" });
+      setHasChanges(false);
+
+      // Recargar rows con ELO actualizado
+      const fresh = await getTournamentResults(tournament.id);
+      const refreshed: EditableRow[] = fresh.map((r: any) => ({
+        id: r.id,
+        position: r.position,
+        nickname: r.players?.nickname ?? "",
+        playerId: r.player_id,
+        prizeWon: Number(r.prize_won) || 0,
+        leaguePoints: Number(r.league_points_earned) ?? 0,
+        eloChange: r.elo_change ? Number(r.elo_change) : null,
+        countryCode: r.players?.country_code ?? null,
+        isNew: false,
+        isDirty: false,
+        originalNickname: r.players?.nickname ?? "",
+        originalPrize: Number(r.prize_won) || 0,
+        originalPoints: Number(r.league_points_earned) || 0,
+      }));
+      setRows(refreshed.sort((a, b) => a.position - b.position));
+      onComplete();
     } catch (err) {
       setMessage({ text: `Error: ${err instanceof Error ? err.message : "Error inesperado"}`, type: "error" });
     } finally {
@@ -306,7 +322,6 @@ export function ResultsEditor({
           <div className="flex justify-center py-12"><Spinner size="lg" /></div>
         ) : (
           <>
-            {/* Results table */}
             <div className="border border-sk-border-2 rounded-md overflow-x-auto">
               <table className="w-full text-sk-xs">
                 <thead>
@@ -315,7 +330,10 @@ export function ResultsEditor({
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left">Nickname</th>
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-24">Premio</th>
                     {hasLeague && (
-                      <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-purple py-2 px-2 text-left w-20">Puntos</th>
+                      <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-purple py-2 px-2 text-left w-20">
+                        Puntos
+                        <span className="ml-1 text-sk-text-4 normal-case font-normal">(vacío=0)</span>
+                      </th>
                     )}
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-right w-20">ΔELO</th>
                     <th className="bg-sk-bg-3 w-8 py-2 px-2"></th>
@@ -331,12 +349,10 @@ export function ResultsEditor({
                         row.isNew && "bg-sk-gold-dim/20",
                       )}
                     >
-                      {/* Position */}
                       <td className="py-2 px-2 font-mono font-bold text-sk-text-1">
                         {row.position}°
                       </td>
 
-                      {/* Nickname (editable) */}
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-1.5">
                           {row.countryCode && !row.isNew && (
@@ -360,7 +376,6 @@ export function ResultsEditor({
                         </div>
                       </td>
 
-                      {/* Prize (editable) */}
                       <td className="py-2 px-2">
                         <input
                           type="number"
@@ -377,13 +392,13 @@ export function ResultsEditor({
                         />
                       </td>
 
-                      {/* League Points (editable, only for league tournaments) */}
                       {hasLeague && (
                         <td className="py-2 px-2">
                           <input
                             type="number"
-                            value={row.leaguePoints || ""}
-                            onChange={(e) => updateRow(i, "leaguePoints", Number(e.target.value))}
+                            // null muestra vacío, 0 muestra "0"
+                            value={row.leaguePoints === null ? "" : row.leaguePoints}
+                            onChange={(e) => updateLeaguePoints(i, e.target.value)}
                             placeholder="0"
                             min={0}
                             className={cn(
@@ -396,7 +411,6 @@ export function ResultsEditor({
                         </td>
                       )}
 
-                      {/* ELO change (read-only) */}
                       <td className="py-2 px-2 text-right">
                         {row.eloChange !== null && !row.isDirty ? (
                           <span className={cn(
@@ -412,7 +426,6 @@ export function ResultsEditor({
                         )}
                       </td>
 
-                      {/* Delete */}
                       <td className="py-2 px-2">
                         {rows.length > 2 && (
                           <button
@@ -429,12 +442,10 @@ export function ResultsEditor({
               </table>
             </div>
 
-            {/* Add row */}
             <Button variant="ghost" size="sm" onClick={addRow}>
               <Plus size={14} /> Agregar jugador
             </Button>
 
-            {/* Warning */}
             {hasChanges && (
               <div className="flex items-start gap-2 px-3 py-2.5 bg-sk-orange-dim border border-sk-orange/20 rounded-md">
                 <AlertTriangle size={14} className="text-sk-orange mt-0.5 shrink-0" />
@@ -446,7 +457,6 @@ export function ResultsEditor({
           </>
         )}
 
-        {/* Message */}
         {message && (
           <div className={cn(
             "rounded-md p-3 text-sk-sm whitespace-pre-line",
@@ -458,7 +468,6 @@ export function ResultsEditor({
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" size="sm" onClick={onClose}>
             Cerrar
