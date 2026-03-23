@@ -223,22 +223,12 @@ export default function BlogPostPage() {
             </div>
           )}
 
-          {/* Layout: artículo + sidebar */}
+          {/* Layout: artículo — columna única */}
           <style>{`
             .blog-grid {
-              display: grid;
-              grid-template-columns: 1fr;
-              gap: 0;
-              max-width: 1100px;
+              max-width: 760px;
               margin: 0 auto;
               padding: 0 1.5rem;
-              align-items: start;
-            }
-            @media (min-width: 1024px) {
-              .blog-grid {
-                grid-template-columns: 1fr 300px;
-                gap: 3rem;
-              }
             }
           `}</style>
 
@@ -333,12 +323,6 @@ export default function BlogPostPage() {
               </div>
             </div>
 
-            {/* Sidebar sticky — slot "sidebar" */}
-            <div style={{ paddingTop: "4.5rem" }}>
-              <div style={{ position: "sticky", top: "100px" }}>
-                <WptBanner slot="sidebar" />
-              </div>
-            </div>
           </div>
         </>
       )}

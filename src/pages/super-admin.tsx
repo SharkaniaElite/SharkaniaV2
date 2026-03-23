@@ -43,12 +43,6 @@ const SLOT_INFO = {
     desktop: { size: "870×200 px", label: "Wide banner", hint: "Zona de alta intención: el lector terminó el artículo." },
     mobile:  { size: "870×200 px", label: "Wide banner", hint: "Mismo banner en móvil al final del artículo." },
   },
-  sidebar: {
-    title: "Banner Sidebar (Sticky)",
-    description: "Columna derecha en desktop. Flota mientras el lector scrollea. No aparece en móvil.",
-    desktop: { size: "300×250 px", label: "Medium Rectangle", hint: "El formato de mejor CTR en sidebar. Solo visible en pantallas ≥1024px." },
-    mobile:  null,
-  },
 } as const;
 
 type SlotKey = keyof typeof SLOT_INFO;
@@ -813,7 +807,7 @@ export function SuperAdminPage() {
                     </div>
                   </div>
 
-                  {/* Slots */}
+                  {/* Slots mid y final */}
                   {(Object.keys(SLOT_INFO) as SlotKey[]).map((slotKey) => (
                     <BannerSlotEditor
                       key={slotKey}
@@ -825,6 +819,99 @@ export function SuperAdminPage() {
                       })}
                     />
                   ))}
+
+                  {/* ── FloatingCTA editor ── */}
+                  <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl overflow-hidden">
+                    <div className="px-6 py-4 border-b border-sk-border-2 bg-sk-bg-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-base">🎯</span>
+                        <h3 className="text-sk-md font-bold text-sk-text-1">Banner Flotante (Popup)</h3>
+                      </div>
+                      <p className="text-sk-xs text-sk-text-3">
+                        Aparece automáticamente después de un delay. Visible en todas las páginas. Se expande al pasar el cursor mostrando la imagen completa.
+                      </p>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      {/* Toggle activo */}
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setBannersConfig({
+                            ...bannersConfig,
+                            floatingCta: { ...((bannersConfig as any).floatingCta ?? {}), active: !((bannersConfig as any).floatingCta?.active ?? true) },
+                          })}
+                          className={cn(
+                            "w-10 h-5 rounded-full transition-colors relative",
+                            (bannersConfig as any).floatingCta?.active !== false ? "bg-sk-accent" : "bg-sk-bg-4"
+                          )}
+                        >
+                          <span className={cn(
+                            "absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform",
+                            (bannersConfig as any).floatingCta?.active !== false ? "translate-x-5" : "translate-x-0.5"
+                          )} />
+                        </button>
+                        <span className="text-sk-sm text-sk-text-2">
+                          {(bannersConfig as any).floatingCta?.active !== false ? "Activo" : "Desactivado"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[
+                          { key: "title", label: "Título (texto pequeño)", placeholder: "$10,000 gratis cada semana en WPT Global" },
+                          { key: "description", label: "Descripción (texto gris)", placeholder: "Deposita $30 y juega los Elite Freerolls..." },
+                          { key: "image", label: "URL de imagen (al expandirse)", placeholder: "https://..." },
+                          { key: "link", label: "URL de destino (al hacer clic)", placeholder: "https://tracking.wptpartners.com/..." },
+                        ].map((f) => (
+                          <div key={f.key}>
+                            <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">{f.label}</label>
+                            <input
+                              type="text"
+                              value={(bannersConfig as any).floatingCta?.[f.key] ?? ""}
+                              onChange={(e) => setBannersConfig({
+                                ...bannersConfig,
+                                floatingCta: { ...((bannersConfig as any).floatingCta ?? {}), [f.key]: e.target.value },
+                              } as any)}
+                              placeholder={f.placeholder}
+                              className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 focus:outline-none focus:border-sk-accent font-mono"
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">Delay (ms) — tiempo antes de aparecer</label>
+                          <input
+                            type="number"
+                            value={(bannersConfig as any).floatingCta?.delay ?? 6000}
+                            onChange={(e) => setBannersConfig({
+                              ...bannersConfig,
+                              floatingCta: { ...((bannersConfig as any).floatingCta ?? {}), delay: Number(e.target.value) },
+                            } as any)}
+                            min={0}
+                            step={1000}
+                            className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
+                          />
+                          <p className="text-[10px] text-sk-text-4 mt-1">6000 = 6 segundos</p>
+                        </div>
+                        <div>
+                          <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">Scroll Trigger (0–1) — en página Ranking</label>
+                          <input
+                            type="number"
+                            value={(bannersConfig as any).floatingCta?.scrollTrigger ?? 0.35}
+                            onChange={(e) => setBannersConfig({
+                              ...bannersConfig,
+                              floatingCta: { ...((bannersConfig as any).floatingCta ?? {}), scrollTrigger: Number(e.target.value) },
+                            } as any)}
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
+                          />
+                          <p className="text-[10px] text-sk-text-4 mt-1">0.35 = aparece al 35% del scroll</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Botón guardar al fondo */}
                   <div className="flex justify-end pt-4 border-t border-sk-border-2">
