@@ -6,14 +6,25 @@ import { Chip } from "../components/ui/chip";
 import { Spinner } from "../components/ui/spinner";
 import { EmptyState } from "../components/ui/empty-state";
 import { useLeagues } from "../hooks/use-leagues";
-import { getFlag } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { SEOHead } from "../components/seo/seo-head";
 
+// 1. Mantenemos el mapeo de etiquetas y colores
 const statusBadge = {
   upcoming: { label: "Próxima", variant: "accent" as const },
   active: { label: "Activa", variant: "green" as const },
   finished: { label: "Finalizada", variant: "muted" as const },
+};
+
+// 2. Agregamos la función de ayuda para calcular el estado real
+const getLeagueStatus = (startDate: string | null | undefined, endDate: string | null | undefined): "upcoming" | "active" | "finished" => {
+  if (!startDate || !endDate) return "upcoming";
+  const now = new Date();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (now < start) return "upcoming";
+  if (now > end) return "finished";
+  return "active";
 };
 
 export function LeaguesPage() {
@@ -21,11 +32,11 @@ export function LeaguesPage() {
 
   return (
     <PageShell>
-    <SEOHead
-  title="Ligas de Poker"
-  description="Ligas organizadas con tabla de posiciones, puntos y premios. Compite en temporadas de poker competitivo."
-  path="/leagues"
-/>
+      <SEOHead
+        title="Ligas de Poker"
+        description="Ligas organizadas con tabla de posiciones, puntos y premios. Compite en temporadas de poker competitivo."
+        path="/leagues"
+      />
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-8">
@@ -49,10 +60,16 @@ export function LeaguesPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {(leagues ?? []).map((league) => {
-                const status = statusBadge[league.status];
+                // --- CAMBIO AQUÍ: Calculamos el estado dinámico ---
+                const currentStatus = getLeagueStatus(league.start_date, league.end_date);
+                const status = statusBadge[currentStatus];
+                
+                // También actualizamos el color del borde según el estado real
+                const borderColor = currentStatus === "active" ? "border-t-sk-gold" : "border-t-sk-accent";
+                // --------------------------------------------------
+
                 const primaryClub = league.league_clubs?.find((lc) => lc.is_primary);
                 const rooms = league.league_rooms?.map((lr) => lr.poker_rooms?.name).filter(Boolean) ?? [];
-                const borderColor = league.status === "active" ? "border-t-sk-gold" : "border-t-sk-accent";
 
                 return (
                   <Link

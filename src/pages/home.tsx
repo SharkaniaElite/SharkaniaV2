@@ -1,5 +1,5 @@
 // src/pages/home.tsx
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
@@ -22,6 +22,23 @@ import type { PlayerWithRoom, ClubWithRooms, TournamentWithDetails } from "../ty
 import { SEOHead } from "../components/seo/seo-head";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// FUNCIÓN AGREGADA PARA CALCULAR EL ESTADO REAL
+const getLeagueStatus = (startDate: string | null | undefined, endDate: string | null | undefined): "upcoming" | "active" | "finished" => {
+  if (!startDate || !endDate) return "upcoming";
+  const now = new Date();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (now < start) return "upcoming";
+  if (now > end) return "finished";
+  return "active";
+};
+
+const statusBadge = {
+  upcoming: { label: "Próxima", variant: "accent" as const },
+  active: { label: "Activa", variant: "green" as const },
+  finished: { label: "Finalizada", variant: "muted" as const },
+};
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -130,15 +147,10 @@ export function HomePage() {
   useEffect(() => {
     getUpcomingTournaments()
       .then(d => {
-        // ── FILTRO: solo torneos NO completados y NO cancelados ──
-        // Además, para "scheduled", solo mostrar los que aún no pasaron
         const now = new Date();
         const filtered = d.filter(t => {
-          // Siempre mostrar torneos en vivo o en late registration
           if (t.status === "live" || t.status === "late_registration") return true;
-          // Excluir completados y cancelados
           if (t.status === "completed" || t.status === "cancelled") return false;
-          // Para scheduled: solo si la fecha de inicio es futura
           if (t.status === "scheduled") {
             return new Date(t.start_datetime) > now;
           }
@@ -157,16 +169,28 @@ export function HomePage() {
       .finally(() => setLoadingClubs(false));
   }, []);
 
-  useEffect(() => {
-    supabase
-      supabase
-      .from("leagues")
-      .select("*, league_clubs(is_primary, clubs(id,name,country_code)), league_rooms(poker_rooms(id,name))")
-      .in("status", ["active","upcoming","finished"])
-      .order("start_date", { ascending:false })
-      .limit(20)
-      .then(({ data }) => { if (data) setLeagues(shuffle(data).slice(0,2)); })
-      .finally(() => setLoadingLeagues(false));
+ useEffect(() => {
+    // Creamos una función interna asíncrona
+    const fetchLeagues = async () => {
+      try {
+        const { data } = await supabase
+          .from("leagues")
+          .select("*, league_clubs(is_primary, clubs(id,name,country_code)), league_rooms(poker_rooms(id,name))")
+          .in("status", ["active", "upcoming", "finished"])
+          .order("start_date", { ascending: false })
+          .limit(20);
+
+        if (data) {
+          setLeagues(shuffle(data).slice(0, 2));
+        }
+      } catch (error) {
+        console.error("Error cargando ligas:", error);
+      } {
+        setLoadingLeagues(false);
+      }
+    };
+
+    fetchLeagues();
   }, []);
 
   useEffect(() => {
@@ -308,7 +332,6 @@ export function HomePage() {
                               <tr key={p.id} className={cn("hover:bg-white/[0.015] transition-colors", rank===1&&"bg-[rgba(251,191,36,0.03)]", rank===2&&"bg-[rgba(203,213,225,0.02)]", rank===3&&"bg-[rgba(217,119,6,0.02)]")}>
                                 <td className="py-3 px-4 border-b border-sk-border-2"><RankBadge rank={rank} /></td>
                                 <td className="py-3 px-4 border-b border-sk-border-2">
-                                  {/* ── CAMBIO: nickname ahora es un link al perfil ── */}
                                   <Link to={`/ranking/${p.id}`} className="flex items-center gap-2 min-w-0 group">
                                     <div className="w-7 h-7 rounded-full bg-sk-bg-4 border border-sk-border-2 flex items-center justify-center text-[11px] font-bold text-sk-text-3 shrink-0 group-hover:border-sk-accent/40 transition-colors">
                                       {cleanName(p.nickname).charAt(0).toUpperCase()}
@@ -358,7 +381,6 @@ export function HomePage() {
                               <div className="flex justify-between items-center mb-1">
                                 <span className="font-semibold text-sk-text-1 text-sk-sm flex items-center gap-2 min-w-0">
                                   <span className="truncate">{cleanName(t.name)}</span>
-                                  {/* ── Info icon ── */}
                                   <button
                                     onClick={() => setSelectedTournament(t)}
                                     className="w-[18px] h-[18px] rounded-full bg-white/[0.04] text-sk-text-4 text-[11px] flex items-center justify-center hover:bg-sk-accent-dim hover:text-sk-accent transition-all shrink-0"
@@ -377,7 +399,6 @@ export function HomePage() {
                                   <span>Buy-in: <span className={cn("font-mono font-semibold", t.buy_in===0?"text-sk-green":"text-sk-text-1")}>{t.buy_in===0?"FREE":`$${t.buy_in}`}</span></span>
                                   <span>GTD: <span className="font-mono font-bold text-sk-gold">${(t.guaranteed_prize??0).toLocaleString("es")}</span></span>
                                 </div>
-                                {/* ── Fecha y hora de inicio ── */}
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   <span className="font-mono text-[11px] text-sk-text-1 font-medium">
                                     {format(startDate, "dd/MM")} · {format(startDate, "HH:mm")}
@@ -609,28 +630,34 @@ export function HomePage() {
                 ? [1,2].map(i => <div key={i} className="animate-sk-pulse bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 h-40" />)
                 : leagues.length === 0
                   ? <div className="col-span-2 text-center py-12 text-sk-sm text-sk-text-3">No hay ligas activas por el momento.</div>
-                  : leagues.map((lg, i) => {
+                  : leagues.map((lg) => {
+                    // --- CAMBIOS PARA CALCULAR EL ESTADO REAL ---
+                    const currentStatus = getLeagueStatus(lg.start_date, lg.end_date);
+                    const status = statusBadge[currentStatus];
+                    const borderColor = currentStatus === "active" ? "border-t-sk-gold" : "border-t-sk-purple";
+                    // --------------------------------------------
+
                     const isDemo = lg.is_demo;
                     const primaryClub = lg.league_clubs?.find((lc:any) => lc.is_primary)?.clubs?.name;
                     const rooms = lg.league_rooms?.map((lr:any) => lr.poker_rooms?.name).filter(Boolean) ?? [];
                     return (
                       <Link key={lg.id} to={`/leagues/${lg.id}`} className={cn(
                         "bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 border-t-2 flex flex-col gap-4 cursor-pointer hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 transition-all duration-sk-base",
-                        i===0?"border-t-sk-gold":"border-t-sk-purple"
+                        borderColor
                       )}>
                         <div className="flex justify-between items-start">
                           <div className="min-w-0 flex-1 pr-4">
                             <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="text-sk-md font-bold text-sk-text-1 tracking-tight">
-                                {i===0?"🏆 ":"🌎 "}{cleanName(lg.name)}
+                                {currentStatus === "active" ? "🏆 " : "🌎 "}{cleanName(lg.name)}
                               </h3>
                               {isDemo && <DemoBadge />}
                             </div>
                             <div className="font-mono text-[11px] text-sk-text-2 mt-1">
-                              📅 {lg.start_date?.slice(0,7)} — {lg.end_date?.slice(0,7)}{primaryClub ? ` · ${cleanName(primaryClub)}` : ""}
+                              📅 {lg.start_date?.slice(0,10)} — {lg.end_date?.slice(0,10)}{primaryClub ? ` · ${cleanName(primaryClub)}` : ""}
                             </div>
                           </div>
-                          <Badge variant="green">{lg.status==="active"?"Activa":"Próxima"}</Badge>
+                          <Badge variant={status.variant}>{status.label}</Badge>
                         </div>
                         <div className="flex gap-2 flex-wrap">
                           {rooms.slice(0,3).map((r:string) => <Chip key={r}>{cleanName(r)}</Chip>)}
