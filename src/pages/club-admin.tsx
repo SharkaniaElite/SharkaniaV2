@@ -16,7 +16,7 @@ import { BulkDeleteBar } from "../components/admin/bulk-delete-bar";
 import { useAuthStore } from "../stores/auth-store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
-import { reverseElo } from "../lib/api/elo-engine";
+import { deleteTournamentSafe } from "../lib/api/tournaments";
 import { formatCurrency } from "../lib/format";
 import { cn } from "../lib/cn";
 import { Plus, Trash2, Pencil, Save, ChevronDown } from "lucide-react";
@@ -135,13 +135,24 @@ export function ClubAdminPage() {
 
   // ── Handlers ──
   const handleDeleteTournament = async (t: TournamentWithDetails) => {
-    if (!confirm(`¿Eliminar "${t.name}"?${t.results_uploaded ? " Se revertirá el ELO." : ""}`)) return;
-    setDeleting(t.id);
-    if (t.results_uploaded) await reverseElo(t.id);
-    await supabase.from("tournaments").delete().eq("id", t.id);
+  const warning = t.results_uploaded
+    ? "⚠️ Esto revertirá ELO y puntos de liga. Esta acción no se puede deshacer."
+    : "";
+
+  if (!confirm(`¿Eliminar "${t.name}"?\n${warning}`)) return;
+
+  setDeleting(t.id);
+
+  try {
+    await deleteTournamentSafe(t.id);
     refresh();
-    setDeleting(null);
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Error al eliminar torneo");
+  }
+
+  setDeleting(null);
+};
 
   const handleDeleteLeague = async (l: League) => {
     if (!confirm(`¿Eliminar liga "${l.name}"?`)) return;

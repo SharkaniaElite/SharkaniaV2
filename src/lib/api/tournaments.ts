@@ -1,4 +1,5 @@
 // src/lib/api/tournaments.ts
+import { reverseElo } from "./elo-engine";
 import { supabase } from "../supabase";
 import type {
   TournamentWithDetails,
@@ -157,4 +158,112 @@ export async function getTournamentResults(
 
   if (error) throw error;
   return (data as TournamentResultWithPlayer[]) ?? [];
+}
+
+export async function deleteTournamentSafe(tournamentId: string) {
+  console.log("🧨 DELETE START:", tournamentId);
+
+  try {
+    // 1. Obtener info del torneo
+    const { data: tournament, error: tError } = await supabase
+      .from("tournaments")
+      .select("league_id")
+      .eq("id", tournamentId)
+      .single();
+
+    if (tError) {
+      console.error("❌ Error obteniendo torneo:", tError);
+      throw tError;
+    }
+
+    console.log("📦 Tournament:", tournament);
+
+    // 2. Revertir ELO
+    console.log("↩️ Revirtiendo ELO...");
+    await reverseElo(tournamentId);
+
+    // 3. Revertir puntos de liga
+    if (tournament?.league_id) {
+      console.log("🏆 Revirtiendo puntos de liga...");
+      await reverseLeaguePoints(tournamentId, tournament.league_id);
+    }
+
+    // 4. Eliminar resultados
+    console.log("🗑️ Eliminando resultados...");
+    const { error: resultsError } = await supabase
+      .from("tournament_results")
+      .delete()
+      .eq("tournament_id", tournamentId);
+
+    if (resultsError) {
+      console.error("❌ Error eliminando resultados:", resultsError);
+      throw resultsError;
+    }
+
+    // 5. Eliminar torneo
+    console.log("💀 Eliminando torneo...");
+    const { error: tournamentError } = await supabase
+      .from("tournaments")
+      .delete()
+      .eq("id", tournamentId);
+
+    if (tournamentError) {
+      console.error("❌ Error eliminando torneo:", tournamentError);
+      throw tournamentError;
+    }
+
+    console.log("✅ DELETE COMPLETADO");
+  } catch (err) {
+    console.error("💥 DELETE FAILED:", err);
+    throw err;
+  }
+}
+async function reverseLeaguePoints(tournamentId: string, leagueId: string) {
+  // 1. Obtener resultados del torneo
+  const { data: results } = await supabase
+    .from("tournament_results")
+    .select("player_id, league_points_earned")
+    .eq("tournament_id", tournamentId);
+
+  if (!results) return;
+
+  for (const r of results) {
+    // 2. Obtener standing actual
+    const { data: standing } = await supabase
+      .from("league_standings")
+      .select("id, total_points, tournaments_played")
+      .eq("league_id", leagueId)
+      .eq("player_id", r.player_id)
+      .single();
+
+    if (!standing) continue;
+
+    // 3. Restar puntos
+    const newPoints =
+      Number(standing.total_points) - Number(r.league_points_earned || 0);
+
+    await supabase
+      .from("league_standings")
+      .update({
+        total_points: Math.max(0, newPoints),
+        tournaments_played: Math.max(0, standing.tournaments_played - 1),
+      })
+      .eq("id", standing.id);
+  }
+
+  // 4. Reordenar ranking
+  const { data: standings } = await supabase
+    .from("league_standings")
+    .select("id, total_points")
+    .eq("league_id", leagueId)
+    .order("total_points", { ascending: false });
+
+  if (standings) {
+    for (let i = 0; i < standings.length; i++) {
+      await supabase
+        .from("league_standings")
+        .update({ rank_position: i + 1 })
+        .eq("id", standings[i].id);
+    }
+  }
 }
