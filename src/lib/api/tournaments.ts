@@ -267,3 +267,66 @@ async function reverseLeaguePoints(tournamentId: string, leagueId: string) {
     }
   }
 }
+
+async function applyLeaguePoints(tournamentId: string, leagueId: string) {
+  console.log("🏆 Aplicando puntos de liga...");
+
+  // 1. Obtener resultados
+  const { data: results, error } = await supabase
+    .from("tournament_results")
+    .select("player_id, league_points_earned")
+    .eq("tournament_id", tournamentId);
+
+  if (error) throw error;
+  if (!results) return;
+
+  for (const r of results) {
+    // 2. Buscar si ya existe en standings
+    const { data: existing } = await supabase
+      .from("league_standings")
+      .select("id, total_points, tournaments_played")
+      .eq("league_id", leagueId)
+      .eq("player_id", r.player_id)
+      .maybeSingle();
+
+    if (existing) {
+      // 3A. UPDATE
+      await supabase
+        .from("league_standings")
+        .update({
+          total_points:
+            Number(existing.total_points) +
+            Number(r.league_points_earned || 0),
+          tournaments_played: existing.tournaments_played + 1,
+        })
+        .eq("id", existing.id);
+    } else {
+      // 3B. INSERT
+      await supabase.from("league_standings").insert({
+        league_id: leagueId,
+        player_id: r.player_id,
+        total_points: Number(r.league_points_earned || 0),
+        tournaments_played: 1,
+        rank_position: 0,
+      });
+    }
+  }
+
+  // 4. Recalcular ranking
+  const { data: standings } = await supabase
+    .from("league_standings")
+    .select("id, total_points")
+    .eq("league_id", leagueId)
+    .order("total_points", { ascending: false });
+
+  if (standings) {
+    for (let i = 0; i < standings.length; i++) {
+      await supabase
+        .from("league_standings")
+        .update({ rank_position: i + 1 })
+        .eq("id", standings[i].id);
+    }
+  }
+
+  console.log("✅ Puntos de liga aplicados");
+}
