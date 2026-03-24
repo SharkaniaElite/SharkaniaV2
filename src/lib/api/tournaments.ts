@@ -312,21 +312,41 @@ export async function applyLeaguePoints(tournamentId: string, leagueId: string) 
     }
   }
 
-  // 4. Recalcular ranking
-  const { data: standings } = await supabase
-    .from("league_standings")
-    .select("id, total_points")
-    .eq("league_id", leagueId)
-    .order("total_points", { ascending: false });
+  // 4. Recalcular ranking + best_position
+const { data: standings } = await supabase
+  .from("league_standings")
+  .select("id, player_id, total_points")
+  .eq("league_id", leagueId)
+  .order("total_points", { ascending: false });
 
-  if (standings) {
-    for (let i = 0; i < standings.length; i++) {
-      await supabase
-        .from("league_standings")
-        .update({ rank_position: i + 1 })
-        .eq("id", standings[i].id);
-    }
+if (standings) {
+  for (let i = 0; i < standings.length; i++) {
+    
+    // 🔥 calcular mejor posición real desde resultados
+    const { data: bestResult } = await supabase
+      .from("tournament_results")
+      .select("position")
+      .eq("player_id", standings[i].player_id)
+      .in(
+        "tournament_id",
+        (
+          await supabase
+            .from("tournaments")
+            .select("id")
+            .eq("league_id", leagueId)
+        ).data?.map(t => t.id) || []
+      )
+      .order("position", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    await supabase
+      .from("league_standings")
+      .update({
+        rank_position: i + 1,
+        best_position: bestResult?.position ?? null,
+      })
+      .eq("id", standings[i].id);
   }
-
-  console.log("✅ Puntos de liga aplicados");
+}
 }
