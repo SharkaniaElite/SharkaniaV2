@@ -12,7 +12,7 @@ import { Button } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
 import { useLeague, useLeagueStandings } from "../hooks/use-leagues";
 import { useTournamentsByLeague } from "../hooks/use-tournaments";
-import { getFlag } from "../lib/countries";
+import { } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { ArrowLeft } from "lucide-react";
 import type { TournamentWithDetails } from "../types";
@@ -27,11 +27,25 @@ const statusBadge = {
   finished: { label: "Finalizada", variant: "muted" as const },
 };
 
+// Esta función calcula el estado basado en el calendario real
+const getLeagueStatus = (startDate: string | null | undefined, endDate: string | null | undefined): "upcoming" | "active" | "finished" => {
+  // Si falta alguna fecha, por seguridad decimos que es próxima
+  if (!startDate || !endDate) return "upcoming";
+
+  const now = new Date();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (now < start) return "upcoming";
+  if (now > end) return "finished";
+  return "active";
+};
+
 export function LeagueDetailPage() {
   const { leagueId } = useParams<{ leagueId: string }>();
-  const { data: league, isLoading } = useLeague(leagueId);
+  const { data: league, isLoading } = useLeague(leagueId!);
   const { data: standings, isLoading: standingsLoading } = useLeagueStandings(leagueId);
-  const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByLeague(leagueId);
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByLeague(leagueId!);
   const [tab, setTab] = useState<Tab>("standings");
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
@@ -61,7 +75,9 @@ export function LeagueDetailPage() {
     );
   }
 
-  const status = statusBadge[league.status];
+  // Calculamos el estado dinámicamente usando las fechas de la liga
+  const currentStatus = getLeagueStatus(league.start_date, league.end_date);
+  const status = statusBadge[currentStatus];
   const clubs = league.league_clubs ?? [];
   const rooms = league.league_rooms?.map((lr) => lr.poker_rooms?.name).filter(Boolean) ?? [];
 
