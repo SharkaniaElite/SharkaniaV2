@@ -268,7 +268,7 @@ async function reverseLeaguePoints(tournamentId: string, leagueId: string) {
   }
 }
 
-async function applyLeaguePoints(tournamentId: string, leagueId: string) {
+export async function applyLeaguePoints(tournamentId: string, leagueId: string) {
   console.log("🏆 Aplicando puntos de liga...");
 
   // 1. Obtener resultados

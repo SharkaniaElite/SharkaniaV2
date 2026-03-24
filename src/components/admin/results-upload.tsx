@@ -17,6 +17,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
+import { applyLeaguePoints } from "../../lib/api/tournaments";
 
 // ── Types ──
 
@@ -392,18 +393,32 @@ export function ResultsUpload({
         return;
       }
 
-      setMessage({ text: "Calculando ELO...", type: "info" });
-      const eloResult = await calculateElo(tournament.id);
+      // Calcular ELO
+setMessage({ text: "Calculando ELO...", type: "info" });
+const eloResult = await calculateElo(tournament.id);
 
-      if (eloResult.success) {
-        setMessage({
-          text: `✅ ${eloResult.message}. ${createdCount > 0 ? `${createdCount} jugadores nuevos creados.` : ""}`,
-          type: "success",
-        });
-        setTimeout(() => { onComplete(); onClose(); }, 2500);
-      } else {
-        setMessage({ text: `⚠️ Resultados subidos pero ELO falló: ${eloResult.message}`, type: "error" });
-      }
+if (eloResult.success) {
+
+  // 🆕 APLICAR PUNTOS DE LIGA AUTOMÁTICAMENTE
+  if (tournament.league_id) {
+    setMessage({ text: "Aplicando puntos de liga...", type: "info" });
+
+    await applyLeaguePoints(tournament.id, tournament.league_id);
+  }
+
+  setMessage({
+    text: `✅ ${eloResult.message}. ${createdCount > 0 ? `${createdCount} jugadores nuevos creados.` : ""}`,
+    type: "success",
+  });
+
+  setTimeout(() => { onComplete(); onClose(); }, 2500);
+
+} else {
+  setMessage({
+    text: `⚠️ Resultados subidos pero ELO falló: ${eloResult.message}`,
+    type: "error",
+  });
+}
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Error inesperado";
       setMessage({ text: errorMsg, type: "error" });
