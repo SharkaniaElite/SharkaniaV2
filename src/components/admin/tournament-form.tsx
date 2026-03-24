@@ -6,6 +6,15 @@ import { supabase } from "../../lib/supabase";
 import { usePokerRooms } from "../../hooks/use-clubs";
 import type { Tournament } from "../../types";
 
+function toLocalDatetimeInputValue(dateString: string) {
+  const date = new Date(dateString);
+
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60000);
+
+  return localDate.toISOString().slice(0, 16);
+}
+
 interface TournamentFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -77,7 +86,7 @@ export function TournamentForm({
         buy_in: tournament.buy_in,
         currency: tournament.currency,
         guaranteed_prize: tournament.guaranteed_prize ?? 0,
-        start_datetime: tournament.start_datetime.slice(0, 16),
+        start_datetime: toLocalDatetimeInputValue(tournament.start_datetime),
         timezone: tournament.timezone,
         late_registration_minutes: tournament.late_registration_minutes ?? 30,
         max_players: tournament.max_players ?? 0,

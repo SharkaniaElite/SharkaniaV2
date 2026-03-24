@@ -341,46 +341,61 @@ async function calculateLeaguePoints(
   }
 
   // Assign points and update standings
-  for (const result of results) {
-    const points = pointsConfig[String(result.position)] ?? participationPoints;
+  // Obtener TODOS los resultados (incluye puntos del CSV)
+const { data: allResults } = await supabase
+  .from("tournament_results")
+  .select("player_id, position, league_points_earned")
+  .eq("tournament_id", tournamentId);
 
-    // Update tournament_results with league points
-    await supabase
-      .from("tournament_results")
-      .update({ league_points_earned: points })
-      .eq("tournament_id", tournamentId)
-      .eq("player_id", result.player_id);
+if (!allResults) return;
 
-    // Upsert league standings
-    const { data: existing } = await supabase
-      .from("league_standings")
-      .select("id, total_points, tournaments_played, best_position")
-      .eq("league_id", leagueId)
-      .eq("player_id", result.player_id)
-      .single();
+// Obtener standings existentes
+const { data: existingStandings } = await supabase
+  .from("league_standings")
+  .select("id, player_id, total_points, tournaments_played, best_position")
+  .eq("league_id", leagueId);
 
-    if (existing) {
-      await supabase
-        .from("league_standings")
-        .update({
-          total_points: Number(existing.total_points) + points,
-          tournaments_played: existing.tournaments_played + 1,
-          best_position: existing.best_position
-            ? Math.min(existing.best_position, result.position)
-            : result.position,
-        })
-        .eq("id", existing.id);
-    } else {
-      await supabase.from("league_standings").insert({
-        league_id: leagueId,
-        player_id: result.player_id,
-        total_points: points,
-        tournaments_played: 1,
-        best_position: result.position,
-        rank_position: null,
-      });
-    }
+const standingsMap = new Map(
+  existingStandings?.map(s => [s.player_id, s])
+);
+
+// Preparar updates
+const upserts: any[] = [];
+
+for (const result of allResults) {
+  let points = Number(result.league_points_earned);
+
+  // ✅ fallback SOLO si NO viene del CSV
+  if (result.league_points_earned == null) {
+    points = pointsConfig[String(result.position)] ?? participationPoints;
   }
+
+  const existing = standingsMap.get(result.player_id);
+
+  if (existing) {
+    upserts.push({
+      id: existing.id,
+      league_id: leagueId,
+      player_id: result.player_id,
+      total_points: Number(existing.total_points) + points,
+      tournaments_played: existing.tournaments_played + 1,
+      best_position: existing.best_position
+        ? Math.min(existing.best_position, result.position)
+        : result.position,
+    });
+  } else {
+    upserts.push({
+      league_id: leagueId,
+      player_id: result.player_id,
+      total_points: points,
+      tournaments_played: 1,
+      best_position: result.position,
+    });
+  }
+}
+
+// Guardar todo en batch
+await supabase.from("league_standings").upsert(upserts);
 
   // Update rank positions
   const { data: standings } = await supabase
