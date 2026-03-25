@@ -10,9 +10,14 @@ const FOOTER_LINKS = [
   { label: "Blog", href: "/blog" },
 ];
 
+const LEGAL_LINKS = [
+  { label: "Términos y Condiciones", href: "/terms" },
+  { label: "Política de Privacidad", href: "/privacy" },
+];
+
 export function Footer() {
   return (
-    <footer className="py-8 border-t border-sk-border-1">
+    <footer className="py-8 border-t border-sk-border-1 bg-sk-bg-0">
       <div className="w-full max-w-[1200px] mx-auto px-6">
         {/* Top row */}
         <div className="flex justify-between items-center flex-wrap gap-4 max-sm:flex-col max-sm:text-center">
@@ -29,16 +34,39 @@ export function Footer() {
               © {new Date().getFullYear()} Sharkania. La plataforma global de poker competitivo.
             </p>
           </div>
-          <div className="flex gap-5 flex-wrap max-sm:justify-center">
-            {FOOTER_LINKS.map((link) => (
-              <Link
-                key={link.label}
-                to={link.href}
-                className="text-sk-xs text-sk-text-2 hover:text-sk-text-1 transition-colors duration-sk-fast"
-              >
-                {link.label}
-              </Link>
-            ))}
+          
+          <div className="flex flex-col items-end gap-3 max-sm:items-center">
+            {/* Navegación Principal */}
+            <div className="flex gap-5 flex-wrap justify-end max-sm:justify-center">
+              {FOOTER_LINKS.map((link) => (
+                <Link
+                  key={link.label}
+                  to={link.href}
+                  className="text-sk-xs text-sk-text-2 hover:text-sk-text-1 transition-colors duration-sk-fast"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+
+            {/* Navegación Legal & 18+ */}
+            <div className="flex items-center gap-4 flex-wrap justify-end max-sm:justify-center">
+              <div className="flex gap-4 border-r border-sk-border-2 pr-4 max-sm:border-r-0 max-sm:pr-0">
+                {LEGAL_LINKS.map((link) => (
+                  <Link
+                    key={link.label}
+                    to={link.href}
+                    className="text-[11px] text-sk-text-3 hover:text-sk-text-2 transition-colors duration-sk-fast"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-sk-bg-2 border border-sk-border-2 rounded text-[10px] font-mono text-sk-text-3 select-none">
+                <span className="w-1.5 h-1.5 rounded-full bg-sk-red"></span>
+                18+ ONLY
+              </div>
+            </div>
           </div>
         </div>
 
@@ -46,7 +74,7 @@ export function Footer() {
         <div className="w-full h-px bg-sk-border-1 my-4" />
 
         {/* Bottom row */}
-        <div className="flex justify-between items-center flex-wrap gap-2 max-sm:flex-col max-sm:text-center">
+        <div className="flex justify-between items-center flex-wrap gap-4 max-sm:flex-col max-sm:text-center">
           <p className="text-[11px] text-sk-text-2">
             Realizado por{" "}
             <a

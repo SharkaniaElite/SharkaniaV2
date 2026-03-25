@@ -9,6 +9,7 @@ import { ProtectedRoute } from "./components/layout/protected-route";
 import { ScrollToTop } from "./components/layout/scroll-to-top";
 import { FloatingCTA } from "./components/marketing/FloatingCTA";
 import { Spinner } from "./components/ui/spinner";
+import { AgeVerificationModal } from "./components/layout/age-verification-modal";
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
@@ -34,6 +35,10 @@ const ICMCalculatorPage = lazy(() => import("./pages/icm-calculator").then(m => 
 const EloSimulatorPage = lazy(() => import("./pages/elo-simulator").then(m => ({ default: m.EloSimulatorPage })));
 const BankrollCalculatorPage = lazy(() => import("./pages/bankroll-calculator").then(m => ({ default: m.BankrollCalculatorPage })));
 const ReplayerPage = lazy(() => import("./pages/replayer").then(m => ({ default: m.ReplayerPage })));
+
+// 📄 Páginas Legales
+const TermsPage = lazy(() => import("./pages/terms").then(m => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import("./pages/privacy").then(m => ({ default: m.PrivacyPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,6 +73,9 @@ export function App() {
         <StructuredData />
 
         <AuthInitializer>
+          {/* 🔥 Modal de Verificación de Edad Global */}
+          <AgeVerificationModal />
+
           {/* 🔥 Suspense global */}
           <Suspense
             fallback={
@@ -90,6 +98,10 @@ export function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/tournament/:id" element={<TournamentDetailPage />} />
+
+              {/* Legal */}
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
 
               {/* Tools */}
               <Route path="/tools" element={<ToolsPage />} />
