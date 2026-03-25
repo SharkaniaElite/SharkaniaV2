@@ -1,3 +1,4 @@
+// src/lib/api/players.ts
 import { supabase } from "../supabase";
 import type {
   Player,
@@ -144,4 +145,23 @@ export async function searchPlayers(
 
   if (error) throw error;
   return (data as PlayerWithRoom[]) ?? [];
+}
+
+/**
+ * Actualiza los datos de un jugador en la tabla 'players'.
+ * Permite corregir nicknames de forma global.
+ */
+export async function updatePlayer(
+  id: string,
+  updates: Partial<Player>
+): Promise<PlayerWithRoom> {
+  const { data, error } = await supabase
+    .from("players")
+    .update(updates)
+    .eq("id", id)
+    .select(BASE_PLAYER_SELECT)
+    .single();
+
+  if (error) throw error;
+  return data as PlayerWithRoom;
 }

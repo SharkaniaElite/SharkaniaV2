@@ -67,7 +67,9 @@ export async function getLeagueStandings(
     .from("league_standings")
     .select("*, players(id, nickname, country_code, elo_rating)")
     .eq("league_id", leagueId)
-    .order("total_points", { ascending: false });
+    .order("total_points", { ascending: false })
+    .order("best_position", { ascending: true }) // 👇 Obliga a que el 5° (E) vaya antes que el 6° (F)
+    .order("tournaments_played", { ascending: false }); // 👇 Por si acaso tienen la misma posición en distintos torneos
 
   if (error) throw error;
   return (data as LeagueStandingWithPlayer[]) ?? [];

@@ -120,6 +120,22 @@ export async function applyLeaguePoints(tournamentId: string, leagueId: string) 
       });
     }
   }
-  const { data: stand } = await supabase.from("league_standings").select("id, total_points").eq("league_id", leagueId).order("total_points", { ascending: false });
+  const { data: stand } = await supabase
+    .from("league_standings")
+    .select("id, total_points")
+    .eq("league_id", leagueId)
+    .order("total_points", { ascending: false })
+    .order("best_position", { ascending: true }); // <-- Esta línea fuerza a respetar el orden de llegada (5° antes que 6°)
   if (stand) { for (let i = 0; i < stand.length; i++) { await supabase.from("league_standings").update({ rank_position: i + 1 }).eq("id", stand[i]!.id); } }
+}
+
+// src/lib/api/tournaments.ts
+
+export async function prepareTournamentForReedit(tournamentId: string) {
+  console.log("🛠️ Limpiando impacto del torneo para edición:", tournamentId);
+  const { data, error } = await supabase.rpc('reset_tournament_impact', {
+    tournament_id_to_reset: tournamentId
+  });
+  if (error) throw error;
+  return data;
 }

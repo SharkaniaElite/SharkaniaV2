@@ -65,6 +65,18 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
     }));
   };
 
+  // 🔥 SOLUCIÓN TYPESCRIPT: Usamos substring(0, 10) que garantiza un string 'YYYY-MM-DD'
+  const determineLeagueStatus = (startDate: string, endDate: string) => {
+    if (!startDate) return "upcoming"; 
+    
+    // substring(0, 10) extrae los primeros 10 caracteres de "2026-03-25T18:00:00.000Z" -> "2026-03-25"
+    const today: string = new Date().toISOString().substring(0, 10);
+    
+    if (today < startDate) return "upcoming";
+    if (endDate && today > endDate) return "completed";
+    return "active"; 
+  };
+
   const handleSave = async () => {
     if (!form.name) {
       setError("Nombre es obligatorio");
@@ -81,7 +93,7 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
         start_date: form.start_date || null,
         end_date: form.end_date || null,
         rules_url: form.rules_url || null,
-        status: "upcoming" as const,
+        status: determineLeagueStatus(form.start_date, form.end_date),
       };
 
       let leagueId: string;
@@ -92,31 +104,36 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
         leagueId = league.id;
 
         // Update rooms
-        await supabase.from("league_rooms").delete().eq("league_id", leagueId);
+        const { error: delErr } = await supabase.from("league_rooms").delete().eq("league_id", leagueId);
+        if (delErr) console.error("Aviso: Error borrando salas previas", delErr);
       } else {
         const { data, error: err } = await supabase.from("leagues").insert(payload).select("id").single();
         if (err) throw err;
         leagueId = data.id;
 
         // Link club as primary
-        await supabase.from("league_clubs").insert({
+        const { error: clubErr } = await supabase.from("league_clubs").insert({
           league_id: leagueId,
           club_id: clubId,
           is_primary: true,
         });
+        if (clubErr) throw clubErr;
       }
 
       // Insert rooms
       if (form.room_ids.length > 0) {
-        await supabase.from("league_rooms").insert(
+        const { error: roomErr } = await supabase.from("league_rooms").insert(
           form.room_ids.map((room_id) => ({ league_id: leagueId, room_id }))
         );
+        if (roomErr) throw roomErr;
       }
 
       onSaved();
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+    } catch (err: any) {
+      // 🔥 Ahora capturamos el mensaje exacto de la base de datos
+      console.error("💥 Error completo al guardar liga:", err);
+      setError(err?.message || err?.details || "Error desconocido al guardar la liga");
     } finally {
       setSaving(false);
     }

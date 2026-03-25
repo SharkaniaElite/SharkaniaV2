@@ -11,8 +11,7 @@ import { Chip } from "../ui/chip";
 import { FlagIcon } from "../ui/flag-icon";
 import { cn } from "../../lib/cn";
 import { getCountryName } from "../../lib/countries";
-import { Pencil, Save, Search, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Pencil, Save, Search, X } from "lucide-react"; // ✅ 'Link' eliminado para limpiar el error
 
 // ── Types ──
 
@@ -24,23 +23,14 @@ interface PlayerNickname {
 }
 
 interface ClubPlayer {
-  /** Primary player ID (used for linking) */
   primaryId: string;
-  /** All nicknames this person has in the club */
   nicknames: PlayerNickname[];
-  /** Highest ELO among all nicknames */
   bestElo: number;
-  /** Total tournaments across all nicknames */
   totalTournaments: number;
-  /** Total cashes across all nicknames */
   totalCashes: number;
-  /** Total wins across all nicknames */
   totalWins: number;
-  /** Country code */
   countryCode: string | null;
-  /** Is demo player */
   isDemo: boolean;
-  /** Linked profile data (null if no account) */
   profileId: string | null;
   displayName: string | null;
   email: string | null;
@@ -68,7 +58,6 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
   const { data: players, isLoading } = useQuery({
     queryKey: ["club-players", clubId],
     queryFn: async () => {
-      // 1. Get all player IDs from this club's tournaments
       const { data: results, error: resErr } = await supabase
         .from("tournament_results")
         .select("player_id, tournaments!inner(club_id)")
@@ -79,7 +68,6 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
 
       const uniquePlayerIds = [...new Set(results.map((r) => r.player_id))];
 
-      // 2. Fetch all player data with profiles and rooms
       const allRaw: any[] = [];
       for (let i = 0; i < uniquePlayerIds.length; i += 100) {
         const batch = uniquePlayerIds.slice(i, i + 100);
@@ -91,14 +79,11 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
         if (data) allRaw.push(...data);
       }
 
-      // 3. Fetch aliases to group players by person
       const { data: aliases } = await supabase
         .from("player_aliases")
         .select("primary_player_id, alias_player_id")
-        .in("primary_player_id", uniquePlayerIds)
-        .or(`alias_player_id.in.(${uniquePlayerIds.join(",")})`);
+        .in("primary_player_id", uniquePlayerIds);
 
-      // 4. Build a union-find to group players by person
       const parent: Record<string, string> = {};
       const find = (id: string): string => {
         if (!parent[id]) parent[id] = id;
@@ -109,7 +94,6 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
         parent[find(a)] = find(b);
       };
 
-      // Group by profile_id first
       const profileGroups: Record<string, string[]> = {};
       for (const p of allRaw) {
         if (p.profile_id) {
@@ -123,12 +107,10 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
         }
       }
 
-      // Group by aliases
       for (const a of aliases ?? []) {
         union(a.primary_player_id, a.alias_player_id);
       }
 
-      // 5. Build grouped players
       const groups: Record<string, any[]> = {};
       for (const p of allRaw) {
         const root = find(p.id);
@@ -136,7 +118,6 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
         groups[root]!.push(p);
       }
 
-      // 6. Convert to ClubPlayer[]
       const clubPlayers: ClubPlayer[] = Object.values(groups).map((group) => {
         const nicknames: PlayerNickname[] = group.map((p: any) => ({
           id: p.id,
@@ -145,7 +126,6 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
           elo_rating: Number(p.elo_rating),
         }));
 
-        // Use the player with profile or the highest ELO as primary
         const withProfile = group.find((p: any) => p.profile_id);
         const primary = withProfile ?? group.reduce((best: any, p: any) =>
           Number(p.elo_rating) > Number(best.elo_rating) ? p : best, group[0]);
@@ -214,14 +194,14 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
         <EmptyState
           icon="👥"
           title={search ? "Sin resultados" : "Sin jugadores"}
-          description={search ? `No se encontraron jugadores con "${search}".` : "Aún no hay jugadores que hayan participado en torneos de este club."}
+          description={search ? `No se encontraron jugadores con "${search}".` : "Aún no hay jugadores registrados."}
         />
       ) : (
         <div className="border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-x-auto">
           <table className="w-full border-collapse text-sk-sm">
             <thead>
               <tr>
-                {["Jugador", "Nicknames / Salas", "ELO", "Torneos", "Contacto", ""].map((h, i) => (
+                {["Jugador", "Salas", "ELO", "Torneos / ITM", "Contacto", ""].map((h, i) => (
                   <th
                     key={h || `col-${i}`}
                     className={cn(
@@ -244,7 +224,6 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
 
                 return (
                   <tr key={p.primaryId} className="hover:bg-white/[0.015] transition-colors">
-                    {/* Player identity */}
                     <td className="py-3 px-4 border-b border-sk-border-2">
                       <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-full bg-sk-bg-4 border border-sk-border-2 flex items-center justify-center text-[11px] font-bold text-sk-text-3 shrink-0 overflow-hidden">
@@ -256,70 +235,43 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            {p.displayName ? (
-                              <span className="font-semibold text-sk-text-1 truncate">{p.displayName}</span>
-                            ) : (
-                              <span className="font-semibold text-sk-text-1 truncate">{mainNick.nickname}</span>
-                            )}
+                            <span className="font-semibold text-sk-text-1 truncate">{p.displayName || mainNick.nickname}</span>
                             {p.countryCode && <FlagIcon countryCode={p.countryCode} />}
-                            {p.isDemo && (
-                              <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-sk-gold-dim text-sk-gold uppercase">Demo</span>
-                            )}
-                            {p.isVerified && (
-                              <span className="text-sk-green text-[10px]" title="Verificado">✓</span>
-                            )}
+                            {p.isVerified && <span className="text-sk-green text-[10px]">✓</span>}
                           </div>
-                          {p.displayName && (
-                            <span className="text-[10px] text-sk-text-3 block">{mainNick.nickname}</span>
-                          )}
+                          {p.displayName && <span className="text-[10px] text-sk-text-3 block">{mainNick.nickname}</span>}
                         </div>
                       </div>
                     </td>
 
-                    {/* Nicknames / Rooms */}
                     <td className="py-3 px-4 border-b border-sk-border-2">
                       <div className="flex flex-wrap gap-1.5">
                         {p.nicknames.map((n) => (
-                          <Link key={n.id} to={`/ranking/${n.id}`} className="group">
-                            <Chip className="group-hover:border-sk-accent/40 transition-colors">
-                              <span className="font-mono text-[10px]">{n.nickname}</span>
-                              <span className="text-sk-text-4 text-[9px]">·</span>
-                              <span className="text-sk-text-3 text-[9px]">{n.room_name}</span>
-                            </Chip>
-                          </Link>
+                          <Chip key={n.id} className="font-mono text-[9px]">{n.nickname}</Chip>
                         ))}
                       </div>
                     </td>
 
-                    {/* ELO (best) */}
                     <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono font-bold text-sk-accent">
                       {Math.round(p.bestElo).toLocaleString("es")}
                     </td>
 
-                    {/* Tournaments */}
-                    <td className="py-3 px-4 border-b border-sk-border-2 text-right text-sk-text-1">
-                      {p.totalTournaments}
+                    <td className="py-3 px-4 border-b border-sk-border-2 text-right">
+                      <div className="text-sk-text-1">{p.totalTournaments} t.</div>
+                      <div className="text-[10px] text-sk-text-3">{itm}% ITM</div>
                     </td>
 
-                    {/* Contact */}
                     <td className="py-3 px-4 border-b border-sk-border-2">
                       {hasContact ? (
-                        <div className="text-[10px] text-sk-text-3 space-y-0.5">
-                          {p.email && <div className="truncate max-w-[160px]">📧 {p.email}</div>}
+                        <div className="text-[10px] text-sk-text-3">
+                          {p.email && <div className="truncate max-w-[140px]">📧 {p.email}</div>}
                           {p.whatsapp && <div>📱 {p.whatsapp}</div>}
                         </div>
-                      ) : (
-                        <span className="text-[10px] text-sk-text-4">Sin datos</span>
-                      )}
+                      ) : <span className="text-[10px] text-sk-text-4 italic">Sin datos</span>}
                     </td>
 
-                    {/* Actions */}
-                    <td className="py-3 px-4 border-b border-sk-border-2">
-                      <button
-                        onClick={() => setEditingPlayer(p)}
-                        className="text-sk-text-2 hover:text-sk-accent p-1 transition-colors"
-                        title="Editar datos personales"
-                      >
+                    <td className="py-3 px-4 border-b border-sk-border-2 text-right">
+                      <button onClick={() => setEditingPlayer(p)} className="text-sk-text-3 hover:text-sk-accent p-1 transition-colors">
                         <Pencil size={13} />
                       </button>
                     </td>
@@ -348,33 +300,35 @@ export function ClubPlayersTab({ clubId }: ClubPlayersTabProps) {
 // ── Player Edit Modal ──
 
 function PlayerEditModal({ player, onClose, onSaved }: { player: ClubPlayer; onClose: () => void; onSaved: () => void }) {
-  const mainNick = player.nicknames[0]!;
-
+  const [nicknames, setNicknames] = useState(player.nicknames.map(n => ({ ...n })));
   const [countryCode, setCountryCode] = useState(player.countryCode ?? "");
   const [email, setEmail] = useState(player.email ?? "");
   const [whatsapp, setWhatsapp] = useState(player.whatsapp ?? "");
   const [displayName, setDisplayName] = useState(player.displayName ?? "");
+  
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // ✅ SOLUCIÓN AL ERROR 18048: Garantizamos que mainNick siempre tenga un objeto válido de tipo PlayerNickname
+  const mainNick: PlayerNickname = nicknames[0] ?? { id: "0", nickname: "Jugador", room_name: "—", elo_rating: 1200 };
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
-
     try {
-      // Update country on all player records for this person
-      for (const nick of player.nicknames) {
-        const { error: playerErr } = await supabase
+      // 1. Actualizar Nicknames (Tabla players)
+      for (const n of nicknames) {
+        const { error: pErr } = await supabase
           .from("players")
-          .update({ country_code: countryCode || null })
-          .eq("id", nick.id);
-        if (playerErr) throw playerErr;
+          .update({ nickname: n.nickname.trim(), country_code: countryCode || null })
+          .eq("id", n.id);
+        if (pErr) throw pErr;
       }
 
-      // If player has a linked profile, update profile fields
+      // 2. Actualizar Perfil si existe
       if (player.profileId) {
-        const { error: profileErr } = await supabase
+        const { error: profErr } = await supabase
           .from("profiles")
           .update({
             display_name: displayName.trim() || null,
@@ -383,7 +337,7 @@ function PlayerEditModal({ player, onClose, onSaved }: { player: ClubPlayer; onC
             country_code: countryCode || null,
           })
           .eq("id", player.profileId);
-        if (profileErr) throw profileErr;
+        if (profErr) throw profErr;
       }
 
       setSuccess(true);
@@ -396,130 +350,94 @@ function PlayerEditModal({ player, onClose, onSaved }: { player: ClubPlayer; onC
   };
 
   return (
-    <Modal isOpen onClose={onClose} title="Editar Datos del Jugador" className="max-w-md">
+    <Modal isOpen onClose={onClose} title="Editar Jugador" className="max-w-md">
       <div className="space-y-4">
-
-        {/* Player identity (read-only) */}
-        <div className="bg-sk-bg-3 border border-sk-border-2 rounded-md p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-lg font-extrabold text-sk-accent overflow-hidden shrink-0">
-              {player.avatarUrl ? (
-                <img src={player.avatarUrl} className="w-full h-full object-cover" alt="" />
-              ) : (
-                mainNick.nickname.charAt(0).toUpperCase()
-              )}
-            </div>
-            <div>
-              <div className="font-mono font-bold text-sk-accent">
-                {Math.round(player.bestElo).toLocaleString("es")} ELO
-              </div>
-              <div className="text-[11px] text-sk-text-3 font-mono">
-                {player.totalTournaments} torneos · {player.totalWins} victorias
-              </div>
-            </div>
-          </div>
-
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-wide text-sk-text-3 mb-2">
-            Nicknames (no editables)
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {player.nicknames.map((n) => (
-              <Chip key={n.id}>
-                <span className="font-mono text-[10px] text-sk-text-1">{n.nickname}</span>
-                <span className="text-sk-text-4 text-[9px]">·</span>
-                <span className="text-sk-text-3 text-[9px]">{n.room_name}</span>
-              </Chip>
-            ))}
-          </div>
-        </div>
-
-        {/* Editable fields */}
-        <div>
-          <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">
-            Nombre real
-          </label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Nombre completo del jugador"
-            disabled={!player.profileId}
-            className={cn(
-              "w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent",
-              !player.profileId && "opacity-50 cursor-not-allowed"
+        {/* Identidad visual rápida */}
+        <div className="bg-sk-bg-3 p-3 rounded-md border border-sk-border-2 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-sk-bg-4 border border-sk-accent flex items-center justify-center text-sk-md font-bold text-sk-accent overflow-hidden">
+            {player.avatarUrl ? (
+              <img src={player.avatarUrl} className="w-full h-full object-cover" alt="" />
+            ) : (
+              mainNick.nickname.charAt(0).toUpperCase()
             )}
-          />
+          </div>
+          <div>
+            <div className="text-sk-xs text-sk-text-1 font-bold">{mainNick.nickname}</div>
+            <div className="text-[10px] text-sk-text-4 font-mono">{Math.round(player.bestElo)} ELO</div>
+          </div>
         </div>
 
+        {/* Nicknames Editables */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-mono font-bold uppercase text-sk-text-3">Nicknames en Salas</p>
+          {nicknames.map((n, idx) => (
+            <div key={n.id} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={n.nickname}
+                onChange={(e) => {
+                  const next = [...nicknames];
+                  const item = next[idx];
+                  if (item) {
+                    item.nickname = e.target.value;
+                    setNicknames(next);
+                  }
+                }}
+                className="flex-1 bg-sk-bg-0 border border-sk-border-2 rounded px-2 py-1.5 text-sk-xs font-mono focus:border-sk-accent focus:outline-none"
+              />
+              <Badge variant="muted" className="text-[9px]">{n.room_name}</Badge>
+            </div>
+          ))}
+        </div>
+
+        {/* País */}
         <div>
-          <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">
-            País
-          </label>
+          <label className="text-[10px] font-mono font-bold uppercase text-sk-text-2 block mb-1">País</label>
           <select
             value={countryCode}
             onChange={(e) => setCountryCode(e.target.value)}
-            className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
+            className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm focus:border-sk-accent focus:outline-none"
           >
             <option value="">Sin definir</option>
-            {COUNTRIES.map((cc) => (
-              <option key={cc} value={cc}>{getCountryName(cc)}</option>
-            ))}
+            {COUNTRIES.map(cc => <option key={cc} value={cc}>{getCountryName(cc)}</option>)}
           </select>
         </div>
 
-        <div>
-          <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">
-            Email
-          </label>
+        {/* Datos de Perfil */}
+        <div className="space-y-3 pt-2 border-t border-sk-border-2">
+          <input
+            type="text"
+            placeholder="Nombre real"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            disabled={!player.profileId}
+            className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm disabled:opacity-40"
+          />
           <input
             type="email"
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="email@ejemplo.com"
             disabled={!player.profileId}
-            className={cn(
-              "w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent",
-              !player.profileId && "opacity-50 cursor-not-allowed"
-            )}
+            className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm disabled:opacity-40"
           />
-        </div>
-
-        <div>
-          <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">
-            WhatsApp
-          </label>
           <input
             type="tel"
+            placeholder="WhatsApp"
             value={whatsapp}
             onChange={(e) => setWhatsapp(e.target.value)}
-            placeholder="+56 9 1234 5678"
             disabled={!player.profileId}
-            className={cn(
-              "w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent",
-              !player.profileId && "opacity-50 cursor-not-allowed"
-            )}
+            className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm disabled:opacity-40"
           />
         </div>
 
-        {!player.profileId && (
-          <p className="text-[10px] text-sk-text-4 bg-sk-bg-3 rounded-md p-2.5">
-            💡 Este jugador no tiene cuenta vinculada en Sharkania. Solo se puede editar el país. Para editar nombre, email y WhatsApp, el jugador debe crear una cuenta y vincular su nickname.
-          </p>
-        )}
-
-        {error && (
-          <div className="bg-sk-red-dim border border-sk-red/20 rounded-md p-3 text-sk-sm text-sk-red">{error}</div>
-        )}
-        {success && (
-          <div className="bg-sk-green-dim border border-sk-green/20 rounded-md p-3 text-sk-sm text-sk-green">
-            ✅ Datos actualizados correctamente
-          </div>
-        )}
+        {error && <div className="text-sk-red text-xs bg-sk-red-dim p-2 rounded">{error}</div>}
+        {success && <div className="text-sk-green text-xs bg-sk-green-dim p-2 rounded">✅ Cambios guardados</div>}
 
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" size="sm" onClick={onClose}>Cancelar</Button>
           <Button variant="accent" size="sm" onClick={handleSave} isLoading={saving}>
-            <Save size={14} /> Guardar cambios
+            <Save size={14} /> Guardar
           </Button>
         </div>
       </div>

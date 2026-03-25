@@ -5,11 +5,11 @@ import { Badge } from "../ui/badge";
 import { Modal } from "../ui/modal";
 import { Spinner } from "../ui/spinner";
 import { FlagIcon } from "../ui/flag-icon";
-import { calculateElo, reverseElo } from "../../lib/api/elo-engine";
-import { getTournamentResults } from "../../lib/api/tournaments";
+import { calculateElo } from "../../lib/api/elo-engine";
+import { getTournamentResults, prepareTournamentForReedit, applyLeaguePoints } from "../../lib/api/tournaments";
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/cn";
-import { Save, AlertTriangle, Trash2, Plus, RotateCcw } from "lucide-react";
+import { AlertTriangle, Trash2, Plus, RotateCcw } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
 
 interface EditableRow {
@@ -18,7 +18,6 @@ interface EditableRow {
   nickname: string;
   playerId: string;
   prizeWon: number;
-  // null = celda vacía (el usuario no ingresó nada), number = valor explícito (incluyendo 0)
   leaguePoints: number | null;
   eloChange: number | null;
   countryCode: string | null;
@@ -93,8 +92,7 @@ export function ResultsEditor({
         nickname: r.players?.nickname ?? "",
         playerId: r.player_id,
         prizeWon: Number(r.prize_won) || 0,
-        // Registros existentes en BD siempre tienen número (puede ser 0)
-        leaguePoints: Number(r.league_points_earned) ?? 0,
+        leaguePoints: Number(r.league_points_earned ?? 0),
         eloChange: r.elo_change ? Number(r.elo_change) : null,
         countryCode: r.players?.country_code ?? null,
         isNew: false,
@@ -132,9 +130,6 @@ export function ResultsEditor({
     setHasChanges(newRows.some((r) => r.isDirty || r.isNew));
   };
 
-  // Maneja el cambio del input de puntos de liga:
-  // - Si el campo queda vacío → null (para mostrar placeholder)
-  // - Si tiene valor → number (0 es válido)
   const updateLeaguePoints = (index: number, raw: string) => {
     if (raw === "") {
       updateRow(index, "leaguePoints", null);
@@ -151,7 +146,7 @@ export function ResultsEditor({
       nickname: "",
       playerId: "",
       prizeWon: 0,
-      leaguePoints: null, // vacío por defecto — el usuario debe ingresar o dejar en blanco (= 0)
+      leaguePoints: null,
       eloChange: null,
       countryCode: null,
       isNew: true,
@@ -186,45 +181,29 @@ export function ResultsEditor({
       errors.push(`Nicknames duplicados: ${[...new Set(dupeNicks.map((r) => r.nickname))].join(", ")}`);
     }
 
-    // ── CAMBIO CLAVE ──
-    // Ya NO validamos que leaguePoints === 0 como error.
-    // Solo validamos que no sea null (celda realmente vacía).
-    // Si es null al guardar, lo tratamos como 0 automáticamente.
-    // No hay error — simplemente se normaliza.
-
     if (errors.length > 0) {
       setMessage({ text: errors.join("\n"), type: "error" });
       return;
     }
 
-    // Normalizar: null → 0 antes de guardar
     const normalizedRows = rows.map((r) => ({
       ...r,
       leaguePoints: r.leaguePoints ?? 0,
     }));
 
     setSaving(true);
-    setMessage({ text: "Paso 1/4: Revirtiendo ELO anterior...", type: "info" });
+    setMessage({ text: "Paso 1/4: Reseteando impacto en estadísticas de jugadores...", type: "info" });
 
     try {
-      const reverseResult = await reverseElo(tournament.id);
-      if (!reverseResult.success) {
-        setMessage({ text: `Error revirtiendo ELO: ${reverseResult.message}`, type: "error" });
-        setSaving(false);
-        return;
-      }
+      await prepareTournamentForReedit(tournament.id);
 
-      setMessage({ text: "Paso 2/4: Eliminando resultados anteriores...", type: "info" });
+      setMessage({ text: "Paso 2/4: Limpiando resultados anteriores...", type: "info" });
       const { error: deleteErr } = await supabase
         .from("tournament_results")
         .delete()
         .eq("tournament_id", tournament.id);
 
-      if (deleteErr) {
-        setMessage({ text: `Error eliminando resultados: ${deleteErr.message}`, type: "error" });
-        setSaving(false);
-        return;
-      }
+      if (deleteErr) throw deleteErr;
 
       setMessage({ text: "Paso 3/4: Resolviendo jugadores e insertando resultados...", type: "info" });
 
@@ -250,24 +229,23 @@ export function ResultsEditor({
         .from("tournament_results")
         .insert(insertData);
 
-      if (insertErr) {
-        setMessage({ text: `Error insertando resultados: ${insertErr.message}`, type: "error" });
-        setSaving(false);
-        return;
-      }
+      if (insertErr) throw insertErr;
 
-      setMessage({ text: "Paso 4/4: Calculando nuevo ELO...", type: "info" });
+      setMessage({ text: "Paso 4/4: Recalculando ELO y estadísticas...", type: "info" });
       const calcResult = await calculateElo(tournament.id);
+      
       if (!calcResult.success) {
-        setMessage({ text: `Error calculando ELO: ${calcResult.message}`, type: "error" });
-        setSaving(false);
-        return;
+        throw new Error(calcResult.message);
       }
 
-      setMessage({ text: `✅ Resultados guardados. ELO recalculado para ${calcResult.playersUpdated ?? normalizedRows.length} jugadores.`, type: "success" });
+      if (tournament.league_id) {
+        setMessage({ text: "Paso 5: Actualizando tabla de posiciones de la Liga...", type: "info" });
+        await applyLeaguePoints(tournament.id, tournament.league_id);
+      }
+
+      setMessage({ text: `✅ Resultados actualizados con éxito.`, type: "success" });
       setHasChanges(false);
 
-      // Recargar rows con ELO actualizado
       const fresh = await getTournamentResults(tournament.id);
       const refreshed: EditableRow[] = fresh.map((r: any) => ({
         id: r.id,
@@ -275,7 +253,7 @@ export function ResultsEditor({
         nickname: r.players?.nickname ?? "",
         playerId: r.player_id,
         prizeWon: Number(r.prize_won) || 0,
-        leaguePoints: Number(r.league_points_earned) ?? 0,
+        leaguePoints: Number(r.league_points_earned ?? 0),
         eloChange: r.elo_change ? Number(r.elo_change) : null,
         countryCode: r.players?.country_code ?? null,
         isNew: false,
@@ -299,12 +277,10 @@ export function ResultsEditor({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Resultados: ${cleanName(tournament.name)}`}
+      title={`Editor de Resultados: ${cleanName(tournament.name)}`}
       className="max-w-3xl"
     >
       <div className="space-y-4">
-
-        {/* Tournament info */}
         <div className="flex items-center gap-2 flex-wrap text-sk-xs text-sk-text-3">
           <Badge variant={tournament.status === "completed" ? "muted" : "accent"}>
             {tournament.status}
@@ -328,7 +304,9 @@ export function ResultsEditor({
                   <tr>
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-12">Pos</th>
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left">Nickname</th>
-                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-24">Premio</th>
+                    {/* 🔥 AJUSTE: Ancho incrementado a w-32 para soportar 9 cifras cómodamente */}
+                    {/* 🔥 CAMBIO AQUÍ: min-w-[160px] asegura espacio para 9 cifras sin encogerse */}
+    <th className="py-2 px-2 w-40 min-w-[160px]">Premio</th>
                     {hasLeague && (
                       <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-purple py-2 px-2 text-left w-20">
                         Puntos
@@ -352,7 +330,6 @@ export function ResultsEditor({
                       <td className="py-2 px-2 font-mono font-bold text-sk-text-1">
                         {row.position}°
                       </td>
-
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-1.5">
                           {row.countryCode && !row.isNew && (
@@ -375,7 +352,6 @@ export function ResultsEditor({
                           )}
                         </div>
                       </td>
-
                       <td className="py-2 px-2">
                         <input
                           type="number"
@@ -391,12 +367,10 @@ export function ResultsEditor({
                           )}
                         />
                       </td>
-
                       {hasLeague && (
                         <td className="py-2 px-2">
                           <input
                             type="number"
-                            // null muestra vacío, 0 muestra "0"
                             value={row.leaguePoints === null ? "" : row.leaguePoints}
                             onChange={(e) => updateLeaguePoints(i, e.target.value)}
                             placeholder="0"
@@ -410,7 +384,6 @@ export function ResultsEditor({
                           />
                         </td>
                       )}
-
                       <td className="py-2 px-2 text-right">
                         {row.eloChange !== null && !row.isDirty ? (
                           <span className={cn(
@@ -425,7 +398,6 @@ export function ResultsEditor({
                           <span className="text-sk-text-4">—</span>
                         )}
                       </td>
-
                       <td className="py-2 px-2">
                         {rows.length > 2 && (
                           <button
@@ -447,10 +419,10 @@ export function ResultsEditor({
             </Button>
 
             {hasChanges && (
-              <div className="flex items-start gap-2 px-3 py-2.5 bg-sk-orange-dim border border-sk-orange/20 rounded-md">
-                <AlertTriangle size={14} className="text-sk-orange mt-0.5 shrink-0" />
-                <div className="text-sk-xs text-sk-orange">
-                  <strong>Al guardar se recalculará el ELO:</strong> se revertirá el ELO de todos los jugadores de este torneo, se aplicarán los nuevos resultados y se recalculará el ELO completo. Este proceso puede tardar unos segundos.
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-sk-accent-dim border border-sk-accent/20 rounded-md">
+                <AlertTriangle size={14} className="text-sk-accent mt-0.5 shrink-0" />
+                <div className="text-sk-xs text-sk-accent-text">
+                  <strong>Actualización de Seguridad:</strong> Se reseteará el rastro del torneo anterior para garantizar que no existan duplicados en las estadísticas de los jugadores antes de recalcular el nuevo ELO.
                 </div>
               </div>
             )}
@@ -469,7 +441,7 @@ export function ResultsEditor({
         )}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="secondary" size="sm" onClick={onClose}>
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={saving}>
             Cerrar
           </Button>
           {hasChanges && (
@@ -479,7 +451,7 @@ export function ResultsEditor({
               onClick={handleSave}
               isLoading={saving}
             >
-              <RotateCcw size={14} /> Guardar y Recalcular ELO
+              <RotateCcw size={14} /> Guardar Cambios
             </Button>
           )}
         </div>
