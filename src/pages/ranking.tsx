@@ -1,11 +1,12 @@
 // src/pages/ranking.tsx
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageShell } from "../components/layout/page-shell";
 import { RankingTable } from "../components/ranking/ranking-table";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { usePlayers } from "../hooks/use-players";
 import { usePokerRooms } from "../hooks/use-clubs";
+import { useDebounce } from "../hooks/use-debounce";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 
@@ -44,15 +45,22 @@ export function RankingPage() {
   const [roomId, setRoomId] = useState("");
   const [page, setPage] = useState(1);
 
+  const debouncedSearch = useDebounce(search, 300);
+
   const { data: roomsData } = usePokerRooms();
 
-  const { data, isLoading } = usePlayers({
-    page,
-    pageSize: PAGE_SIZE,
-    search: search.length >= 2 ? search : undefined,
-    countryCode: countryCode || undefined,
-    roomId: roomId || undefined,
-  });
+  const filters = useMemo(
+    () => ({
+      page,
+      pageSize: PAGE_SIZE,
+      search: debouncedSearch.length >= 2 ? debouncedSearch : undefined,
+      countryCode: countryCode || undefined,
+      roomId: roomId || undefined,
+    }),
+    [page, debouncedSearch, countryCode, roomId]
+  );
+
+  const { data, isLoading, isFetching } = usePlayers(filters);
 
   const players = data?.data ?? [];
   const totalPages = data?.totalPages ?? 1;
@@ -60,13 +68,15 @@ export function RankingPage() {
 
   return (
     <PageShell>
-    <SEOHead
-  title="Ranking ELO Global"
-  description="Los mejores jugadores de poker del mundo ordenados por ELO. Busca, filtra y descubre quién domina."
-  path="/ranking"
-/>
+      <SEOHead
+        title="Ranking ELO Global"
+        description="Los mejores jugadores de poker del mundo ordenados por ELO. Busca, filtra y descubre quién domina."
+        path="/ranking"
+      />
+
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
+
           {/* Header */}
           <div className="mb-8">
             <p className="font-mono text-[11px] font-bold tracking-[0.08em] uppercase text-sk-accent mb-3">
@@ -77,6 +87,9 @@ export function RankingPage() {
             </h1>
             <p className="text-sk-base text-sk-text-2">
               {totalCount} jugadores rankeados por ELO
+              {isFetching && (
+                <span className="ml-2 text-sk-accent">(actualizando...)</span>
+              )}
             </p>
           </div>
 
@@ -93,6 +106,7 @@ export function RankingPage() {
                 }}
               />
             </div>
+
             <select
               value={countryCode}
               onChange={(e) => {
@@ -107,6 +121,7 @@ export function RankingPage() {
                 </option>
               ))}
             </select>
+
             <select
               value={roomId}
               onChange={(e) => {
@@ -144,6 +159,7 @@ export function RankingPage() {
                   {totalPages}
                 </span>
               </p>
+
               <div className="flex gap-2">
                 <Button
                   variant="secondary"
@@ -154,10 +170,13 @@ export function RankingPage() {
                   <ChevronLeft size={16} />
                   Anterior
                 </Button>
+
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() =>
+                    setPage((p) => Math.min(totalPages, p + 1))
+                  }
                   disabled={page === totalPages}
                 >
                   Siguiente

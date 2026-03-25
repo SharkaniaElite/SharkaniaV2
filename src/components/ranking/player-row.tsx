@@ -1,7 +1,13 @@
+import { memo, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { FlagIcon } from "../ui/flag-icon";
-import { formatElo, formatNumber, formatPercent, calcItm } from "../../lib/format";
+import {
+  formatElo,
+  formatNumber,
+  formatPercent,
+  calcItm,
+} from "../../lib/format";
 import { RankBadge } from "./rank-badge";
 import type { PlayerWithRoom } from "../../types";
 
@@ -10,15 +16,21 @@ interface PlayerRowProps {
   rank: number;
 }
 
-export function PlayerRow({ player, rank }: PlayerRowProps) {
-  const itm = calcItm(player.total_cashes, player.total_tournaments);
+function PlayerRowComponent({ player, rank }: PlayerRowProps) {
+  // 🔥 Memoizar cálculo (evita recomputo innecesario)
+  const itm = useMemo(() => {
+    return calcItm(player.total_cashes, player.total_tournaments);
+  }, [player.total_cashes, player.total_tournaments]);
 
-  // 🔥 Fuente única de avatar (con fallback pro)
-  const avatar =
-    player.profiles?.avatar_url ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      player.nickname
-    )}&background=111827&color=fff`;
+  // 🔥 Avatar estable (evita recalcular string en cada render)
+  const avatar = useMemo(() => {
+    return (
+      player.profiles?.avatar_url ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        player.nickname
+      )}&background=111827&color=fff`
+    );
+  }, [player.profiles?.avatar_url, player.nickname]);
 
   return (
     <tr
@@ -63,9 +75,11 @@ export function PlayerRow({ player, rank }: PlayerRowProps) {
           </span>
 
           {/* Sala */}
-          <span className="text-[10px] text-sk-text-3 hidden lg:inline">
-            {player.poker_rooms?.name}
-          </span>
+          {player.poker_rooms?.name && (
+            <span className="text-[10px] text-sk-text-3 hidden lg:inline">
+              {player.poker_rooms.name}
+            </span>
+          )}
         </Link>
       </td>
 
@@ -111,3 +125,18 @@ export function PlayerRow({ player, rank }: PlayerRowProps) {
     </tr>
   );
 }
+
+// 🔥 Comparador custom (nivel PRO)
+export const PlayerRow = memo(
+  PlayerRowComponent,
+  (prev, next) => {
+    return (
+      prev.rank === next.rank &&
+      prev.player.id === next.player.id &&
+      prev.player.elo_rating === next.player.elo_rating &&
+      prev.player.total_tournaments === next.player.total_tournaments &&
+      prev.player.total_cashes === next.player.total_cashes &&
+      prev.player.total_wins === next.player.total_wins
+    );
+  }
+);

@@ -12,7 +12,6 @@ import { Button } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
 import { useLeague, useLeagueStandings } from "../hooks/use-leagues";
 import { useTournamentsByLeague } from "../hooks/use-tournaments";
-import { } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { ArrowLeft } from "lucide-react";
 import type { TournamentWithDetails } from "../types";
@@ -25,20 +24,6 @@ const statusBadge = {
   upcoming: { label: "Próxima", variant: "accent" as const },
   active: { label: "Activa", variant: "green" as const },
   finished: { label: "Finalizada", variant: "muted" as const },
-};
-
-// Esta función calcula el estado basado en el calendario real
-const getLeagueStatus = (startDate: string | null | undefined, endDate: string | null | undefined): "upcoming" | "active" | "finished" => {
-  // Si falta alguna fecha, por seguridad decimos que es próxima
-  if (!startDate || !endDate) return "upcoming";
-
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
-  if (now < start) return "upcoming";
-  if (now > end) return "finished";
-  return "active";
 };
 
 export function LeagueDetailPage() {
@@ -75,11 +60,18 @@ export function LeagueDetailPage() {
     );
   }
 
-  // Calculamos el estado dinámicamente usando las fechas de la liga
-  const currentStatus = getLeagueStatus(league.start_date, league.end_date);
-  const status = statusBadge[currentStatus];
+  // Usamos el status que ya viene corregido dinámicamente desde la API
+  const currentStatus = league.status as "upcoming" | "active" | "finished";
+  const status = statusBadge[currentStatus] || { label: league.status, variant: "muted" };
   const clubs = league.league_clubs ?? [];
-  const rooms = league.league_rooms?.map((lr) => lr.poker_rooms?.name).filter(Boolean) ?? [];
+
+  // 🔥 Fallback Inteligente de Salas:
+  // 1. Intentar sacar las salas vinculadas a la liga
+  const directRooms = league.league_rooms?.map((lr) => lr.poker_rooms?.name).filter(Boolean) ?? [];
+  // 2. Si no hay, extraer salas únicas de los torneos que pertenecen a esta liga
+  const tournamentRooms = Array.from(new Set((tournaments ?? []).map(t => t.poker_rooms?.name).filter(Boolean)));
+  // 3. Unificar
+  const rooms = directRooms.length > 0 ? directRooms : tournamentRooms;
 
   const TABS: { key: Tab; label: string }[] = [
     { key: "standings", label: "Tabla de Posiciones" },
@@ -90,10 +82,10 @@ export function LeagueDetailPage() {
   return (
     <PageShell>
       <SEOHead
-  title={`${league.name} — Liga`}
-  description={`Liga de poker ${league.name}. Tabla de posiciones, calendario y resultados.`}
-  path={`/leagues/${leagueId}`}
-/>
+        title={`${league.name} — Liga`}
+        description={`Liga de poker ${league.name}. Tabla de posiciones, calendario y resultados.`}
+        path={`/leagues/${leagueId}`}
+      />
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           <Link
@@ -192,7 +184,14 @@ export function LeagueDetailPage() {
                 <p><span className="text-sk-text-1 font-semibold">Estado:</span> {status.label}</p>
                 <p><span className="text-sk-text-1 font-semibold">Periodo:</span> {league.start_date} — {league.end_date}</p>
                 <p><span className="text-sk-text-1 font-semibold">Clubes:</span> {clubs.map((c) => c.clubs?.name).join(", ")}</p>
-                <p><span className="text-sk-text-1 font-semibold">Salas:</span> {rooms.join(", ")}</p>
+                
+                {/* Mostramos las salas extraídas dinámica o estáticamente */}
+                {rooms.length > 0 ? (
+                  <p><span className="text-sk-text-1 font-semibold">Salas:</span> {rooms.join(", ")}</p>
+                ) : (
+                  <p><span className="text-sk-text-1 font-semibold">Salas:</span> Por definir</p>
+                )}
+
                 {league.rules_url && (
                   <p>
                     <span className="text-sk-text-1 font-semibold">Reglas:</span>{" "}

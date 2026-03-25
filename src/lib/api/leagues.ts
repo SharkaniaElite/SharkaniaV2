@@ -6,17 +6,35 @@ import type {
   LeagueStandingWithPlayer,
 } from "../../types";
 
+// 🔥 INTERCEPTOR: Calcula el estado real basado en la fecha actual
+function computeLeagueStatus(league: any): "upcoming" | "active" | "finished" {
+  if (!league.start_date || !league.end_date) return league.status;
+  
+  const now = new Date();
+  const start = new Date(league.start_date);
+  const end = new Date(league.end_date);
+  end.setHours(23, 59, 59, 999); // Expandimos hasta el último segundo del día final
+
+  if (now < start) return "upcoming";
+  if (now > end) return "finished";
+  return "active";
+}
+
 export async function getLeagues(): Promise<LeagueWithClubs[]> {
   const { data, error } = await supabase
     .from("leagues")
     .select(
       "*, league_clubs(is_primary, clubs(id, name, country_code)), league_rooms(poker_rooms(id, name))"
     )
-    .order("status", { ascending: true })
     .order("start_date", { ascending: false });
 
   if (error) throw error;
-  return (data as LeagueWithClubs[]) ?? [];
+  
+  // Mapeamos el resultado para sobrescribir el status con la realidad temporal
+  return (data || []).map(league => ({
+    ...league,
+    status: computeLeagueStatus(league)
+  })) as LeagueWithClubs[];
 }
 
 export async function getLeagueById(
@@ -35,7 +53,11 @@ export async function getLeagueById(
     throw error;
   }
 
-  return data as LeagueWithClubs;
+  // Sobrescribimos el status
+  return {
+    ...data,
+    status: computeLeagueStatus(data)
+  } as LeagueWithClubs;
 }
 
 export async function getLeagueStandings(
@@ -62,5 +84,9 @@ export async function searchLeagues(
     .limit(limit);
 
   if (error) throw error;
-  return (data as League[]) ?? [];
+  
+  return (data || []).map(league => ({
+    ...league,
+    status: computeLeagueStatus(league)
+  })) as League[];
 }

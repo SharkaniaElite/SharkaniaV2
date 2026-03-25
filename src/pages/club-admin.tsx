@@ -19,7 +19,7 @@ import { supabase } from "../lib/supabase";
 import { deleteTournamentSafe } from "../lib/api/tournaments";
 import { formatCurrency } from "../lib/format";
 import { cn } from "../lib/cn";
-import { Plus, Trash2, Pencil, Save, ChevronDown } from "lucide-react";
+import { Plus, Trash2, Pencil, Save, ChevronDown, Copy } from "lucide-react";
 import type { TournamentWithDetails, Tournament, League } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
 import { InfoTooltip } from "../components/ui/info-tooltip";
@@ -50,13 +50,10 @@ export function ClubAdminPage() {
   const [savingInfo, setSavingInfo] = useState(false);
 
   // ── Query: clubs the user can manage ──
-  // Super admin: ALL approved clubs
-  // Club admin: only their clubs via club_admins
   const { data: adminClubs, isLoading } = useQuery({
     queryKey: ["my-admin-clubs", user?.id, isSuperAdmin],
     queryFn: async () => {
       if (isSuperAdmin) {
-        // Super admin sees ALL clubs
         const { data, error } = await supabase
           .from("clubs")
           .select("id, name, country_code, description, is_approved, email, whatsapp, website_url, discord_url, telegram_url, instagram_url")
@@ -68,7 +65,6 @@ export function ClubAdminPage() {
           role: "super_admin" as const,
         }));
       } else {
-        // Regular club admin
         const { data, error } = await supabase
           .from("club_admins")
           .select("*, clubs(id, name, country_code, description, is_approved, email, whatsapp, website_url, discord_url, telegram_url, instagram_url)")
@@ -80,14 +76,12 @@ export function ClubAdminPage() {
     enabled: !!user?.id,
   });
 
-  // Auto-select first club when data loads
   useEffect(() => {
     if (adminClubs?.length && !selectedClubId) {
       setSelectedClubId(adminClubs[0].club_id);
     }
   }, [adminClubs, selectedClubId]);
 
-  // Current club data
   const currentAdmin = adminClubs?.find((a) => a.club_id === selectedClubId);
   const club = currentAdmin?.clubs;
   const firstClubId = selectedClubId;
@@ -114,17 +108,19 @@ export function ClubAdminPage() {
         .select("leagues(*)")
         .eq("club_id", firstClubId!);
       if (error) throw error;
-      return (data ?? []).map((d) => d.leagues).filter(Boolean) as League[];
+      return (data ?? [])
+        .flatMap((d: any) => d.leagues)
+        .filter(Boolean) as unknown as League[];
     },
     enabled: !!firstClubId,
   });
 
   const leagueOptions = (leagues ?? []).map((l) => ({ id: l.id, name: l.name }));
 
-  // ── Bulk delete helpers ──
   const scheduledTournaments = (tournaments ?? []).filter(
     (t) => t.status === "scheduled" && !t.results_uploaded
   );
+  
   const toggleTournamentSelection = (id: string) => {
     setSelectedTournamentIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -135,24 +131,38 @@ export function ClubAdminPage() {
 
   // ── Handlers ──
   const handleDeleteTournament = async (t: TournamentWithDetails) => {
-  const warning = t.results_uploaded
-    ? "⚠️ Esto revertirá ELO y puntos de liga. Esta acción no se puede deshacer."
-    : "";
+    const warning = t.results_uploaded
+      ? "⚠️ Esto revertirá ELO y puntos de liga. Esta acción no se puede deshacer."
+      : "";
 
-  if (!confirm(`¿Eliminar "${t.name}"?\n${warning}`)) return;
+    if (!confirm(`¿Eliminar "${t.name}"?\n${warning}`)) return;
 
-  setDeleting(t.id);
+    setDeleting(t.id);
 
-  try {
-    await deleteTournamentSafe(t.id);
-    refresh();
-  } catch (err) {
-    console.error(err);
-    alert("Error al eliminar torneo");
-  }
+    try {
+      await deleteTournamentSafe(t.id);
+      refresh();
+    } catch (err) {
+      console.error(err);
+      alert("Error al eliminar torneo");
+    } finally {
+      setDeleting(null);
+    }
+  };
 
-  setDeleting(null);
-};
+  // 🔥 NUEVA FUNCIÓN: Duplicar torneo y abrir modal
+  const handleDuplicateTournament = (t: TournamentWithDetails) => {
+    // 🔥 Corrección 2: Eliminamos "fts" de la desestructuración
+    const { id, created_at, updated_at, actual_prize_pool, results_uploaded, ...rest } = t;
+    
+    const duplicated: Partial<Tournament> = {
+      ...rest,
+      name: `${t.name} (Copia)`,
+      status: "scheduled",
+    };
+    
+    setEditTournament(duplicated as Tournament);
+  };
 
   const handleDeleteLeague = async (l: League) => {
     if (!confirm(`¿Eliminar liga "${l.name}"?`)) return;
@@ -198,7 +208,6 @@ export function ClubAdminPage() {
     queryClient.invalidateQueries({ queryKey: ["scheduled-from-templates"] });
   };
 
-  // Reset state when switching clubs
   const handleClubChange = (clubId: string) => {
     setSelectedClubId(clubId);
     setSelectedTournamentIds([]);
@@ -227,6 +236,18 @@ export function ClubAdminPage() {
   return (
     <PageShell>
       <SEOHead title="Admin Club" path="/admin/club" noIndex={true} />
+      
+      {/* 🔥 OVERLAY DE CARGA PARA ELIMINACIÓN DE TORNEO */}
+      {deleting && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#09090b]/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-sk-bg-2 border border-sk-border-2 p-8 rounded-xl shadow-2xl flex flex-col items-center max-w-sm text-center">
+            <Spinner size="lg" className="mb-6 text-sk-accent" />
+            <h3 className="text-sk-lg font-bold text-sk-text-1 mb-2">Eliminando torneo...</h3>
+            <p className="text-sk-sm text-sk-text-3">Recalculando ELO y posiciones de liga. Esto puede tomar unos segundos, no cierres la ventana.</p>
+          </div>
+        </div>
+      )}
+
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           {/* Header */}
@@ -236,7 +257,6 @@ export function ClubAdminPage() {
               {isSuperAdmin && <span className="ml-2 text-sk-gold">(Super Admin)</span>}
             </p>
 
-            {/* Club selector — visible for super admin with multiple clubs, or regular admin with multiple */}
             {(adminClubs?.length ?? 0) > 1 ? (
               <div className="flex items-center gap-3 mb-3">
                 <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1">🎛️</h1>
@@ -359,9 +379,13 @@ export function ClubAdminPage() {
                             <td className="py-3 px-4 border-b border-sk-border-2"><Badge variant={t.status === "completed" ? "muted" : t.status === "live" ? "live" : "accent"}>{t.status}</Badge></td>
                             <td className="py-3 px-4 border-b border-sk-border-2">{t.results_uploaded ? <Button variant="secondary" size="xs" onClick={() => setEditResultsTournament(t)}>Ver / Editar</Button> : <Button variant="accent" size="xs" onClick={() => setUploadTournament(t)}>Subir</Button>}</td>
                             <td className="py-3 px-4 border-b border-sk-border-2">
-                              <div className="flex gap-1">
-                                <button onClick={() => setEditTournament(t as Tournament)} className="text-sk-text-2 hover:text-sk-accent p-1"><Pencil size={13} /></button>
-                                <button onClick={() => handleDeleteTournament(t)} disabled={deleting === t.id} className="text-sk-text-2 hover:text-sk-red p-1"><Trash2 size={13} /></button>
+                              <div className="flex gap-1 justify-end">
+                                {/* 🔥 NUEVO BOTÓN DUPLICAR */}
+                                <button onClick={() => handleDuplicateTournament(t)} className="text-sk-text-2 hover:text-sk-text-1 p-1 transition-colors" title="Duplicar Torneo">
+                                  <Copy size={13} />
+                                </button>
+                                <button onClick={() => setEditTournament(t as Tournament)} className="text-sk-text-2 hover:text-sk-accent p-1 transition-colors" title="Editar Torneo"><Pencil size={13} /></button>
+                                <button onClick={() => handleDeleteTournament(t)} disabled={deleting === t.id} className="text-sk-text-2 hover:text-sk-red p-1 transition-colors disabled:opacity-50" title="Eliminar Torneo"><Trash2 size={13} /></button>
                               </div>
                             </td>
                           </tr>

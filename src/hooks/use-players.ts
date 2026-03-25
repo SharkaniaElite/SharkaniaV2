@@ -19,13 +19,38 @@ interface UsePlayersOptions {
   enabled?: boolean;
 }
 
+// 🔥 Helper para queryKey estable
+function buildPlayersKey(filters: UsePlayersOptions) {
+  return [
+    "players",
+    filters.page ?? 1,
+    filters.pageSize ?? 20,
+    filters.search ?? "",
+    filters.countryCode ?? "",
+    filters.roomId ?? "",
+    filters.orderBy ?? "elo_rating",
+    filters.orderDir ?? "desc",
+  ];
+}
+
 export function usePlayers(options: UsePlayersOptions = {}) {
   const { enabled = true, ...filters } = options;
 
   return useQuery({
-    queryKey: ["players", filters],
+    queryKey: buildPlayersKey(filters),
+
     queryFn: () => getPlayers(filters),
+
     enabled,
+
+    // 🔥 UX brutal: mantiene data anterior mientras carga nueva
+    placeholderData: (previousData) => previousData,
+
+    // 🔥 Evita refetch innecesarios
+    staleTime: 1000 * 60 * 2, // 2 min
+
+    // 🔥 Control fino de retry
+    retry: 1,
   });
 }
 
@@ -34,6 +59,7 @@ export function usePlayer(id: string | undefined) {
     queryKey: ["player", id],
     queryFn: () => getPlayerById(id!),
     enabled: !!id,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -42,6 +68,7 @@ export function usePlayerEloHistory(playerId: string | undefined) {
     queryKey: ["player-elo-history", playerId],
     queryFn: () => getPlayerEloHistory(playerId!),
     enabled: !!playerId,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -50,13 +77,17 @@ export function usePlayerTournamentResults(playerId: string | undefined) {
     queryKey: ["player-tournament-results", playerId],
     queryFn: () => getPlayerTournamentResults(playerId!),
     enabled: !!playerId,
+    staleTime: 1000 * 60 * 2,
   });
 }
 
 export function useSearchPlayers(query: string, limit: number = 10) {
   return useQuery({
-    queryKey: ["search-players", query],
+    queryKey: ["search-players", query, limit],
     queryFn: () => searchPlayers(query, limit),
     enabled: query.length >= 2,
+
+    // 🔥 búsqueda debe ser rápida, poco cache
+    staleTime: 1000 * 30,
   });
 }

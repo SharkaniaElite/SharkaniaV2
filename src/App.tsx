@@ -1,37 +1,39 @@
 // src/App.tsx
 import { GoogleAnalytics } from "./components/seo/google-analytics";
 import { StructuredData } from "./components/seo/structured-data";
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "./stores/auth-store";
 import { ProtectedRoute } from "./components/layout/protected-route";
 import { ScrollToTop } from "./components/layout/scroll-to-top";
-import { HomePage } from "./pages/home";
-import { RankingPage } from "./pages/ranking";
-import { PlayerProfilePage } from "./pages/player-profile";
-import { CalendarPage } from "./pages/calendar";
-import { ClubsPage } from "./pages/clubs";
-import { ClubDetailPage } from "./pages/club-detail";
-import { LeaguesPage } from "./pages/leagues";
-import { LeagueDetailPage } from "./pages/league-detail";
-import { ComparePage } from "./pages/compare";
-import { LoginPage } from "./pages/login";
-import { RegisterPage } from "./pages/register";
-import { PlayerDashboardPage } from "./pages/player-dashboard";
-import { ClubAdminPage } from "./pages/club-admin";
-import { SuperAdminPage } from "./pages/super-admin";
-import BlogPage from "./pages/blog";
-import BlogPostPage from "./pages/blog-post";
 import { FloatingCTA } from "./components/marketing/FloatingCTA";
-import { TournamentDetailPage } from "./pages/tournament-detail";
-import { ToolsPage } from "./pages/tools";
-import { PokerQuizPage } from "./pages/poker-quiz";
-import { ICMCalculatorPage } from "./pages/icm-calculator";
-import { EloSimulatorPage } from "./pages/elo-simulator";
-import { BankrollCalculatorPage } from "./pages/bankroll-calculator";
-import { ReplayerPage } from "./pages/replayer";
+import { Spinner } from "./components/ui/spinner";
 
+// 🔥 Lazy imports (CLAVE)
+const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
+const RankingPage = lazy(() => import("./pages/ranking").then(m => ({ default: m.RankingPage })));
+const PlayerProfilePage = lazy(() => import("./pages/player-profile").then(m => ({ default: m.PlayerProfilePage })));
+const CalendarPage = lazy(() => import("./pages/calendar").then(m => ({ default: m.CalendarPage })));
+const ClubsPage = lazy(() => import("./pages/clubs").then(m => ({ default: m.ClubsPage })));
+const ClubDetailPage = lazy(() => import("./pages/club-detail").then(m => ({ default: m.ClubDetailPage })));
+const LeaguesPage = lazy(() => import("./pages/leagues").then(m => ({ default: m.LeaguesPage })));
+const LeagueDetailPage = lazy(() => import("./pages/league-detail").then(m => ({ default: m.LeagueDetailPage })));
+const ComparePage = lazy(() => import("./pages/compare").then(m => ({ default: m.ComparePage })));
+const LoginPage = lazy(() => import("./pages/login").then(m => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import("./pages/register").then(m => ({ default: m.RegisterPage })));
+const PlayerDashboardPage = lazy(() => import("./pages/player-dashboard").then(m => ({ default: m.PlayerDashboardPage })));
+const ClubAdminPage = lazy(() => import("./pages/club-admin").then(m => ({ default: m.ClubAdminPage })));
+const SuperAdminPage = lazy(() => import("./pages/super-admin").then(m => ({ default: m.SuperAdminPage })));
+const BlogPage = lazy(() => import("./pages/blog"));
+const BlogPostPage = lazy(() => import("./pages/blog-post"));
+const TournamentDetailPage = lazy(() => import("./pages/tournament-detail").then(m => ({ default: m.TournamentDetailPage })));
+const ToolsPage = lazy(() => import("./pages/tools").then(m => ({ default: m.ToolsPage })));
+const PokerQuizPage = lazy(() => import("./pages/poker-quiz").then(m => ({ default: m.PokerQuizPage })));
+const ICMCalculatorPage = lazy(() => import("./pages/icm-calculator").then(m => ({ default: m.ICMCalculatorPage })));
+const EloSimulatorPage = lazy(() => import("./pages/elo-simulator").then(m => ({ default: m.EloSimulatorPage })));
+const BankrollCalculatorPage = lazy(() => import("./pages/bankroll-calculator").then(m => ({ default: m.BankrollCalculatorPage })));
+const ReplayerPage = lazy(() => import("./pages/replayer").then(m => ({ default: m.ReplayerPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,69 +64,84 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ScrollToTop />
-  	<GoogleAnalytics />
-  	<StructuredData />
+        <GoogleAnalytics />
+        <StructuredData />
+
         <AuthInitializer>
-          <Routes>
-            {/* Public */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/ranking" element={<RankingPage />} />
-            <Route path="/ranking/:playerId" element={<PlayerProfilePage />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/clubs" element={<ClubsPage />} />
-            <Route path="/clubs/:clubId" element={<ClubDetailPage />} />
-            <Route path="/leagues" element={<LeaguesPage />} />
-            <Route path="/leagues/:leagueId" element={<LeagueDetailPage />} />
-            <Route path="/compare" element={<ComparePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/tournament/:id" element={<TournamentDetailPage />} />
-            <Route path="/tools" element={<ToolsPage />} />
-            <Route path="/tools/quiz" element={<PokerQuizPage />} />
-            <Route path="/tools/calculadora-icm" element={<ICMCalculatorPage />} />
-            <Route path="/tools/simulador-elo" element={<EloSimulatorPage />} />
-            <Route path="/tools/calculadora-banca" element={<BankrollCalculatorPage />} />
-            <Route path="/tools/replayer/h/:id" element={<ReplayerPage />} />
-            <Route path="/tools/replayer" element={
-  <ProtectedRoute>
-    <ReplayerPage />
-  </ProtectedRoute>
-} />
+          {/* 🔥 Suspense global */}
+          <Suspense
+            fallback={
+              <div className="min-h-screen flex items-center justify-center bg-sk-bg-1">
+                <Spinner size="lg" />
+              </div>
+            }
+          >
+            <Routes>
+              {/* Public */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/ranking" element={<RankingPage />} />
+              <Route path="/ranking/:playerId" element={<PlayerProfilePage />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/clubs" element={<ClubsPage />} />
+              <Route path="/clubs/:clubId" element={<ClubDetailPage />} />
+              <Route path="/leagues" element={<LeaguesPage />} />
+              <Route path="/leagues/:leagueId" element={<LeagueDetailPage />} />
+              <Route path="/compare" element={<ComparePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/tournament/:id" element={<TournamentDetailPage />} />
 
-            {/* Blog */}
-            <Route path="/blog" element={<BlogPage />} />
-            <Route path="/blog/:slug" element={<BlogPostPage />} />
+              {/* Tools */}
+              <Route path="/tools" element={<ToolsPage />} />
+              <Route path="/tools/quiz" element={<PokerQuizPage />} />
+              <Route path="/tools/calculadora-icm" element={<ICMCalculatorPage />} />
+              <Route path="/tools/simulador-elo" element={<EloSimulatorPage />} />
+              <Route path="/tools/calculadora-banca" element={<BankrollCalculatorPage />} />
 
-            {/* Protected: any authenticated user */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <PlayerDashboardPage />
-                </ProtectedRoute>
-              }
-            />
+              <Route path="/tools/replayer/h/:id" element={<ReplayerPage />} />
+              <Route
+                path="/tools/replayer"
+                element={
+                  <ProtectedRoute>
+                    <ReplayerPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Protected: club admin */}
-            <Route
-              path="/admin/club"
-              element={
-                <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                  <ClubAdminPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Blog */}
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/blog/:slug" element={<BlogPostPage />} />
 
-            {/* Protected: super admin */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute requiredRole={["super_admin"]}>
-                  <SuperAdminPage />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
+              {/* Protected */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <PlayerDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/club"
+                element={
+                  <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                    <ClubAdminPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requiredRole={["super_admin"]}>
+                    <SuperAdminPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </Suspense>
+
           <FloatingCTA />
         </AuthInitializer>
       </BrowserRouter>

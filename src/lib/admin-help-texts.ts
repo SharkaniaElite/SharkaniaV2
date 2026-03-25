@@ -15,9 +15,8 @@ export const ADMIN_HELP = {
       "Selecciona qué días de la semana se repite este torneo. Después podrás generar el calendario de 30 días con un solo click y todos los torneos se crearán automáticamente.",
   },
   generateCalendar: {
-    title: "Generar calendario automático",
-    content:
-      "Este botón crea todos los torneos de los próximos 30 días basándose en tus plantillas activas y sus días de repetición. No crea duplicados — si un torneo ya existe para esa fecha, lo omite.",
+    title: "Generación Masiva por Rango",
+    content: "Selecciona una fecha de inicio y fin (máximo 30 días). El sistema evaluará todas tus plantillas activas y programará los torneos automáticamente en los días de la semana que tengan configurados dentro de ese período.",
   },
   importCSV: {
     title: "Importar calendario desde CSV",

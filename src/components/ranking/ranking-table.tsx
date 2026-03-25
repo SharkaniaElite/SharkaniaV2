@@ -1,4 +1,5 @@
 // src/components/ranking/ranking-table.tsx
+import { memo, useMemo } from "react";
 import { PlayerRow } from "./player-row";
 import { SkeletonTable } from "../ui/skeleton";
 import { EmptyState } from "../ui/empty-state";
@@ -12,11 +13,23 @@ interface RankingTableProps {
 
 const HEADERS = ["#", "Jugador", "ELO", "Torneos", "Cashes", "ITM%", "Wins"];
 
-export function RankingTable({
+function RankingTableComponent({
   players,
   isLoading,
   startRank = 1,
 }: RankingTableProps) {
+  // 🔥 Hook SIEMPRE arriba (clave)
+  const rows = useMemo(() => {
+    return players.map((player, i) => (
+      <PlayerRow
+        key={player.id}
+        player={player}
+        rank={startRank + i}
+      />
+    ));
+  }, [players, startRank]);
+
+  // 🔽 Después recién los returns
   if (isLoading) {
     return <SkeletonTable rows={10} />;
   }
@@ -48,16 +61,11 @@ export function RankingTable({
             ))}
           </tr>
         </thead>
-        <tbody>
-          {players.map((player, i) => (
-            <PlayerRow
-              key={player.id}
-              player={player}
-              rank={startRank + i}
-            />
-          ))}
-        </tbody>
+
+        <tbody>{rows}</tbody>
       </table>
     </div>
   );
 }
+
+export const RankingTable = memo(RankingTableComponent);

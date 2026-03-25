@@ -4,6 +4,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Modal } from "../ui/modal";
 import { calculateElo } from "../../lib/api/elo-engine";
+import { applyLeaguePoints } from "../../lib/api/tournaments"; // 🔥 Lógica centralizada
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/cn";
 import {
@@ -17,7 +18,6 @@ import {
   XCircle,
 } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
-import { applyLeaguePoints } from "../../lib/api/tournaments";
 
 // ── Types ──
 
@@ -72,7 +72,7 @@ interface ParsedCSVRow {
   position: number | null;
   nickname: string;
   prize: number;
-  points: number; // vacío en CSV → 0
+  points: number;
 }
 
 function parseCSVSmart(
@@ -112,14 +112,9 @@ function parseCSVSmart(
   const rows: ParsedCSVRow[] = [];
   const errors: CSVValidationError[] = [];
 
-  // Solo nickname es realmente obligatorio
   if (!("nickname" in headerMap)) {
     errors.push({ row: 0, field: "nickname", message: 'No se encontró la columna "nickname" (o "jugador", "nick", "player"). Es obligatoria.' });
   }
-
-  // ── CAMBIO 1: puntos ya NO son obligatorios en el CSV ──
-  // Si no hay columna puntos en torneo de liga, se asume 0 para todos.
-  // Solo avisamos (info), no bloqueamos.
 
   for (let i = startIndex; i < lines.length; i++) {
     const parts = lines[i]!.split(sep).map((s) => s.trim().replace(/^["']|["']$/g, ""));
@@ -144,19 +139,15 @@ function parseCSVSmart(
 
     const nickname = nickRaw.trim();
     const prize    = prizeRaw  ? parseFloat(prizeRaw.replace(/[$,\s]/g, ""))  || 0 : 0;
-    // ── CAMBIO 1b: celda vacía → 0, nunca error ──
     const points   = pointsRaw ? parseFloat(pointsRaw.replace(/[$,\s]/g, "")) || 0 : 0;
 
     if (!nickname) {
       errors.push({ row: rowNum, field: "nickname", message: `Fila ${rowNum}: falta el "nickname" (obligatorio)` });
     }
 
-    // Eliminada la validación que generaba error por puntos vacíos
-
     rows.push({ position, nickname, prize, points });
   }
 
-  // Auto-assign positions si no hay columna position
   if (!("position" in headerMap)) {
     rows.forEach((r, i) => { r.position = i + 1; });
   } else {
@@ -283,7 +274,7 @@ export function ResultsUpload({
           nickname: p.nickname,
           playerId: "",
           prizeWon: p.prize,
-          leaguePoints: p.points, // ya es 0 si estaba vacío
+          leaguePoints: p.points,
           status: "pending" as const,
         }))
       );
@@ -333,9 +324,6 @@ export function ResultsUpload({
       validationErrors.push(`Nicknames duplicados: ${[...new Set(duplicateNicknames.map((r) => r.nickname))].join(", ")}`);
     }
 
-    // ── CAMBIO 2: eliminada la validación que bloqueaba leaguePoints === 0 ──
-    // 0 es un valor válido. No se genera ningún error por puntos en cero o vacíos.
-
     if (validationErrors.length > 0) {
       setMessage({ text: validationErrors.join("\n"), type: "error" });
       return;
@@ -350,10 +338,18 @@ export function ResultsUpload({
 
       for (const row of rows) {
         const result = await resolvePlayer(
-          row.nickname, tournament.room_id, tournament.clubs?.country_code ?? null
+          row.nickname,
+          tournament.room_id,
+          tournament.clubs?.country_code ?? null
         );
+
         if (result.status === "created") createdCount++;
-        resolvedRows.push({ ...row, playerId: result.id, status: result.status });
+
+        resolvedRows.push({
+          ...row,
+          playerId: result.id,
+          status: result.status,
+        });
       }
 
       setRows(resolvedRows);
@@ -361,27 +357,33 @@ export function ResultsUpload({
       const duplicateIds = resolvedRows.filter(
         (r, i, arr) => arr.findIndex((a) => a.playerId === r.playerId) !== i
       );
+
       if (duplicateIds.length > 0) {
-        setMessage({ text: "Error: hay jugadores que resolvieron al mismo ID. Verifica los nicknames.", type: "error" });
+        setMessage({
+          text: "Error: hay jugadores que resolvieron al mismo ID. Verifica los nicknames.",
+          type: "error",
+        });
         setResolving(false);
         return;
       }
 
       setMessage({
-        text: createdCount > 0
-          ? `${createdCount} jugadores nuevos creados con ELO 1200. Subiendo resultados...`
-          : "Todos los jugadores encontrados. Subiendo resultados...",
+        text:
+          createdCount > 0
+            ? `${createdCount} jugadores nuevos creados con ELO 1200. Subiendo resultados...`
+            : "Todos los jugadores encontrados. Subiendo resultados...",
         type: "info",
       });
 
       setUploading(true);
+
       const resultInserts = resolvedRows.map((r) => ({
         tournament_id: tournament.id,
         player_id: r.playerId,
         position: r.position,
         prize_won: r.prizeWon,
         bounties_won: 0,
-        league_points_earned: r.leaguePoints, // 0 es válido
+        league_points_earned: r.leaguePoints,
       }));
 
       const { error: insertError } = await supabase
@@ -389,36 +391,47 @@ export function ResultsUpload({
         .insert(resultInserts);
 
       if (insertError) {
-        setMessage({ text: `Error subiendo resultados: ${insertError.message}`, type: "error" });
+        setMessage({
+          text: `Error subiendo resultados: ${insertError.message}`,
+          type: "error",
+        });
         return;
       }
 
-      // Calcular ELO
-setMessage({ text: "Calculando ELO...", type: "info" });
-const eloResult = await calculateElo(tournament.id);
+      // ✅ 1. Aplicar puntos de liga PRIMERO usando la API centralizada
+      if (tournament.league_id) {
+        setMessage({ text: "Aplicando puntos de liga...", type: "info" });
+        try {
+          await applyLeaguePoints(tournament.id, tournament.league_id);
+        } catch (err) {
+          console.error("Error aplicando puntos:", err);
+          setMessage({ text: "Error al calcular puntos de liga, pero los resultados se subieron.", type: "error" });
+        }
+      }
 
-if (eloResult.success) {
+      // ✅ 2. Luego calcular ELO
+      setMessage({ text: "Calculando ELO...", type: "info" });
 
-  // 🆕 APLICAR PUNTOS DE LIGA AUTOMÁTICAMENTE
-  if (tournament.league_id) {
-    setMessage({ text: "Aplicando puntos de liga...", type: "info" });
+      const eloResult = await calculateElo(tournament.id);
 
-    await applyLeaguePoints(tournament.id, tournament.league_id);
-  }
+      if (eloResult.success) {
+        setMessage({
+          text: `✅ ${eloResult.message}. La tabla de liga fue actualizada automáticamente.${
+            createdCount > 0 ? ` ${createdCount} jugadores nuevos creados.` : ""
+          }`,
+          type: "success",
+        });
 
-  setMessage({
-    text: `✅ ${eloResult.message}. ${createdCount > 0 ? `${createdCount} jugadores nuevos creados.` : ""}`,
-    type: "success",
-  });
-
-  setTimeout(() => { onComplete(); onClose(); }, 2500);
-
-} else {
-  setMessage({
-    text: `⚠️ Resultados subidos pero ELO falló: ${eloResult.message}`,
-    type: "error",
-  });
-}
+        setTimeout(() => {
+          onComplete();
+          onClose();
+        }, 2500);
+      } else {
+        setMessage({
+          text: `⚠️ Resultados subidos pero ELO falló: ${eloResult.message}`,
+          type: "error",
+        });
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Error inesperado";
       setMessage({ text: errorMsg, type: "error" });
@@ -431,8 +444,6 @@ if (eloResult.success) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Subir Resultados: ${tournament.name}`} className="max-w-2xl">
       <div className="space-y-4">
-
-        {/* League indicator */}
         {hasLeague && (
           <div className="flex items-center gap-2 px-3 py-2 bg-sk-purple-dim border border-sk-purple/20 rounded-md">
             <Badge variant="purple">Liga</Badge>
@@ -442,7 +453,6 @@ if (eloResult.success) {
           </div>
         )}
 
-        {/* STEP 1: CSV Upload */}
         {!imported && (
           <div className="space-y-4">
             <div className="bg-sk-bg-3 border border-sk-border-2 rounded-md p-4 space-y-3">
@@ -503,7 +513,7 @@ if (eloResult.success) {
                 </p>
               </div>
 
-   <a           
+              <a           
                 href="/blog/como-crear-csv-resultados"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -521,7 +531,6 @@ if (eloResult.success) {
           </div>
         )}
 
-        {/* CSV Validation Errors */}
         {csvErrors.length > 0 && (
           <div className="bg-sk-red-dim border border-sk-red/20 rounded-md p-3 space-y-1.5">
             <div className="flex items-center gap-2 text-sk-red text-sk-sm font-semibold">
@@ -542,7 +551,6 @@ if (eloResult.success) {
           </div>
         )}
 
-        {/* STEP 2: Preview & edit */}
         {imported && rows.length > 0 && (
           <>
             {detectedCols.length > 0 && csvErrors.filter((e) => e.row === 0).length === 0 && (
@@ -641,7 +649,6 @@ if (eloResult.success) {
           </>
         )}
 
-        {/* Message */}
         {message && (
           <div className={cn(
             "rounded-md p-3 text-sk-sm whitespace-pre-line",
@@ -653,7 +660,6 @@ if (eloResult.success) {
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" size="sm" onClick={onClose}>Cancelar</Button>
           {imported && rows.length > 0 && (

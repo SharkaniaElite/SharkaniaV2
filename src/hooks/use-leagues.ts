@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getLeagues,
   getLeagueById,
-  getLeagueStandings,
   searchLeagues,
+  getLeagueStandings, // 🔥 Importamos la función de la API
 } from "../lib/api/leagues";
 
 export function useLeagues() {
@@ -22,10 +22,11 @@ export function useLeague(id: string | undefined) {
   });
 }
 
-export function useLeagueStandings(leagueId: string | undefined) {
+export function useLeagueStandings(leagueId?: string) {
   return useQuery({
     queryKey: ["league-standings", leagueId],
-    queryFn: () => getLeagueStandings(leagueId!),
+    // 🔥 Delegamos la llamada a la API unificada
+    queryFn: () => getLeagueStandings(leagueId!), 
     enabled: !!leagueId,
   });
 }

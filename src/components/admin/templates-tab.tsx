@@ -30,7 +30,6 @@ import {
   deleteTemplate,
   toggleTemplateActive,
   createTournamentFromTemplate,
-  generateCalendar,
   importCalendarFromCSV,
   DAY_LABELS,
 } from "../../lib/api/tournament-templates";
@@ -53,7 +52,10 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
   const [cloneTime, setCloneTime] = useState("");
   const [cloneLoading, setCloneLoading] = useState(false);
 
-  // Generate calendar state
+  // Estado del Generador de Calendario por Rango
+  const [showGenerateForm, setShowGenerateForm] = useState(false);
+  const [generateStart, setGenerateStart] = useState("");
+  const [generateEnd, setGenerateEnd] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generateResult, setGenerateResult] = useState<{ count: number } | null>(null);
 
@@ -112,7 +114,7 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
     );
   };
 
-  // ── Delete template ──
+  // ── Delete & Toggle ──
   const handleDelete = async (t: TournamentTemplate) => {
     if (!confirm(`¿Eliminar plantilla "${t.name}"? Los torneos creados desde ella NO se eliminan.`)) return;
     setDeleting(t.id);
@@ -124,7 +126,6 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
     }
   };
 
-  // ── Toggle active ──
   const handleToggle = async (t: TournamentTemplate) => {
     await toggleTemplateActive(t.id, !t.is_active);
     refresh();
@@ -150,23 +151,104 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
     }
   };
 
-  // ── Generate calendar ──
-  const handleGenerateCalendar = async () => {
+  // ── Generar calendario por rango de fechas ──
+  const handleOpenGenerate = () => {
+    const today = new Date();
+    const next30 = new Date();
+    next30.setDate(today.getDate() + 30);
+
+    // 🔥 FIX TypeScript: Aseguramos el array con fallback
+    setGenerateStart(today.toISOString().split("T")[0] ?? "");
+    setGenerateEnd(next30.toISOString().split("T")[0] ?? "");
+    
+    setShowGenerateForm(true);
+    setGenerateResult(null);
+  };
+
+  const handleConfirmGenerate = async () => {
     const recurrentCount = templates?.filter((t) => t.is_active && t.recurrence_days?.length).length ?? 0;
     if (!recurrentCount) {
       alert("No tienes plantillas activas con días de repetición configurados.");
       return;
     }
-    if (!confirm(`Se generarán torneos de los próximos 30 días basándose en ${recurrentCount} plantilla(s) recurrente(s). ¿Continuar?`)) return;
+
+    if (!generateStart || !generateEnd) return;
+
+    const start = new Date(generateStart + "T00:00:00");
+    const end = new Date(generateEnd + "T23:59:59");
+    const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
+
+    if (start > end) {
+      alert("La fecha de inicio no puede ser mayor a la fecha de fin.");
+      return;
+    }
+
+    if (diffDays > 31) {
+      alert("El rango de fechas no puede ser mayor a 30 días para evitar saturar el sistema.");
+      return;
+    }
 
     setGenerating(true);
     setGenerateResult(null);
+
     try {
-      const count = await generateCalendar(clubId, 30);
-      setGenerateResult({ count });
+      const activeTemplates = templates!.filter((t) => t.is_active && t.recurrence_days?.length);
+      const inserts: any[] = [];
+      
+      // 🔥 FIX ESLint: Usar const para objetos que mutan internamente pero no se reasignan
+      const currentDate = new Date(start);
+
+      // Iteramos día por día dentro del rango
+      while (currentDate <= end) {
+        const dayOfWeek = currentDate.getDay(); // 0 = Domingo, 1 = Lunes, etc.
+        
+        for (const t of activeTemplates) {
+          if (t.recurrence_days!.includes(dayOfWeek)) {
+            // TypeScript sabe que [0] existe, pero le damos el fallback
+            const dateStr = currentDate.toISOString().split("T")[0] ?? "";
+            const timeStr = t.default_hour.slice(0, 5);
+            const dateTimeStr = `${dateStr}T${timeStr}:00`;
+
+            inserts.push({
+              club_id: clubId,
+              template_id: t.id,
+              name: t.name,
+              description: t.description,
+              room_id: t.room_id,
+              league_id: t.league_id,
+              buy_in: t.buy_in,
+              currency: t.currency,
+              guaranteed_prize: t.guaranteed_prize,
+              start_datetime: new Date(dateTimeStr).toISOString(),
+              timezone: t.default_timezone,
+              late_registration_minutes: t.late_registration_minutes,
+              max_players: t.max_players,
+              game_type: t.game_type,
+              tournament_type: t.tournament_type,
+              status: "scheduled",
+              is_demo: false,
+              results_uploaded: false
+            });
+          }
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      if (inserts.length === 0) {
+        setGenerateResult({ count: 0 });
+        setShowGenerateForm(false);
+        return;
+      }
+
+      // Inserción masiva ultra rápida
+      const { error } = await supabase.from("tournaments").insert(inserts);
+      if (error) throw error;
+
+      setGenerateResult({ count: inserts.length });
       refresh();
+      setShowGenerateForm(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al generar calendario");
+      alert(err instanceof Error ? err.message : "Error al generar calendario masivo");
     } finally {
       setGenerating(false);
     }
@@ -189,7 +271,8 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
         return;
       }
 
-      const header = lines[0].toLowerCase().split(",").map((h) => h.trim());
+      // 🔥 FIX TypeScript: Aseguramos con ! que lines[0] existe tras validar el length
+      const header = lines[0]!.toLowerCase().split(",").map((h) => h.trim());
       const templateIdx = header.findIndex((h) => h.includes("plantilla") || h.includes("template"));
       const dateIdx = header.findIndex((h) => h.includes("fecha") || h.includes("date"));
       const timeIdx = header.findIndex((h) => h.includes("hora") || h.includes("time"));
@@ -225,7 +308,7 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
     }
   };
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Date().toISOString().split("T")[0] ?? "";
 
   return (
     <div>
@@ -243,10 +326,10 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
       </div>
 
       {/* Action bar: Generate + CSV */}
-      {(templates?.length ?? 0) > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <Button variant="primary" size="sm" onClick={handleGenerateCalendar} isLoading={generating}>
-            <Zap size={14} /> Generar Calendario (30 días)
+      {(templates?.length ?? 0) > 0 && !showGenerateForm && (
+        <div className="flex flex-wrap items-center gap-2 mb-4 animate-in fade-in">
+          <Button variant="primary" size="sm" onClick={handleOpenGenerate} isLoading={generating}>
+            <Zap size={14} /> Generar Calendario Masivo
           </Button>
           <InfoTooltip title={ADMIN_HELP.generateCalendar.title} content={ADMIN_HELP.generateCalendar.content} size="sm" />
           <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} isLoading={importing}>
@@ -257,19 +340,61 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
         </div>
       )}
 
-      {/* Generate result */}
+      {/* Formulario en línea de Generación por Rango */}
+      {showGenerateForm && (
+        <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-4 mb-4 animate-in slide-in-from-top-2 fade-in">
+          <h4 className="text-sk-sm font-bold text-sk-text-1 mb-3 flex items-center gap-2">
+            <Zap size={14} className="text-sk-accent" />
+            Configurar Rango de Generación
+          </h4>
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label className="font-mono text-[10px] font-semibold uppercase tracking-wide text-sk-text-3 mb-1.5 block">Fecha de Inicio</label>
+              <input
+                type="date"
+                value={generateStart}
+                onChange={(e) => setGenerateStart(e.target.value)}
+                className="bg-sk-bg-0 border border-sk-border-2 rounded-md py-1.5 px-3 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
+              />
+            </div>
+            <div>
+              <label className="font-mono text-[10px] font-semibold uppercase tracking-wide text-sk-text-3 mb-1.5 block">Fecha de Fin (Máx 30 días)</label>
+              <input
+                type="date"
+                value={generateEnd}
+                min={generateStart}
+                onChange={(e) => setGenerateEnd(e.target.value)}
+                className="bg-sk-bg-0 border border-sk-border-2 rounded-md py-1.5 px-3 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
+              />
+            </div>
+            <div className="flex gap-2 ml-auto">
+              <Button variant="ghost" size="sm" onClick={() => setShowGenerateForm(false)}>
+                Cancelar
+              </Button>
+              <Button variant="accent" size="sm" onClick={handleConfirmGenerate} isLoading={generating}>
+                Confirmar y Generar
+              </Button>
+            </div>
+          </div>
+          <p className="text-[10px] text-sk-text-4 mt-3">
+            El sistema buscará todas las plantillas activas y programará los torneos en los días de la semana que tengan marcados dentro de este rango de fechas.
+          </p>
+        </div>
+      )}
+
+      {/* Generate result message */}
       {generateResult && (
         <div className="bg-sk-green-dim border border-sk-green/20 rounded-lg p-3 mb-4 flex items-center gap-2">
           <CheckCircle size={14} className="text-sk-green shrink-0" />
           <p className="text-sk-xs text-sk-green">
             {generateResult.count > 0
-              ? `${generateResult.count} torneo(s) creado(s) para los próximos 30 días.`
-              : "No se crearon torneos nuevos — ya existen todos para este período."}
+              ? `¡Listo! Se han generado y programado ${generateResult.count} torneos nuevos.`
+              : "No se crearon torneos nuevos en este rango."}
           </p>
         </div>
       )}
 
-      {/* Import result */}
+      {/* Import result message */}
       {importResult && (
         <div className={`border rounded-lg p-3 mb-4 ${importResult.errors.length ? "bg-sk-gold-dim border-sk-gold/20" : "bg-sk-green-dim border-sk-green/20"}`}>
           <div className="flex items-center gap-2 mb-1">
@@ -311,7 +436,6 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
             }}
           />
 
-          {/* Lista de torneos generados con checkboxes */}
           <div className="mt-2 border border-sk-border-1 rounded-lg bg-sk-bg-2 max-h-48 overflow-y-auto">
             {(scheduledFromTemplates ?? []).map((t) => {
               const isSelected = selectedGeneratedIds.includes(t.id);
@@ -375,7 +499,6 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
               }`}
             >
               <div className="flex items-start justify-between gap-4">
-                {/* Left: Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="text-sk-sm font-bold text-sk-text-1">{t.name}</h3>
@@ -451,7 +574,6 @@ export function TemplatesTab({ clubId, leagueOptions, onTournamentsChanged }: Te
                   )}
                 </div>
 
-                {/* Right: Actions */}
                 <div className="flex items-center gap-1 shrink-0">
                   <button onClick={() => setCloningId(cloningId === t.id ? null : t.id)} title="Crear torneo desde esta plantilla" className="text-sk-text-2 hover:text-sk-accent p-1.5 rounded hover:bg-white/[0.04] transition-colors">
                     <Copy size={14} />
