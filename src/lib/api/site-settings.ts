@@ -82,9 +82,11 @@ export async function getBannersConfig(): Promise<BannersConfig> {
       .from("site_settings")
       .select("value")
       .eq("key", "banners")
-      .single();
+      .maybeSingle(); // 🛡️ Cambiado de .single() a .maybeSingle()
 
+    // Si no hay data o hay error, devolvemos los valores por defecto sin que explote
     if (error || !data) return DEFAULT_BANNERS;
+    
     return data.value as BannersConfig;
   } catch {
     return DEFAULT_BANNERS;

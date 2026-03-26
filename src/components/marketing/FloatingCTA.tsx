@@ -18,23 +18,33 @@ export function FloatingCTA() {
 
   const [visible, setVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [players, setPlayers] = useState(0);
   const [config, setConfig] = useState<FloatingConfig | null>(null);
 
-  // Cargar config desde Supabase (con fallback al config estático)
+// 🛡️ Inicialización perezosa: Solo se ejecuta UNA vez en el montaje inicial.
+  // Esto satisface al linter porque la impureza queda fuera del cuerpo del render.
+  const [players] = useState(() => {
+    const base = 180;
+    const random = Math.floor(Math.random() * 60);
+    return base + random;
+  });
+
+  // 🛡️ Cargar config desde Supabase con sintaxis async/await limpia
   useEffect(() => {
-    supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "banners_config")
-      .single()
-      .then(({ data }) => {
+    async function loadConfig() {
+      try {
+        const { data } = await supabase
+          .from("site_settings")
+          .select("value")
+          .eq("key", "banners")
+          .maybeSingle();
+
         const floatingCta = data?.value?.floatingCta;
         if (floatingCta) setConfig(floatingCta);
-      })
-      .catch(() => {
-        // fallback silencioso — usa WPT_PROMO
-      });
+      } catch (err) {
+        // Fallback silencioso — se usarán los valores de WPT_PROMO
+      }
+    }
+    loadConfig();
   }, []);
 
   // Valores efectivos: Supabase > WPT_PROMO
@@ -46,18 +56,10 @@ export function FloatingCTA() {
   const scrollTrigger = config?.scrollTrigger ?? WPT_PROMO.scrollTrigger;
   const active        = config?.active        ?? true;
 
-  // Contador social
-  useEffect(() => {
-    const base = 180;
-    const random = Math.floor(Math.random() * 60);
-    setPlayers(base + random);
-  }, []);
-
   // Lógica de aparición con cooldown
   useEffect(() => {
     if (!active) return;
 
-    // Verificar cooldown — no mostrar si fue visto hace menos de 5 días
     const COOLDOWN_DAYS = 5;
     const CLICKED_COOLDOWN_DAYS = 30;
     const lastShown   = localStorage.getItem("wpt_cta_last_shown");
@@ -130,7 +132,7 @@ export function FloatingCTA() {
           onClick={() => localStorage.setItem("wpt_cta_last_clicked", String(Date.now()))}
         >
           {expanded ? (
-            <img src={image} alt="WPT Global" className="w-full h-auto" />
+            <img src={image} alt="Promo" className="w-full h-auto" />
           ) : (
             <div className="p-3">
               <div className="text-xs font-semibold text-white">
