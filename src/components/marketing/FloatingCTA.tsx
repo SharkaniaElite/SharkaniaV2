@@ -20,15 +20,14 @@ export function FloatingCTA() {
   const [expanded, setExpanded] = useState(false);
   const [config, setConfig] = useState<FloatingConfig | null>(null);
 
-// 🛡️ Inicialización perezosa: Solo se ejecuta UNA vez en el montaje inicial.
-  // Esto satisface al linter porque la impureza queda fuera del cuerpo del render.
+  // 🛡️ Inicialización perezosa para el contador social (mantiene la pureza del render)
   const [players] = useState(() => {
     const base = 180;
     const random = Math.floor(Math.random() * 60);
     return base + random;
   });
 
-  // 🛡️ Cargar config desde Supabase con sintaxis async/await limpia
+  // 🛡️ Carga de configuración desde Supabase
   useEffect(() => {
     async function loadConfig() {
       try {
@@ -41,13 +40,13 @@ export function FloatingCTA() {
         const floatingCta = data?.value?.floatingCta;
         if (floatingCta) setConfig(floatingCta);
       } catch (err) {
-        // Fallback silencioso — se usarán los valores de WPT_PROMO
+        // Fallback silencioso a WPT_PROMO si falla la red
       }
     }
     loadConfig();
   }, []);
 
-  // Valores efectivos: Supabase > WPT_PROMO
+  // Valores efectivos: Prioridad a Supabase, luego a la configuración estática
   const title         = config?.title         ?? WPT_PROMO.title;
   const description   = config?.description   ?? WPT_PROMO.description;
   const image         = config?.image         ?? WPT_PROMO.image;
@@ -56,21 +55,25 @@ export function FloatingCTA() {
   const scrollTrigger = config?.scrollTrigger ?? WPT_PROMO.scrollTrigger;
   const active        = config?.active        ?? true;
 
-  // Lógica de aparición con cooldown
+  // Lógica de aparición con Cooldown de 24 horas
   useEffect(() => {
     if (!active) return;
 
-    const COOLDOWN_DAYS = 5;
-    const CLICKED_COOLDOWN_DAYS = 30;
+    // ── CONFIGURACIÓN DE TIEMPOS ──
+    const COOLDOWN_DAYS = 1; // 🕒 Exactamente una vez cada 24 horas
+    const CLICKED_COOLDOWN_DAYS = 30; // 🤫 Si hizo clic, ocultar por un mes
+    
     const lastShown   = localStorage.getItem("wpt_cta_last_shown");
     const lastClicked = localStorage.getItem("wpt_cta_last_clicked");
     const now = Date.now();
 
+    // Verificación de clic previo
     if (lastClicked) {
       const daysSince = (now - Number(lastClicked)) / (1000 * 60 * 60 * 24);
       if (daysSince < CLICKED_COOLDOWN_DAYS) return;
     }
 
+    // Verificación de última visualización (Cooldown de 24h)
     if (lastShown) {
       const daysSince = (now - Number(lastShown)) / (1000 * 60 * 60 * 24);
       if (daysSince < COOLDOWN_DAYS) return;
@@ -78,9 +81,11 @@ export function FloatingCTA() {
 
     const show = () => {
       setVisible(true);
+      // Registramos el momento de la visualización para iniciar el contador de 24h
       localStorage.setItem("wpt_cta_last_shown", String(now));
     };
 
+    // Comportamiento específico para la página de ranking (trigger por scroll)
     if (location.pathname === "/ranking") {
       const handleScroll = () => {
         const scrollTop = window.scrollY;
@@ -95,6 +100,7 @@ export function FloatingCTA() {
       return () => window.removeEventListener("scroll", handleScroll);
     }
 
+    // Comportamiento estándar (trigger por tiempo)
     const timer = setTimeout(show, delay);
     return () => clearTimeout(timer);
   }, [location.pathname, active, delay, scrollTrigger]);
@@ -112,6 +118,7 @@ export function FloatingCTA() {
           expanded ? "w-[300px]" : "w-[180px]"
         }`}
       >
+        {/* Botón de cierre: reinicia el contador para que no vuelva a molestar en 24h */}
         <button
           onClick={(e) => {
             e.stopPropagation();
