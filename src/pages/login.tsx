@@ -18,6 +18,8 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 🛡️ Lógica de redirección: lee '?redirect=...' o va al dashboard por defecto
   const redirectTo = new URLSearchParams(location.search).get("redirect") ?? "/dashboard";
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,22 +34,23 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      // Pasamos el token como tercer parámetro
       const { session } = await signIn(email, password, captchaToken);
       if (session?.user) {
         const { getProfile } = await import("../lib/api/auth");
         const profile = await getProfile(session.user.id);
+        
         useAuthStore.setState({
           user: session.user,
           profile,
           isAuthenticated: true,
           isLoading: false,
         });
+
+        // 🚀 Navegamos a la herramienta que el usuario quería ver originalmente
         navigate(redirectTo);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión");
-      // Reseteamos el captcha si la clave era incorrecta
       turnstileRef.current?.reset();
       setCaptchaToken(null);
     } finally {
@@ -63,7 +66,6 @@ export function LoginPage() {
         path="/login"
       />
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <span className="text-3xl">🦈</span>
@@ -111,7 +113,6 @@ export function LoginPage() {
             />
           </div>
 
-          {/* 🛡️ Widget de Cloudflare Turnstile */}
           <div className="flex justify-center py-2 min-h-[65px]">
             <Turnstile
               ref={turnstileRef}
