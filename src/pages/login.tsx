@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { signIn } from "../lib/api/auth";
 import { useAuthStore } from "../stores/auth-store";
 import { SEOHead } from "../components/seo/seo-head";
+import { translateAuthError } from "../lib/format"; // 👈 Importamos el traductor
 
 export function LoginPage() {
   const turnstileRef = useRef<TurnstileInstance>(null);
@@ -50,7 +51,10 @@ export function LoginPage() {
         navigate(redirectTo);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al iniciar sesión");
+      // 🔄 Aplicamos la traducción aquí para que no salga en inglés
+      const rawMessage = err instanceof Error ? err.message : "";
+      setError(translateAuthError(rawMessage)); 
+      
       turnstileRef.current?.reset();
       setCaptchaToken(null);
     } finally {

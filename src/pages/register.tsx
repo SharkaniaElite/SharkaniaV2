@@ -8,6 +8,7 @@ import { signUp } from "../lib/api/auth";
 import { supabase } from "../lib/supabase";
 import { useAuthStore } from "../stores/auth-store";
 import { getProfile } from "../lib/api/auth";
+import { translateAuthError } from "../lib/format"; // 👈 Importado correctamente
 
 type RegistrationType = "player" | "club";
 
@@ -127,7 +128,10 @@ export function RegisterPage() {
         setSuccess("¡Cuenta creada! Revisa tu email para confirmar.");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al registrarse");
+      // 🔄 TRADUCCIÓN APLICADA AQUÍ:
+      const rawMessage = err instanceof Error ? err.message : "";
+      setError(translateAuthError(rawMessage));
+      
       // 🛡️ Si hay error (ej. email ya existe), limpiamos el captcha para que pueda reintentar
       turnstileRef.current?.reset();
       setCaptchaToken(null);

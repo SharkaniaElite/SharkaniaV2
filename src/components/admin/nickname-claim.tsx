@@ -20,12 +20,11 @@ interface SearchResult extends Player {
 }
 
 export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps) {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore(); // Extraemos profile para usar su WhatsApp
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedPlayers, setSelectedPlayers] = useState<SearchResult[]>([]);
-  const [whatsapp, setWhatsapp] = useState("");
   const [screenshotUrl, setScreenshotUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -68,7 +67,6 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // 1. Validar tamaño (200 KB)
     const MAX_SIZE = 200 * 1024;
     if (file.size > MAX_SIZE) {
       setMessage({ 
@@ -84,17 +82,14 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
 
     try {
       const ext = file.name.split(".").pop();
-      // Guardamos en el bucket nickverify, carpeta con ID del usuario
       const path = `${user.id}/${Date.now()}.${ext}`;
 
-      // 2. Subida al bucket nickverify
       const { error: uploadError } = await supabase.storage
         .from("nickverify")
         .upload(path, file);
 
       if (uploadError) throw uploadError;
 
-      // 3. Obtener URL Pública para que el Admin pueda verla
       const { data: urlData } = supabase.storage
         .from("nickverify")
         .getPublicUrl(path);
@@ -102,7 +97,7 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
       setScreenshotUrl(urlData.publicUrl);
     } catch (err) {
       console.error("Error subiendo archivo:", err);
-      setMessage({ text: "Error al subir la imagen a nickverify", type: "error" });
+      setMessage({ text: "Error al subir la imagen", type: "error" });
     } finally {
       setUploading(false);
       if (e.target) e.target.value = "";
@@ -110,16 +105,22 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
   };
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user || !profile) return;
 
     if (selectedPlayers.length === 0) {
       setMessage({ text: "Selecciona al menos un nickname para reclamar", type: "error" });
       return;
     }
-    if (!whatsapp.trim()) {
-      setMessage({ text: "WhatsApp es obligatorio", type: "error" });
+
+    // Verificación de seguridad: si por algún motivo no hay WhatsApp, avisamos
+    if (!profile.whatsapp) {
+      setMessage({ 
+        text: "Tu perfil no tiene un WhatsApp vinculado. Por favor, actualízalo en tu panel antes de continuar.", 
+        type: "error" 
+      });
       return;
     }
+
     if (!screenshotUrl) {
       setMessage({ text: "Debes subir un screenshot como prueba", type: "error" });
       return;
@@ -129,14 +130,11 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
     setMessage(null);
 
     try {
-      // Actualizamos el WhatsApp en el perfil
-      await supabase.from("profiles").update({ whatsapp: whatsapp.trim() }).eq("id", user.id);
-
-      // Creamos los reclamos con la URL pública que obtuvimos en handleFileUpload
+      // Creamos los reclamos vinculados al usuario
       const claims = selectedPlayers.map((p) => ({
         user_id: user.id,
         player_id: p.id,
-        screenshot_url: screenshotUrl, // Esta ya es la URL pública de nickverify
+        screenshot_url: screenshotUrl,
         status: "pending" as const,
       }));
 
@@ -144,7 +142,7 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
       if (error) throw error;
 
       setMessage({
-        text: `✅ Solicitud enviada. Un administrador revisará la captura en nickverify.`,
+        text: `✅ Solicitud enviada. Un administrador revisará la captura pronto.`,
         type: "success",
       });
 
@@ -169,7 +167,7 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
           Busca tu nickname en el sistema. Puedes reclamar nicknames de distintas salas. Un admin revisará tu solicitud.
         </p>
 
-        {/* Search — en vivo */}
+        {/* Búsqueda */}
         <div>
           <label className={labelClass}>Buscar Nickname</label>
           <div className="relative">
@@ -196,12 +194,9 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
               </button>
             )}
           </div>
-          {query.length === 1 && (
-            <p className="text-[11px] text-sk-text-3 mt-1">Escribe al menos 2 caracteres...</p>
-          )}
         </div>
 
-        {/* Resultados en vivo */}
+        {/* Resultados */}
         {results.length > 0 && (
           <div className="border border-sk-border-2 rounded-md overflow-hidden max-h-48 overflow-y-auto">
             {results.map((p) => {
@@ -220,25 +215,14 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
                     <p className="text-sk-sm font-semibold text-sk-text-1">{p.nickname}</p>
                     <p className="text-[11px] text-sk-text-2">{p.poker_rooms?.name ?? "—"}</p>
                   </div>
-                  {isSelected ? (
-                    <Badge variant="accent">Seleccionado</Badge>
-                  ) : (
-                    <Plus size={14} className="text-sk-text-3" />
-                  )}
+                  {isSelected ? <Badge variant="accent">Seleccionado</Badge> : <Plus size={14} className="text-sk-text-3" />}
                 </button>
               );
             })}
           </div>
         )}
 
-        {/* Sin resultados */}
-        {query.length >= 2 && !searching && results.length === 0 && (
-          <p className="text-[11px] text-sk-text-3 text-center py-2">
-            No se encontraron nicknames para "{query}"
-          </p>
-        )}
-
-        {/* Nicknames seleccionados */}
+        {/* Seleccionados */}
         {selectedPlayers.length > 0 && (
           <div>
             <label className={labelClass}>Nicknames a Reclamar ({selectedPlayers.length})</label>
@@ -257,18 +241,6 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
             </div>
           </div>
         )}
-
-        {/* WhatsApp */}
-        <div>
-          <label className={labelClass}>WhatsApp *</label>
-          <input
-            type="tel"
-            value={whatsapp}
-            onChange={(e) => setWhatsapp(e.target.value)}
-            className={inputClass}
-            placeholder="+56 9 1234 5678"
-          />
-        </div>
 
         {/* Screenshot */}
         <div>
@@ -297,19 +269,15 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
           )}
         </div>
 
-        {/* Mensaje */}
         {message && (
           <div className={cn(
             "rounded-md p-3 text-sk-sm",
-            message.type === "success"
-              ? "bg-sk-green-dim border border-sk-green/20 text-sk-green"
-              : "bg-sk-red-dim border border-sk-red/20 text-sk-red"
+            message.type === "success" ? "bg-sk-green-dim border border-sk-green/20 text-sk-green" : "bg-sk-red-dim border border-sk-red/20 text-sk-red"
           )}>
             {message.text}
           </div>
         )}
 
-        {/* Acciones */}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" size="sm" onClick={onClose}>Cancelar</Button>
           <Button variant="accent" size="sm" onClick={handleSubmit} isLoading={submitting}>

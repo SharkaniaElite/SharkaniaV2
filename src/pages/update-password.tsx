@@ -14,6 +14,22 @@ export function UpdatePasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // 🛡️ Traductor de errores de Supabase
+  const translateError = (message: string): string => {
+    if (message.includes("New password should be different")) {
+      return "La nueva contraseña debe ser diferente a la anterior.";
+    }
+    if (message.includes("at least 6 characters")) {
+      return "La contraseña debe tener al menos 6 caracteres.";
+    }
+    if (message.includes("Link has expired") || message.includes("invalid or has expired")) {
+      return "El enlace de recuperación ha expirado. Por favor, solicita uno nuevo.";
+    }
+    
+    // Si es un error desconocido, devolvemos un mensaje genérico amable
+    return "Ocurrió un error al actualizar la contraseña. Inténtalo de nuevo.";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -36,7 +52,9 @@ export function UpdatePasswordPage() {
       // Redirigir al login después de 3 segundos
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al actualizar la contraseña.");
+      // 🔄 Aplicamos la traducción aquí
+      const rawMessage = err instanceof Error ? err.message : "";
+      setError(translateError(rawMessage));
     } finally {
       setIsLoading(false);
     }
@@ -103,9 +121,9 @@ export function UpdatePasswordPage() {
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 bg-sk-red-dim border border-sk-red/20 rounded-md p-3">
+                <div className="flex items-start gap-2 bg-sk-red-dim border border-sk-red/20 rounded-md p-3 transition-all">
                   <AlertCircle size={16} className="text-sk-red mt-0.5 shrink-0" />
-                  <p className="text-sk-sm text-sk-red">{error}</p>
+                  <p className="text-sk-sm text-sk-red font-medium">{error}</p>
                 </div>
               )}
 
