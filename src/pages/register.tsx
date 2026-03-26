@@ -1,6 +1,8 @@
 // src/pages/register.tsx
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Turnstile } from "@marsidev/react-turnstile";
+import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import { Button } from "../components/ui/button";
 import { signUp } from "../lib/api/auth";
 import { supabase } from "../lib/supabase";
@@ -55,6 +57,10 @@ export function RegisterPage() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 🛡️ Estados para Turnstile
+  const turnstileRef = useRef<TurnstileInstance>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = new URLSearchParams(location.search).get("redirect") ?? "/dashboard";
@@ -73,6 +79,12 @@ export function RegisterPage() {
     setError("");
     setSuccess("");
 
+    // 🛡️ Validación de Captcha
+    if (!captchaToken) {
+      setError("Por favor, espera a que se complete la verificación de seguridad.");
+      return;
+    }
+
     // Validaciones manuales
     if (!countryCode) { setError("El país de nacionalidad es obligatorio"); return; }
     if (countryCode === "OTHER" && !countryOther.trim()) { setError("Escribe tu país"); return; }
@@ -87,10 +99,11 @@ export function RegisterPage() {
     const finalClubCountry = resolveCountry(clubCountry, clubCountryOther);
 
     try {
+      // 🛡️ Modificamos la llamada para enviar el captchaToken como 6to parámetro
       const result = await signUp(email, password, displayName, "player", {
         country_code: finalCountry,
         whatsapp,
-      });
+      }, captchaToken);
 
       if (regType === "club" && result.user) {
         await supabase.from("club_registration_requests").insert({
@@ -115,6 +128,9 @@ export function RegisterPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al registrarse");
+      // 🛡️ Si hay error (ej. email ya existe), limpiamos el captcha para que pueda reintentar
+      turnstileRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setLoading(false);
     }
@@ -327,12 +343,25 @@ export function RegisterPage() {
               </div>
             )}
 
+            {/* 🛡️ Widget de Cloudflare Turnstile */}
+            <div className="flex justify-center py-2 min-h-[65px]">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onError={() => setError("Error en la verificación de seguridad. Recarga la página.")}
+                onExpire={() => setCaptchaToken(null)}
+                options={{ theme: "dark" }}
+              />
+            </div>
+
             <Button
               type="submit"
               variant="accent"
               size="lg"
               className="w-full"
               isLoading={loading}
+              disabled={!captchaToken || loading} // 🛡️ Bloqueamos si no hay token
             >
               {regType === "player" ? "Crear Cuenta" : "Enviar Solicitud"}
             </Button>

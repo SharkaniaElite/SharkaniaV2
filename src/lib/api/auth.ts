@@ -7,12 +7,14 @@ export async function signUp(
   password: string,
   displayName: string,
   role: UserRole = "player",
-  extra?: { country_code?: string; whatsapp?: string }
+  extra?: { country_code?: string; whatsapp?: string },
+  captchaToken?: string // 🛡️ AÑADIDO: Token de Turnstile
 ) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      captchaToken, // 🛡️ ENVIADO A SUPABASE AUTH
       data: {
         display_name: displayName,
         role,
@@ -38,10 +40,13 @@ export async function signUp(
   return data;
 }
 
-export async function signIn(email: string, password: string) {
+export async function signIn(email: string, password: string, captchaToken?: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
+    options: {
+      captchaToken, // 🛡️ Enviamos el token al endpoint de login
+    }
   });
   if (error) throw error;
   return data;
@@ -86,4 +91,18 @@ export async function updateProfile(
   const profile = await getProfile(userId);
   if (!profile) throw new Error("Profile not found after update");
   return profile;
+}
+// Agrega esto al final de src/lib/api/auth.ts
+
+export async function resetPasswordForEmail(email: string, captchaToken?: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/update-password`,
+    captchaToken, // 🛡️ Protegemos también este formulario contra bots
+  });
+  if (error) throw error;
+}
+
+export async function updateUserPassword(password: string) {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
 }

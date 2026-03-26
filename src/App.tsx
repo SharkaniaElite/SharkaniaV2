@@ -39,7 +39,8 @@ const ReplayerPage = lazy(() => import("./pages/replayer").then(m => ({ default:
 // 📄 Páginas Legales
 const TermsPage = lazy(() => import("./pages/terms").then(m => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import("./pages/privacy").then(m => ({ default: m.PrivacyPage })));
-
+const ForgotPasswordPage = lazy(() => import("./pages/forgot-password").then(m => ({ default: m.ForgotPasswordPage })));
+const UpdatePasswordPage = lazy(() => import("./pages/update-password").then(m => ({ default: m.UpdatePasswordPage })));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -98,7 +99,8 @@ export function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/tournament/:id" element={<TournamentDetailPage />} />
-
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/update-password" element={<UpdatePasswordPage />} />
               {/* Legal */}
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
