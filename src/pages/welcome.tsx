@@ -38,7 +38,7 @@ export default function WelcomePage() {
             to="/dashboard" 
             className="w-full bg-cyan-400 hover:bg-cyan-300 text-zinc-950 font-bold py-3 px-4 rounded-lg transition-colors duration-200"
           >
-            Ir a mi Panel de Jugador
+            Ir a mi Panel
           </Link>
           
           <Link 
