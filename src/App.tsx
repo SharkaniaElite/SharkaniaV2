@@ -105,22 +105,59 @@ export function App() {
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
 
-              {/* Tools */}
-              <Route path="/tools" element={<ToolsPage />} />
-              <Route path="/tools/quiz" element={<PokerQuizPage />} />
-              <Route path="/tools/calculadora-icm" element={<ICMCalculatorPage />} />
-              <Route path="/tools/simulador-elo" element={<EloSimulatorPage />} />
-              <Route path="/tools/calculadora-banca" element={<BankrollCalculatorPage />} />
+              {/* 🛡️ Tools - Sección Blindada */}
+<Route path="/tools" element={<ToolsPage />} /> {/* El catálogo sigue siendo público */}
 
-              <Route path="/tools/replayer/h/:id" element={<ReplayerPage />} />
-              <Route
-                path="/tools/replayer"
-                element={
-                  <ProtectedRoute>
-                    <ReplayerPage />
-                  </ProtectedRoute>
-                }
-              />
+<Route
+  path="/tools/quiz"
+  element={
+    <ProtectedRoute>
+      <PokerQuizPage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/tools/calculadora-icm"
+  element={
+    <ProtectedRoute>
+      <ICMCalculatorPage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/tools/simulador-elo"
+  element={
+    <ProtectedRoute>
+      <EloSimulatorPage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/tools/calculadora-banca"
+  element={
+    <ProtectedRoute>
+      <BankrollCalculatorPage />
+    </ProtectedRoute>
+  }
+/>
+
+{/* 🦈 Replayer: Protegemos tanto la ruta con ID como la general */}
+<Route
+  path="/tools/replayer/h/:id"
+  element={
+    <ProtectedRoute>
+      <ReplayerPage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/tools/replayer"
+  element={
+    <ProtectedRoute>
+      <ReplayerPage />
+    </ProtectedRoute>
+  }
+/>
 
               {/* Blog */}
               <Route path="/blog" element={<BlogPage />} />
