@@ -41,6 +41,7 @@ const TermsPage = lazy(() => import("./pages/terms").then(m => ({ default: m.Ter
 const PrivacyPage = lazy(() => import("./pages/privacy").then(m => ({ default: m.PrivacyPage })));
 const ForgotPasswordPage = lazy(() => import("./pages/forgot-password").then(m => ({ default: m.ForgotPasswordPage })));
 const UpdatePasswordPage = lazy(() => import("./pages/update-password").then(m => ({ default: m.UpdatePasswordPage })));
+const WelcomePage = lazy(() => import("./pages/welcome")); // 👈 NUEVA LÍNEA
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -98,6 +99,7 @@ export function App() {
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/welcome" element={<WelcomePage />} />
               <Route path="/tournament/:id" element={<TournamentDetailPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/update-password" element={<UpdatePasswordPage />} />

@@ -14,6 +14,7 @@ export async function signUp(
     email,
     password,
     options: {
+      emailRedirectTo: `${window.location.origin}/welcome`, // 👈 REDIRECCIÓN MÁGICA
       captchaToken, // 🛡️ ENVIADO A SUPABASE AUTH
       data: {
         display_name: displayName,
