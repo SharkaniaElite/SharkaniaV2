@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { AlertCircle, Lock, CheckCircle2 } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { Button } from "../components/ui/button";
-import { updateUserPassword } from "../lib/api/auth";
 import { supabase } from "../lib/supabase"; // 👈 Importado
 import { translateAuthError } from "../lib/format"; // 👈 Importado
 
@@ -33,32 +32,38 @@ export function UpdatePasswordPage() {
     setIsLoading(true);
 
     try {
-      const { data, error: updateError } = await updateUserPassword(password);
+      // 1. Actualizamos la contraseña
+      const { data, error: updateError } = await supabase.auth.updateUser({ 
+        password: password 
+      });
+      
       if (updateError) throw updateError;
 
-      // 📧 MOTOR DE CORREOS: Aviso de seguridad (Contraseña cambiada)
-      if (data?.user?.email) {
-        await supabase.from("email_queue").insert({
-          recipient_email: data.user.email,
-          subject: "Tu contraseña ha sido actualizada - Sharkania",
-          body_html: `
-            <div style="font-family:sans-serif;padding:20px;color:#333;">
-              <h2 style="color:#10b981;">¡Seguridad actualizada!</h2>
-              <p>Te informamos que la contraseña de tu cuenta ha sido cambiada con éxito.</p>
-              <p>Si tú realizaste este cambio, no necesitas hacer nada más.</p>
-              <p style="color:#666;font-size:12px;">Si no fuiste tú, contacta con soporte de inmediato.</p>
-            </div>
-          `
-        });
-
-        // ⚡ PING AL WORKER
-        fetch("https://sharkania-email-worker.duhauandres.workers.dev/").catch(() => {});
+      // 2. Intentamos enviar el correo de confirmación
+      // Si falla este paso, no bloqueamos el éxito del usuario
+      const userEmail = data?.user?.email;
+      if (userEmail) {
+        try {
+          await supabase.from("email_queue").insert({
+            recipient_email: userEmail,
+            subject: "Tu contraseña ha sido actualizada - Sharkania",
+            body_html: `
+              <div style="font-family:sans-serif;padding:20px;color:#333;">
+                <h2 style="color:#10b981;">¡Seguridad actualizada!</h2>
+                <p>Te informamos que la contraseña de tu cuenta ha sido cambiada con éxito.</p>
+                <p>Si tú realizaste este cambio, no necesitas hacer nada más.</p>
+              </div>
+            `
+          });
+          fetch("https://sharkania-email-worker.duhauandres.workers.dev/").catch(() => {});
+        } catch (dbErr) {
+          console.error("Error al encolar correo de confirmación:", dbErr);
+        }
       }
 
       setSuccess(true);
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
-      // 🔄 Traducción global aplicada
       const rawMessage = err instanceof Error ? err.message : "";
       setError(translateAuthError(rawMessage));
     } finally {
