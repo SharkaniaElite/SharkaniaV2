@@ -8,7 +8,7 @@ import { signUp } from "../lib/api/auth";
 import { supabase } from "../lib/supabase";
 import { useAuthStore } from "../stores/auth-store";
 import { getProfile } from "../lib/api/auth";
-import { translateAuthError } from "../lib/format"; // 👈 Importado correctamente
+import { translateAuthError } from "../lib/format";
 
 type RegistrationType = "player" | "club";
 
@@ -58,7 +58,6 @@ export function RegisterPage() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🛡️ Estados para Turnstile
   const turnstileRef = useRef<TurnstileInstance>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
@@ -69,7 +68,6 @@ export function RegisterPage() {
   const inputClass = "w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-3 focus:outline-none focus:border-sk-accent focus:shadow-[0_0_0_3px_var(--sk-accent-dim)]";
   const labelClass = "font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block";
 
-  // Resuelve el valor final del país: si es OTHER usa el texto libre
   const resolveCountry = (code: string, other: string): string => {
     if (code === "OTHER") return other.trim() || "OTHER";
     return code;
@@ -80,13 +78,11 @@ export function RegisterPage() {
     setError("");
     setSuccess("");
 
-    // 🛡️ Validación de Captcha
     if (!captchaToken) {
       setError("Por favor, espera a que se complete la verificación de seguridad.");
       return;
     }
 
-    // Validaciones manuales
     if (!countryCode) { setError("El país de nacionalidad es obligatorio"); return; }
     if (countryCode === "OTHER" && !countryOther.trim()) { setError("Escribe tu país"); return; }
     if (regType === "club") {
@@ -100,11 +96,36 @@ export function RegisterPage() {
     const finalClubCountry = resolveCountry(clubCountry, clubCountryOther);
 
     try {
-      // 🛡️ Modificamos la llamada para enviar el captchaToken como 6to parámetro
       const result = await signUp(email, password, displayName, "player", {
         country_code: finalCountry,
         whatsapp,
       }, captchaToken);
+
+      // 📧 INTEGRACIÓN CON MOTOR DE CORREOS
+      if (result.user) {
+        // 1. Inyectamos en la cola de Supabase
+        await supabase.from("email_queue").insert({
+          recipient_email: email,
+          subject: regType === "club" ? "Solicitud de Club Recibida - Sharkania" : "¡Bienvenido a la manada, Shark!",
+          body_html: regType === "club" 
+            ? `<div style="font-family:sans-serif;padding:20px;color:#333;">
+                <h2 style="color:#0ea5e9;">Hola ${displayName}</h2>
+                <p>Hemos recibido tu solicitud para registrar el club <strong>${clubName}</strong>.</p>
+                <p>Un administrador de Sharkania revisará los datos y te contactará pronto.</p>
+               </div>`
+            : `<div style="font-family:sans-serif;padding:20px;color:#333;">
+                <h2 style="color:#0ea5e9;">¡Bienvenido a Sharkania, ${displayName}!</h2>
+                <p>Tu cuenta ha sido creada con éxito. Prepárate para dominar el océano y subir en el ranking.</p>
+                <p>Nos vemos en la arena.</p>
+               </div>`
+        });
+
+        // 2. ⚡ PING INSTANTÁNEO: Despertamos al worker para que envíe el correo YA
+        fetch("https://sharkania-email-worker.duhauandres.workers.dev/").catch(() => {
+          // Si el ping falla, no importa, el cron de 1 min lo enviará igual
+          console.log("Ping al worker fallido, el cron se encargará.");
+        });
+      }
 
       if (regType === "club" && result.user) {
         await supabase.from("club_registration_requests").insert({
@@ -128,11 +149,8 @@ export function RegisterPage() {
         setSuccess("¡Cuenta creada! Revisa tu email para confirmar.");
       }
     } catch (err) {
-      // 🔄 TRADUCCIÓN APLICADA AQUÍ:
       const rawMessage = err instanceof Error ? err.message : "";
       setError(translateAuthError(rawMessage));
-      
-      // 🛡️ Si hay error (ej. email ya existe), limpiamos el captcha para que pueda reintentar
       turnstileRef.current?.reset();
       setCaptchaToken(null);
     } finally {
@@ -199,7 +217,6 @@ export function RegisterPage() {
               ← Cambiar tipo de registro
             </button>
 
-            {/* ── Datos personales ── */}
             <div>
               <label className={labelClass}>Nombre *</label>
               <input
@@ -240,8 +257,8 @@ export function RegisterPage() {
             <div>
               <label className={labelClass}>
                 WhatsApp *{" "}
-                <span className="text-sk-text-3 normal-case font-normal tracking-normal">
-                  con código de país
+                <span className="text-sk-text-3 font-normal tracking-normal lowercase">
+                   (incluye código de país)
                 </span>
               </label>
               <input
@@ -267,7 +284,6 @@ export function RegisterPage() {
                   <option key={c.code} value={c.code}>{c.label}</option>
                 ))}
               </select>
-              {/* Campo libre si selecciona "Otro" */}
               {countryCode === "OTHER" && (
                 <input
                   type="text"
@@ -281,7 +297,6 @@ export function RegisterPage() {
               )}
             </div>
 
-            {/* ── Datos del club (solo si regType === "club") ── */}
             {regType === "club" && (
               <>
                 <div className="border-t border-sk-border-1 pt-4">
@@ -315,7 +330,6 @@ export function RegisterPage() {
                       <option key={c.code} value={c.code}>{c.label}</option>
                     ))}
                   </select>
-                  {/* Campo libre si selecciona "Otro" */}
                   {clubCountry === "OTHER" && (
                     <input
                       type="text"
@@ -347,7 +361,6 @@ export function RegisterPage() {
               </div>
             )}
 
-            {/* 🛡️ Widget de Cloudflare Turnstile */}
             <div className="flex justify-center py-2 min-h-[65px]">
               <Turnstile
                 ref={turnstileRef}
@@ -365,7 +378,7 @@ export function RegisterPage() {
               size="lg"
               className="w-full"
               isLoading={loading}
-              disabled={!captchaToken || loading} // 🛡️ Bloqueamos si no hay token
+              disabled={!captchaToken || loading}
             >
               {regType === "player" ? "Crear Cuenta" : "Enviar Solicitud"}
             </Button>
