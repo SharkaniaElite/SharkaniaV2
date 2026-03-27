@@ -5,6 +5,8 @@ import { AlertCircle, Lock, CheckCircle2 } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { Button } from "../components/ui/button";
 import { updateUserPassword } from "../lib/api/auth";
+import { supabase } from "../lib/supabase"; // 👈 Importado
+import { translateAuthError } from "../lib/format"; // 👈 Importado
 
 export function UpdatePasswordPage() {
   const navigate = useNavigate();
@@ -13,22 +15,6 @@ export function UpdatePasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  // 🛡️ Traductor de errores de Supabase
-  const translateError = (message: string): string => {
-    if (message.includes("New password should be different")) {
-      return "La nueva contraseña debe ser diferente a la anterior.";
-    }
-    if (message.includes("at least 6 characters")) {
-      return "La contraseña debe tener al menos 6 caracteres.";
-    }
-    if (message.includes("Link has expired") || message.includes("invalid or has expired")) {
-      return "El enlace de recuperación ha expirado. Por favor, solicita uno nuevo.";
-    }
-    
-    // Si es un error desconocido, devolvemos un mensaje genérico amable
-    return "Ocurrió un error al actualizar la contraseña. Inténtalo de nuevo.";
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,14 +33,34 @@ export function UpdatePasswordPage() {
     setIsLoading(true);
 
     try {
-      await updateUserPassword(password);
+      const { data, error: updateError } = await updateUserPassword(password);
+      if (updateError) throw updateError;
+
+      // 📧 MOTOR DE CORREOS: Aviso de seguridad (Contraseña cambiada)
+      if (data?.user?.email) {
+        await supabase.from("email_queue").insert({
+          recipient_email: data.user.email,
+          subject: "Tu contraseña ha sido actualizada - Sharkania",
+          body_html: `
+            <div style="font-family:sans-serif;padding:20px;color:#333;">
+              <h2 style="color:#10b981;">¡Seguridad actualizada!</h2>
+              <p>Te informamos que la contraseña de tu cuenta ha sido cambiada con éxito.</p>
+              <p>Si tú realizaste este cambio, no necesitas hacer nada más.</p>
+              <p style="color:#666;font-size:12px;">Si no fuiste tú, contacta con soporte de inmediato.</p>
+            </div>
+          `
+        });
+
+        // ⚡ PING AL WORKER
+        fetch("https://sharkania-email-worker.duhauandres.workers.dev/").catch(() => {});
+      }
+
       setSuccess(true);
-      // Redirigir al login después de 3 segundos
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
-      // 🔄 Aplicamos la traducción aquí
+      // 🔄 Traducción global aplicada
       const rawMessage = err instanceof Error ? err.message : "";
-      setError(translateError(rawMessage));
+      setError(translateAuthError(rawMessage));
     } finally {
       setIsLoading(false);
     }

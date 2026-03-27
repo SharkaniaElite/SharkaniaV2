@@ -7,6 +7,8 @@ import { AlertCircle, ArrowRight, Mail } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { Button } from "../components/ui/button";
 import { resetPasswordForEmail } from "../lib/api/auth";
+import { supabase } from "../lib/supabase"; // 👈 Importado
+import { translateAuthError } from "../lib/format"; // 👈 Importado
 
 export function ForgotPasswordPage() {
   const turnstileRef = useRef<TurnstileInstance>(null);
@@ -28,10 +30,33 @@ export function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
+      // 1. Iniciamos el proceso oficial en Supabase Auth
       await resetPasswordForEmail(email, captchaToken);
+
+      // 2. 📧 MOTOR DE CORREOS: Encolamos el aviso personalizado
+      await supabase.from("email_queue").insert({
+        recipient_email: email,
+        subject: "Instrucciones para recuperar tu cuenta - Sharkania",
+        body_html: `
+          <div style="font-family:sans-serif;padding:20px;color:#333;">
+            <h2 style="color:#0ea5e9;">¿Olvidaste tu contraseña?</h2>
+            <p>No hay problema, suele pasar. Te hemos enviado un enlace para que puedas crear una nueva clave.</p>
+            <p>Si no solicitaste este cambio, puedes ignorar este correo de forma segura.</p>
+            <br/>
+            <p>Saludos,<br/>El equipo de Sharkania 🦈</p>
+          </div>
+        `
+      });
+
+      // 3. ⚡ PING AL WORKER: Envío instantáneo
+      fetch("https://sharkania-email-worker.duhauandres.workers.dev/").catch(() => {});
+
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al enviar el correo.");
+      // 🔄 Traducción aplicada
+      const rawMessage = err instanceof Error ? err.message : "";
+      setError(translateAuthError(rawMessage));
+      
       turnstileRef.current?.reset();
       setCaptchaToken(null);
     } finally {
@@ -89,7 +114,6 @@ export function ForgotPasswordPage() {
                 />
               </div>
 
-              {/* Widget de Turnstile */}
               <div className="flex justify-center py-2 min-h-[65px]">
                 <Turnstile
                   ref={turnstileRef}
