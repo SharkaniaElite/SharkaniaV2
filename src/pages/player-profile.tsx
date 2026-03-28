@@ -13,10 +13,10 @@ import {
   usePlayerEloHistory,
   usePlayerTournamentResults,
 } from "../hooks/use-players";
-import { getFlag, getCountryName } from "../lib/countries";
+import { getCountryName } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { formatElo } from "../lib/format";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Info } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 
 export function PlayerProfilePage() {
@@ -137,9 +137,13 @@ export function PlayerProfilePage() {
                 <div className="font-mono text-sk-3xl font-extrabold text-sk-accent tracking-tight leading-none">
                   {formatElo(player.elo_rating)}
                 </div>
-                <p className="font-mono text-[11px] font-semibold text-sk-text-2 mt-1">
-                  ELO Rating
-                </p>
+                <Link 
+                  to="/sistema-elo" 
+                  className="inline-flex items-center justify-end gap-1.5 font-mono text-[11px] font-semibold text-sk-text-3 hover:text-sk-accent transition-colors mt-1.5 group"
+                >
+                  <Info size={12} className="group-hover:scale-110 transition-transform" />
+                  ¿Qué significa esto?
+                </Link>
               </div>
             </div>
           </div>

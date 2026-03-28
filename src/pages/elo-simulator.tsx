@@ -1,5 +1,5 @@
 // src/pages/elo-simulator.tsx
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
@@ -16,6 +16,10 @@ import {
   Users,
   Trophy,
 } from "lucide-react";
+import { useFeatureAccess } from "../hooks/use-shop";
+import { useAuthStore } from "../stores/auth-store";
+import { FeaturePaywall } from "../components/shop/feature-paywall";
+import { supabase } from "../lib/supabase";
 
 // ══════════════════════════════════════════════════════════
 // ELO ALGORITHM (exact Sharkania formula from 06-elo-algorithm.md)
@@ -158,7 +162,11 @@ function PositionChart({
     sampled.add(3);
     sampled.add(highlightPos);
     // Find breakeven position
-    const breakeven = positions.find((p, i) => i > 0 && positions[i - 1].change >= 0 && p.change < 0);
+    const breakeven = positions.find((p, i) => {
+      const prev = positions[i - 1];
+      // Ahora validamos que 'prev' exista antes de leer su '.change'
+      return i > 0 && prev !== undefined && prev.change >= 0 && p.change < 0;
+    });
     if (breakeven) {
       sampled.add(breakeven.pos - 1);
       sampled.add(breakeven.pos);
@@ -280,6 +288,48 @@ export function EloSimulatorPage() {
   }, []);
 
   const effectivePos = Math.min(position, fieldSize);
+
+  // ── Premium access control ──
+  const { isAuthenticated, user } = useAuthStore();
+  const { data: access } = useFeatureAccess("tool_elo_sim");
+  const hasFullAccess = access?.has_access ?? false;
+
+  const [freeUsed, setFreeUsed] = useState(false);
+  const [isCheckingDB, setIsCheckingDB] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user || hasFullAccess) return;
+    const checkUsage = async () => {
+      const { data } = await supabase
+        .from('free_tool_usages')
+        .select('last_used_date')
+        .eq('user_id', user.id)
+        .eq('tool_id', 'tool_elo_sim')
+        .single();
+      const today = new Date().toISOString().split("T")[0];
+      if (data && data.last_used_date === today) setFreeUsed(true);
+    };
+    checkUsage();
+  }, [isAuthenticated, user, hasFullAccess]);
+
+  const needsPaywall = isAuthenticated && freeUsed && !hasFullAccess;
+
+  const handleCalculate = async () => {
+    if (isCheckingDB) return;
+    if (hasFullAccess) { setCalculated(true); return; }
+    if (freeUsed) { setCalculated(false); return; }
+    if (!isAuthenticated || !user) { setCalculated(true); setFreeUsed(true); return; }
+
+    setIsCheckingDB(true);
+    const { data: success } = await supabase.rpc('use_free_tool', {
+      p_user_id: user.id,
+      p_tool_id: 'tool_elo_sim'
+    });
+    setIsCheckingDB(false);
+
+    if (success) { setCalculated(true); setFreeUsed(true); }
+    else { setFreeUsed(true); setCalculated(false); }
+  };
 
   return (
     <PageShell>
@@ -547,11 +597,12 @@ export function EloSimulatorPage() {
             <Button
               variant="accent"
               size="lg"
-              onClick={() => setCalculated(true)}
+              onClick={handleCalculate}
+              disabled={isCheckingDB}
               className="flex-1 sm:flex-none sm:min-w-[200px]"
             >
               <Play size={16} />
-              Simular ELO
+              {freeUsed && !hasFullAccess ? "🔒 Simular ELO" : "Simular ELO"}
             </Button>
             <button
               onClick={handleReset}
@@ -561,6 +612,18 @@ export function EloSimulatorPage() {
               Reiniciar
             </button>
           </div>
+
+          {needsPaywall && (
+            <div className="mb-8">
+              <FeaturePaywall
+                featureKey="tool_elo_sim"
+                title="Simulaciones ELO ilimitadas"
+                description="Ya usaste tu simulación gratis de hoy. Desbloquea acceso completo con SharkCoins."
+              >
+                <></>
+              </FeaturePaywall>
+            </div>
+          )}
 
           {/* Results */}
           {calculated && result && (

@@ -10,6 +10,7 @@ import { ScrollToTop } from "./components/layout/scroll-to-top";
 import { FloatingCTA } from "./components/marketing/FloatingCTA";
 import { Spinner } from "./components/ui/spinner";
 import { AgeVerificationModal } from "./components/layout/age-verification-modal";
+import { EloSystemPage } from "./pages/elo-system";
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
@@ -35,13 +36,15 @@ const ICMCalculatorPage = lazy(() => import("./pages/icm-calculator").then(m => 
 const EloSimulatorPage = lazy(() => import("./pages/elo-simulator").then(m => ({ default: m.EloSimulatorPage })));
 const BankrollCalculatorPage = lazy(() => import("./pages/bankroll-calculator").then(m => ({ default: m.BankrollCalculatorPage })));
 const ReplayerPage = lazy(() => import("./pages/replayer").then(m => ({ default: m.ReplayerPage })));
-
+const ShopPage = lazy(() => import("./pages/shop").then(m => ({ default: m.ShopPage })));
 // 📄 Páginas Legales
 const TermsPage = lazy(() => import("./pages/terms").then(m => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import("./pages/privacy").then(m => ({ default: m.PrivacyPage })));
 const ForgotPasswordPage = lazy(() => import("./pages/forgot-password").then(m => ({ default: m.ForgotPasswordPage })));
 const UpdatePasswordPage = lazy(() => import("./pages/update-password").then(m => ({ default: m.UpdatePasswordPage })));
-const WelcomePage = lazy(() => import("./pages/welcome")); // 👈 NUEVA LÍNEA
+const WelcomePage = lazy(() => import("./pages/welcome"));
+const WalletPage = lazy(() => import("./pages/wallet").then(m => ({ default: m.WalletPage }))); // 🦈 Nueva ruta de Billetera
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -103,6 +106,9 @@ export function App() {
               <Route path="/tournament/:id" element={<TournamentDetailPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/update-password" element={<UpdatePasswordPage />} />
+              <Route path="/shop" element={<ShopPage />} />
+              <Route path="/sistema-elo" element={<EloSystemPage />} />
+
               {/* Legal */}
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
@@ -171,6 +177,15 @@ export function App() {
                 element={
                   <ProtectedRoute>
                     <PlayerDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/wallet"
+                element={
+                  <ProtectedRoute>
+                    <WalletPage />
                   </ProtectedRoute>
                 }
               />

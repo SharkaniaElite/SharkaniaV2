@@ -12,8 +12,13 @@ import { updateProfile } from "../lib/api/auth";
 import { getFlag, getCountryName } from "../lib/countries";
 import { Settings, User, LogOut, Link as LinkIcon, Camera } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { PlayerStatsGrid } from "../components/players/player-stats-grid";
+import { EloChart } from "../components/players/elo-chart";
+import { TournamentHistoryTable } from "../components/players/tournament-history-table";
+import { usePlayer, usePlayerEloHistory, usePlayerTournamentResults } from "../hooks/use-players";
 import { supabase } from "../lib/supabase";
 import { SEOHead } from "../components/seo/seo-head";
+import { SharkCoin } from "../components/ui/shark-coin";
 
 export function PlayerDashboardPage() {
   const { profile, user, refreshProfile, logout } = useAuthStore();
@@ -55,6 +60,12 @@ export function PlayerDashboardPage() {
     },
     enabled: !!user?.id,
   });
+
+  // ── Datos completos para el Perfil Privado ──
+  const primaryPlayerId = linkedPlayers?.[0]?.id;
+  const { data: fullPlayer } = usePlayer(primaryPlayerId || ""); // 👈 Eliminamos el isLoading
+  const { data: eloHistory, isLoading: isLoadingElo } = usePlayerEloHistory(primaryPlayerId || "");
+  const { data: tournamentResults, isLoading: isLoadingResults } = usePlayerTournamentResults(primaryPlayerId || "");
 
   if (!profile || !user) {
     return <PageShell><div className="pt-20 min-h-screen flex items-center justify-center"><Spinner size="lg" /></div></PageShell>;
@@ -170,13 +181,13 @@ export function PlayerDashboardPage() {
             <Button variant="ghost" size="sm" onClick={handleSignOut}><LogOut size={14} /> Cerrar Sesión</Button>
           </div>
 
-          {/* Profile card */}
+         {/* Profile card */}
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-4">
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                  <div className="w-14 h-14 rounded-full bg-sk-bg-4 border-2 border-sk-border-2 overflow-hidden flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-sk-bg-4 border-2 border-sk-accent overflow-hidden flex items-center justify-center shadow-[0_0_15px_rgba(0,255,204,0.15)]">
                     {profile.avatar_url
   ? <img src={`${profile.avatar_url}?t=${Date.now()}`} alt="Avatar" className="w-full h-full object-cover" />
                       : <span className="text-sk-xl font-extrabold text-sk-accent">{(profile.display_name ?? "?").charAt(0).toUpperCase()}</span>
@@ -195,7 +206,16 @@ export function PlayerDashboardPage() {
                   </button>
                   <input ref={avatarFileRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
                 </div>
-                <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2"><User size={18} /> Mi Perfil</h2>
+                <div>
+                  <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2 mb-1"><User size={18} /> Mi Perfil</h2>
+                  {/* Badge Rápido de Saldo */}
+                  <div className="inline-flex items-center gap-1.5 bg-sk-bg-3 border border-sk-accent/30 rounded-full px-2.5 py-0.5 mt-1">
+                    <SharkCoin size={16} />
+                    <span className="font-mono text-sk-xs font-bold text-sk-accent">
+                      {(profile.shark_coins_balance ?? 0).toLocaleString()} Coins
+                    </span>
+                  </div>
+                </div>
               </div>
               <Button variant="ghost" size="sm" onClick={() => { setEditing(!editing); if (!editing) { setDisplayName(profile.display_name ?? ""); setCountryCode(profile.country_code ?? ""); setWhatsapp(profile.whatsapp ?? ""); } }}>
                 <Settings size={14} /> {editing ? "Cancelar" : "Editar"}
@@ -305,18 +325,61 @@ export function PlayerDashboardPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <StatCard label="Nivel" value={String(profile.level)} accent="accent" />
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            {/* 🪙 Nueva StatCard de Shark Coins */}
+            <StatCard 
+              label="Shark Coins" 
+              value={String(profile.shark_coins_balance ?? 0)} 
+              accent="accent" 
+              icon="🦈" 
+            />
+            <StatCard label="Nivel" value={String(profile.level)} accent="cyan" />
             <StatCard label="XP Total" value={String(profile.xp)} accent="gold" />
             <StatCard label="Verificado" value={profile.is_verified ? "Sí" : "No"} />
             <StatCard label="Nicknames" value={String((linkedPlayers ?? []).length)} />
           </div>
 
-          {/* Missions placeholder */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-8 text-center">
-            <span className="text-3xl block mb-3">🎯</span>
-            <p className="text-sk-text-2 text-sk-sm">Misiones y Logros estarán disponibles próximamente (Fase 9)</p>
-          </div>
+          {/* ── Perfil de Estadísticas Privadas ── */}
+          {primaryPlayerId && fullPlayer ? (
+            <div className="mt-12 space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-sk-2xl font-extrabold text-sk-text-1">Mis Estadísticas</h2>
+                  <p className="text-sk-sm text-sk-text-3">Modo Premium desbloqueado para tu cuenta</p>
+                </div>
+                <Badge variant="green">VIP Gratis</Badge>
+              </div>
+              
+              <PlayerStatsGrid player={fullPlayer} hasAccess={true} />
+              
+              <EloChart history={eloHistory ?? []} isLoading={isLoadingElo} />
+              
+              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6">
+                <h3 className="text-sk-md font-bold text-sk-text-1 mb-4 flex items-center gap-2">
+                  🎯 Mi Historial de Torneos
+                </h3>
+                <TournamentHistoryTable 
+                  results={(tournamentResults as any) ?? []} 
+                  isLoading={isLoadingResults} 
+                  hasAccess={true} 
+                />
+              </div>
+            </div>
+          ) : (
+            /* Mensaje para incentivar el claim si aún no tienen nicknames */
+            (!linkedPlayers || linkedPlayers.length === 0) && (
+              <div className="bg-gradient-to-br from-sk-bg-2 to-sk-bg-3 border border-sk-border-2 rounded-xl p-8 text-center mt-8 shadow-sk-lg">
+                <span className="text-4xl block mb-4">📊</span>
+                <h3 className="text-sk-lg font-extrabold text-sk-text-1 mb-2">Desbloquea tus estadísticas avanzadas</h3>
+                <p className="text-sk-sm text-sk-text-2 max-w-md mx-auto mb-6">
+                  Reclama tu nickname en la sección superior para acceder a tu ROI, Profit, Gráfico de ELO y métricas detalladas <strong>gratis de por vida</strong>.
+                </p>
+                <Button variant="accent" onClick={() => setClaimOpen(true)}>
+                  Reclamar mi primer Nickname
+                </Button>
+              </div>
+            )
+          )}
         </div>
       </div>
 

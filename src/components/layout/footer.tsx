@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 const FOOTER_LINKS = [
   { label: "Ranking", href: "/ranking" },
+  { label: "Sistema ELO", href: "/sistema-elo" },
   { label: "Calendario", href: "/calendar" },
   { label: "Clubes", href: "/clubs" },
   { label: "Ligas", href: "/leagues" },

@@ -1,11 +1,14 @@
 // src/pages/poker-quiz.tsx
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import { ChevronRight, ChevronLeft, Share2, RotateCcw, Trophy, Target, Brain, Flame, Shield, Zap } from "lucide-react";
-
+import { useFeatureAccess } from "../hooks/use-shop";
+import { useAuthStore } from "../stores/auth-store";
+import { FeaturePaywall } from "../components/shop/feature-paywall";
+import { supabase } from "../lib/supabase";
 // ══════════════════════════════════════════════════════════
 // TYPES
 // ══════════════════════════════════════════════════════════
@@ -401,7 +404,7 @@ function ResultCard({
   secondary: ProfileResult;
   onRestart: () => void;
 }) {
-  const IconComponent = result.icon;
+  // Eliminamos IconComponent porque ya usas result.emoji en el diseño visual
   const shareText = `Soy "${result.title}" en el quiz de perfil de poker de Sharkania. ¿Y tú qué tipo de jugador eres? 🦈`;
   const shareUrl = "https://sharkania.com/tools/quiz";
 
@@ -555,7 +558,7 @@ export function PokerQuizPage() {
     if (currentQ < QUESTIONS.length - 1) {
       setCurrentQ((p) => p + 1);
     } else {
-      setShowResult(true);
+      handleFinishQuiz();
     }
   };
 
@@ -570,8 +573,52 @@ export function PokerQuizPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  
+
   const result = showResult ? calculateResult(answers) : null;
   const secondary = showResult && result ? getSecondaryProfile(answers, result.type) : null;
+  
+// ── Premium access control ──
+  const { isAuthenticated, user } = useAuthStore();
+  const { data: access } = useFeatureAccess("tool_quiz");
+  const hasFullAccess = access?.has_access ?? false;
+
+  const [freeUsed, setFreeUsed] = useState(false);
+  const [isCheckingDB, setIsCheckingDB] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user || hasFullAccess) return;
+    const checkUsage = async () => {
+      const { data } = await supabase
+        .from('free_tool_usages')
+        .select('last_used_date')
+        .eq('user_id', user.id)
+        .eq('tool_id', 'tool_quiz')
+        .single();
+      const today = new Date().toISOString().split("T")[0];
+      if (data && data.last_used_date === today) setFreeUsed(true);
+    };
+    checkUsage();
+  }, [isAuthenticated, user, hasFullAccess]);
+
+  const needsPaywall = isAuthenticated && freeUsed && !hasFullAccess;
+
+  const handleFinishQuiz = async () => {
+    if (isCheckingDB) return;
+    if (hasFullAccess) { setShowResult(true); return; }
+    if (freeUsed) { return; } // blocked
+    if (!isAuthenticated || !user) { setShowResult(true); setFreeUsed(true); return; }
+
+    setIsCheckingDB(true);
+    const { data: success } = await supabase.rpc('use_free_tool', {
+      p_user_id: user.id,
+      p_tool_id: 'tool_quiz'
+    });
+    setIsCheckingDB(false);
+
+    if (success) { setShowResult(true); setFreeUsed(true); }
+    else { setFreeUsed(true); }
+  };
 
   return (
     <PageShell>
@@ -586,6 +633,19 @@ export function PokerQuizPage() {
         <div className="max-w-2xl mx-auto px-6">
           {!showResult ? (
             <>
+              {/* Paywall — si ya usó su turno gratis */}
+              {needsPaywall && (
+                <div className="mb-8">
+                  <FeaturePaywall
+                    featureKey="tool_quiz"
+                    title="Quiz completo ilimitado"
+                    description="Ya usaste tu quiz gratis de hoy. Desbloquea acceso completo con SharkCoins."
+                  >
+                    <></>
+                  </FeaturePaywall>
+                </div>
+              )}
+
               {/* Header (solo en primera pregunta) */}
               {currentQ === 0 && answers[0] === undefined && (
                 <div className="text-center mb-8">
@@ -611,7 +671,7 @@ export function PokerQuizPage() {
               {/* Question */}
               <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-5 sm:p-6 mb-6">
                 <QuestionCard
-                  question={QUESTIONS[currentQ]}
+                  question={QUESTIONS[currentQ]!} // 👈 Le agregamos el "!" aquí
                   selectedOption={answers[currentQ]}
                   onSelect={handleSelect}
                 />

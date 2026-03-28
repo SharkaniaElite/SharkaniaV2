@@ -1,5 +1,5 @@
 // src/pages/icm-calculator.tsx
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react"; // 👈 Agregamos useEffect
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
@@ -15,6 +15,10 @@ import {
   Users,
   DollarSign,
 } from "lucide-react";
+import { useFeatureAccess } from "../hooks/use-shop";
+import { useAuthStore } from "../stores/auth-store";
+import { FeaturePaywall } from "../components/shop/feature-paywall";
+import { supabase } from "../lib/supabase"; // 👈 IMPORTANTE: Agregamos supabase
 
 // ══════════════════════════════════════════════════════════
 // ICM ALGORITHM (Malmuth-Harville)
@@ -51,10 +55,11 @@ function calculateICM(stacks: number[], payouts: number[]): number[] {
     if (remaining <= 0) return;
 
     for (let i = 0; i < n; i++) {
-      if (remainingStacks[i] <= 0) continue;
+      const stack = remainingStacks[i] ?? 0;
+      if (stack <= 0) continue;
 
-      const pFinish = (remainingStacks[i] / remaining) * probability;
-      equities[i] += pFinish * (payouts[place] ?? 0);
+      const pFinish = (stack / remaining) * probability;
+      equities[i] = (equities[i] ?? 0) + pFinish * (payouts[place] ?? 0);
 
       // Remove this player and recurse for next place
       const newStacks = [...remainingStacks];
@@ -381,6 +386,79 @@ export function ICMCalculatorPage() {
     players.length >= 2 &&
     payouts.length >= 1;
 
+// ── Premium access control ──
+  const { isAuthenticated, user } = useAuthStore();
+  const { data: access } = useFeatureAccess("tool_icm");
+  const hasFullAccess = access?.has_access ?? false;
+
+  const [freeUsed, setFreeUsed] = useState(false);
+  const [isCheckingDB, setIsCheckingDB] = useState(false);
+
+  // 1. Al cargar la página, revisamos silenciosamente en Supabase si ya la usó hoy
+  useEffect(() => {
+    if (!isAuthenticated || !user || hasFullAccess) return;
+
+    const checkUsage = async () => {
+      const { data } = await supabase
+        .from('free_tool_usages')
+        .select('last_used_date')
+        .eq('user_id', user.id)
+        .eq('tool_id', 'tool_icm')
+        .single();
+      
+      const today = new Date().toISOString().split("T")[0];
+      if (data && data.last_used_date === today) {
+        setFreeUsed(true); // Ya quemó su cartucho de hoy
+      }
+    };
+    
+    checkUsage();
+  }, [isAuthenticated, user, hasFullAccess]);
+
+  const needsPaywall = isAuthenticated && freeUsed && !hasFullAccess;
+
+  const handleCalculate = async () => {
+    if (!canCalculate || isCheckingDB) return;
+    
+    // Si tiene premium, calcula de inmediato
+    if (hasFullAccess) {
+      setCalculated(true);
+      return;
+    }
+
+    // Si sabemos que ya lo usó, bloqueamos y mostramos el paywall
+    if (freeUsed) {
+      setCalculated(false);
+      return;
+    }
+
+    // Si es un visitante sin cuenta, podrías dejarlo calcular 1 vez localmente, 
+    // o forzarlo a loguearse. Asumimos que lo dejamos calcular 1 vez.
+    if (!isAuthenticated || !user) { // 👈 Agregamos || !user aquí
+       setCalculated(true);
+       setFreeUsed(true);
+       return;
+    }
+
+    // El momento de la verdad: Consultamos a la base de datos si puede consumirlo
+    setIsCheckingDB(true);
+    const { data: success } = await supabase.rpc('use_free_tool', {
+      p_user_id: user.id, // 👈 Ahora TypeScript sabe que esto es 100% seguro
+      p_tool_id: 'tool_icm'
+    });
+    setIsCheckingDB(false);
+
+    if (success) {
+      // Supabase dio luz verde, hacemos el cálculo
+      setCalculated(true);
+      setFreeUsed(true); // Se bloquea para el SIGUIENTE clic
+    } else {
+      // Supabase dijo que NO (quizás lo usó en otra pestaña/dispositivo)
+      setFreeUsed(true);
+      setCalculated(false);
+    }
+  };
+
   return (
     <PageShell>
       <SEOHead
@@ -579,12 +657,12 @@ export function ICMCalculatorPage() {
             <Button
               variant="accent"
               size="lg"
-              onClick={() => setCalculated(true)}
-              disabled={!canCalculate}
+              onClick={handleCalculate}
+              disabled={!canCalculate || isCheckingDB} // 👈 Agregamos || isCheckingDB
               className="flex-1 sm:flex-none sm:min-w-[200px]"
             >
               <Calculator size={16} />
-              Calcular ICM
+              {freeUsed && !hasFullAccess ? "🔒 Calcular ICM" : "Calcular ICM"}
             </Button>
             <button
               onClick={handleReset}
@@ -594,6 +672,19 @@ export function ICMCalculatorPage() {
               Reiniciar
             </button>
           </div>
+
+          {/* Paywall — shown after free use is exhausted */}
+          {needsPaywall && (
+            <div className="mb-8">
+              <FeaturePaywall
+                featureKey="tool_icm"
+                title="Cálculos ICM ilimitados"
+                description="Ya usaste tu cálculo gratis de hoy. Desbloquea acceso completo con SharkCoins para calcular sin límites."
+              >
+                <></>
+              </FeaturePaywall>
+            </div>
+          )}
 
           {/* Results */}
           {calculated && equities && (
@@ -611,10 +702,10 @@ export function ICMCalculatorPage() {
                 {players
                   .map((player, i) => ({
                     player,
-                    chips: chipValues[i],
-                    equity: equities[i],
-                    equityPct: totalPrize > 0 ? (equities[i] / totalPrize) * 100 : 0,
-                    chipPct: totalChips > 0 ? (chipValues[i] / totalChips) * 100 : 0,
+                    chips: chipValues[i] ?? 0,
+                    equity: equities?.[i] ?? 0,
+                    equityPct: totalPrize > 0 ? ((equities?.[i] ?? 0) / totalPrize) * 100 : 0,
+                    chipPct: totalChips > 0 ? ((chipValues[i] ?? 0) / totalChips) * 100 : 0,
                     index: i,
                   }))
                   .sort((a, b) => b.equity - a.equity)

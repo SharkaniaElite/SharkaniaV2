@@ -7,8 +7,9 @@ import { Button } from "../components/ui/button";
 import { usePlayers } from "../hooks/use-players";
 import { usePokerRooms } from "../hooks/use-clubs";
 import { useDebounce } from "../hooks/use-debounce";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
+import { Link } from "react-router-dom";
 
 const COUNTRIES = [
   { code: "", label: "Todos los países" },
@@ -85,12 +86,21 @@ export function RankingPage() {
             <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1 mb-2">
               🏆 Ranking de Jugadores
             </h1>
-            <p className="text-sk-base text-sk-text-2">
-              {totalCount} jugadores rankeados por ELO
-              {isFetching && (
-                <span className="ml-2 text-sk-accent">(actualizando...)</span>
-              )}
-            </p>
+            <div className="flex items-center gap-4 flex-wrap">
+              <p className="text-sk-base text-sk-text-2">
+                {totalCount} jugadores rankeados por ELO
+                {isFetching && (
+                  <span className="ml-2 text-sk-accent">(actualizando...)</span>
+                )}
+              </p>
+              <Link 
+                to="/sistema-elo" 
+                className="inline-flex items-center gap-1.5 text-[11px] font-mono text-sk-text-3 hover:text-sk-accent transition-colors bg-sk-bg-2 border border-sk-border-2 rounded-full px-2.5 py-1"
+              >
+                <Info size={12} />
+                ¿Cómo se calcula?
+              </Link>
+            </div>
           </div>
 
           {/* Filters */}

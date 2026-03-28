@@ -163,8 +163,8 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Reclamar Nickname" className="max-w-lg">
       <div className="space-y-4">
-        <p className="text-sk-sm text-sk-text-2">
-          Busca tu nickname en el sistema. Puedes reclamar nicknames de distintas salas. Un admin revisará tu solicitud.
+        <p className="text-sk-sm text-sk-text-2 leading-relaxed">
+          Busca tu nickname en el sistema. <strong className="text-sk-text-1">¿No apareces?</strong> Solo existirás en la base de datos si tu club ha subido sus resultados. ¡Pídele a tu administrador que registre el club en Sharkania!
         </p>
 
         {/* Búsqueda */}

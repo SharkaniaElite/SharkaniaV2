@@ -2,10 +2,11 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "../../lib/cn";
-import { Menu, X, Search, LogOut, User, Shield, Settings } from "lucide-react";
+import { Menu, X, Search, LogOut, User, Shield, Settings, Coins, Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { GlobalSearch } from "../search/global-search";
 import { useAuthStore } from "../../stores/auth-store";
+import { SharkCoin } from "../ui/shark-coin";
 
 const NAV_LINKS = [
   { label: "Ranking", href: "/ranking" },
@@ -14,6 +15,7 @@ const NAV_LINKS = [
   { label: "Ligas", href: "/leagues" },
   { label: "Comparador", href: "/compare" },
   { label: "Herramientas", href: "/tools" },
+  { label: "Tienda", href: "/shop" },
   { label: "Blog", href: "/blog" },
 ];
 
@@ -40,6 +42,7 @@ export function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const [prevPathname, setPrevPathname] = useState(location.pathname);
   const { isAuthenticated, profile, isLoading, logout } = useAuthStore();
 
   const isSuperAdmin = profile?.role === "super_admin";
@@ -52,11 +55,13 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useEffect(() => {
+  // ✅ NUEVA FORMA: Cierra los menús si la URL cambia
+  if (location.pathname !== prevPathname) {
+    setPrevPathname(location.pathname);
     setMobileOpen(false);
     setSearchOpen(false);
     setUserMenuOpen(false);
-  }, [location.pathname]);
+  }
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -142,7 +147,6 @@ export function Navbar() {
                   : "bg-sk-accent/10 text-sk-accent border border-sk-accent/15 hover:bg-sk-accent/20 hover:border-sk-accent/30"
               )}
             >
-              {/* Animated gear icon */}
               <svg
                 width="14"
                 height="14"
@@ -161,12 +165,34 @@ export function Navbar() {
                 <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
               </svg>
               {isSuperAdmin ? "Admin" : "Mi Club"}
-              {/* Pulse dot */}
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sk-accent opacity-50" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-sk-accent" />
               </span>
             </Link>
+          )}
+
+          {/* ══════════════════════════════════════════════ */}
+          {/* WALLET SECCIÓN (Escritorio)                    */}
+          {/* ══════════════════════════════════════════════ */}
+          {!isLoading && isAuthenticated && profile && (
+            <div className="hidden sm:flex items-center gap-2 mr-1">
+              {/* Saldo de monedas */}
+              <Link to="/wallet" title="Ir a la billetera" className="flex items-center gap-1.5 bg-sk-bg-2 border border-sk-border-2 hover:border-sk-accent/50 hover:bg-white/[0.02] px-3 py-1.5 rounded-full transition-all cursor-pointer group">
+                <SharkCoin size={16} className="group-hover:scale-110 transition-transform" />
+                <span className="text-sk-sm font-bold text-sk-text-1">
+                  {profile.shark_coins_balance?.toLocaleString() || 0}
+                </span>
+              </Link>
+              
+              {/* Botón rápido de recarga */}
+              <Link to="/wallet">
+                <Button variant="accent" size="sm" className="h-[30px] rounded-full px-3 flex items-center gap-1 shadow-md shadow-sk-accent/20">
+                  <Plus size={14} />
+                  <span className="text-[11px] font-bold">Recargar</span>
+                </Button>
+              </Link>
+            </div>
           )}
 
           {/* Auth buttons / User menu */}
@@ -256,6 +282,32 @@ export function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div style={MENU_BG} className="lg:hidden">
+          
+          {/* ══════════════════════════════════════════════ */}
+          {/* WALLET SECCIÓN (Mobile Menu)                   */}
+          {/* ══════════════════════════════════════════════ */}
+          {isAuthenticated && profile && (
+            <Link
+              to="/wallet"
+              className="flex items-center justify-between px-4 py-3 mb-2 rounded-lg bg-sk-bg-2 border border-sk-border-2 hover:border-sk-accent/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-sk-bg-3 flex items-center justify-center">
+                  <SharkCoin size={20} />
+                </div>
+                <div>
+                  <p className="text-sk-sm font-bold text-sk-text-1">Mis Shark Coins</p>
+                  <p className="text-[10px] text-sk-text-3">Toca para recargar</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 bg-sk-bg-3 px-3 py-1 rounded-full border border-sk-border-2">
+                <span className="text-sk-md font-extrabold text-sk-text-1">
+                  {profile.shark_coins_balance?.toLocaleString() || 0}
+                </span>
+              </div>
+            </Link>
+          )}
+
           {/* Admin button — prominent at the top of mobile menu */}
           {isAuthenticated && isAdmin && (
             <Link

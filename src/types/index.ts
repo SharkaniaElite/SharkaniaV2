@@ -30,6 +30,7 @@ export type MissionType = "daily" | "weekly" | "achievement" | "milestone";
 export type AchievementRarity = "common" | "rare" | "epic" | "legendary";
 export type SubscriptionPlan = "club_pro" | "league_premium" | "player_pro";
 export type SubscriptionStatus = "active" | "cancelled" | "expired";
+export type CreditTransactionType = "purchase" | "reward" | "spend" | "adjustment" | "refund";
 
 // ── Entities ──
 
@@ -45,8 +46,20 @@ export interface Profile {
   level: number;
   is_verified: boolean;
   primary_nickname: string | null;
+  shark_coins_balance: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface CreditTransaction {
+  id: string;
+  user_id: string;
+  amount: number;
+  transaction_type: CreditTransactionType;
+  reference_type: string | null;
+  reference_id: string | null;
+  description: string | null;
+  created_at: string;
 }
 
 export interface PokerRoom {
@@ -335,4 +348,65 @@ export interface SearchResult {
   title: string;
   subtitle: string | null;
   icon: string;
+}
+
+// ── Shop & Credits ──
+
+export type ProductCategory = "tool" | "cosmetic" | "report" | "bundle";
+export type AccessType = "per_use" | "daily" | "monthly" | "permanent";
+
+export interface ShopProduct {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  category: ProductCategory;
+  access_type: AccessType;
+  price_coins: number;
+  icon: string | null;
+  feature_key: string;
+  free_tier_description: string | null;
+  premium_description: string | null;
+  duration_days: number | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserPurchase {
+  id: string;
+  user_id: string;
+  product_id: string;
+  transaction_id: string | null;
+  price_paid: number;
+  access_type: AccessType;
+  feature_key: string;
+  granted_at: string;
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface UserPurchaseWithProduct extends UserPurchase {
+  shop_products: Pick<ShopProduct, "name" | "icon" | "slug" | "category">;
+}
+
+export interface SpendCreditsResult {
+  success: boolean;
+  error?: string;
+  purchase_id?: string;
+  transaction_id?: string;
+  coins_spent?: number;
+  new_balance?: number;
+  feature_key?: string;
+  expires_at?: string | null;
+  balance?: number;
+  price?: number;
+}
+
+export interface FeatureAccess {
+  has_access: boolean;
+  expires_at: string | null;
+  purchase_id: string | null;
 }

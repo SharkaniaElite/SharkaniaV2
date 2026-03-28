@@ -20,6 +20,10 @@ import {
 } from "../lib/replayer-engine";
 import { parseHandHistory } from "../lib/hand-parsers";
 
+import { useFeatureAccess } from "../hooks/use-shop";
+import { FeaturePaywall } from "../components/shop/feature-paywall";
+import { supabase } from "../lib/supabase";
+
 function makeState(hand: HandHistory, speed = 1): ReplayState {
   return { ...initReplayState(hand), isPlaying: false, playbackSpeed: speed };
 }
@@ -47,6 +51,43 @@ export function ReplayerPage() {
   const fsRef       = useRef<HTMLDivElement>(null);
   const rsRef       = useRef<ReplayState | null>(null);
   rsRef.current = rs;
+
+// ── Premium access control ──
+  const { user } = useAuthStore();
+  const { data: access } = useFeatureAccess("tool_replayer");
+  const hasFullAccess = access?.has_access ?? false;
+
+  const [freeUsed, setFreeUsed] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user || hasFullAccess) return;
+    const checkUsage = async () => {
+      const { data } = await supabase
+        .from('free_tool_usages')
+        .select('last_used_date')
+        .eq('user_id', user.id)
+        .eq('tool_id', 'tool_replayer')
+        .single();
+      const today = new Date().toISOString().split("T")[0];
+      if (data && data.last_used_date === today) setFreeUsed(true);
+    };
+    checkUsage();
+  }, [isAuthenticated, user, hasFullAccess]);
+
+  const needsPaywall = isAuthenticated && freeUsed && !hasFullAccess;
+
+  const consumeFreeUse = useCallback(async (): Promise<boolean> => {
+    if (hasFullAccess) return true;
+    if (freeUsed) return false;
+    if (!isAuthenticated || !user) { setFreeUsed(true); return true; }
+
+    const { data: success } = await supabase.rpc('use_free_tool', {
+      p_user_id: user.id,
+      p_tool_id: 'tool_replayer'
+    });
+    if (success) { setFreeUsed(true); return true; }
+    else { setFreeUsed(true); return false; }
+  }, [hasFullAccess, freeUsed, isAuthenticated, user]);
 
   useEffect(() => {
     if (!sharedId) return;
@@ -88,14 +129,24 @@ export function ReplayerPage() {
     return () => window.removeEventListener("keydown", cb);
   }, [toggleFS]);
 
-  const processText = useCallback((text: string) => {
+  const processTextInternal = useCallback((text: string) => {
     setParseErrors([]);
     const result = parseHandHistory(text);
-    if (result.success && result.hands.length > 0) {
+    const firstHand = result.hands[0]; // 👈 Sacamos la mano a una variable
+
+    if (result.success && firstHand) { // 👈 Verificamos explícitamente que firstHand exista
       setHands(result.hands); setSelectedIdx(0);
-      setRS(makeState(result.hands[0])); setDetectedRoom(result.detectedRoom);
-    } else { setParseErrors(result.errors); }
+      setRS(makeState(firstHand)); setDetectedRoom(result.detectedRoom);
+    } else { 
+      setParseErrors(result.errors); 
+    }
   }, []);
+
+  const processText = useCallback(async (text: string) => {
+    const allowed = await consumeFreeUse();
+    if (!allowed) return;
+    processTextInternal(text);
+  }, [processTextInternal, consumeFreeUse]);
 
   const handleFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -116,15 +167,18 @@ export function ReplayerPage() {
   useEffect(() => () => stopInterval(), [stopInterval]);
 
   const selectHand = useCallback((index: number) => {
-    if (!hands[index]) return;
-    stopInterval(); setSelectedIdx(index); setRS(makeState(hands[index]));
+    const hand = hands[index]; // 👈 Guardamos en variable
+    if (!hand) return;         // 👈 TypeScript ahora sabe que "hand" existe 100%
+    stopInterval(); setSelectedIdx(index); setRS(makeState(hand));
   }, [hands, stopInterval]);
 
-  const loadDemo = useCallback(() => {
+  const loadDemo = useCallback(async () => {
+    const allowed = await consumeFreeUse();
+    if (!allowed) return;
     stopInterval();
     const demo = createDemoHand();
     setHands([demo]); setSelectedIdx(0); setRS(makeState(demo)); setDetectedRoom("Demo");
-  }, [stopInterval]);
+  }, [stopInterval, consumeFreeUse]); // 👈 Añadida dependencia
 
   const handleStepForward = useCallback(() => {
     stopInterval();
@@ -249,6 +303,18 @@ export function ReplayerPage() {
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Paywall — si ya usó su turno gratis */}
+                {needsPaywall && (
+                  <div className="mb-4">
+                    <FeaturePaywall
+                      featureKey="tool_replayer"
+                      title="Replayer ilimitado"
+                      description="Ya usaste tu replay gratis de hoy. Desbloquea acceso completo con SharkCoins."
+                    >
+                      <></>
+                    </FeaturePaywall>
+                  </div>
+                )}
                 <div className="flex gap-1 bg-sk-bg-3 rounded-lg p-0.5 border border-sk-border-1 w-fit">
                   {(["upload", "paste"] as const).map((mode) => (
                     <button key={mode} onClick={() => setInputMode(mode)}

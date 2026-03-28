@@ -1,14 +1,17 @@
 // src/components/ui/stat-card.tsx
 import { cn } from "../../lib/cn";
 
-type StatAccent = "default" | "accent" | "green" | "gold";
+import { ReactNode } from "react";
+
+type StatAccent = "default" | "accent" | "green" | "gold" | "cyan";
 
 interface StatCardProps {
   label: string;
-  value: string;
+  value: string | number | ReactNode; // 👈 ¡El cambio mágico!
   delta?: string;
   deltaDirection?: "up" | "down";
   accent?: StatAccent;
+  icon?: ReactNode;
   className?: string;
 }
 
@@ -17,6 +20,7 @@ const accentClasses: Record<StatAccent, string> = {
   accent: "text-sk-accent",
   green: "text-sk-green",
   gold: "text-sk-gold",
+  cyan: "text-[#00D1FF]", // O el color cyan/teal exacto de tu paleta
 };
 
 export function StatCard({
@@ -25,6 +29,7 @@ export function StatCard({
   delta,
   deltaDirection = "up",
   accent = "default",
+  icon,
   className,
 }: StatCardProps) {
   return (
@@ -34,8 +39,9 @@ export function StatCard({
         className
       )}
     >
-      <div className="font-mono text-[11px] font-semibold tracking-[0.05em] uppercase text-sk-text-2 mb-2">
-        {label}
+      <div className="font-mono text-[11px] font-semibold tracking-[0.05em] uppercase text-sk-text-2 mb-2 flex items-center gap-1.5">
+        {icon && <span className="text-sm leading-none">{icon}</span>}
+        <span>{label}</span>
       </div>
       <div
         className={cn(
