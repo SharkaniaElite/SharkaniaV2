@@ -1,4 +1,3 @@
-// src/pages/player-dashboard.tsx
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
@@ -19,6 +18,8 @@ import { usePlayer, usePlayerEloHistory, usePlayerTournamentResults } from "../h
 import { supabase } from "../lib/supabase";
 import { SEOHead } from "../components/seo/seo-head";
 import { SharkCoin } from "../components/ui/shark-coin";
+// 👇 IMPORTAMOS EL NUEVO PANEL DE MISIONES
+import { MissionsPanel } from "../components/gamification/missions-panel"; 
 
 export function PlayerDashboardPage() {
   const { profile, user, refreshProfile, logout } = useAuthStore();
@@ -63,7 +64,7 @@ export function PlayerDashboardPage() {
 
   // ── Datos completos para el Perfil Privado ──
   const primaryPlayerId = linkedPlayers?.[0]?.id;
-  const { data: fullPlayer } = usePlayer(primaryPlayerId || ""); // 👈 Eliminamos el isLoading
+  const { data: fullPlayer } = usePlayer(primaryPlayerId || ""); 
   const { data: eloHistory, isLoading: isLoadingElo } = usePlayerEloHistory(primaryPlayerId || "");
   const { data: tournamentResults, isLoading: isLoadingResults } = usePlayerTournamentResults(primaryPlayerId || "");
 
@@ -78,7 +79,6 @@ export function PlayerDashboardPage() {
     if (!file) return;
     setAvatarError("");
 
-    // 1. Validar tamaño antes de gastar ancho de banda
     if (file.size > MAX_AVATAR_BYTES) {
       setAvatarError("size_exceeded");
       e.target.value = "";
@@ -88,15 +88,9 @@ export function PlayerDashboardPage() {
     setAvatarUploading(true);
     try {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "avif";
-      
-      /* CLAVE ROBUSTA: 
-         - Usamos solo `${user.id}/...` porque el bucket 'avatars' ya se define en .from()
-         - Agregamos un timestamp para evitar que el navegador cachee la imagen vieja
-      */
       const fileName = `avatar-${Date.now()}.${ext}`;
       const path = `${user.id}/${fileName}`;
 
-      // 2. Subida a Storage
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(path, file, { 
@@ -104,20 +98,12 @@ export function PlayerDashboardPage() {
           contentType: file.type 
         });
 
-      if (uploadError) {
-        // Esto aparecerá en tu consola (F12) para debuguear si falla el RLS
-        console.error("Error detallado de Supabase Storage:", uploadError);
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
-      // 3. Obtener URL Pública
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
       const avatarUrl = urlData.publicUrl;
 
-      // 4. Actualizar el perfil del usuario con la nueva URL
       await updateProfile(user.id, { avatar_url: avatarUrl });
-      
-      // 5. Refrescar estado global
       await refreshProfile();
       
       setMessage("Foto de perfil actualizada");
@@ -158,18 +144,12 @@ export function PlayerDashboardPage() {
     navigate("/");
   };
 
-  
-
   const inputClass = "w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent";
   const labelClass = "font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block";
 
   return (
     <PageShell>
-      <SEOHead
-  title="Mi Panel"
-  path="/dashboard"
-  noIndex={true}
-/>
+      <SEOHead title="Mi Panel" path="/dashboard" noIndex={true} />
       <div className="pt-20 pb-16">
         <div className="max-w-[900px] mx-auto px-6">
           {/* Header */}
@@ -185,11 +165,10 @@ export function PlayerDashboardPage() {
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-4">
-                {/* Avatar */}
                 <div className="relative shrink-0">
                   <div className="w-14 h-14 rounded-full bg-sk-bg-4 border-2 border-sk-accent overflow-hidden flex items-center justify-center shadow-[0_0_15px_rgba(0,255,204,0.15)]">
                     {profile.avatar_url
-  ? <img src={`${profile.avatar_url}?t=${Date.now()}`} alt="Avatar" className="w-full h-full object-cover" />
+                      ? <img src={`${profile.avatar_url}?t=${Date.now()}`} alt="Avatar" className="w-full h-full object-cover" />
                       : <span className="text-sk-xl font-extrabold text-sk-accent">{(profile.display_name ?? "?").charAt(0).toUpperCase()}</span>
                     }
                   </div>
@@ -197,18 +176,13 @@ export function PlayerDashboardPage() {
                     onClick={() => { setAvatarError(""); avatarFileRef.current?.click(); }}
                     disabled={avatarUploading}
                     className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-sk-accent flex items-center justify-center hover:bg-sk-accent-hover transition-colors disabled:opacity-50"
-                    title="Cambiar foto"
                   >
-                    {avatarUploading
-                      ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      : <Camera size={12} className="text-sk-bg-0" />
-                    }
+                    {avatarUploading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Camera size={12} className="text-sk-bg-0" />}
                   </button>
                   <input ref={avatarFileRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
                 </div>
                 <div>
                   <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2 mb-1"><User size={18} /> Mi Perfil</h2>
-                  {/* Badge Rápido de Saldo */}
                   <div className="inline-flex items-center gap-1.5 bg-sk-bg-3 border border-sk-accent/30 rounded-full px-2.5 py-0.5 mt-1">
                     <SharkCoin size={16} />
                     <span className="font-mono text-sk-xs font-bold text-sk-accent">
@@ -222,14 +196,9 @@ export function PlayerDashboardPage() {
               </Button>
             </div>
 
-            {/* Error avatar */}
             {avatarError === "size_exceeded" && (
               <div className="mb-4 bg-sk-red-dim border border-sk-red/20 rounded-md p-3 text-sk-sm text-sk-red leading-relaxed">
-                ⚠️ Tu imagen supera los <strong>100 KB</strong>. Para reducirla te recomendamos usar{" "}
-                <a href="https://squoosh.app/" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:opacity-80">
-                  squoosh.app
-                </a>{" "}
-                — selecciona formato <strong>AVIF</strong> y un tamaño máximo de <strong>1000×1000 px</strong>.
+                ⚠️ Tu imagen supera los <strong>100 KB</strong>. Usa squoosh.app.
               </div>
             )}
             {avatarError === "upload_failed" && (
@@ -240,49 +209,27 @@ export function PlayerDashboardPage() {
 
             {editing ? (
               <div className="space-y-4">
-                <div>
-                  <label className={labelClass}>Nombre</label>
-                  <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className={inputClass} />
-                </div>
+                <div><label className={labelClass}>Nombre</label><input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className={inputClass} /></div>
                 <div>
                   <label className={labelClass}>WhatsApp</label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sk-text-3 text-sk-sm">+</span>
-                    <input
-                      type="tel"
-                      value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value)}
-                      placeholder="52 55 1234 5678"
-                      className={`${inputClass} pl-7`}
-                    />
+                    <input type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="52 55 1234 5678" className={`${inputClass} pl-7`} />
                   </div>
-                  <p className="text-[11px] text-sk-text-3 mt-1">Con código de país, ej: 52 55 1234 5678</p>
                 </div>
-                <div>
-                  <label className={labelClass}>País (código de 2 letras)</label>
-                  <input type="text" value={countryCode} onChange={(e) => setCountryCode(e.target.value.toUpperCase().slice(0, 2))} placeholder="CL, AR, BR..." maxLength={2} className={inputClass} />
-                  <p className="text-[11px] text-sk-text-3 mt-1">Deja vacío para no definir país</p>
-                </div>
+                <div><label className={labelClass}>País (código de 2 letras)</label><input type="text" value={countryCode} onChange={(e) => setCountryCode(e.target.value.toUpperCase().slice(0, 2))} maxLength={2} className={inputClass} /></div>
                 <Button variant="accent" size="sm" onClick={handleSave} isLoading={saving}>Guardar Cambios</Button>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 text-sk-sm">
                 <div><span className="text-sk-text-2">Email:</span><p className="text-sk-text-1 font-semibold">{profile.email ?? user.email}</p></div>
                 <div><span className="text-sk-text-2">Nombre:</span><p className="text-sk-text-1 font-semibold">{profile.display_name ?? "—"}</p></div>
-                <div>
-                  <span className="text-sk-text-2">WhatsApp:</span>
-                  <p className="text-sk-text-1 font-semibold">
-                    {profile.whatsapp
-                      ? <a href={`https://wa.me/${profile.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer" className="text-sk-green hover:underline">+{profile.whatsapp}</a>
-                      : <span className="text-sk-text-3">No definido</span>
-                    }
-                  </p>
-                </div>
+                <div><span className="text-sk-text-2">WhatsApp:</span><p className="text-sk-text-1 font-semibold">{profile.whatsapp ? `+${profile.whatsapp}` : "No definido"}</p></div>
                 <div><span className="text-sk-text-2">País:</span><p className="text-sk-text-1 font-semibold">{profile.country_code ? `${getFlag(profile.country_code)} ${getCountryName(profile.country_code)}` : "No definido"}</p></div>
                 <div><span className="text-sk-text-2">Rol:</span><p className="text-sk-text-1 font-semibold capitalize">{profile.role}</p></div>
               </div>
             )}
-            {message && <div className={`mt-4 rounded-md p-3 text-sk-sm ${message.includes("Error") ? "bg-sk-red-dim border border-sk-red/20 text-sk-red" : "bg-sk-green-dim border border-sk-green/20 text-sk-green"}`}>{message}</div>}
+            {message && <div className={`mt-4 rounded-md p-3 text-sk-sm ${message.includes("Error") ? "bg-sk-red-dim text-sk-red" : "bg-sk-green-dim text-sk-green"}`}>{message}</div>}
           </div>
 
           {/* Linked Nicknames */}
@@ -298,7 +245,7 @@ export function PlayerDashboardPage() {
                   <div key={p.id} className="flex items-center justify-between bg-sk-bg-3 rounded-md px-4 py-3">
                     <div>
                       <span className="font-semibold text-sk-text-1 font-mono">{p.nickname}</span>
-                      <span className="text-sk-xs text-sk-text-2 ml-2">({(p as unknown as { poker_rooms: { name: string } }).poker_rooms?.name})</span>
+                      <span className="text-sk-xs text-sk-text-2 ml-2">({(p as any).poker_rooms?.name})</span>
                     </div>
                     <span className="font-mono font-bold text-sk-accent">{Math.round(p.elo_rating)}</span>
                   </div>
@@ -315,7 +262,7 @@ export function PlayerDashboardPage() {
                 <div className="space-y-2">
                   {(myClaims ?? []).filter((c) => c.status === "pending").map((c) => (
                     <div key={c.id} className="flex items-center justify-between bg-sk-bg-3 rounded-md px-4 py-2">
-                      <span className="text-sk-sm text-sk-text-1">{(c as unknown as { players: { nickname: string } }).players?.nickname}</span>
+                      <span className="text-sk-sm text-sk-text-1">{(c as any).players?.nickname}</span>
                       <Badge variant="orange">Pendiente</Badge>
                     </div>
                   ))}
@@ -326,17 +273,19 @@ export function PlayerDashboardPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            {/* 🪙 Nueva StatCard de Shark Coins */}
-            <StatCard 
-              label="Shark Coins" 
-              value={String(profile.shark_coins_balance ?? 0)} 
-              accent="accent" 
-              icon="🦈" 
-            />
+            <StatCard label="Shark Coins" value={String(profile.shark_coins_balance ?? 0)} accent="accent" icon="🦈" />
             <StatCard label="Nivel" value={String(profile.level)} accent="cyan" />
             <StatCard label="XP Total" value={String(profile.xp)} accent="gold" />
             <StatCard label="Verificado" value={profile.is_verified ? "Sí" : "No"} />
             <StatCard label="Nicknames" value={String((linkedPlayers ?? []).length)} />
+          </div>
+
+          {/* 🎯 PANEL DE MISIONES Y RECOMPENSAS (NUEVO) */}
+          <div className="mb-10 mt-10">
+            <h2 className="text-sk-xl font-extrabold text-sk-text-1 mb-4 flex items-center gap-2">
+              🎯 Misiones Activas
+            </h2>
+            <MissionsPanel />
           </div>
 
           {/* ── Perfil de Estadísticas Privadas ── */}
@@ -349,24 +298,14 @@ export function PlayerDashboardPage() {
                 </div>
                 <Badge variant="green">VIP Gratis</Badge>
               </div>
-              
               <PlayerStatsGrid player={fullPlayer} hasAccess={true} />
-              
               <EloChart history={eloHistory ?? []} isLoading={isLoadingElo} />
-              
               <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6">
-                <h3 className="text-sk-md font-bold text-sk-text-1 mb-4 flex items-center gap-2">
-                  🎯 Mi Historial de Torneos
-                </h3>
-                <TournamentHistoryTable 
-                  results={(tournamentResults as any) ?? []} 
-                  isLoading={isLoadingResults} 
-                  hasAccess={true} 
-                />
+                <h3 className="text-sk-md font-bold text-sk-text-1 mb-4 flex items-center gap-2">🎯 Mi Historial de Torneos</h3>
+                <TournamentHistoryTable results={(tournamentResults as any) ?? []} isLoading={isLoadingResults} hasAccess={true} />
               </div>
             </div>
           ) : (
-            /* Mensaje para incentivar el claim si aún no tienen nicknames */
             (!linkedPlayers || linkedPlayers.length === 0) && (
               <div className="bg-gradient-to-br from-sk-bg-2 to-sk-bg-3 border border-sk-border-2 rounded-xl p-8 text-center mt-8 shadow-sk-lg">
                 <span className="text-4xl block mb-4">📊</span>
@@ -374,15 +313,12 @@ export function PlayerDashboardPage() {
                 <p className="text-sk-sm text-sk-text-2 max-w-md mx-auto mb-6">
                   Reclama tu nickname en la sección superior para acceder a tu ROI, Profit, Gráfico de ELO y métricas detalladas <strong>gratis de por vida</strong>.
                 </p>
-                <Button variant="accent" onClick={() => setClaimOpen(true)}>
-                  Reclamar mi primer Nickname
-                </Button>
+                <Button variant="accent" onClick={() => setClaimOpen(true)}>Reclamar mi primer Nickname</Button>
               </div>
             )
           )}
         </div>
       </div>
-
       <NicknameClaim isOpen={claimOpen} onClose={() => setClaimOpen(false)} onClaimed={() => refetchClaims()} />
     </PageShell>
   );

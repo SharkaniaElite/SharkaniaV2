@@ -6,7 +6,7 @@ import { Modal } from "../ui/modal";
 import { supabase } from "../../lib/supabase";
 import { useAuthStore } from "../../stores/auth-store";
 import { cn } from "../../lib/cn";
-import { Search, Upload, X, Plus } from "lucide-react";
+import { Search, Upload, X, Plus, ShieldAlert } from "lucide-react";
 import type { Player } from "../../types";
 
 interface NicknameClaimProps {
@@ -15,12 +15,13 @@ interface NicknameClaimProps {
   onClaimed: () => void;
 }
 
+// Expandimos el tipo para asegurarnos de tener el profile_id
 interface SearchResult extends Player {
   poker_rooms: { name: string };
 }
 
 export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps) {
-  const { user, profile } = useAuthStore(); // Extraemos profile para usar su WhatsApp
+  const { user, profile } = useAuthStore(); 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -28,7 +29,7 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
   const [screenshotUrl, setScreenshotUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "warning" } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Búsqueda en vivo con debounce de 300ms
@@ -53,7 +54,24 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
   }, [query]);
 
   const addPlayer = (player: SearchResult) => {
+    // 🛡️ REGLA DE SEGURIDAD 1: Si ya está reclamado por OTRA persona
+    if (player.profile_id && player.profile_id !== user?.id) {
+      setMessage({
+        text: "Este nickname ya pertenece a otra persona. Si crees que te lo robaron, contacta a soporte para que verifiquen tu identidad y tu cuenta.",
+        type: "warning"
+      });
+      return;
+    }
+    
+    // 🛡️ REGLA DE SEGURIDAD 2: Si ya es tuyo
+    if (player.profile_id === user?.id) {
+      setMessage({ text: "Ya tienes este nickname vinculado a tu cuenta.", type: "error" });
+      return;
+    }
+
     if (selectedPlayers.some((p) => p.id === player.id)) return;
+    
+    setMessage(null); // Limpiamos cualquier error previo
     setSelectedPlayers([...selectedPlayers, player]);
     setQuery("");
     setResults([]);
@@ -112,7 +130,6 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
       return;
     }
 
-    // Verificación de seguridad: si por algún motivo no hay WhatsApp, avisamos
     if (!profile.whatsapp) {
       setMessage({ 
         text: "Tu perfil no tiene un WhatsApp vinculado. Por favor, actualízalo en tu panel antes de continuar.", 
@@ -130,7 +147,6 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
     setMessage(null);
 
     try {
-      // Creamos los reclamos vinculados al usuario
       const claims = selectedPlayers.map((p) => ({
         user_id: user.id,
         player_id: p.id,
@@ -201,24 +217,55 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
           <div className="border border-sk-border-2 rounded-md overflow-hidden max-h-48 overflow-y-auto">
             {results.map((p) => {
               const isSelected = selectedPlayers.some((sp) => sp.id === p.id);
+              // 🛡️ UI: Detectamos visualmente si está ocupado
+              const isTaken = p.profile_id && p.profile_id !== user?.id;
+
               return (
                 <button
                   key={p.id}
                   onClick={() => addPlayer(p)}
-                  disabled={isSelected}
+                  disabled={isSelected} // SÍ lo dejamos cliquear si está 'Taken', para que le salga el mensaje rojo
                   className={cn(
                     "w-full flex items-center justify-between px-4 py-3 text-left border-b border-sk-border-2 last:border-b-0 transition-colors",
-                    isSelected ? "bg-sk-accent-dim opacity-60" : "hover:bg-white/[0.03]"
+                    isSelected ? "bg-sk-accent-dim opacity-60 cursor-not-allowed" : 
+                    isTaken ? "hover:bg-sk-red/5 cursor-pointer" : "hover:bg-white/[0.03]"
                   )}
                 >
                   <div>
-                    <p className="text-sk-sm font-semibold text-sk-text-1">{p.nickname}</p>
+                    <p className="text-sk-sm font-semibold text-sk-text-1 flex items-center gap-2">
+                      {p.nickname}
+                      {isTaken && (
+  <span title="Este nickname ya tiene dueño">
+    <ShieldAlert size={12} className="text-sk-red" />
+  </span>
+)}
+                    </p>
                     <p className="text-[11px] text-sk-text-2">{p.poker_rooms?.name ?? "—"}</p>
                   </div>
-                  {isSelected ? <Badge variant="accent">Seleccionado</Badge> : <Plus size={14} className="text-sk-text-3" />}
+                  
+                  {isSelected ? (
+                    <Badge variant="accent">Seleccionado</Badge>
+                  ) : isTaken ? (
+                    <Badge variant="red">Ocupado</Badge>
+                  ) : (
+                    <Plus size={14} className="text-sk-text-3" />
+                  )}
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* Mensajes de Alerta / Éxito */}
+        {message && (
+          <div className={cn(
+            "rounded-md p-3 text-sk-sm flex items-start gap-2",
+            message.type === "success" && "bg-sk-green-dim border border-sk-green/20 text-sk-green",
+            message.type === "error" && "bg-sk-red-dim border border-sk-red/20 text-sk-red",
+            message.type === "warning" && "bg-sk-orange-dim border border-sk-orange/20 text-sk-orange"
+          )}>
+            {message.type === "warning" && <ShieldAlert size={16} className="shrink-0 mt-0.5" />}
+            <span>{message.text}</span>
           </div>
         )}
 
@@ -268,15 +315,6 @@ export function NicknameClaim({ isOpen, onClose, onClaimed }: NicknameClaimProps
             </Button>
           )}
         </div>
-
-        {message && (
-          <div className={cn(
-            "rounded-md p-3 text-sk-sm",
-            message.type === "success" ? "bg-sk-green-dim border border-sk-green/20 text-sk-green" : "bg-sk-red-dim border border-sk-red/20 text-sk-red"
-          )}>
-            {message.text}
-          </div>
-        )}
 
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" size="sm" onClick={onClose}>Cancelar</Button>

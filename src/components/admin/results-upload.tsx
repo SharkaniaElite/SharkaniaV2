@@ -1,10 +1,9 @@
-// src/components/admin/results-upload.tsx
 import { useState, useRef } from "react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Modal } from "../ui/modal";
 import { calculateElo } from "../../lib/api/elo-engine";
-import { applyLeaguePoints } from "../../lib/api/tournaments"; // 🔥 Lógica centralizada
+import { applyLeaguePoints } from "../../lib/api/tournaments"; 
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/cn";
 import {
@@ -18,6 +17,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
+import { parseInternationalNumber } from "../../lib/format";
 
 // ── Types ──
 
@@ -26,7 +26,7 @@ interface ResultRow {
   nickname: string;
   playerId: string;
   prizeWon: number;
-  leaguePoints: number; // 0 es válido — nunca null aquí
+  leaguePoints: number; 
   status: "pending" | "found" | "not_found" | "created";
 }
 
@@ -66,7 +66,30 @@ function normalizeHeader(raw: string): string | null {
   return HEADER_ALIASES[cleaned] ?? null;
 }
 
-// ── CSV Parser ──
+// ── CSV Parser Helper ──
+
+// 🎯 SOLUCIÓN: Función robusta para separar líneas CSV ignorando separadores dentro de comillas (ej: "300,10")
+function splitCsvLine(line: string, sep: string): string[] {
+  const parts: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes; // Entramos o salimos de comillas
+    } else if (char === sep && !inQuotes) {
+      parts.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  parts.push(current);
+  
+  // Limpiamos los espacios y comillas residuales de cada valor
+  return parts.map((s) => s.trim().replace(/^["']|["']$/g, ""));
+}
 
 interface ParsedCSVRow {
   position: number | null;
@@ -85,7 +108,8 @@ function parseCSVSmart(
   const firstLine = lines[0]!;
   const sep = firstLine.includes("\t") ? "\t" : firstLine.includes(";") ? ";" : ",";
 
-  const rawHeaders = firstLine.split(sep).map((h) => h.trim().replace(/^["']|["']$/g, ""));
+  // Usamos el nuevo split inteligente
+  const rawHeaders = splitCsvLine(firstLine, sep);
   const mappedHeaders = rawHeaders.map(normalizeHeader);
   const isHeader = mappedHeaders.some((h) => h !== null);
   const startIndex = isHeader ? 1 : 0;
@@ -96,7 +120,7 @@ function parseCSVSmart(
       if (mapped && !(mapped in headerMap)) headerMap[mapped] = i;
     });
   } else {
-    const testParts = firstLine.split(sep).map((s) => s.trim());
+    const testParts = splitCsvLine(firstLine, sep);
     if (testParts[0] && !isNaN(Number(testParts[0]))) {
       headerMap.position = 0; headerMap.nickname = 1;
       if (testParts.length > 2) headerMap.prize = 2;
@@ -117,7 +141,8 @@ function parseCSVSmart(
   }
 
   for (let i = startIndex; i < lines.length; i++) {
-    const parts = lines[i]!.split(sep).map((s) => s.trim().replace(/^["']|["']$/g, ""));
+    // Usamos el nuevo split inteligente para cada fila
+    const parts = splitCsvLine(lines[i]!, sep);
     const rowNum = i + 1;
 
     const getValue = (field: string): string => {
@@ -138,8 +163,10 @@ function parseCSVSmart(
     }
 
     const nickname = nickRaw.trim();
-    const prize    = prizeRaw  ? parseFloat(prizeRaw.replace(/[$,\s]/g, ""))  || 0 : 0;
-    const points   = pointsRaw ? parseFloat(pointsRaw.replace(/[$,\s]/g, "")) || 0 : 0;
+    
+    // Ahora recibe el número completo e intacto, sin cortes prematuros
+    const prize    = parseInternationalNumber(prizeRaw);
+    const points   = parseInternationalNumber(pointsRaw);
 
     if (!nickname) {
       errors.push({ row: rowNum, field: "nickname", message: `Fila ${rowNum}: falta el "nickname" (obligatorio)` });
@@ -398,7 +425,6 @@ export function ResultsUpload({
         return;
       }
 
-      // ✅ 1. Aplicar puntos de liga PRIMERO usando la API centralizada
       if (tournament.league_id) {
         setMessage({ text: "Aplicando puntos de liga...", type: "info" });
         try {
@@ -409,7 +435,6 @@ export function ResultsUpload({
         }
       }
 
-      // ✅ 2. Luego calcular ELO
       setMessage({ text: "Calculando ELO...", type: "info" });
 
       const eloResult = await calculateElo(tournament.id);
@@ -504,12 +529,12 @@ export function ResultsUpload({
                   <span className="text-sk-text-4 text-[10px] block mb-1">Ejemplo:</span>
                   <span className="text-sk-text-3">lugar</span>,<span className="text-sk-text-3">nickname</span>,<span className="text-sk-text-3">premio</span>{hasLeague && <>,<span className="text-sk-purple">puntos</span></>}<br />
                   <span className="text-sk-text-1">1</span>,<span className="text-sk-accent">SharkMaster_BR</span>,<span className="text-sk-gold">150</span>{hasLeague && <>,<span className="text-sk-purple">100</span></>}<br />
-                  <span className="text-sk-text-1">2</span>,<span className="text-sk-accent">RiverKing_AR</span>,<span className="text-sk-gold">90</span>{hasLeague && <>,<span className="text-sk-purple">75</span></>}<br />
+                  <span className="text-sk-text-1">2</span>,<span className="text-sk-accent">RiverKing_AR</span>,<span className="text-sk-gold">90.50</span>{hasLeague && <>,<span className="text-sk-purple">75</span></>}<br />
                   <span className="text-sk-text-1">3</span>,<span className="text-sk-accent">AceHunter_MX</span>,<span className="text-sk-gold">0</span>{hasLeague && <>,<span className="text-sk-purple">0</span></>}
                 </div>
 
                 <p className="text-[10px] text-sk-text-3 mt-1">
-                  💡 Si no hay columna "lugar", las posiciones se asignan por orden. Si "premio" o "puntos" quedan vacíos, se asume 0. Las columnas no reconocidas son ignoradas.
+                  💡 Si no hay columna "lugar", las posiciones se asignan por orden. Los números pueden usar coma o punto decimal indistintamente (ej. 1.500,50 o 1500.50). Las columnas no reconocidas son ignoradas.
                 </p>
               </div>
 

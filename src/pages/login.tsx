@@ -96,17 +96,9 @@ export function LoginPage() {
           </div>
 
           <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 block">
-                Contraseña
-              </label>
-              <Link 
-                to="/forgot-password" 
-                className="text-[11px] text-sk-accent hover:underline font-medium"
-              >
-                ¿Olvidaste tu contraseña?
-              </Link>
-            </div>
+            <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">
+              Contraseña
+            </label>
             <input
               type="password"
               value={password}
@@ -115,6 +107,15 @@ export function LoginPage() {
               className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-3 focus:outline-none focus:border-sk-accent focus:shadow-[0_0_0_3px_var(--sk-accent-dim)]"
               placeholder="••••••••"
             />
+            {/* 👇 AHORA: El enlace está aquí, justo debajo del campo de contraseña */}
+            <div className="flex justify-end mt-1.5">
+              <Link 
+                to="/forgot-password" 
+                className="text-[11px] text-sk-accent hover:underline font-medium"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </div>
 
           <div className="flex justify-center py-2 min-h-[65px]">

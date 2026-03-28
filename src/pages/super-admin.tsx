@@ -24,9 +24,13 @@ import {
   type BannersConfig, type BannerConfig,
 } from "../lib/api/site-settings";
 
+// 👇 IMPORTAMOS EL PANEL DE ADMINISTRACIÓN DE MISIONES
+import { MissionsAdminTab } from "../components/admin/missions-admin-tab";
+
 // ── Tipos ─────────────────────────────────────────────────
 
-type AdminTab = "overview" | "users" | "requests" | "rooms" | "scoring" | "banners";
+// 👇 AÑADIMOS "missions" A LOS TIPOS DE TABS
+type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners";
 
 // ── Descripción de cada slot de banner ───────────────────
 
@@ -261,18 +265,21 @@ export function SuperAdminPage() {
   const { data: stats } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: async () => {
-      const [players, clubs, tournaments, leagues, pendingClubs, pendingClaims] = await Promise.all([
+      // 👇 AÑADIMOS LA CONSULTA DE MISIONES PENDIENTES
+      const [players, clubs, tournaments, leagues, pendingClubs, pendingClaims, pendingMissions] = await Promise.all([
         supabase.from("players").select("*", { count: "exact", head: true }),
         supabase.from("clubs").select("*", { count: "exact", head: true }),
         supabase.from("tournaments").select("*", { count: "exact", head: true }),
         supabase.from("leagues").select("*", { count: "exact", head: true }),
         supabase.from("club_registration_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("nickname_claims").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("player_missions").select("*", { count: "exact", head: true }).eq("status", "pending"),
       ]);
       return {
         players: players.count ?? 0, clubs: clubs.count ?? 0,
         tournaments: tournaments.count ?? 0, leagues: leagues.count ?? 0,
         pendingClubs: pendingClubs.count ?? 0, pendingClaims: pendingClaims.count ?? 0,
+        pendingMissions: pendingMissions.count ?? 0,
       };
     },
   });
@@ -455,10 +462,12 @@ export function SuperAdminPage() {
 
   const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0);
 
+  // 👇 AÑADIMOS LA PESTAÑA DE MISIONES AL ARRAY TABS CON SU BADGE DINÁMICO
   const TABS: { key: AdminTab; label: string; badge?: number }[] = [
     { key: "overview",  label: "General" },
     { key: "users",     label: "Usuarios" },
     { key: "requests",  label: "Solicitudes", badge: pendingTotal > 0 ? pendingTotal : undefined },
+    { key: "missions",  label: "Misiones", badge: (stats?.pendingMissions ?? 0) > 0 ? stats!.pendingMissions : undefined },
     { key: "rooms",     label: "Salas" },
     { key: "scoring",   label: "Scoring" },
     { key: "banners",   label: "Banners" },
@@ -708,6 +717,16 @@ export function SuperAdminPage() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* 👇 ══ MISIONES (NUEVA PESTAÑA) ══ */}
+          {tab === "missions" && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-sk-md font-bold text-sk-text-1">Revisión de Misiones</h2>
+              </div>
+              <MissionsAdminTab />
             </div>
           )}
 

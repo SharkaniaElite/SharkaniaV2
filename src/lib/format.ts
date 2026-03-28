@@ -45,3 +45,62 @@ export function translateAuthError(message: string): string {
   
   return "Ocurrió un error inesperado. Inténtalo de nuevo.";
 }
+
+/**
+ * Convierte cualquier formato de moneda a un número flotante nativo de JavaScript.
+ * Soporta: "1.500,50", "1,500.50", "1500,5", "1.500", "$ 1,500"
+ */
+export function parseInternationalNumber(value: string | number | null | undefined): number {
+  if (value === null || value === undefined || value === "") return 0;
+  if (typeof value === "number") return value;
+
+  // 1. Limpiamos espacios, símbolos de moneda o letras
+  let cleanStr = String(value).replace(/[^0-9.,-]/g, "");
+  if (!cleanStr) return 0;
+
+  // 2. Detectamos qué símbolos tiene
+  const hasDot = cleanStr.includes(".");
+  const hasComma = cleanStr.includes(",");
+
+  if (hasDot && hasComma) {
+    // Si tiene ambos, el que está al final es el decimal
+    const lastDot = cleanStr.lastIndexOf(".");
+    const lastComma = cleanStr.lastIndexOf(",");
+    
+    if (lastDot > lastComma) {
+      // Formato US: 1,500.50 -> Quitamos comas
+      cleanStr = cleanStr.replace(/,/g, "");
+    } else {
+      // Formato EU/LATAM: 1.500,50 -> Quitamos puntos, cambiamos coma por punto
+      cleanStr = cleanStr.replace(/\./g, "").replace(",", ".");
+    }
+  } 
+  else if (hasComma) {
+    // Solo tiene comas. Miramos la última coma.
+    const parts = cleanStr.split(",");
+    const lastPart = parts[parts.length - 1];
+    
+    // 👇 FIX: Le decimos a TS que verifique si lastPart existe primero
+    if (lastPart && lastPart.length === 3 && parts.length > 1) {
+      cleanStr = cleanStr.replace(/,/g, "");
+    } else {
+      // Si no, es decimal (ej: 1500,50 o 200,2)
+      cleanStr = cleanStr.replace(",", ".");
+    }
+  } 
+  else if (hasDot) {
+    // Solo tiene puntos. Misma lógica.
+    const parts = cleanStr.split(".");
+    const lastPart = parts[parts.length - 1];
+    
+    // 👇 FIX: Le decimos a TS que verifique si lastPart existe primero
+    if (lastPart && lastPart.length === 3 && parts.length > 1) {
+      // Es miles (ej: 1.500)
+      cleanStr = cleanStr.replace(/\./g, "");
+    }
+    // Si es decimal (ej: 1500.50), no hacemos nada porque el punto ya es nativo de JS.
+  }
+
+  const parsed = parseFloat(cleanStr);
+  return isNaN(parsed) ? 0 : parsed;
+}

@@ -6,6 +6,7 @@ import { useAuthStore } from "../../stores/auth-store";
 import type { ShopProduct } from "../../types";
 import { Check, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { SharkCoin } from "../ui/shark-coin"; // 👈 Importamos la moneda oficial
 
 interface ProductCardProps {
   product: ShopProduct;
@@ -33,7 +34,6 @@ export function ProductCard({ product }: ProductCardProps) {
     }
     
     // 🚧 FASE BETA: Bloqueamos la compra real y mostramos alerta
-    // setShowModal(true); // <- Descomentar esto cuando los pagos estén listos
     alert("🚧 Fase Beta: Las compras de herramientas y pases están deshabilitadas temporalmente. ¡Pronto podrás usar tus SharkCoins!");
   };
 
@@ -86,15 +86,15 @@ export function ProductCard({ product }: ProductCardProps) {
               className="w-full justify-center gap-2 border border-sk-border-2 hover:border-sk-accent transition-colors"
               onClick={handleClick}
             >
-              <Lock size={12} />
-              <span>🪙</span>
-              <span className="font-mono font-bold">{product.price_coins}</span>
+              <Lock size={12} className="text-sk-text-3" />
+              {/* 👇 REEMPLAZO: Cambiamos el emoji 🪙 por el componente SharkCoin */}
+              <SharkCoin size={14} /> 
+              <span className="font-mono font-bold text-sk-text-1">{product.price_coins}</span>
             </Button>
           )}
         </div>
       </div>
 
-      {/* Modal de compra (Oculto en fase Beta) */}
       <PurchaseModal
         product={product}
         isOpen={showModal}
