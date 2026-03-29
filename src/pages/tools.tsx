@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Wrench,
   Play,
+  Target,
 } from "lucide-react";
 
 // ══════════════════════════════════════════════════════════
@@ -96,6 +97,19 @@ const TOOLS: ToolCard[] = [
     badge: "Nuevo",
     available: true,
     requiresAuth: true,
+  },
+  {
+    slug: "/tools/perfilador-salas",
+    title: "Matchmaker de Salas",
+    description:
+      "Descubre qué sala de poker online se adapta perfectamente a tu psicología, nivel y dispositivo en menos de 1 minuto.",
+    image: "/images/tools/tool-quiz.avif", // O una nueva imagen
+    icon: Target,
+    color: "#ec4899", // Rosa/Fucsia 
+    colorDim: "rgba(236,72,153,0.10)",
+    badge: "Exclusivo",
+    available: true,
+    requiresAuth: false, // ¡Esta debería ser pública para captar leads!
   },
 ];
 
