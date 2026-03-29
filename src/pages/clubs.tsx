@@ -54,6 +54,34 @@ export function ClubsPage() {
             />
           </div>
 
+          {/* Internal links */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/calendar"
+              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all group"
+            >
+              <span className="text-lg">📅</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors">
+                  Calendario de torneos
+                </p>
+                <p className="text-[11px] text-sk-text-3">Todos los torneos próximos en un solo lugar</p>
+              </div>
+            </Link>
+            <Link
+              to="/ranking"
+              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all group"
+            >
+              <span className="text-lg">🏆</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors">
+                  Ranking ELO Global
+                </p>
+                <p className="text-[11px] text-sk-text-3">Los mejores jugadores del ecosistema</p>
+              </div>
+            </Link>
+          </div>
+
           {/* Clubs grid */}
           {isLoading ? (
             <div className="flex justify-center py-20">

@@ -123,6 +123,34 @@ export function CalendarPage() {
             </p>
           </div>
 
+          {/* Internal links */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/clubs"
+              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all group"
+            >
+              <span className="text-lg">🏛️</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors">
+                  Ver todos los clubes
+                </p>
+                <p className="text-[11px] text-sk-text-3">Encuentra tu próxima mesa</p>
+              </div>
+            </Link>
+            <Link
+              to="/register"
+              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-accent/20 bg-sk-accent-dim hover:bg-sk-accent-glow transition-all group"
+            >
+              <span className="text-lg">🦈</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sk-sm font-semibold text-sk-accent">
+                  ¿Administras un club?
+                </p>
+                <p className="text-[11px] text-sk-text-2">Publica tu calendario gratis</p>
+              </div>
+            </Link>
+          </div>
+
           {/* Tabs */}
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex items-center justify-between gap-4 flex-wrap">

@@ -103,6 +103,36 @@ export function RankingPage() {
             </div>
           </div>
 
+{/* Internal link — Blog */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/blog/elo-global-como-medimos-al-mejor-jugador-de-clubes"
+              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all group"
+            >
+              <span className="text-lg">📊</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors truncate">
+                  ¿Cómo funciona el ELO en poker?
+                </p>
+                <p className="text-[11px] text-sk-text-3">La ciencia detrás del ranking global</p>
+              </div>
+              <ChevronRight size={14} className="text-sk-text-4 group-hover:text-sk-accent transition-colors" />
+            </Link>
+            <Link
+              to="/tools/simulador-elo"
+              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all group"
+            >
+              <span className="text-lg">🧮</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors truncate">
+                  Simulador de ELO
+                </p>
+                <p className="text-[11px] text-sk-text-3">¿Cuánto subirías si ganas?</p>
+              </div>
+              <ChevronRight size={14} className="text-sk-text-4 group-hover:text-sk-accent transition-colors" />
+            </Link>
+          </div>
+
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="flex-1">
