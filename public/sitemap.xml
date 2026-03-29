@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- ═══ Páginas principales ═══ -->
   <url>
     <loc>https://sharkania.com/</loc>
     <changefreq>daily</changefreq>
@@ -30,39 +31,118 @@
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
+
+  <!-- ═══ Blog ═══ -->
   <url>
     <loc>https://sharkania.com/blog</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://sharkania.com/tools/quiz</loc>
+    <loc>https://sharkania.com/blog/clubes-con-datos-abiertos-ganan-mas-jugadores</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2026-03-15</lastmod>
+  </url>
+  <url>
+    <loc>https://sharkania.com/blog/elo-global-como-medimos-al-mejor-jugador-de-clubes</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2026-03-17</lastmod>
+  </url>
+  <url>
+    <loc>https://sharkania.com/blog/como-leer-estadisticas-torneo-detectar-leaks-5-minutos</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2026-03-18</lastmod>
+  </url>
+  <url>
+    <loc>https://sharkania.com/blog/el-costo-invisible-del-tilt-cuanto-dinero-estas-perdiendo</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2026-03-20</lastmod>
+  </url>
+  <url>
+    <loc>https://sharkania.com/blog/icm-basico-burbuja-jugada-mas-rentable</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2026-03-22</lastmod>
+  </url>
+  <url>
+    <loc>https://sharkania.com/blog/clubes-calendario-publico-retienen-3x-jugadores</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2026-03-27</lastmod>
+  </url>
+
+  <!-- ═══ Herramientas ═══ -->
+  <url>
+    <loc>https://sharkania.com/tools</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://sharkania.com/tools/quiz</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://sharkania.com/tools/calculadora-icm</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://sharkania.com/tools/simulador-elo</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://sharkania.com/tools/calculadora-banca</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://sharkania.com/login</loc>
+    <loc>https://sharkania.com/tools/replayer</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://sharkania.com/tools/perfilador-salas</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- ═══ Páginas informativas ═══ -->
+  <url>
+    <loc>https://sharkania.com/sistema-elo</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://sharkania.com/tutorial-csv</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://sharkania.com/shop</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://sharkania.com/register</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
+  </url>
+
+  <!-- ═══ Legal ═══ -->
+  <url>
+    <loc>https://sharkania.com/terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://sharkania.com/privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
   </url>
 </urlset>

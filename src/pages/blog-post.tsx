@@ -1,4 +1,5 @@
 // src/pages/blog-post.tsx
+import { useArticleSchema, useBreadcrumbSchema } from "../components/seo/structured-data";
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Share2, ChevronRight } from "lucide-react";
@@ -154,6 +155,22 @@ export default function BlogPostPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
   const h2Count               = useRef(0);
+
+  // Dentro del componente, después de que 'post' se carga:
+useArticleSchema({
+  title: post?.title ?? '',
+  description: post?.excerpt ?? '',
+  slug: post?.slug ?? '',
+  publishedAt: post?.published_at ?? '',
+  category: post?.category ?? '',
+  imageUrl: post?.image_og ?? undefined,
+});
+
+useBreadcrumbSchema([
+  { name: 'Inicio', url: 'https://sharkania.com' },
+  { name: 'Blog', url: 'https://sharkania.com/blog' },
+  { name: post?.title ?? 'Artículo', url: `https://sharkania.com/blog/${post?.slug ?? ''}` },
+]);
 
   useEffect(() => {
     if (!slug) return;

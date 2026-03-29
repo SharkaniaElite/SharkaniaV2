@@ -1,11 +1,19 @@
-# Sharkania - Robots.txt
+# ══════════════════════════════════════════════
+# Sharkania — robots.txt
+# https://sharkania.com
+# ══════════════════════════════════════════════
+
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://sharkania.com/sitemap.xml
-
-# Disallow admin routes
+# Páginas privadas
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /dashboard
+Disallow: /wallet
+Disallow: /welcome
+Disallow: /update-password
+Disallow: /forgot-password
+
+# Sitemap
+Sitemap: https://sharkania.com/sitemap.xml
