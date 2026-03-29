@@ -212,10 +212,7 @@ export function HomePage() {
   return (
    
     <PageShell>
-     <SEOHead
-  title="Inicio"
-  path="/"
-/>
+     <SEOHead title="Inicio" description="Ranking ELO global de poker competitivo para clubes privados. Calendarios de torneos en vivo, perfiles de jugador, ligas, estadísticas y herramientas." path="/" />
 
       {/* ══ HERO ══ */}
       <section className="relative min-h-dvh flex flex-col items-center justify-center text-center px-6 py-24 overflow-hidden max-md:py-16">

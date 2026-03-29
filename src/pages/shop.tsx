@@ -34,7 +34,7 @@ export function ShopPage() {
   return (
     <PageShell>
       <SEOHead
-        title="Tienda SharkCoins — Sharkania"
+        title="Tienda SharkCoins"
         description="Desbloquea herramientas premium, cosméticos y reportes con SharkCoins."
       />
 

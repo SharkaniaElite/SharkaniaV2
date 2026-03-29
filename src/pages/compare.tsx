@@ -263,7 +263,7 @@ export function ComparePage() {
   if (!isAuthenticated) {
     return (
       <PageShell>
-        <SEOHead title="Comparador de Jugadores" path="/compare" />
+        <SEOHead title="Comparador de Jugadores" description="Compara estadísticas de dos jugadores de poker: ELO, ITM%, ROI, torneos jugados y evolución histórica." path="/compare" />
         <div className="pt-32 pb-16 min-h-[80vh] flex items-center justify-center px-6">
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-10 text-center max-w-md w-full shadow-sk-lg">
             <ShieldAlert size={48} className="mx-auto mb-4 text-sk-accent" />

@@ -215,7 +215,7 @@ export function ToolsPage() {
   return (
     <PageShell>
       <SEOHead
-        title="Herramientas de Poker — Sharkania"
+        title="Herramientas de Poker"
         description="Analiza tu juego con herramientas profesionales: Calculadora ICM, gestión de banca y replayer de manos."
         path="/tools"
       />

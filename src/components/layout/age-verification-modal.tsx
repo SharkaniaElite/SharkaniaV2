@@ -4,18 +4,16 @@ import { AlertTriangle } from "lucide-react";
 import { Button } from "../ui/button";
 
 export function AgeVerificationModal() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  const [isOpen, setIsOpen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !localStorage.getItem("sharkania_age_verified");
+  });
 
   useEffect(() => {
-    setIsClient(true);
-    const verified = localStorage.getItem("sharkania_age_verified");
-    if (!verified) {
-      setIsOpen(true);
-      // Bloquear el scroll del body
+    if (isOpen) {
       document.body.style.overflow = "hidden";
     }
-  }, []);
+  }, [isOpen]);
 
   const handleVerify = () => {
     localStorage.setItem("sharkania_age_verified", "true");
@@ -28,7 +26,10 @@ export function AgeVerificationModal() {
     window.location.href = "https://www.google.com";
   };
 
-  if (!isClient || !isOpen) return null;
+  // No mostrar el modal a bots de búsqueda para que indexen el contenido
+  const isBot = typeof navigator !== 'undefined' && /Googlebot|bingbot|Baiduspider|YandexBot|DuckDuckBot|facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot/i.test(navigator.userAgent);
+
+  if (!isOpen || isBot) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-sk-bg-0/90 backdrop-blur-sm p-4">

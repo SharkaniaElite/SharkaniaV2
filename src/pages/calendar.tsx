@@ -102,9 +102,9 @@ export function CalendarPage() {
   return (
     <PageShell>
     <SEOHead
-  title="Ranking ELO Global"
-  description="Los mejores jugadores de poker del mundo ordenados por ELO. Busca, filtra y descubre quién domina."
-  path="/ranking"
+  title="Calendario de Torneos"
+  description="Calendario de torneos de poker en vivo. Horarios, buy-ins, garantizados y countdown en tiempo real para clubes privados."
+  path="/calendar"
 />
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
