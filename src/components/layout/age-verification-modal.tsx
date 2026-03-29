@@ -63,9 +63,9 @@ export function AgeVerificationModal() {
             </Button>
             <Button 
               variant="ghost" 
-              className="w-full text-sk-sm text-sk-text-3 hover:text-sk-text-1"
+              className="w-full text-sk-sm text-sk-text-2 hover:text-sk-text-1"
               onClick={handleReject}
-            >
+             >
               No, soy menor de edad
             </Button>
           </div>

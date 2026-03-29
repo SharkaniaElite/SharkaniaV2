@@ -57,13 +57,13 @@ export function Footer() {
                   <Link
                     key={link.label}
                     to={link.href}
-                    className="text-[11px] text-sk-text-3 hover:text-sk-text-2 transition-colors duration-sk-fast"
+                    className="text-[11px] text-sk-text-2 hover:text-sk-text-1 transition-colors duration-sk-fast"
                   >
                     {link.label}
                   </Link>
                 ))}
               </div>
-              <div className="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-sk-bg-2 border border-sk-border-2 rounded text-[10px] font-mono text-sk-text-3 select-none">
+              <div className="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-sk-bg-2 border border-sk-border-2 rounded text-[10px] font-mono text-sk-text-2 select-none">
                 <span className="w-1.5 h-1.5 rounded-full bg-sk-red"></span>
                 18+ ONLY
               </div>
@@ -82,7 +82,7 @@ export function Footer() {
               href="https://clerigopoker.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sk-accent hover:underline"
+              className="text-sk-accent underline decoration-sk-accent/30 hover:decoration-sk-accent"
             >
               clerigopoker.com
             </a>

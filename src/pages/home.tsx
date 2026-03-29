@@ -527,7 +527,7 @@ export function HomePage() {
               ].map(step => (
                 <div key={step.n} className="flex-1 text-center relative z-[1]">
                   <div className="w-12 h-12 rounded-full bg-sk-bg-4 border-2 border-sk-border-3 flex items-center justify-center font-mono font-extrabold text-sk-md text-sk-accent mx-auto mb-4">{step.n}</div>
-                  <h4 className="font-bold text-sk-sm text-sk-text-1 mb-2">{step.title}</h4>
+                  <p className="font-bold text-sk-sm text-sk-text-1 mb-2">{step.title}</p>
                   <p className="text-sk-xs text-sk-text-2 leading-relaxed max-w-[200px] mx-auto">{step.desc}</p>
                 </div>
               ))}

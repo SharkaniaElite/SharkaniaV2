@@ -215,9 +215,10 @@ export function Navbar() {
 
           {/* Hamburger */}
           <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden w-10 h-10 flex items-center justify-center text-sk-text-1 bg-transparent border-none cursor-pointer"
-          >
+  onClick={() => setMobileOpen(!mobileOpen)}
+  className="lg:hidden w-10 h-10 flex items-center justify-center text-sk-text-1 bg-transparent border-none cursor-pointer"
+  aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
+>
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
