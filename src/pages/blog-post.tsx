@@ -8,6 +8,8 @@ import { getBlogPost, formatBlogDate, type BlogPost, type BlogBlock } from "../l
 import { SEOHead } from "../components/seo/seo-head";
 import { renderWithLinks } from "../lib/render-inline-links";
 import { WptBanner } from "../components/blog/wpt-banner";
+import { TableOfContents, slugify } from "../components/blog/table-of-contents";
+import { RelatedPosts } from "../components/blog/related-posts";
 
 // ── OG Meta ───────────────────────────────────────────────
 function setOGMeta(post: BlogPost) {
@@ -79,7 +81,10 @@ function BlockRenderer({
   if (block.type === "h2") {
     return (
       <>
-        <h2 className="text-sk-xl font-extrabold text-sk-text-1 tracking-tight mt-12 mb-4 first:mt-0">
+        <h2
+          id={slugify(block.content ?? "")}
+          className="text-sk-xl font-extrabold text-sk-text-1 tracking-tight mt-12 mb-4 first:mt-0 scroll-mt-20"
+        >
           {renderWithLinks(block.content ?? "")}
         </h2>
 
@@ -277,6 +282,9 @@ useBreadcrumbSchema([
 
                 <div className="h-px bg-sk-border-2 mb-10" />
 
+                {/* Table of Contents */}
+                <TableOfContents blocks={post.body} />
+
                 {/* Body */}
                 <div>
                   {post.body.map((block, i) => {
@@ -294,6 +302,12 @@ useBreadcrumbSchema([
 
                 {/* Banner final — slot "final" (distinto al mid) */}
                 <WptBanner slot="final" className="mt-10" />
+
+                {/* Related Posts */}
+                <RelatedPosts
+                  currentSlug={post.slug}
+                  currentCategory={post.category}
+                />
 
                 {/* CTA Sharkania */}
                 <div className="mt-8 rounded-xl border border-sk-border-2 bg-sk-bg-2 p-8 text-center">
