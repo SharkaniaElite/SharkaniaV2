@@ -37,9 +37,15 @@
     <!-- Canonical -->
     <link rel="canonical" href="https://sharkania.com" />
 
-    <!-- Google Fonts (preconnect para performance) -->
+    <!-- Performance: DNS prefetch + preconnect para Supabase -->
+    <link rel="dns-prefetch" href="https://nhpjzywfzljtlqaigzed.supabase.co" />
+    <link rel="preconnect" href="https://nhpjzywfzljtlqaigzed.supabase.co" crossorigin />
+
+    <!-- Performance: Preconnect Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Google Fonts (display=swap = FOUT en vez de FOIT, mejor para LCP) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>

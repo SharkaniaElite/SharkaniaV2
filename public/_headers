@@ -1,0 +1,63 @@
+# ══════════════════════════════════════════════════════════
+# SHARKANIA — Cloudflare Pages Headers
+# public/_headers
+# ══════════════════════════════════════════════════════════
+
+# ── Global: Security headers para TODAS las páginas ──
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  X-XSS-Protection: 1; mode=block
+
+# ── HTML pages: no cachear agresivamente (SPA con datos dinámicos) ──
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/ranking
+  Cache-Control: public, max-age=0, must-revalidate
+/calendar
+  Cache-Control: public, max-age=0, must-revalidate
+/clubs
+  Cache-Control: public, max-age=0, must-revalidate
+/leagues
+  Cache-Control: public, max-age=0, must-revalidate
+/blog
+  Cache-Control: public, max-age=0, must-revalidate
+/blog/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# ── Assets con hash en el nombre: cache inmutable 1 año ──
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# ── Imágenes estáticas: cache 1 semana ──
+/images/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/blog/*/og.png
+  Cache-Control: public, max-age=604800
+/blog/*/hero.avif
+  Cache-Control: public, max-age=604800
+/blog/*/thumbnail.png
+  Cache-Control: public, max-age=604800
+/cards/*
+  Cache-Control: public, max-age=604800
+/flags/*
+  Cache-Control: public, max-age=2592000, immutable
+
+# ── Logos y branding: cache 1 mes ──
+/sharkania-favicon.svg
+  Cache-Control: public, max-age=2592000
+/sharkania-app-icon.svg
+  Cache-Control: public, max-age=2592000
+/og-default.png
+  Cache-Control: public, max-age=604800
+
+# ── Fonts preload (Google Fonts las sirve ellos, pero por si hay locales) ──
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+# ── Prevent pages.dev from being indexed ──
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
