@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Modal } from "../ui/modal";
@@ -538,15 +539,15 @@ export function ResultsUpload({
                 </p>
               </div>
 
-              <a           
-                href="/blog/como-crear-csv-resultados"
+              <Link           
+                to="/tutorial-csv"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-sk-xs text-sk-accent font-medium hover:opacity-80 transition-opacity mt-1"
               >
                 <ExternalLink size={12} />
                 Tutorial: Cómo crear el CSV de resultados
-              </a>
+              </Link>
             </div>
 
             <input ref={fileRef} type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />

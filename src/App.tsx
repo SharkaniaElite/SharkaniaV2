@@ -11,6 +11,7 @@ import { FloatingCTA } from "./components/marketing/FloatingCTA";
 import { Spinner } from "./components/ui/spinner";
 import { AgeVerificationModal } from "./components/layout/age-verification-modal";
 import { EloSystemPage } from "./pages/elo-system";
+import { TutorialCsvPage } from "./pages/tutorial-csv";
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
@@ -108,6 +109,7 @@ export function App() {
               <Route path="/update-password" element={<UpdatePasswordPage />} />
               <Route path="/shop" element={<ShopPage />} />
               <Route path="/sistema-elo" element={<EloSystemPage />} />
+              <Route path="/tutorial-csv" element={<TutorialCsvPage />} />
 
               {/* Legal */}
               <Route path="/terms" element={<TermsPage />} />

@@ -1,4 +1,3 @@
-// src/pages/replayer.tsx
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useParams } from "react-router-dom";
 import { Navbar } from "../components/layout/navbar";
@@ -52,7 +51,6 @@ export function ReplayerPage() {
   const rsRef       = useRef<ReplayState | null>(null);
   rsRef.current = rs;
 
-// ── Premium access control ──
   const { user } = useAuthStore();
   const { data: access } = useFeatureAccess("tool_replayer");
   const hasFullAccess = access?.has_access ?? false;
@@ -132,9 +130,9 @@ export function ReplayerPage() {
   const processTextInternal = useCallback((text: string) => {
     setParseErrors([]);
     const result = parseHandHistory(text);
-    const firstHand = result.hands[0]; // 👈 Sacamos la mano a una variable
+    const firstHand = result.hands[0];
 
-    if (result.success && firstHand) { // 👈 Verificamos explícitamente que firstHand exista
+    if (result.success && firstHand) {
       setHands(result.hands); setSelectedIdx(0);
       setRS(makeState(firstHand)); setDetectedRoom(result.detectedRoom);
     } else { 
@@ -167,8 +165,8 @@ export function ReplayerPage() {
   useEffect(() => () => stopInterval(), [stopInterval]);
 
   const selectHand = useCallback((index: number) => {
-    const hand = hands[index]; // 👈 Guardamos en variable
-    if (!hand) return;         // 👈 TypeScript ahora sabe que "hand" existe 100%
+    const hand = hands[index];
+    if (!hand) return;
     stopInterval(); setSelectedIdx(index); setRS(makeState(hand));
   }, [hands, stopInterval]);
 
@@ -178,7 +176,7 @@ export function ReplayerPage() {
     stopInterval();
     const demo = createDemoHand();
     setHands([demo]); setSelectedIdx(0); setRS(makeState(demo)); setDetectedRoom("Demo");
-  }, [stopInterval, consumeFreeUse]); // 👈 Añadida dependencia
+  }, [stopInterval, consumeFreeUse]);
 
   const handleStepForward = useCallback(() => {
     stopInterval();
@@ -258,24 +256,12 @@ export function ReplayerPage() {
       <SEOHead title="Hand Replayer — Sharkania" description="Revive cada acción de tus manos de póker paso a paso." />
 
       {!isFS && (
-        <>
-          <Navbar />
-          <div style={{
-            position: "fixed", top: "56px", left: 0, right: 0, zIndex: 90,
-            background: "rgba(251,191,36,0.10)",
-            borderBottom: "1px solid rgba(251,191,36,0.22)",
-            color: "#fbbf24",
-          }}>
-            <p className="text-center text-[11px] font-medium py-1.5 px-6">
-              ⚠️ <strong>Beta:</strong> Los datos actuales son de demostración.
-              Los datos reales se irán cargando a medida que los clubes se inscriban.
-            </p>
-          </div>
-        </>
+        <Navbar />
       )}
 
       {!hasHand ? (
-        <div style={{ paddingTop: "88px", minHeight: "100dvh", background: "#0c0d10" }}>
+        /* 👇 Cambio de paddingTop de 88px a 56px ya que quitamos el banner Beta */
+        <div style={{ paddingTop: "56px", minHeight: "100dvh", background: "#0c0d10" }}>
           <div className="max-w-2xl mx-auto w-full px-4 py-10">
             <div className="flex items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-lg bg-sk-purple/10 border border-sk-purple/20 flex items-center justify-center">
@@ -286,6 +272,7 @@ export function ReplayerPage() {
                 <p className="text-sk-xs text-sk-text-3">Sube un archivo .txt o pega el historial de una mano</p>
               </div>
             </div>
+            
             {loadingShared ? (
               <div className="flex items-center justify-center py-20 gap-3">
                 <div className="w-5 h-5 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin" />
@@ -303,59 +290,65 @@ export function ReplayerPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Paywall — si ya usó su turno gratis */}
-                {needsPaywall && (
-                  <div className="mb-4">
-                    <FeaturePaywall
-                      featureKey="tool_replayer"
-                      title="Replayer ilimitado"
-                      description="Ya usaste tu replay gratis de hoy. Desbloquea acceso completo con SharkCoins."
-                    >
-                      <></>
-                    </FeaturePaywall>
-                  </div>
-                )}
-                <div className="flex gap-1 bg-sk-bg-3 rounded-lg p-0.5 border border-sk-border-1 w-fit">
-                  {(["upload", "paste"] as const).map((mode) => (
-                    <button key={mode} onClick={() => setInputMode(mode)}
-                      className={`text-sk-xs font-medium px-4 py-1.5 rounded transition-all flex items-center gap-1.5 ${inputMode === mode ? "bg-sk-bg-1 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3"}`}>
-                      {mode === "upload" ? <Upload size={12} /> : <FileText size={12} />}
-                      {mode === "upload" ? "Subir archivo" : "Pegar texto"}
-                    </button>
-                  ))}
-                </div>
-                {inputMode === "upload" && (
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={handleDrop}
-                    className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${dragOver ? "border-sk-accent bg-sk-accent/5" : "border-sk-border-2 hover:border-sk-border-3"}`}>
-                    <Upload size={32} className="mx-auto mb-3 text-sk-text-3" />
-                    <p className="text-sk-sm text-sk-text-2 mb-1">Arrastra un archivo .txt aquí</p>
-                    <p className="text-sk-xs text-sk-text-4 mb-5">o haz click para seleccionar</p>
-                    <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold cursor-pointer hover:bg-sk-accent-hover transition-colors">
-                      <Upload size={14} /> Seleccionar archivo
-                      <input type="file" accept=".txt,.log" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} className="hidden" />
-                    </label>
-                    <p className="text-[10px] text-sk-text-4 mt-4">Soporta: GGPoker · PokerStars · HomeGames</p>
-                  </div>
-                )}
-                {inputMode === "paste" && (
-                  <div>
-                    <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)}
-                      placeholder="Pega aquí el historial de una mano..."
-                      className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-lg py-3 px-4 text-sk-sm text-sk-text-1 font-mono placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent min-h-[200px] resize-y" />
-                    <div className="flex gap-2 mt-2">
-                      <Button variant="accent" size="sm" onClick={() => processText(pasteText)} disabled={!pasteText.trim()}><Play size={14} /> Analizar</Button>
-                      <Button variant="ghost" size="sm" onClick={() => setPasteText("")}>Limpiar</Button>
+                {/* 🔐 LOGICA DE BLOQUEO: 
+                  Si ya usó el gratis y no tiene acceso full, mostramos SOLO el paywall.
+                  Si tiene acceso (o le queda el gratis), mostramos las herramientas.
+                */}
+                {needsPaywall ? (
+                  <FeaturePaywall
+                    featureKey="tool_replayer"
+                    title="Replayer Pro Ilimitado"
+                    description="Ya usaste tu replay gratis de hoy. Desbloquea acceso completo con SharkCoins."
+                  />
+                ) : (
+                  <>
+                    <div className="flex gap-1 bg-sk-bg-3 rounded-lg p-0.5 border border-sk-border-1 w-fit">
+                      {(["upload", "paste"] as const).map((mode) => (
+                        <button key={mode} onClick={() => setInputMode(mode)}
+                          className={`text-sk-xs font-medium px-4 py-1.5 rounded transition-all flex items-center gap-1.5 ${inputMode === mode ? "bg-sk-bg-1 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3"}`}>
+                          {mode === "upload" ? <Upload size={12} /> : <FileText size={12} />}
+                          {mode === "upload" ? "Subir archivo" : "Pegar texto"}
+                        </button>
+                      ))}
                     </div>
-                  </div>
+
+                    {inputMode === "upload" && (
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={handleDrop}
+                        className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${dragOver ? "border-sk-accent bg-sk-accent/5" : "border-sk-border-2 hover:border-sk-border-3"}`}>
+                        <Upload size={32} className="mx-auto mb-3 text-sk-text-3" />
+                        <p className="text-sk-sm text-sk-text-2 mb-1">Arrastra un archivo .txt aquí</p>
+                        <p className="text-sk-xs text-sk-text-4 mb-5">o haz click para seleccionar</p>
+                        <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold cursor-pointer hover:bg-sk-accent-hover transition-colors">
+                          <Upload size={14} /> Seleccionar archivo
+                          <input type="file" accept=".txt,.log" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} className="hidden" />
+                        </label>
+                        <p className="text-[10px] text-sk-text-4 mt-4">Soporta: GGPoker · PokerStars · HomeGames</p>
+                      </div>
+                    )}
+
+                    {inputMode === "paste" && (
+                      <div>
+                        <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)}
+                          placeholder="Pega aquí el historial de una mano..."
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-lg py-3 px-4 text-sk-sm text-sk-text-1 font-mono placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent min-h-[200px] resize-y" />
+                        <div className="flex gap-2 mt-2">
+                          <Button variant="accent" size="sm" onClick={() => processText(pasteText)} disabled={!pasteText.trim()}><Play size={14} /> Analizar</Button>
+                          <Button variant="ghost" size="sm" onClick={() => setPasteText("")}>Limpiar</Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-center pt-1">
+                      <button onClick={loadDemo} className="text-sk-xs text-sk-text-3 hover:text-sk-accent transition-colors underline underline-offset-2">
+                        o prueba con una mano de demostración →
+                      </button>
+                    </div>
+                  </>
                 )}
-                <div className="text-center pt-1">
-                  <button onClick={loadDemo} className="text-sk-xs text-sk-text-3 hover:text-sk-accent transition-colors underline underline-offset-2">
-                    o prueba con una mano de demostración →
-                  </button>
-                </div>
+
                 {parseErrors.length > 0 && (
                   <div className="bg-sk-red/8 border border-sk-red/20 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -372,24 +365,6 @@ export function ReplayerPage() {
         </div>
 
       ) : (
-        /*
-          ╔══════════════════════════════════════════════════════╗
-          ║  LAYOUT CON MANO — SOLUCIÓN DEFINITIVA               ║
-          ║                                                      ║
-          ║  Principio: el contenedor ocupa exactamente          ║
-          ║  el viewport disponible. Los hijos usan flex         ║
-          ║  para distribuirse. La mesa usa flex:1 con           ║
-          ║  min-height:0 para ceder espacio a los controles.    ║
-          ║                                                      ║
-          ║  La clave: PokerTable tiene aspectRatio en CSS.      ║
-          ║  Si el contenedor de la mesa tiene height limitado   ║
-          ║  por flex, el aspectRatio hace que el width se       ║
-          ║  reduzca automáticamente para mantener proporciones. ║
-          ║                                                      ║
-          ║  Modo normal:  height = 100dvh - 88px (header)       ║
-          ║  Modo fullscreen: height = 100dvh                    ║
-          ╚══════════════════════════════════════════════════════╝
-        */
         <div
           ref={fsRef}
           style={{
@@ -398,16 +373,17 @@ export function ReplayerPage() {
             left: isFS ? 0 : undefined,
             right: isFS ? 0 : undefined,
             bottom: isFS ? 0 : undefined,
-            marginTop: isFS ? 0 : "88px",
-            height: isFS ? "100dvh" : "calc(100dvh - 88px)",
+            /* 👇 Ajustado de 88px a 56px */
+            marginTop: isFS ? 0 : "56px",
+            height: isFS ? "100dvh" : "calc(100dvh - 56px)",
             zIndex: isFS ? 9999 : undefined,
             background: "#09090b",
             display: "flex",
             flexDirection: "column",
-            overflow: "hidden",        // CRÍTICO: sin esto flex no funciona
+            overflow: "hidden",
           }}
         >
-          {/* ── Metabar (altura natural, flexShrink:0) ── */}
+          {/* Metabar */}
           <div style={{
             flexShrink: 0,
             display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -462,10 +438,10 @@ export function ReplayerPage() {
             </div>
           </div>
 
-          {/* ── Área central: mesa arriba, controles abajo ── */}
+          {/* Área central */}
           <div style={{
             flex: 1,
-            minHeight: 0,              // CRÍTICO: permite que flex comprima este div
+            minHeight: 0,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -475,17 +451,6 @@ export function ReplayerPage() {
             overflow: "hidden",
           }}>
 
-            {/*
-              Contenedor de la mesa:
-              - flex: 1 con minHeight:0 → ocupa el espacio sobrante después de los controles
-              - width: 100% del padre
-              - El div interno usa aspectRatio para mantener proporciones
-
-              Cuando la mesa es "demasiado alta" para el espacio disponible,
-              flex la comprime → minHeight:0 activa → la mesa se hace más pequeña
-              → el aspectRatio ajusta el ancho automáticamente.
-              Funciona en CUALQUIER tamaño de pantalla sin JavaScript.
-            */}
             <div style={{
               flex: 1,
               minHeight: 0,
@@ -495,15 +460,7 @@ export function ReplayerPage() {
               justifyContent: "center",
               overflow: "hidden",
             }}>
-              {/* Este div interior mantiene el aspect ratio */}
               <div style={{
-                /*
-                  Truco CSS puro para aspect ratio con altura máxima:
-                  - height: 100% del padre flex (que ya está limitado)
-                  - width: auto → el browser calcula el ancho por aspectRatio
-                  - maxWidth: 100% → no desborda horizontalmente
-                  - aspectRatio: 16/10 → la mesa siempre es proporcional
-                */
                 height: "100%",
                 maxHeight: "100%",
                 aspectRatio: "16 / 10",
@@ -514,7 +471,6 @@ export function ReplayerPage() {
               </div>
             </div>
 
-            {/* Controles: altura natural, no se comprime */}
             <div style={{
               flexShrink: 0,
               width: "100%",

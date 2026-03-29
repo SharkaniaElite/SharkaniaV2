@@ -2,8 +2,10 @@
 import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { useAuthStore } from "../stores/auth-store";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
+import { FeaturePaywall } from "../components/shop/feature-paywall"; // 👈 Agregamos el componente
 import {
   ArrowLeft,
   ChevronRight,
@@ -232,6 +234,7 @@ function TierRow({ tier }: { tier: BuyInTier }) {
 // ══════════════════════════════════════════════════════════
 
 export function BankrollCalculatorPage() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [bankroll, setBankroll] = useState(500);
   const [avgBuyIn, setAvgBuyIn] = useState(5.5);
   const [roi, setRoi] = useState(15);
@@ -298,6 +301,13 @@ export function BankrollCalculatorPage() {
               puedes esperar ganar por mes.
             </p>
           </div>
+
+          {/* 🔐 PAYWALL: Solo los que paguen pueden usar la herramienta */}
+          <FeaturePaywall 
+            featureKey="bankroll_calculator" 
+            title="Herramienta de Gestión Avanzada"
+            description="Usa SharkCoins para desbloquear el cálculo de Riesgo de Ruina y Proyecciones de EV ilimitadas."
+          >
 
           {/* Input Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -671,6 +681,7 @@ export function BankrollCalculatorPage() {
               )}
             </div>
           )}
+          </FeaturePaywall>
 
           {/* Educational Content */}
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 mb-8">
@@ -722,25 +733,39 @@ export function BankrollCalculatorPage() {
             </ul>
           </div>
 
-          {/* CTA */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 text-center">
-            <p className="text-sk-xs font-mono font-semibold uppercase tracking-widest text-sk-accent mb-2">
-              Trackea tu bankroll real
-            </p>
-            <h3 className="text-sk-lg font-extrabold text-sk-text-1 tracking-tight mb-2">
-              Sharkania calcula tu ROI automáticamente
-            </h3>
-            <p className="text-sk-sm text-sk-text-2 mb-4 max-w-md mx-auto">
-              Con datos reales de tus torneos, puedes saber tu ROI exacto y
-              ajustar tu bankroll management con precisión.
-            </p>
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold hover:bg-sk-accent-hover transition-colors"
-            >
-              Crear cuenta gratis <ChevronRight size={14} />
-            </Link>
-          </div>
+          {/* CTA DINÁMICO */}
+{!isAuthenticated ? (
+  <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 text-center">
+    <p className="text-sk-xs font-mono font-semibold uppercase tracking-widest text-sk-accent mb-2">
+      Trackea tu bankroll real
+    </p>
+    <h3 className="text-sk-lg font-extrabold text-sk-text-1 tracking-tight mb-2">
+      Sharkania calcula tu ROI automáticamente
+    </h3>
+    <p className="text-sk-sm text-sk-text-2 mb-4 max-w-md mx-auto">
+      Con datos reales de tus torneos, puedes saber tu ROI exacto y
+      ajustar tu bankroll management con precisión.
+    </p>
+    <Link
+      to="/register"
+      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold hover:bg-sk-accent-hover transition-colors"
+    >
+      Crear cuenta gratis <ChevronRight size={14} />
+    </Link>
+  </div>
+) : (
+  <div className="bg-sk-accent/5 border border-sk-accent/20 rounded-xl p-6 text-center">
+    <p className="text-sk-sm text-sk-text-2 mb-4">
+      Ya eres parte de Sharkania. ¡Usa tus datos reales para una gestión perfecta!
+    </p>
+    <Link 
+      to="/dashboard" 
+      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-sk-accent text-sk-accent text-sk-sm font-bold hover:bg-sk-accent/10 transition-colors"
+    >
+      Ir a mi Panel de Control <ChevronRight size={14} />
+    </Link>
+  </div>
+)}
         </div>
       </div>
 
