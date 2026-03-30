@@ -5,3 +5,4 @@ export * from "./clubs";
 export * from "./leagues";
 export * from "./search";
 export * from "./shop";
+export * from "./champions";
