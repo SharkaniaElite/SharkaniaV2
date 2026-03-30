@@ -24,7 +24,7 @@ const SITE_URL = "https://sharkania.com";
 const DEFAULT_OG: OGData = {
   title: "Sharkania — Plataforma Global de Poker Competitivo",
   description: "Ranking ELO, calendarios en vivo, clubes, ligas y estadísticas de jugadores.",
-  image: `${SITE_URL}/og-default.png`,
+  image: `${SITE_URL}/og-default.png?v=2`,
 };
 
 // ══════════════════════════════════════════════════════════
