@@ -5,6 +5,7 @@ import { Badge } from "../ui/badge";
 import { Modal } from "../ui/modal";
 import { calculateElo } from "../../lib/api/elo-engine";
 import { applyLeaguePoints } from "../../lib/api/tournaments"; 
+import { forceRecalculateStandings } from "../../lib/api/leagues";
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/cn";
 import {
@@ -427,12 +428,16 @@ export function ResultsUpload({
       }
 
       if (tournament.league_id) {
-        setMessage({ text: "Aplicando puntos de liga...", type: "info" });
+        setMessage({ text: "Aplicando puntos y calculando ranking de liga...", type: "info" });
         try {
           await applyLeaguePoints(tournament.id, tournament.league_id);
+          
+          // 🔥 NUEVO: Magia automática de recálculo (Mejores X fechas)
+          await forceRecalculateStandings(tournament.league_id);
+          
         } catch (err) {
-          console.error("Error aplicando puntos:", err);
-          setMessage({ text: "Error al calcular puntos de liga, pero los resultados se subieron.", type: "error" });
+          console.error("Error aplicando puntos o recalculando liga:", err);
+          setMessage({ text: "Error al calcular el ranking de la liga, pero los resultados se subieron.", type: "error" });
         }
       }
 

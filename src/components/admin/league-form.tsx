@@ -1,4 +1,3 @@
-// src/components/admin/league-form.tsx
 import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Modal } from "../ui/modal";
@@ -24,6 +23,8 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
     start_date: "",
     end_date: "",
     rules_url: "",
+    total_dates: "",
+    best_dates_to_count: "",
     room_ids: [] as string[],
   });
   const [saving, setSaving] = useState(false);
@@ -37,6 +38,8 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
         start_date: league.start_date ?? "",
         end_date: league.end_date ?? "",
         rules_url: league.rules_url ?? "",
+        total_dates: league.total_dates?.toString() ?? "",
+        best_dates_to_count: league.best_dates_to_count?.toString() ?? "",
         room_ids: [],
       });
       // Load existing rooms
@@ -48,7 +51,7 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
           if (data) setForm((prev) => ({ ...prev, room_ids: data.map((r) => r.room_id) }));
         });
     } else {
-      setForm({ name: "", description: "", start_date: "", end_date: "", rules_url: "", room_ids: [] });
+      setForm({ name: "", description: "", start_date: "", end_date: "", rules_url: "", total_dates: "", best_dates_to_count: "", room_ids: [] });
     }
   }, [league, isOpen]);
 
@@ -65,13 +68,9 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
     }));
   };
 
-  // 🔥 SOLUCIÓN TYPESCRIPT: Usamos substring(0, 10) que garantiza un string 'YYYY-MM-DD'
   const determineLeagueStatus = (startDate: string, endDate: string) => {
     if (!startDate) return "upcoming"; 
-    
-    // substring(0, 10) extrae los primeros 10 caracteres de "2026-03-25T18:00:00.000Z" -> "2026-03-25"
     const today: string = new Date().toISOString().substring(0, 10);
-    
     if (today < startDate) return "upcoming";
     if (endDate && today > endDate) return "completed";
     return "active"; 
@@ -93,6 +92,8 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
         start_date: form.start_date || null,
         end_date: form.end_date || null,
         rules_url: form.rules_url || null,
+        total_dates: form.total_dates ? parseInt(form.total_dates) : null,
+        best_dates_to_count: form.best_dates_to_count ? parseInt(form.best_dates_to_count) : null,
         status: determineLeagueStatus(form.start_date, form.end_date),
       };
 
@@ -103,7 +104,6 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
         if (err) throw err;
         leagueId = league.id;
 
-        // Update rooms
         const { error: delErr } = await supabase.from("league_rooms").delete().eq("league_id", leagueId);
         if (delErr) console.error("Aviso: Error borrando salas previas", delErr);
       } else {
@@ -111,7 +111,6 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
         if (err) throw err;
         leagueId = data.id;
 
-        // Link club as primary
         const { error: clubErr } = await supabase.from("league_clubs").insert({
           league_id: leagueId,
           club_id: clubId,
@@ -120,7 +119,6 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
         if (clubErr) throw clubErr;
       }
 
-      // Insert rooms
       if (form.room_ids.length > 0) {
         const { error: roomErr } = await supabase.from("league_rooms").insert(
           form.room_ids.map((room_id) => ({ league_id: leagueId, room_id }))
@@ -131,7 +129,6 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
       onSaved();
       onClose();
     } catch (err: any) {
-      // 🔥 Ahora capturamos el mensaje exacto de la base de datos
       console.error("💥 Error completo al guardar liga:", err);
       setError(err?.message || err?.details || "Error desconocido al guardar la liga");
     } finally {
@@ -158,6 +155,18 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
           <div>
             <label className={labelClass}>Fecha Fin</label>
             <input type="date" value={form.end_date} onChange={(e) => update("end_date", e.target.value)} className={inputClass} />
+          </div>
+        </div>
+
+        {/* 👇 NUEVOS CAMPOS DE FECHAS */}
+        <div className="grid grid-cols-2 gap-3 bg-sk-bg-3/50 p-3 rounded-lg border border-sk-border-1">
+          <div>
+            <label className={labelClass}>Total de Fechas (opcional)</label>
+            <input type="number" min="1" value={form.total_dates} onChange={(e) => update("total_dates", e.target.value)} className={inputClass} placeholder="Ej: 8" />
+          </div>
+          <div>
+            <label className={labelClass} title="Dejar vacío para sumar todas">Mejores a sumar (opcional)</label>
+            <input type="number" min="1" value={form.best_dates_to_count} onChange={(e) => update("best_dates_to_count", e.target.value)} className={inputClass} placeholder="Ej: 7" />
           </div>
         </div>
 

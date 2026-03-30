@@ -13,10 +13,11 @@ import { EmptyState } from "../components/ui/empty-state";
 import { useLeague, useLeagueStandings } from "../hooks/use-leagues";
 import { useTournamentsByLeague } from "../hooks/use-tournaments";
 import { FlagIcon } from "../components/ui/flag-icon";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trophy, Crown } from "lucide-react"; // 👈 Añadido Crown
 import type { TournamentWithDetails } from "../types";
 import { cn } from "../lib/cn";
 import { SEOHead } from "../components/seo/seo-head";
+import { formatNumber } from "../lib/format"; // 👈 Importamos formateador de números
 
 type Tab = "standings" | "calendar" | "info";
 
@@ -60,18 +61,16 @@ export function LeagueDetailPage() {
     );
   }
 
-  // Usamos el status que ya viene corregido dinámicamente desde la API
   const currentStatus = league.status as "upcoming" | "active" | "finished";
   const status = statusBadge[currentStatus] || { label: league.status, variant: "muted" };
   const clubs = league.league_clubs ?? [];
 
-  // 🔥 Fallback Inteligente de Salas:
-  // 1. Intentar sacar las salas vinculadas a la liga
   const directRooms = league.league_rooms?.map((lr) => lr.poker_rooms?.name).filter(Boolean) ?? [];
-  // 2. Si no hay, extraer salas únicas de los torneos que pertenecen a esta liga
   const tournamentRooms = Array.from(new Set((tournaments ?? []).map(t => t.poker_rooms?.name).filter(Boolean)));
-  // 3. Unificar
   const rooms = directRooms.length > 0 ? directRooms : tournamentRooms;
+
+  // 👑 Detectamos al campeón (El primero en la lista de posiciones)
+  const champion = standings && standings.length > 0 ? standings[0] : null;
 
   const TABS: { key: Tab; label: string }[] = [
     { key: "standings", label: "Tabla de Posiciones" },
@@ -132,6 +131,45 @@ export function LeagueDetailPage() {
             </div>
           </div>
 
+          {/* 👑 NUEVO: BANNER DE CAMPEÓN (Solo si la liga terminó) */}
+          {currentStatus === "finished" && champion && (
+            <div className="bg-gradient-to-r from-sk-gold/10 via-sk-gold/5 to-transparent border border-sk-gold/30 rounded-xl p-6 mb-6 flex items-center gap-5 sm:gap-6 animate-in fade-in zoom-in-95 duration-500 shadow-[0_4px_30px_rgba(250,212,25,0.05)]">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-full bg-sk-bg-0 border-2 border-sk-gold flex items-center justify-center shadow-[0_0_15px_rgba(250,212,25,0.3)] relative overflow-hidden">
+                <div className="absolute inset-0 bg-sk-gold/20 animate-pulse" />
+                <Crown className="text-sk-gold relative z-10" size={28} />
+              </div>
+              <div>
+                <h2 className="text-[10px] sm:text-sk-xs font-bold text-sk-gold uppercase tracking-widest mb-1 sm:mb-1.5">
+                  ¡Liga Finalizada! Campeón Oficial
+                </h2>
+                <div className="text-sk-xl sm:text-3xl font-extrabold text-sk-text-1 flex items-center gap-3">
+                  <FlagIcon countryCode={champion.players?.country_code ?? null} />
+                  {/* SEO: Internal link al perfil del jugador */}
+                  <Link 
+                    to={`/ranking/${champion.player_id}`} 
+                    className="hover:text-sk-gold transition-colors"
+                  >
+                    {champion.players?.nickname}
+                  </Link>
+                </div>
+                <p className="text-[11px] sm:text-sk-sm text-sk-text-2 mt-1.5">
+                  Coronado con <strong className="text-sk-text-1">{formatNumber(champion.total_points)} puntos</strong> tras {champion.tournaments_played} fechas jugadas.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Mensaje de Regla de Descartes */}
+          {league.best_dates_to_count && league.total_dates && (
+            <div className="flex items-center gap-3 bg-sk-gold/10 border border-sk-gold/20 text-sk-gold rounded-lg p-3.5 px-5 mb-6 text-sk-sm">
+              <Trophy size={18} className="shrink-0" />
+              <p>
+                <strong className="font-bold mr-1">Regla de Liga:</strong> 
+                Se consideran los mejores <strong className="font-extrabold text-sk-text-1">{league.best_dates_to_count} puntajes</strong> de un total de <strong className="font-extrabold text-sk-text-1">{league.total_dates} fechas</strong>.
+              </p>
+            </div>
+          )}
+
           {/* Tabs */}
           <div className="flex gap-px bg-sk-bg-0 rounded-md p-0.5 border border-sk-border-2 mb-6 overflow-x-auto">
             {TABS.map((t) => (
@@ -185,7 +223,6 @@ export function LeagueDetailPage() {
                 <p><span className="text-sk-text-1 font-semibold">Periodo:</span> {league.start_date} — {league.end_date}</p>
                 <p><span className="text-sk-text-1 font-semibold">Clubes:</span> {clubs.map((c) => c.clubs?.name).join(", ")}</p>
                 
-                {/* Mostramos las salas extraídas dinámica o estáticamente */}
                 {rooms.length > 0 ? (
                   <p><span className="text-sk-text-1 font-semibold">Salas:</span> {rooms.join(", ")}</p>
                 ) : (

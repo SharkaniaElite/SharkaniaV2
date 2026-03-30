@@ -92,3 +92,15 @@ export async function searchLeagues(
     status: computeLeagueStatus(league)
   })) as League[];
 }
+export async function forceRecalculateStandings(leagueId: string): Promise<boolean> {
+  const { error } = await supabase.rpc('recalculate_league_standings', {
+    p_league_id: leagueId
+  });
+
+  if (error) {
+    console.error("Error recalculando posiciones de liga:", error);
+    throw error;
+  }
+  
+  return true;
+}

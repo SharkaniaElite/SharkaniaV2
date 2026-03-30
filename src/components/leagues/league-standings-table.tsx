@@ -1,17 +1,25 @@
 // src/components/leagues/league-standings-table.tsx
 import { Link } from "react-router-dom";
-import { cn } from "../../lib/cn";
-import { getFlag } from "../../lib/countries";
 import { FlagIcon } from "../ui/flag-icon";
 import { formatElo, formatNumber } from "../../lib/format";
 import { RankBadge } from "../ranking/rank-badge";
 import { EmptyState } from "../ui/empty-state";
+import { Info } from "lucide-react";
 import type { LeagueStandingWithPlayer } from "../../types";
 
 interface LeagueStandingsTableProps {
   standings: LeagueStandingWithPlayer[];
   isLoading: boolean;
 }
+
+const HEADERS = [
+  { label: "#", align: "left" },
+  { label: "Jugador", align: "left" },
+  { label: "Puntos", align: "right" },
+  { label: "Fechas Válidas", align: "right", tooltip: "Cantidad de torneos que suman a tu puntaje final (tras los descartes)" },
+  { label: "Mejor Pos.", align: "right" },
+  { label: "ELO", align: "right" },
+];
 
 export function LeagueStandingsTable({ standings, isLoading }: LeagueStandingsTableProps) {
   if (isLoading) {
@@ -33,14 +41,21 @@ export function LeagueStandingsTable({ standings, isLoading }: LeagueStandingsTa
       <table className="w-full border-collapse text-sk-sm">
         <thead>
           <tr>
-            {["#", "Jugador", "Puntos", "Torneos", "Mejor Pos.", "ELO"].map((h, i) => (
+            {HEADERS.map((h) => (
               <th
-                key={h}
+                key={h.label}
                 className={`bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 whitespace-nowrap ${
-                  i >= 2 ? "text-right" : "text-left"
+                  h.align === "right" ? "text-right" : "text-left"
                 }`}
               >
-                {h}
+                <div className={`flex items-center gap-1.5 ${h.align === "right" ? "justify-end" : "justify-start"}`}>
+                  {h.label}
+                  {h.tooltip && (
+                    <span title={h.tooltip} className="cursor-help flex items-center">
+                      <Info size={12} className="text-sk-text-4 hover:text-sk-text-2 transition-colors" />
+                    </span>
+                  )}
+                </div>
               </th>
             ))}
           </tr>

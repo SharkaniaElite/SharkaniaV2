@@ -114,6 +114,8 @@ export interface League {
   rules_url: string | null;
   start_date: string | null;
   end_date: string | null;
+  total_dates: number | null;       
+  best_dates_to_count: number | null;
   status: LeagueStatus;
   scoring_system_id: string | null;
   created_at: string;
