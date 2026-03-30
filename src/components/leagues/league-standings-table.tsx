@@ -16,7 +16,11 @@ const HEADERS = [
   { label: "#", align: "left" },
   { label: "Jugador", align: "left" },
   { label: "Puntos", align: "right" },
-  { label: "Fechas Válidas", align: "right", tooltip: "Cantidad de torneos que suman a tu puntaje final (tras los descartes)" },
+  { 
+    label: "Torneos Jugados", 
+    align: "right", 
+    tooltip: "Total de torneos en los que participaste. Para el puntaje final, se suman solo tus mejores resultados según la regla de la liga." 
+  },
   { label: "Mejor Pos.", align: "right" },
   { label: "ELO", align: "right" },
 ];
