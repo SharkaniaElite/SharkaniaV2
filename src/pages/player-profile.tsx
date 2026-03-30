@@ -16,12 +16,18 @@ import {
 import { getCountryName } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { formatElo } from "../lib/format";
-import { ArrowLeft, Info } from "lucide-react";
+import { ArrowLeft, Info, ShieldCheck } from "lucide-react"; // 👈 Importamos ShieldCheck
 import { SEOHead } from "../components/seo/seo-head";
+import { useAuthStore } from "../stores/auth-store"; // 👈 Importamos la tienda de autenticación
 
 export function PlayerProfilePage() {
   const { playerId } = useParams<{ playerId: string }>();
   const topRef = useRef<HTMLDivElement>(null);
+  
+  // 🔑 Obtenemos el perfil del usuario activo para ver sus privilegios
+  const userProfile = useAuthStore((s) => s.profile);
+  const isSuperAdmin = userProfile?.role === "super_admin";
+
   const { data: player, isLoading, error } = usePlayer(playerId);
   const { data: eloHistory, isLoading: eloLoading } =
     usePlayerEloHistory(playerId);
@@ -71,7 +77,6 @@ export function PlayerProfilePage() {
     );
   }
 
-  // Get avatar and display name from profiles if available
   const profileData = (player as any).profiles;
   const avatarUrl = profileData?.avatar_url ?? null;
   const displayName = profileData?.display_name ?? null;
@@ -80,13 +85,12 @@ export function PlayerProfilePage() {
   return (
     <PageShell>
       <SEOHead
-  title={`${cleanNickname} — Perfil`}
-  description={`Perfil de ${cleanNickname}. ELO ${Math.round(Number(player.elo_rating)).toLocaleString()}, ${player.total_tournaments} torneos. ${getCountryName(player.country_code)}.`}
-  path={`/ranking/${playerId}`}
-/>
+        title={`${cleanNickname} — Perfil`}
+        description={`Perfil de ${cleanNickname}. ELO ${Math.round(Number(player.elo_rating)).toLocaleString()}, ${player.total_tournaments} torneos. ${getCountryName(player.country_code)}.`}
+        path={`/ranking/${playerId}`}
+      />
       <div ref={topRef} className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
-          {/* Back link */}
           <Link
             to="/ranking"
             className="inline-flex items-center gap-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 transition-colors mb-6"
@@ -98,7 +102,6 @@ export function PlayerProfilePage() {
           {/* Header */}
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              {/* Avatar */}
               <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-2xl font-extrabold text-sk-accent shrink-0 overflow-hidden">
                 {avatarUrl ? (
                   <img
@@ -111,7 +114,6 @@ export function PlayerProfilePage() {
                 )}
               </div>
 
-              {/* Info */}
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
                   <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
@@ -132,7 +134,6 @@ export function PlayerProfilePage() {
                 </div>
               </div>
 
-              {/* ELO highlight */}
               <div className="text-right">
                 <div className="font-mono text-sk-3xl font-extrabold text-sk-accent tracking-tight leading-none">
                   {formatElo(player.elo_rating)}
@@ -148,9 +149,16 @@ export function PlayerProfilePage() {
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="mb-6">
-            <PlayerStatsGrid player={player} />
+          {/* Stats Grid con indicador de ByPass para SuperAdmin */}
+          <div className="mb-6 relative">
+             {isSuperAdmin && (
+              <div className="absolute -top-3 right-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-sk-bg-0 border border-sk-border-2 text-sk-text-2 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm pointer-events-none">
+                <ShieldCheck size={10} className="text-sk-accent" />
+                Admin Bypass Activo
+              </div>
+            )}
+            {/* 👑 Si es super_admin, le pasamos hasAccess en true automáticamente */}
+            <PlayerStatsGrid player={player} hasAccess={isSuperAdmin} />
           </div>
 
           {/* ELO Chart */}
@@ -159,13 +167,21 @@ export function PlayerProfilePage() {
           </div>
 
           {/* Tournament History */}
-          <div>
+          <div className="relative">
+             {/* Opcional: Reutilizamos el badge para que sepas que la tabla también está desbloqueada por ser admin */}
+             {isSuperAdmin && (
+              <div className="absolute top-0 right-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-sk-bg-0 border border-sk-border-2 text-sk-text-2 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm pointer-events-none">
+                <ShieldCheck size={10} className="text-sk-accent" />
+                Admin Bypass Activo
+              </div>
+            )}
             <h3 className="text-sk-md font-bold text-sk-text-1 mb-4">
               🎯 Historial de Torneos
             </h3>
             <TournamentHistoryTable
               results={(tournamentResults as any) ?? []}
               isLoading={resultsLoading}
+              hasAccess={isSuperAdmin} // 👈 AQUÍ LE PASAMOS LA LLAVE MAESTRA
             />
           </div>
         </div>

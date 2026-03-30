@@ -4,9 +4,9 @@ import { useAuthStore } from "../../stores/auth-store";
 import { PurchaseModal } from "./purchase-modal";
 import { Button } from "../ui/button";
 import { SkeletonTitle, SkeletonText } from "../ui/skeleton";
-import { Lock, Zap } from "lucide-react";
+import { Lock, Zap, ShieldCheck } from "lucide-react"; // 👈 Añadido ShieldCheck
 import { Link } from "react-router-dom";
-import { SharkCoin } from "../ui/shark-coin"; // 👈 Importamos la moneda oficial
+import { SharkCoin } from "../ui/shark-coin";
 import type { ShopProduct } from "../../types";
 
 interface FeaturePaywallProps {
@@ -24,7 +24,10 @@ export function FeaturePaywall({
   title = "Contenido Premium",
   description = "Desbloquea esta herramienta con SharkCoins para acceder al contenido completo.",
 }: FeaturePaywallProps) {
+  // Extraemos el perfil del usuario además del estado de autenticación
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const profile = useAuthStore((s) => s.profile); 
+  
   const { data: access, isLoading: accessLoading } = useFeatureAccess(featureKey);
   const { data: products } = useShopProducts();
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
@@ -33,7 +36,10 @@ export function FeaturePaywall({
     (p) => p.feature_key === featureKey && p.is_active
   );
 
-  if (isAuthenticated && accessLoading) {
+  // 👑 VIP BYPASS: Si el usuario es super_admin, rompe el muro de pago inmediatamente
+  const isSuperAdmin = profile?.role === "super_admin";
+
+  if (isAuthenticated && accessLoading && !isSuperAdmin) {
     return (
       <div className="space-y-4 p-6">
         <SkeletonTitle />
@@ -43,10 +49,23 @@ export function FeaturePaywall({
     );
   }
 
-  if (access?.has_access) {
-    return <>{children}</>;
+  // Si tiene acceso comprado O es Super Admin, muestra el contenido
+  if (access?.has_access || isSuperAdmin) {
+    return (
+      <div className="relative">
+        {/* Pequeño indicador (opcional) para que sepas que estás en modo "Dios" */}
+        {isSuperAdmin && !access?.has_access && (
+          <div className="absolute top-2 right-2 z-50 flex items-center gap-1.5 px-2 py-1 bg-sk-accent/10 border border-sk-accent/30 text-sk-accent rounded-full text-[9px] font-bold uppercase tracking-widest backdrop-blur-sm shadow-sm pointer-events-none">
+            <ShieldCheck size={10} />
+            Admin Bypass
+          </div>
+        )}
+        {children}
+      </div>
+    );
   }
 
+  // 👇 De aquí para abajo es el código normal del muro de pago para los mortales
   return (
     <div>
       {freePreview && (
@@ -81,7 +100,6 @@ export function FeaturePaywall({
                 }}
               >
                 <Zap size={14} className="text-sk-accent" />
-                {/* 👇 REEMPLAZO: SharkCoin con brillo en lugar de emoji */}
                 <SharkCoin size={14} />
                 <span className="font-mono font-bold">{product.price_coins}</span>
                 <span className="text-[10px] text-sk-text-3 uppercase font-bold tracking-tighter">
