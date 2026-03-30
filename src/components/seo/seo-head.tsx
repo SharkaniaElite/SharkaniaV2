@@ -14,7 +14,7 @@ const SITE_NAME = "Sharkania";
 const SITE_URL = "https://sharkania.com";
 const DEFAULT_DESCRIPTION =
   "La plataforma global de poker competitivo. Ranking ELO, calendarios en vivo, clubes, ligas y estadísticas de jugadores.";
-const DEFAULT_OG_IMAGE = `${SITE_URL}/og-default.avif`;
+const DEFAULT_OG_IMAGE = `${SITE_URL}/og-default.png?v=2`;
 
 function setMetaTag(property: string, content: string, isName = false) {
   const attr = isName ? "name" : "property";
