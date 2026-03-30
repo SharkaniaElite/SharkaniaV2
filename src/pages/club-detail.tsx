@@ -88,10 +88,19 @@ export function ClubDetailPage() {
   const hasSocials = clubData.website_url || clubData.discord_url || clubData.telegram_url || clubData.instagram_url;
   const hasAnyContact = hasContact || hasSocials;
 
-  const upcoming = (tournaments ?? []).filter((t) =>
-    ["scheduled", "live", "late_registration"].includes(t.status)
-  );
-  const completed = (tournaments ?? []).filter((t) => t.status === "completed");
+  const now = new Date();
+
+  const upcoming = (tournaments ?? []).filter((t) => {
+    if (["completed", "cancelled"].includes(t.status)) return false;
+    if (t.status === "late_registration" && t.late_reg_end && new Date(t.late_reg_end) <= now) return false;
+    return true;
+  });
+
+  const completed = (tournaments ?? []).filter((t) => {
+    if (t.status === "completed") return true;
+    if (t.status === "late_registration" && t.late_reg_end && new Date(t.late_reg_end) <= now) return true;
+    return false;
+  });
 
   const activeLeagues = leagues?.filter(l => l.status !== "finished") || [];
   const pastLeagues = leagues?.filter(l => l.status === "finished") || [];

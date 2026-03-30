@@ -5,7 +5,8 @@ import { cn } from "../../lib/cn";
 import { Badge } from "../ui/badge";
 import { FlagIcon } from "../ui/flag-icon";
 import { formatCurrency } from "../../lib/format";
-import { Info } from "lucide-react";
+import { Info, BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { TournamentWithDetails } from "../../types";
 
 interface TournamentCardProps {
@@ -38,34 +39,46 @@ function useCountdown(targetDate: string) {
   const pad = (n: number) => String(n).padStart(2, "0");
   const timeStr = h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 
-  return { diff, timeStr };
+  return { timeStr, isExpired: diff <= 0 };
 }
 
 export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardProps) {
-  const { diff, timeStr } = useCountdown(t.start_datetime);
+  const navigate = useNavigate();
+  const { timeStr, isExpired } = useCountdown(
+    t.status === "late_registration" && t.late_reg_end ? t.late_reg_end : t.start_datetime
+  );
 
   const isLive = t.status === "live";
-  const isLateReg = t.status === "late_registration";
-  const isCompleted = t.status === "completed";
+  const isLateReg = t.status === "late_registration" && !isExpired;
+  const isCompleted = t.status === "completed" || (t.status === "late_registration" && isExpired);
   const isCancelled = t.status === "cancelled";
-  const isUpcoming = t.status === "scheduled" && diff > 0;
+  const isUpcoming = t.status === "scheduled" && !isExpired;
   const isDemo = (t as any).is_demo;
 
   const statusBadge = isLive ? (
     <Badge variant="live">EN VIVO</Badge>
   ) : isLateReg ? (
     <span className="font-mono text-[11px] font-semibold py-[3px] px-2 rounded-xs bg-sk-orange-dim text-sk-orange inline-flex items-center gap-1">
-      ⏳ Late reg: {timeStr}
+      ⏳ LATE REG: {timeStr}
     </span>
   ) : isCompleted ? (
-    <Badge variant="muted">Completado</Badge>
+    <div className="flex items-center gap-2">
+      {t.results_uploaded && (
+        <Badge variant="green" className="gap-1 px-1.5 py-0.5">
+          <BarChart3 size={10} /> RESULTADOS
+        </Badge>
+      )}
+      <Badge variant="muted">FINALIZADO</Badge>
+    </div>
   ) : isCancelled ? (
     <Badge variant="red">Cancelado</Badge>
   ) : isUpcoming ? (
     <span className="font-mono text-[11px] font-semibold py-[3px] px-2 rounded-xs bg-sk-accent-dim text-sk-accent inline-flex items-center gap-1">
       ⏱ {timeStr}
     </span>
-  ) : null;
+  ) : (
+    <Badge variant="muted">FINALIZADO</Badge>
+  );
 
   const startDate = new Date(t.start_datetime);
 
@@ -85,9 +98,11 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
 
   return (
     <div
+      onClick={() => isCompleted && navigate(`/tournament/${t.id}`)}
       className={cn(
-        "bg-sk-bg-3 border border-sk-border-2 rounded-md p-3 px-4 transition-colors hover:border-sk-border-3",
-        (isLive || isLateReg) && "border-l-2 border-l-sk-green"
+        "bg-sk-bg-3 border border-sk-border-2 rounded-md p-3 px-4 transition-all",
+        (isLive || isLateReg) ? "border-l-2 border-l-sk-green hover:border-sk-border-3" : "hover:border-sk-accent/50",
+        isCompleted && "opacity-80 hover:opacity-100 cursor-pointer"
       )}
     >
       {/* Row 1: Name + Status */}
@@ -96,7 +111,10 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
           <span className="font-semibold text-sk-text-1 text-sk-sm truncate">{cleanName(t.name)}</span>
           {onInfoClick && (
             <button
-              onClick={onInfoClick}
+              onClick={(e) => {
+                e.stopPropagation(); // Evita que el clic en el botón navegue a la página de resultados
+                onInfoClick();
+              }}
               className="w-[18px] h-[18px] rounded-full bg-white/[0.04] text-sk-text-3 hover:bg-sk-accent-dim hover:text-sk-accent text-[11px] flex items-center justify-center transition-colors shrink-0"
               aria-label="Ver detalles del torneo"
             >

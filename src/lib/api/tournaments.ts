@@ -5,6 +5,14 @@ import type {
   TournamentResultWithPlayer,
 } from "../../types";
 
+// 🛠️ Función auxiliar para inyectar el fin del registro tardío calculado
+const mapTournamentWithLateReg = (t: any): TournamentWithDetails => ({
+  ...t,
+  late_reg_end: t.late_registration_minutes 
+    ? new Date(new Date(t.start_datetime).getTime() + t.late_registration_minutes * 60000).toISOString()
+    : null
+});
+
 // ── 1. GETTERS: Necesarios para el Calendario y Perfiles ──
 
 export async function getUpcomingTournaments(): Promise<TournamentWithDetails[]> {
@@ -18,12 +26,15 @@ export async function getUpcomingTournaments(): Promise<TournamentWithDetails[]>
 
   if (error) throw error;
   if (!data) return [];
+  
   const MARGIN_MS = 12 * 60 * 60 * 1000;
-  return (data as TournamentWithDetails[]).filter((t) => {
-    const start = new Date(t.start_datetime).getTime();
-    const windowEnd = start + (t.late_registration_minutes ?? 0) * 60 * 1000 + MARGIN_MS;
-    return t.status === "scheduled" || now.getTime() < windowEnd;
-  });
+  return (data as any[])
+    .map(mapTournamentWithLateReg)
+    .filter((t) => {
+      const start = new Date(t.start_datetime).getTime();
+      const windowEnd = start + (t.late_registration_minutes ?? 0) * 60 * 1000 + MARGIN_MS;
+      return t.status === "scheduled" || now.getTime() < windowEnd;
+    });
 }
 
 export async function getCompletedTournaments(options?: {
@@ -40,31 +51,34 @@ export async function getCompletedTournaments(options?: {
   if (options?.roomId) query = query.eq("room_id", options.roomId);
   const { data, error, count } = await query;
   if (error) throw error;
-  return { data: (data as TournamentWithDetails[]) ?? [], count: count ?? 0 };
+  return { 
+    data: (data || []).map(mapTournamentWithLateReg), 
+    count: count ?? 0 
+  };
 }
 
 export async function getAllTournaments(): Promise<TournamentWithDetails[]> {
   const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)").order("start_datetime", { ascending: false });
   if (error) throw error;
-  return (data as TournamentWithDetails[]) ?? [];
+  return (data || []).map(mapTournamentWithLateReg);
 }
 
 export async function getTournamentsByClub(clubId: string): Promise<TournamentWithDetails[]> {
   const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)").eq("club_id", clubId).order("start_datetime", { ascending: false });
   if (error) throw error;
-  return (data as TournamentWithDetails[]) ?? [];
+  return (data || []).map(mapTournamentWithLateReg);
 }
 
 export async function getTournamentsByLeague(leagueId: string): Promise<TournamentWithDetails[]> {
   const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)").eq("league_id", leagueId).order("start_datetime", { ascending: false });
   if (error) throw error;
-  return (data as TournamentWithDetails[]) ?? [];
+  return (data || []).map(mapTournamentWithLateReg);
 }
 
 export async function getTournamentById(id: string): Promise<TournamentWithDetails | null> {
   const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)").eq("id", id).single();
   if (error) return error.code === "PGRST116" ? null : (function() { throw error; })();
-  return data as TournamentWithDetails;
+  return data ? mapTournamentWithLateReg(data) : null;
 }
 
 export async function getTournamentResults(tournamentId: string): Promise<TournamentResultWithPlayer[]> {

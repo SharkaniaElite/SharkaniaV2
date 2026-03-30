@@ -173,6 +173,7 @@ export interface Tournament {
   start_datetime: string;
   timezone: string;
   late_registration_minutes: number | null;
+  late_reg_end?: string | null; // 👈 AÑADIDO: Campo calculado para el frontend
   max_players: number | null;
   game_type: GameType;
   tournament_type: TournamentType;
