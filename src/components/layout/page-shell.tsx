@@ -13,13 +13,12 @@ interface PageShellProps {
 
 export function PageShell({ children }: PageShellProps) {
   const [champion, setChampion] = useState<LeagueChampionNews | null>(null);
-  const [dismissed, setDismissed] = useState(true); // Inicializado en true para evitar "parpadeos" (flickering)
+  const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
     async function fetchChampion() {
       const data = await getLatestChampion();
       if (data) {
-        // 🔒 Revisar si el usuario ya cerró este banner específico hoy
         const isDismissed = sessionStorage.getItem(`hide_champ_${data.id}`);
         if (!isDismissed) {
           setChampion(data);
@@ -32,7 +31,6 @@ export function PageShell({ children }: PageShellProps) {
 
   const handleDismiss = () => {
     if (champion) {
-      // Guardamos la preferencia de ocultarlo durante esta sesión
       sessionStorage.setItem(`hide_champ_${champion.id}`, "true");
       setDismissed(true);
     }
@@ -58,14 +56,21 @@ export function PageShell({ children }: PageShellProps) {
                   Última Hora
                 </span>
                 ¡Felicidades a{" "}
-                {/* 🔗 Enlace SEO directo al perfil del jugador */}
                 <Link 
                   to={`/ranking/${champion.player_id}`} 
                   className="text-sk-text-1 font-bold hover:text-sk-gold transition-colors"
                 >
                   {champion.player_nickname}
                 </Link>
-                , campeón oficial de la <span className="font-semibold text-sk-text-1">{champion.league_name}</span>! 🏆
+                , campeón oficial de la{" "}
+                {/* 🔗 NUEVO: Enlace SEO directo a la liga */}
+                <Link 
+                  to={`/leagues/${champion.league_id}`} 
+                  className="font-semibold text-sk-text-1 hover:text-sk-gold transition-colors"
+                >
+                  {champion.league_name}
+                </Link>
+                ! 🏆
               </p>
             </div>
             <button 
