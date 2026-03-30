@@ -9,8 +9,11 @@ import { calculateElo } from "../../lib/api/elo-engine";
 import { getTournamentResults, prepareTournamentForReedit, applyLeaguePoints } from "../../lib/api/tournaments";
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/cn";
-import { AlertTriangle, Trash2, Plus, RotateCcw } from "lucide-react";
+import { AlertTriangle, Trash2, Plus, RotateCcw, Upload } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
+import { parseCSVSmart } from "../../lib/csv-parser";
+import { forceRecalculateStandings } from "../../lib/api/leagues";
+import { useRef } from "react";
 
 interface EditableRow {
   id: string;
@@ -78,6 +81,61 @@ export function ResultsEditor({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setMessage({ text: "Solo se aceptan archivos .csv", type: "error" });
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      // Usamos el motor inteligente desde la librería central
+      const { rows: parsed, errors } = parseCSVSmart(text);
+
+      if (errors.filter((err) => err.row === 0).length > 0) {
+        setMessage({ text: "El CSV tiene errores críticos de formato.", type: "error" });
+        return;
+      }
+
+      if (parsed.length === 0) {
+        setMessage({ text: "No se encontraron datos en el CSV", type: "error" });
+        return;
+      }
+
+      // Transformamos los datos al formato del Editor marcándolos como "Nuevos y Sucios"
+      const newRows: EditableRow[] = parsed.map((p, i) => ({
+        id: `csv-${Date.now()}-${i}`,
+        position: p.position ?? i + 1,
+        nickname: p.nickname,
+        playerId: "",
+        prizeWon: p.prize,
+        leaguePoints: p.points,
+        eloChange: null,
+        countryCode: null,
+        isNew: true,
+        isDirty: true,
+        originalNickname: "",
+        originalPrize: 0,
+        originalPoints: 0,
+      }));
+
+      setRows(newRows);
+      setHasChanges(true);
+      setMessage({
+        text: `✅ CSV cargado con ${parsed.length} jugadores en memoria. Revisa los datos y haz click en "Guardar Cambios" para sobreescribir la base de datos de forma segura.`,
+        type: "info",
+      });
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -241,6 +299,7 @@ export function ResultsEditor({
       if (tournament.league_id) {
         setMessage({ text: "Paso 5: Actualizando tabla de posiciones de la Liga...", type: "info" });
         await applyLeaguePoints(tournament.id, tournament.league_id);
+        await forceRecalculateStandings(tournament.league_id); // 🔥 VITAL: Fuerce recálculo de las mejores 7 fechas
       }
 
       setMessage({ text: `✅ Resultados actualizados con éxito.`, type: "success" });
@@ -414,9 +473,16 @@ export function ResultsEditor({
               </table>
             </div>
 
-            <Button variant="ghost" size="sm" onClick={addRow}>
-              <Plus size={14} /> Agregar jugador
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={addRow}>
+                <Plus size={14} /> Agregar jugador
+              </Button>
+              {/* Botón Mágico Reemplazar CSV */}
+              <input ref={fileRef} type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />
+              <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()} className="text-sk-accent hover:bg-sk-accent-dim/30">
+                <Upload size={14} /> Reemplazar con CSV
+              </Button>
+            </div>
 
             {hasChanges && (
               <div className="flex items-start gap-2 px-3 py-2.5 bg-sk-accent-dim border border-sk-accent/20 rounded-md">
