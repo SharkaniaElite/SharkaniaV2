@@ -73,6 +73,7 @@ export interface PokerRoom {
 export interface Club {
   id: string;
   name: string;
+  slug: string;
   country_code: string | null;
   description: string | null;
   logo_url: string | null;
@@ -100,6 +101,7 @@ export interface ClubAdmin {
 export interface ScoringSystem {
   id: string;
   name: string;
+  slug: string;
   description: string | null;
   type: ScoringType;
   config: Record<string, unknown>;
@@ -139,6 +141,7 @@ export interface Player {
   id: string;
   profile_id: string | null;
   nickname: string;
+  slug: string;
   room_id: string;
   country_code: string | null;
   elo_rating: number;
@@ -327,7 +330,7 @@ export interface TournamentResultWithPlayer extends TournamentResult {
 }
 
 export interface LeagueStandingWithPlayer extends LeagueStanding {
-  players: Pick<Player, "id" | "nickname" | "country_code" | "elo_rating">;
+  players: Pick<Player, "id" | "nickname" | "slug" | "country_code" | "elo_rating">;
 }
 
 // ── Utility types ──

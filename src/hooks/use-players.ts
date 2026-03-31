@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getPlayers,
   getPlayerById,
+  getPlayerBySlug,
   getPlayerEloHistory,
   getPlayerTournamentResults,
   searchPlayers,
@@ -17,6 +18,15 @@ interface UsePlayersOptions {
   orderBy?: "elo_rating" | "total_tournaments" | "total_wins";
   orderDir?: "asc" | "desc";
   enabled?: boolean;
+}
+
+export function usePlayerBySlug(slug: string | undefined) {
+  return useQuery({
+    queryKey: ["player-slug", slug],
+    queryFn: () => getPlayerBySlug(slug!),
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 5,
+  });
 }
 
 // 🔥 Helper para queryKey estable

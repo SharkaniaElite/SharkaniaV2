@@ -9,7 +9,7 @@ import { Button } from "../components/ui/button";
 import { Chip } from "../components/ui/chip";
 import { Spinner } from "../components/ui/spinner";
 import {
-  usePlayer,
+  usePlayerBySlug,
   usePlayerEloHistory,
   usePlayerTournamentResults,
 } from "../hooks/use-players";
@@ -21,18 +21,18 @@ import { SEOHead } from "../components/seo/seo-head";
 import { useAuthStore } from "../stores/auth-store"; // 👈 Importamos la tienda de autenticación
 
 export function PlayerProfilePage() {
-  const { playerId } = useParams<{ playerId: string }>();
+  const { playerSlug } = useParams<{ playerSlug: string }>();
   const topRef = useRef<HTMLDivElement>(null);
   
   // 🔑 Obtenemos el perfil del usuario activo para ver sus privilegios
   const userProfile = useAuthStore((s) => s.profile);
   const isSuperAdmin = userProfile?.role === "super_admin";
 
-  const { data: player, isLoading, error } = usePlayer(playerId);
+  const { data: player, isLoading, error } = usePlayerBySlug(playerSlug);
   const { data: eloHistory, isLoading: eloLoading } =
-    usePlayerEloHistory(playerId);
+    usePlayerEloHistory(player?.id);
   const { data: tournamentResults, isLoading: resultsLoading } =
-    usePlayerTournamentResults(playerId);
+    usePlayerTournamentResults(player?.id);
 
   // Scroll to top when playerId changes
   useEffect(() => {
@@ -43,7 +43,7 @@ export function PlayerProfilePage() {
       topRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
     });
     return () => cancelAnimationFrame(raf);
-  }, [playerId]);
+  }, [playerSlug]);
 
   if (isLoading) {
     return (
@@ -87,7 +87,7 @@ export function PlayerProfilePage() {
       <SEOHead
         title={`${cleanNickname} — Perfil`}
         description={`Perfil de ${cleanNickname}. ELO ${Math.round(Number(player.elo_rating)).toLocaleString()}, ${player.total_tournaments} torneos. ${getCountryName(player.country_code)}.`}
-        path={`/ranking/${playerId}`}
+        path={`/ranking/${playerSlug}`}
       />
       <div ref={topRef} className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">

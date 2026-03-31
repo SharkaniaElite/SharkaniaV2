@@ -72,7 +72,7 @@ export function LeagueStandingsTable({ standings, isLoading }: LeagueStandingsTa
               </td>
               <td className="py-3 px-4 border-b border-sk-border-2">
                 <Link
-                  to={`/ranking/${s.player_id}`}
+                  to={`/ranking/${(s.players as any)?.slug ?? s.player_id}`}
                   className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                 >
                   <span><FlagIcon countryCode={s.players?.country_code ?? null} /></span>

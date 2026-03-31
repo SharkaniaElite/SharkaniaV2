@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getClubs,
   getClubById,
+  getClubBySlug,
   searchClubs,
   getPokerRooms,
 } from "../lib/api/clubs";
@@ -19,6 +20,14 @@ export function useClub(id: string | undefined) {
     queryKey: ["club", id],
     queryFn: () => getClubById(id!),
     enabled: !!id,
+  });
+}
+
+export function useClubBySlug(slug: string | undefined) {
+  return useQuery({
+    queryKey: ["club-slug", slug],
+    queryFn: () => getClubBySlug(slug!),
+    enabled: !!slug,
   });
 }
 

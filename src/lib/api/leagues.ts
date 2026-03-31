@@ -60,12 +60,34 @@ export async function getLeagueById(
   } as LeagueWithClubs;
 }
 
+export async function getLeagueBySlug(
+  slug: string
+): Promise<LeagueWithClubs | null> {
+  const { data, error } = await supabase
+    .from("leagues")
+    .select(
+      "*, league_clubs(is_primary, clubs(id, name, country_code)), league_rooms(poker_rooms(id, name))"
+    )
+    .eq("slug", slug)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+
+  return {
+    ...data,
+    status: computeLeagueStatus(data)
+  } as LeagueWithClubs;
+}
+
 export async function getLeagueStandings(
   leagueId: string
 ): Promise<LeagueStandingWithPlayer[]> {
   const { data, error } = await supabase
     .from("league_standings")
-    .select("*, players(id, nickname, country_code, elo_rating)")
+    .select("*, players(id, nickname, slug, country_code, elo_rating)")
     .eq("league_id", leagueId)
     .order("total_points", { ascending: false })
     .order("best_position", { ascending: true }) // 👇 Obliga a que el 5° (E) vaya antes que el 6° (F)

@@ -49,7 +49,7 @@ function PlayerRowComponent({ player, rank }: PlayerRowProps) {
       {/* Player */}
       <td className="py-3 px-4 border-b border-sk-border-2">
         <Link
-          to={`/ranking/${player.id}`}
+          to={`/ranking/${player.slug}`}
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
           {/* Avatar */}

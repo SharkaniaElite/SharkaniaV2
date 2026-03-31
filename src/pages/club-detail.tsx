@@ -9,7 +9,7 @@ import { Spinner } from "../components/ui/spinner";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { EmptyState } from "../components/ui/empty-state";
-import { useClub } from "../hooks/use-clubs";
+import { useClubBySlug } from "../hooks/use-clubs";
 import { useTournamentsByClub } from "../hooks/use-tournaments";
 import { ArrowLeft, Mail, MessageCircle, Globe, ChevronDown } from "lucide-react";
 import type { TournamentWithDetails } from "../types";
@@ -18,21 +18,20 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 
 export function ClubDetailPage() {
-  const { clubId } = useParams<{ clubId: string }>();
+  const { clubSlug } = useParams<{ clubSlug: string }>();
   const navigate = useNavigate();
-  const { data: club, isLoading } = useClub(clubId);
-  // 🔥 Corrección 1: Agregamos "!" para decirle a TS que clubId no es undefined
-  const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByClub(clubId!);
+  const { data: club, isLoading } = useClubBySlug(clubSlug);
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByClub(club?.id ?? '');
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
   // FETCH DE LIGAS DEL CLUB CON ESTADO DINÁMICO
   const { data: leagues, isLoading: leaguesLoading } = useQuery({
-    queryKey: ["club-leagues", clubId],
+    queryKey: ["club-leagues", club?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("league_clubs")
         .select("leagues(*)")
-        .eq("club_id", clubId!);
+        .eq("club_id", club?.id ?? '')
 
       if (error) throw error;
 
@@ -53,7 +52,7 @@ export function ClubDetailPage() {
         return { ...lg, status };
       });
     },
-    enabled: !!clubId,
+    enabled: !!club?.id,
   });
 
   // 🔥 Corrección 3: Usamos leaguesLoading aquí para esperar a que carguen las ligas
@@ -110,7 +109,7 @@ export function ClubDetailPage() {
       <SEOHead
         title={club.name}
         description={`Club de poker ${club.name}. Torneos, calendario y ranking de jugadores. ${club.description ?? ""}`}
-        path={`/clubs/${clubId}`}
+        path={`/clubs/${clubSlug}`}
       />
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
@@ -173,7 +172,7 @@ export function ClubDetailPage() {
               {activeLeagues.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                   {activeLeagues.map(l => (
-                    <Link key={l.id} to={`/leagues/${l.id}`} className="block bg-sk-bg-2 border border-sk-border-2 rounded-lg p-4 hover:border-sk-accent transition-colors">
+                    <Link key={l.id} to={`/leagues/${l.slug}`} className="block bg-sk-bg-2 border border-sk-border-2 rounded-lg p-4 hover:border-sk-accent transition-colors">
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-bold text-sk-text-1 line-clamp-1">{l.name}</h4>
                         <Badge variant={l.status === 'active' ? 'green' : 'accent'}>
@@ -197,7 +196,7 @@ export function ClubDetailPage() {
                   </summary>
                   <div className="p-4 border-t border-sk-border-2 bg-sk-bg-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {pastLeagues.map(l => (
-                      <Link key={l.id} to={`/leagues/${l.id}`} className="block bg-sk-bg-3 border border-sk-border-2 rounded-md p-3 hover:border-sk-text-3 transition-colors opacity-80 hover:opacity-100">
+                      <Link key={l.id} to={`/leagues/${l.slug}`} className="block bg-sk-bg-3 border border-sk-border-2 rounded-md p-3 hover:border-sk-text-3 transition-colors opacity-80 hover:opacity-100">
                         <div className="flex justify-between items-start mb-1">
                           <h4 className="font-semibold text-sk-sm text-sk-text-1 line-clamp-1">{l.name}</h4>
                           <Badge variant="muted">Finalizada</Badge>

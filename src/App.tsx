@@ -95,12 +95,12 @@ export function App() {
               {/* Public */}
               <Route path="/" element={<HomePage />} />
               <Route path="/ranking" element={<RankingPage />} />
-              <Route path="/ranking/:playerId" element={<PlayerProfilePage />} />
+              <Route path="/ranking/:playerSlug" element={<PlayerProfilePage />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/clubs" element={<ClubsPage />} />
-              <Route path="/clubs/:clubId" element={<ClubDetailPage />} />
+              <Route path="/clubs/:clubSlug" element={<ClubDetailPage />} />
               <Route path="/leagues" element={<LeaguesPage />} />
-              <Route path="/leagues/:leagueId" element={<LeagueDetailPage />} />
+              <Route path="/leagues/:leagueSlug" element={<LeagueDetailPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />

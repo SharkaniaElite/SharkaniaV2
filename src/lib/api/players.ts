@@ -95,6 +95,23 @@ export async function getPlayerById(
   return data as PlayerWithRoom;
 }
 
+export async function getPlayerBySlug(
+  slug: string
+): Promise<PlayerWithRoom | null> {
+  const { data, error } = await supabase
+    .from("players")
+    .select(BASE_PLAYER_SELECT)
+    .eq("slug", slug)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+
+  return data as PlayerWithRoom;
+}
+
 export async function getPlayerEloHistory(
   playerId: string
 ): Promise<EloHistory[]> {

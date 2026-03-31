@@ -28,6 +28,21 @@ export async function getClubById(id: string): Promise<ClubWithRooms | null> {
   return data as ClubWithRooms;
 }
 
+export async function getClubBySlug(slug: string): Promise<ClubWithRooms | null> {
+  const { data, error } = await supabase
+    .from("clubs")
+    .select("*, club_rooms(poker_rooms(id, name))")
+    .eq("slug", slug)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+
+  return data as ClubWithRooms;
+}
+
 export async function searchClubs(
   query: string,
   limit: number = 10

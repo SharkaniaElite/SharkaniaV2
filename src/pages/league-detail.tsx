@@ -10,7 +10,7 @@ import { Chip } from "../components/ui/chip";
 import { Spinner } from "../components/ui/spinner";
 import { Button } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
-import { useLeague, useLeagueStandings } from "../hooks/use-leagues";
+import { useLeagueBySlug, useLeagueStandings } from "../hooks/use-leagues";
 import { useTournamentsByLeague } from "../hooks/use-tournaments";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { ArrowLeft, Trophy, Crown } from "lucide-react"; // 👈 Añadido Crown
@@ -28,10 +28,10 @@ const statusBadge = {
 };
 
 export function LeagueDetailPage() {
-  const { leagueId } = useParams<{ leagueId: string }>();
-  const { data: league, isLoading } = useLeague(leagueId!);
-  const { data: standings, isLoading: standingsLoading } = useLeagueStandings(leagueId);
-  const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByLeague(leagueId!);
+  const { leagueSlug } = useParams<{ leagueSlug: string }>();
+  const { data: league, isLoading } = useLeagueBySlug(leagueSlug);
+  const { data: standings, isLoading: standingsLoading } = useLeagueStandings(league?.id);
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByLeague(league?.id ?? '');
   const [tab, setTab] = useState<Tab>("standings");
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
@@ -83,7 +83,7 @@ export function LeagueDetailPage() {
       <SEOHead
         title={`${league.name} — Liga`}
         description={`Liga de poker ${league.name}. Tabla de posiciones, calendario y resultados.`}
-        path={`/leagues/${leagueId}`}
+        path={`/leagues/${leagueSlug}`}
       />
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
@@ -116,7 +116,7 @@ export function LeagueDetailPage() {
               {clubs.map((lc) => (
                 <Link
                   key={lc.clubs?.id}
-                  to={`/clubs/${lc.clubs?.id}`}
+                  to={`/clubs/${(lc.clubs as any)?.slug ?? lc.clubs?.id}`}
                   className="text-sk-xs text-sk-accent hover:opacity-80 transition-opacity"
                 >
                   <FlagIcon countryCode={lc.clubs?.country_code ?? null} /> {lc.clubs?.name}
@@ -146,7 +146,7 @@ export function LeagueDetailPage() {
                   <FlagIcon countryCode={champion.players?.country_code ?? null} />
                   {/* SEO: Internal link al perfil del jugador */}
                   <Link 
-                    to={`/ranking/${champion.player_id}`} 
+                    to={`/ranking/${(champion.players as any)?.slug ?? champion.player_id}`} 
                     className="hover:text-sk-gold transition-colors"
                   >
                     {champion.players?.nickname}

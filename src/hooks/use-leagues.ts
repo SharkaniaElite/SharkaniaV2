@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getLeagues,
   getLeagueById,
+  getLeagueBySlug,
   searchLeagues,
   getLeagueStandings, // 🔥 Importamos la función de la API
 } from "../lib/api/leagues";
@@ -19,6 +20,14 @@ export function useLeague(id: string | undefined) {
     queryKey: ["league", id],
     queryFn: () => getLeagueById(id!),
     enabled: !!id,
+  });
+}
+
+export function useLeagueBySlug(slug: string | undefined) {
+  return useQuery({
+    queryKey: ["league-slug", slug],
+    queryFn: () => getLeagueBySlug(slug!),
+    enabled: !!slug,
   });
 }
 
