@@ -2,7 +2,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
-  getTournamentById,
+  getTournamentBySlug,
   getTournamentResults,
 } from "../lib/api/tournaments";
 import { PageShell } from "../components/layout/page-shell";
@@ -51,7 +51,9 @@ function useTournamentStatus(tournament: any) {
 }
 
 export function TournamentDetailPage() {
-  const { id } = useParams();
+  // 🛡️ Tomamos 'slug' o 'id' (por si no has cambiado la variable en App.tsx)
+  const params = useParams();
+  const identifier = params.slug || params.id;
 
   const [tournament, setTournament] = useState<any>(null);
   const [results, setResults] = useState<any[]>([]);
@@ -61,16 +63,28 @@ export function TournamentDetailPage() {
   const { timeStr, isExpired } = useTournamentStatus(tournament);
 
   useEffect(() => {
-    if (!id) return;
-    Promise.all([
-      getTournamentById(id),
-      getTournamentResults(id),
-    ]).then(([tData, rData]) => {
-      setTournament(tData);
-      setResults(rData);
-      setLoading(false);
-    });
-  }, [id]);
+    if (!identifier) return;
+
+    // 1. Primero buscamos el torneo por su SLUG
+    getTournamentBySlug(identifier)
+      .then((tData) => {
+        if (!tData) {
+          setLoading(false);
+          return;
+        }
+        setTournament(tData);
+        
+        // 2. UNA VEZ CARGADO EL TORNEO, usamos su ID real (UUID) para buscar los resultados
+        return getTournamentResults(tData.id).then((rData) => {
+          setResults(rData);
+          setLoading(false);
+        });
+      })
+      .catch((err) => {
+        console.error("Error al cargar el torneo:", err);
+        setLoading(false);
+      });
+  }, [identifier]);
 
   if (loading) {
     return (

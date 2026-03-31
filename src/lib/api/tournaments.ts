@@ -81,6 +81,17 @@ export async function getTournamentById(id: string): Promise<TournamentWithDetai
   return data ? mapTournamentWithLateReg(data) : null;
 }
 
+export async function getTournamentBySlug(slug: string): Promise<TournamentWithDetails | null> {
+  const { data, error } = await supabase
+    .from("tournaments")
+    .select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)")
+    .eq("slug", slug)
+    .single();
+    
+  if (error) return error.code === "PGRST116" ? null : (function() { throw error; })();
+  return data ? mapTournamentWithLateReg(data) : null;
+}
+
 export async function getTournamentResults(tournamentId: string): Promise<TournamentResultWithPlayer[]> {
   const { data, error } = await supabase.from("tournament_results").select("*, players(id, nickname, country_code)").eq("tournament_id", tournamentId).order("position", { ascending: true });
   if (error) throw error;
