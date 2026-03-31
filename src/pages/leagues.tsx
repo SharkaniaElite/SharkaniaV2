@@ -74,7 +74,7 @@ export function LeaguesPage() {
                 return (
                   <Link
                     key={league.id}
-                    to={`/leagues/${league.id}`}
+                    to={`/leagues/${league.slug}`}
                     className={`bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 border-t-2 ${borderColor} flex flex-col gap-4 cursor-pointer hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 transition-all duration-200`}
                   >
                     <div className="flex justify-between items-start">

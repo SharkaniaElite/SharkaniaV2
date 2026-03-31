@@ -112,6 +112,7 @@ export interface ScoringSystem {
 export interface League {
   id: string;
   name: string;
+  slug: string;
   description: string | null;
   rules_url: string | null;
   start_date: string | null;

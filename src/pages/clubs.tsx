@@ -7,7 +7,6 @@ import { Input } from "../components/ui/input";
 import { Spinner } from "../components/ui/spinner";
 import { EmptyState } from "../components/ui/empty-state";
 import { useClubs } from "../hooks/use-clubs";
-import { getFlag } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { SEOHead } from "../components/seo/seo-head";
 
@@ -101,7 +100,7 @@ export function ClubsPage() {
                 return (
                   <Link
                     key={club.id}
-                    to={`/clubs/${club.id}`}
+                    to={`/clubs/${club.slug}`}
                     className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 cursor-pointer transition-all duration-200 ease-out hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 flex flex-col gap-4"
                   >
                     <div className="flex items-center gap-3">
