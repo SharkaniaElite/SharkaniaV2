@@ -168,6 +168,7 @@ export interface Tournament {
   club_id: string;
   league_id: string | null;
   name: string;
+  slug: string;
   description: string | null;
   room_id: string;
   buy_in: number;
