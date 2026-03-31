@@ -272,11 +272,10 @@ export function PlayerDashboardPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <StatCard label="Shark Coins" value={String(profile.shark_coins_balance ?? 0)} accent="accent" icon="🦈" />
             <StatCard label="Nivel" value={String(profile.level)} accent="cyan" />
             <StatCard label="XP Total" value={String(profile.xp)} accent="gold" />
-            <StatCard label="Verificado" value={profile.is_verified ? "Sí" : "No"} />
             <StatCard label="Nicknames" value={String((linkedPlayers ?? []).length)} />
           </div>
 
