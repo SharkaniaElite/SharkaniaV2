@@ -101,30 +101,19 @@ export function RegisterPage() {
         whatsapp,
       }, captchaToken);
 
-      // 📧 INTEGRACIÓN CON MOTOR DE CORREOS
-      if (result.user) {
-        // 1. Inyectamos en la cola de Supabase
+      // 📧 INTEGRACIÓN CON MOTOR DE CORREOS (Solo para notificar solicitudes de Club)
+      if (result.user && regType === "club") {
         await supabase.from("email_queue").insert({
           recipient_email: email,
-          subject: regType === "club" ? "Solicitud de Club Recibida - Sharkania" : "¡Bienvenido a la manada, Shark!",
-          body_html: regType === "club" 
-            ? `<div style="font-family:sans-serif;padding:20px;color:#333;">
+          subject: "Solicitud de Club Recibida - Sharkania",
+          body_html: `<div style="font-family:sans-serif;padding:20px;color:#333;">
                 <h2 style="color:#0ea5e9;">Hola ${displayName}</h2>
                 <p>Hemos recibido tu solicitud para registrar el club <strong>${clubName}</strong>.</p>
                 <p>Un administrador de Sharkania revisará los datos y te contactará pronto.</p>
                </div>`
-            : `<div style="font-family:sans-serif;padding:20px;color:#333;">
-                <h2 style="color:#0ea5e9;">¡Bienvenido a Sharkania, ${displayName}!</h2>
-                <p>Tu cuenta ha sido creada con éxito. Prepárate para dominar el océano y subir en el ranking.</p>
-                <p>Nos vemos en la arena.</p>
-               </div>`
         });
 
-        // 2. ⚡ PING INSTANTÁNEO: Despertamos al worker para que envíe el correo YA
-        fetch("https://sharkania-email-worker.duhauandres.workers.dev/").catch(() => {
-          // Si el ping falla, no importa, el cron de 1 min lo enviará igual
-          console.log("Ping al worker fallido, el cron se encargará.");
-        });
+        fetch("https://sharkania-email-worker.duhauandres.workers.dev/").catch(() => {});
       }
 
       if (regType === "club" && result.user) {
