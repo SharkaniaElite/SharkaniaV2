@@ -14,6 +14,13 @@ interface Env {
   SUPABASE_ANON_KEY: string;
 }
 
+// 🛡️ Parche Senior: Le enseñamos a TypeScript qué es una función de Cloudflare
+type PagesFunction<Env = any> = (context: {
+  request: Request;
+  env: Env;
+  next: (request?: Request | string) => Promise<Response>;
+}) => Promise<Response> | Response;
+
 interface OGData {
   title: string;
   description: string;
@@ -36,37 +43,37 @@ const OG_MAP: Record<string, OGData> = {
   "/ranking": {
     title: "Ranking ELO Global | Sharkania",
     description: "Los mejores jugadores de poker del mundo ordenados por ELO. Busca, filtra y descubre quién domina.",
-    image: `${SITE_URL}/og-default.png`,
+    image: `${SITE_URL}/og-default.png?v=2`,
   },
   "/calendar": {
     title: "Calendario de Torneos | Sharkania",
     description: "Próximos torneos de poker online en vivo. Countdown, buy-ins, garantizados y clubes de toda Latinoamérica.",
-    image: `${SITE_URL}/og-default.png`,
+    image: `${SITE_URL}/og-default.png?v=2`,
   },
   "/clubs": {
     title: "Clubes de Poker | Sharkania",
     description: "Encuentra clubes de poker online verificados de toda Latinoamérica y el mundo.",
-    image: `${SITE_URL}/og-default.png`,
+    image: `${SITE_URL}/og-default.png?v=2`,
   },
   "/leagues": {
     title: "Ligas de Poker | Sharkania",
     description: "Ligas organizadas con tabla de posiciones, puntos y premios.",
-    image: `${SITE_URL}/og-default.png`,
+    image: `${SITE_URL}/og-default.png?v=2`,
   },
   "/compare": {
     title: "Comparador de Jugadores | Sharkania",
     description: "Compara dos jugadores de poker. ELO, ITM, ROI, torneos en común y evolución histórica.",
-    image: `${SITE_URL}/og-default.png`,
+    image: `${SITE_URL}/og-default.png?v=2`,
   },
   "/blog": {
     title: "Blog | Sharkania",
     description: "Estrategia de poker, análisis de datos, mental game y más. Artículos para jugadores competitivos.",
-    image: `${SITE_URL}/og-default.png`,
+    image: `${SITE_URL}/og-default.png?v=2`,
   },
   "/tools": {
     title: "Herramientas de Poker | Sharkania",
     description: "Calculadoras y herramientas gratuitas para jugadores de poker. ICM, ELO, bankroll, quiz de perfil y más.",
-    image: `${SITE_URL}/og-default.png`,
+    image: `${SITE_URL}/og-default.png?v=2`,
   },
   "/tools/quiz": {
     title: "Quiz: ¿Qué tipo de jugador de poker eres? | Sharkania",
@@ -91,12 +98,12 @@ const OG_MAP: Record<string, OGData> = {
   "/register": {
     title: "Registrarse | Sharkania",
     description: "Crea tu cuenta gratis en Sharkania. Para jugadores y clubes de poker.",
-    image: `${SITE_URL}/og-default.png`,
+    image: `${SITE_URL}/og-default.png?v=2`,
   },
   "/login": {
     title: "Iniciar Sesión | Sharkania",
     description: "Accede a tu cuenta de Sharkania.",
-    image: `${SITE_URL}/og-default.png`,
+    image: `${SITE_URL}/og-default.png?v=2`,
   },
 };
 
@@ -147,13 +154,13 @@ async function getOGData(pathname: string, env: Env): Promise<OGData> {
         description: (post.excerpt as string) || DEFAULT_OG.description,
         image: imageOg
           ? (imageOg.startsWith("http") ? imageOg : `${SITE_URL}${imageOg}`)
-          : `${SITE_URL}/og-default.png`,
+          : `${SITE_URL}/og-default.png?v=2`,
       };
     }
     return {
       title: "Artículo | Sharkania Blog",
       description: "Lee este artículo de estrategia de poker en el blog de Sharkania.",
-      image: `${SITE_URL}/og-default.png`,
+      image: `${SITE_URL}/og-default.png?v=2`,
     };
   }
 
@@ -173,13 +180,13 @@ async function getOGData(pathname: string, env: Env): Promise<OGData> {
       return {
         title: `${nickname} — Perfil | Sharkania`,
         description: `Perfil de ${nickname}. ELO ${elo.toLocaleString()}, ${p.total_tournaments} torneos jugados.`,
-        image: `${SITE_URL}/og-default.png`,
+        image: `${SITE_URL}/og-default.png?v=2`,
       };
     }
     return {
       title: "Perfil de Jugador | Sharkania",
       description: "Estadísticas, ELO y historial de torneos de este jugador.",
-      image: `${SITE_URL}/og-default.png`,
+      image: `${SITE_URL}/og-default.png?v=2`,
     };
   }
 
@@ -197,13 +204,13 @@ async function getOGData(pathname: string, env: Env): Promise<OGData> {
       return {
         title: `${c.name} | Sharkania`,
         description: (c.description as string) || `Club de poker ${c.name}. Torneos, calendario y ranking.`,
-        image: `${SITE_URL}/og-default.png`,
+        image: `${SITE_URL}/og-default.png?v=2`,
       };
     }
     return {
       title: "Club de Poker | Sharkania",
       description: "Descubre este club de poker, sus torneos y su ranking de jugadores.",
-      image: `${SITE_URL}/og-default.png`,
+      image: `${SITE_URL}/og-default.png?v=2`,
     };
   }
 
@@ -221,7 +228,7 @@ async function getOGData(pathname: string, env: Env): Promise<OGData> {
       return {
         title: `${l.name} — Liga | Sharkania`,
         description: (l.description as string) || `Liga de poker ${l.name}. Tabla de posiciones y calendario.`,
-        image: `${SITE_URL}/og-default.png`,
+        image: `${SITE_URL}/og-default.png?v=2`,
       };
     }
   }
@@ -240,7 +247,7 @@ async function getOGData(pathname: string, env: Env): Promise<OGData> {
       return {
         title: `${t.name} — Resultados | Sharkania`,
         description: `Resultados del torneo ${t.name}. Posiciones, premios y cambios de ELO.`,
-        image: `${SITE_URL}/og-default.png`,
+        image: `${SITE_URL}/og-default.png?v=2`,
       };
     }
   }
