@@ -1,1 +1,6 @@
-/* /index.html 200
+/blog/*.png    /blog/:splat.png    200
+/blog/*.avif   /blog/:splat.avif   200
+/blog/*.jpg    /blog/:splat.jpg    200
+/cards/*.svg   /cards/:splat.svg   200
+/flags/*.svg   /flags/:splat.svg   200
+/*    /index.html   200
