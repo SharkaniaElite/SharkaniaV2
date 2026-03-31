@@ -233,14 +233,16 @@ async function getOGData(pathname: string, env: Env): Promise<OGData> {
     }
   }
 
-  // 6. Tournament detail: /tournament/:id
-  const tournamentMatch = pathname.match(/^\/tournament\/([0-9a-f-]{36})$/);
+  // 6. Tournament detail: /tournament/:slug
+  // ⚠️ Cambiamos el Regex para que acepte texto (slugs) y no solo UUIDs
+  const tournamentMatch = pathname.match(/^\/tournament\/([^/]+)$/);
   if (tournamentMatch) {
-    const tId = tournamentMatch[1];
+    const tSlug = tournamentMatch[1];
     const rows = await supabaseFetch(
       env,
       "tournaments",
-      `id=eq.${tId}&select=name,buy_in,start_datetime&limit=1`
+      // ⚠️ Cambiamos id=eq... por slug=eq...
+      `slug=eq.${encodeURIComponent(tSlug)}&select=name,buy_in,start_datetime&limit=1`
     );
     if (rows && rows.length > 0) {
       const t = rows[0];

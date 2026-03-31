@@ -98,7 +98,7 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
 
   return (
     <div
-      onClick={() => isCompleted && navigate(`/tournament/${t.id}`)}
+      onClick={() => isCompleted && navigate(`/tournament/${t.slug}`)}
       className={cn(
         "bg-sk-bg-3 border border-sk-border-2 rounded-md p-3 px-4 transition-all",
         (isLive || isLateReg) ? "border-l-2 border-l-sk-green hover:border-sk-border-3" : "hover:border-sk-accent/50",

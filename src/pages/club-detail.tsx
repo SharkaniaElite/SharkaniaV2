@@ -244,7 +244,7 @@ export function ClubDetailPage() {
                 {completed.map((t) => (
                   <div
                     key={t.id}
-                    onClick={() => navigate(`/tournament/${t.id}`)}
+                    onClick={() => navigate(`/tournament/${t.slug}`)}
                     className="cursor-pointer"
                   >
                     {/* 🔥 Corrección 2: Eliminamos e.stopPropagation() para respetar la interfaz de TournamentCard */}

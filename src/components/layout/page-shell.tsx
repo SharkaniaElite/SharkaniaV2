@@ -57,7 +57,7 @@ export function PageShell({ children }: PageShellProps) {
                 </span>
                 ¡Felicidades a{" "}
                 <Link 
-                  to={`/ranking/${champion.player_id}`} 
+                  to={`/ranking/${champion.player_slug}`} // 👈 AHORA USA SLUG
                   className="text-sk-text-1 font-bold hover:text-sk-gold transition-colors"
                 >
                   {champion.player_nickname}
@@ -65,7 +65,7 @@ export function PageShell({ children }: PageShellProps) {
                 , campeón oficial de la{" "}
                 {/* 🔗 NUEVO: Enlace SEO directo a la liga */}
                 <Link 
-                  to={`/leagues/${champion.league_id}`} 
+                  to={`/leagues/${champion.league_slug}`} // 👈 AHORA USA SLUG
                   className="font-semibold text-sk-text-1 hover:text-sk-gold transition-colors"
                 >
                   {champion.league_name}

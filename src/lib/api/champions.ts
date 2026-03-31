@@ -7,6 +7,8 @@ export interface LeagueChampionNews {
   league_id: string;
   player_nickname: string;
   league_name: string;
+  player_slug: string; // 👈 ¡Nuevo!
+  league_slug: string; // 👈 ¡Nuevo!
   created_at: string;
 }
 

@@ -110,10 +110,10 @@ export function TournamentDetailPage() {
   return (
     <PageShell>
       <SEOHead
-        title={`${cleanName(tournament.name)} — Resultados`}
-        description={`Resultados del torneo ${cleanName(tournament.name)}. Posiciones, premios y cambios de ELO.`}
-        path={`/tournament/${id}`}
-      />
+  title={`${cleanName(tournament.name)} — Resultados`}
+  description={`Resultados del torneo ${cleanName(tournament.name)}. Posiciones, premios y cambios de ELO.`}
+  path={`/tournament/${tournament.slug}`} // 👈 ¡El toque maestro!
+/>
       <div className="pt-20 pb-16">
         <div className="max-w-[1000px] mx-auto px-6">
 

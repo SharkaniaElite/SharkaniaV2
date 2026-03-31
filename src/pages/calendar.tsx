@@ -7,7 +7,6 @@ import { TournamentDetailModal } from "../components/calendar/tournament-detail-
 import { Spinner } from "../components/ui/spinner";
 import { EmptyState } from "../components/ui/empty-state";
 import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { useUpcomingTournaments, useCompletedTournaments } from "../hooks/use-tournaments";
 import { usePokerRooms, useClubs } from "../hooks/use-clubs";
@@ -351,7 +350,7 @@ export function CalendarPage() {
                               </td>
                               <td className="py-3 px-4 border-b border-sk-border-2">
                                 <Link
-                                  to={`/tournament/${t.id}`}
+                                  to={`/tournament/${t.slug}`}
                                   className="font-semibold text-sk-text-1 hover:text-sk-accent transition-colors"
                                 >
                                   {cleanName(t.name)}
@@ -400,7 +399,7 @@ export function CalendarPage() {
                               <td className="py-3 px-4 border-b border-sk-border-2">
                                 {t.results_uploaded ? (
                                   <Link
-                                    to={`/tournament/${t.id}`}
+                                    to={`/tournament/${t.slug}`}
                                     className="text-sk-accent text-[11px] font-semibold hover:opacity-80 transition-opacity whitespace-nowrap"
                                   >
                                     Ver resultados →
