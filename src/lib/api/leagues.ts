@@ -126,3 +126,61 @@ export async function forceRecalculateStandings(leagueId: string): Promise<boole
   
   return true;
 }
+
+// ── 👯‍♂️ MOTOR DE CLONACIÓN DE LIGAS ──
+export async function duplicateLeague(leagueId: string): Promise<boolean> {
+  // 1. Obtener la liga original con sus relaciones (clubes y salas)
+  const { data: original, error: fetchError } = await supabase
+    .from("leagues")
+    .select("*, league_clubs(club_id, is_primary), league_rooms(room_id)")
+    .eq("id", leagueId)
+    .single();
+
+  if (fetchError || !original) throw fetchError || new Error("Liga no encontrada");
+
+  // 2. Limpiar datos únicos y preparar la copia
+  const randomSuffix = Math.floor(Math.random() * 10000);
+  const newSlug = `${original.slug}-copia-${randomSuffix}`;
+  
+  // Extraemos lo que NO queremos clonar (id, fechas de creación, texto de búsqueda)
+  const { id, created_at, updated_at, fts, league_clubs, league_rooms, ...leagueData } = original;
+
+  const newLeague = {
+    ...leagueData,
+    name: `${original.name} (Copia)`,
+    slug: newSlug,
+    status: "upcoming" // Reseteamos el estado para la nueva liga
+  };
+
+  // 3. Insertar la nueva liga en la base de datos
+  const { data: insertedLeague, error: insertError } = await supabase
+    .from("leagues")
+    .insert(newLeague)
+    .select("id")
+    .single();
+
+  if (insertError) throw insertError;
+
+  const newId = insertedLeague.id;
+
+  // 4. Clonar relaciones (Clubes participantes)
+  if (league_clubs && league_clubs.length > 0) {
+    const newClubs = league_clubs.map((lc: any) => ({
+      league_id: newId,
+      club_id: lc.club_id,
+      is_primary: lc.is_primary
+    }));
+    await supabase.from("league_clubs").insert(newClubs);
+  }
+
+  // 5. Clonar relaciones (Salas vinculadas)
+  if (league_rooms && league_rooms.length > 0) {
+    const newRooms = league_rooms.map((lr: any) => ({
+      league_id: newId,
+      room_id: lr.room_id
+    }));
+    await supabase.from("league_rooms").insert(newRooms);
+  }
+
+  return true;
+}

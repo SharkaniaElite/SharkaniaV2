@@ -17,6 +17,7 @@ import { useAuthStore } from "../stores/auth-store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { deleteTournamentSafe } from "../lib/api/tournaments";
+import { duplicateLeague } from "../lib/api/leagues"; // 👈 Añadimos nuestra nueva función
 import { formatCurrency } from "../lib/format";
 import { cn } from "../lib/cn";
 import { Plus, Trash2, Pencil, Save, ChevronDown, Copy } from "lucide-react";
@@ -39,7 +40,22 @@ export function ClubAdminPage() {
   const [editTournament, setEditTournament] = useState<Tournament | null | undefined>(undefined);
   const [editLeague, setEditLeague] = useState<League | null | undefined>(undefined);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [duplicatingLeague, setDuplicatingLeague] = useState<string | null>(null); // 👈 Nuevo estado
   const [selectedTournamentIds, setSelectedTournamentIds] = useState<string[]>([]);
+
+  // Función para manejar el clic en clonar liga
+  const handleDuplicateLeague = async (l: League) => {
+    setDuplicatingLeague(l.id);
+    try {
+      await duplicateLeague(l.id);
+      refresh(); // Refresca la tabla automáticamente
+    } catch (err) {
+      console.error(err);
+      alert("Error al duplicar la liga. Revisa la consola.");
+    } finally {
+      setDuplicatingLeague(null);
+    }
+  };
 
   // Club info editing
   const [editingInfo, setEditingInfo] = useState(false);
@@ -426,8 +442,17 @@ export function ClubAdminPage() {
                         </p>
                       </div>
                       <div className="flex gap-1">
-                        <button onClick={() => setEditLeague(l)} className="text-sk-text-2 hover:text-sk-accent p-1"><Pencil size={13} /></button>
-                        <button onClick={() => handleDeleteLeague(l)} className="text-sk-text-2 hover:text-sk-red p-1"><Trash2 size={13} /></button>
+                        {/* 👯‍♂️ Botón de Clonación */}
+                        <button 
+                          onClick={() => handleDuplicateLeague(l)} 
+                          disabled={duplicatingLeague === l.id} 
+                          className="text-sk-text-2 hover:text-sk-text-1 p-1 transition-colors disabled:opacity-50" 
+                          title="Duplicar Liga"
+                        >
+                          <Copy size={13} />
+                        </button>
+                        <button onClick={() => setEditLeague(l)} className="text-sk-text-2 hover:text-sk-accent p-1 transition-colors" title="Editar Liga"><Pencil size={13} /></button>
+                        <button onClick={() => handleDeleteLeague(l)} className="text-sk-text-2 hover:text-sk-red p-1 transition-colors" title="Eliminar Liga"><Trash2 size={13} /></button>
                       </div>
                     </div>
                   ))}
