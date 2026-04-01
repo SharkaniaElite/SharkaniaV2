@@ -1,12 +1,12 @@
 // src/components/shop/purchase-modal.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react"; // 👈 Añadido useEffect
 import { Modal } from "../ui/modal";
 import { Button } from "../ui/button";
 import { usePurchaseProduct } from "../../hooks/use-shop";
 import { useAuthStore } from "../../stores/auth-store";
 import type { ShopProduct, SpendCreditsResult } from "../../types";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // 👈 Añadido useNavigate
 import { SharkCoin } from "../ui/shark-coin";
 
 interface PurchaseModalProps {
@@ -20,6 +20,32 @@ export function PurchaseModal({ product, isOpen, onClose, onSuccess }: PurchaseM
   const profile = useAuthStore((s) => s.profile);
   const { mutateAsync, isPending } = usePurchaseProduct();
   const [result, setResult] = useState<SpendCreditsResult | null>(null);
+  const navigate = useNavigate();
+
+  // 🗺️ Mapa de rutas para cada herramienta
+  const getToolRoute = (featureKey: string) => {
+    const routes: Record<string, string> = {
+      bankroll_calculator: "/tools/calculadora-banca",
+      tool_icm: "/tools/calculadora-icm",
+      tool_elo_sim: "/tools/simulador-elo",
+      tool_quiz: "/tools/quiz",
+      tool_replayer: "/tools/replayer",
+    };
+    return routes[featureKey] || null;
+  };
+
+  const toolRoute = getToolRoute(product.feature_key);
+
+  // ⏱️ Auto-redirección tras 2.5 segundos
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (result?.success && toolRoute) {
+      timer = setTimeout(() => {
+        navigate(toolRoute);
+      }, 2500);
+    }
+    return () => clearTimeout(timer);
+  }, [result?.success, toolRoute, navigate]);
 
   const balance = profile?.shark_coins_balance ?? 0;
   const canAfford = balance >= product.price_coins;
@@ -76,9 +102,15 @@ export function PurchaseModal({ product, isOpen, onClose, onSuccess }: PurchaseM
             </span>
             <span className="text-xs text-sk-text-3">restantes</span>
           </div>
-          <Button variant="accent" onClick={handleClose} className="w-full">
-            Entendido
-          </Button>
+          {toolRoute ? (
+            <Button variant="accent" onClick={() => navigate(toolRoute)} className="w-full flex items-center justify-center gap-2">
+              <Loader2 size={16} className="animate-spin" /> Abriendo herramienta...
+            </Button>
+          ) : (
+            <Button variant="accent" onClick={handleClose} className="w-full">
+              Entendido
+            </Button>
+          )}
         </div>
       </Modal>
     );
@@ -97,8 +129,8 @@ export function PurchaseModal({ product, isOpen, onClose, onSuccess }: PurchaseM
             {errorMessages[result.error ?? ""] ?? "Error inesperado. Intenta de nuevo."}
           </p>
           {result.error === "insufficient_balance" && (
-            <Link to="/wallet" className="text-xs text-sk-accent hover:underline mb-4">
-              Recargar SharkCoins →
+            <Link to="/blog" onClick={handleClose} className="text-xs text-sk-accent hover:underline mb-4">
+              Minar Shark Coins en el Blog →
             </Link>
           )}
           <Button variant="ghost" onClick={handleClose} className="w-full">
@@ -122,7 +154,7 @@ export function PurchaseModal({ product, isOpen, onClose, onSuccess }: PurchaseM
             <p className="text-xs text-sk-text-3">
               {product.access_type === "per_use" && "Uso único"}
               {product.access_type === "daily" && "Acceso por 24 horas"}
-              {product.access_type === "monthly" && `Acceso por ${product.duration_days} días`}
+              {product.access_type === "monthly" && "Acceso por 30 días"}
               {product.access_type === "permanent" && "Acceso permanente"}
             </p>
           </div>
@@ -146,11 +178,12 @@ export function PurchaseModal({ product, isOpen, onClose, onSuccess }: PurchaseM
               − {product.price_coins.toLocaleString()}
             </span>
           </div>
-          <div className="border-t border-sk-border-1 pt-2 flex justify-between text-sm">
+          <div className="border-t border-sk-border-1 pt-2 flex items-center justify-between text-sm">
             <span className="text-sk-text-3">Después</span>
-            <span className={`font-mono font-bold ${canAfford ? "text-sk-green" : "text-sk-red"}`}>
-              🪙 {canAfford ? remaining.toLocaleString() : "Insuficiente"}
-            </span>
+            <div className={`flex items-center gap-1.5 font-mono font-bold ${canAfford ? "text-sk-green" : "text-sk-red"}`}>
+              <SharkCoin size={14} />
+              <span>{canAfford ? remaining.toLocaleString() : "Insuficiente"}</span>
+            </div>
           </div>
         </div>
 
@@ -169,12 +202,15 @@ export function PurchaseModal({ product, isOpen, onClose, onSuccess }: PurchaseM
               {isPending ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
-                <>🪙 Comprar por {product.price_coins}</>
+                <div className="flex items-center gap-2">
+                  <SharkCoin size={16} /> 
+                  <span>Comprar por {product.price_coins}</span>
+                </div>
               )}
             </Button>
           ) : (
-            <Button variant="accent" className="flex-1" onClick={() => { handleClose(); window.location.href = "/wallet"; }}>
-              Recargar Coins
+            <Button variant="accent" className="flex-1" onClick={() => { handleClose(); window.location.href = "/blog"; }}>
+              Ir a Minar Coins
             </Button>
           )}
         </div>

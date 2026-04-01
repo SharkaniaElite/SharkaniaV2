@@ -89,6 +89,37 @@ export async function checkFeatureAccess(featureKey: string): Promise<FeatureAcc
   return { has_access: false, expires_at: null, purchase_id: null };
 }
 
+// ── Verificar acceso a un PRODUCTO especifico (Para la Tienda) ──
+export async function checkProductAccess(productId: string): Promise<FeatureAccess> {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) {
+    return { has_access: false, expires_at: null, purchase_id: null };
+  }
+
+  const { data, error } = await supabase
+    .from("user_purchases")
+    .select("id, expires_at")
+    .eq("user_id", userData.user.id)
+    .eq("product_id", productId) // 👈 AQUÍ ESTÁ LA MAGIA: Filtramos por ID de producto
+    .eq("is_active", true)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+    .order("granted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (data) {
+    return {
+      has_access: true,
+      expires_at: data.expires_at,
+      purchase_id: data.id,
+    };
+  }
+
+  return { has_access: false, expires_at: null, purchase_id: null };
+}
+
 // ── Historial de compras del usuario ──
 
 export async function getUserPurchases(): Promise<UserPurchaseWithProduct[]> {

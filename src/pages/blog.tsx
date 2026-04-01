@@ -1,7 +1,7 @@
 // src/pages/blog.tsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock, ArrowRight, TrendingUp } from "lucide-react";
+import { Clock, ArrowRight, TrendingUp, Pickaxe } from "lucide-react"; // 👈 Añadimos Pickaxe
 import { PageShell } from "../components/layout/page-shell";
 import { getBlogPosts, formatBlogDate, type BlogPost } from "../lib/api/blog";
 import { SEOHead } from "../components/seo/seo-head";
@@ -70,10 +70,38 @@ export default function BlogPage() {
           <h1 className="text-sk-3xl font-extrabold text-sk-text-1 tracking-tight mb-3">
             Estrategia & Análisis
           </h1>
-          <p className="text-sk-base text-sk-text-2 max-w-xl">
+          <p className="text-sk-base text-sk-text-2 max-w-xl mb-8">
             Contenido técnico basado en datos reales del ecosistema de clubes privados.
             GTO, ICM, ELO y el meta-juego que nadie más está midiendo.
           </p>
+
+          {/* ⚒️ BANNER EXPLICATIVO DE MINERÍA */}
+          <div className="p-5 rounded-2xl bg-sk-bg-2 border border-sk-border-2 shadow-sk-lg flex flex-col md:flex-row items-center gap-6 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1 h-full bg-sk-accent opacity-50 group-hover:h-full transition-all" />
+            
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-sk-bg-3 border border-sk-border-1 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+                <Pickaxe size={28} className="text-sk-accent" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sk-md font-extrabold text-sk-text-1 tracking-tight">Proof of Work: Estudia y Gana</h3>
+                <p className="text-xs text-sk-text-3 leading-relaxed max-w-md">
+                  Lee artículos hasta el final para minar <strong className="text-sk-accent">Shark Coins</strong> y ganar <strong className="text-purple-400">XP</strong>. Tu tiempo de análisis desbloquea recompensas automáticas.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 ml-auto shrink-0 bg-sk-bg-0 px-4 py-3 rounded-xl border border-sk-border-2">
+               <div className="flex flex-col items-center px-3 border-r border-sk-border-2">
+                 <span className="text-[10px] text-sk-text-4 font-bold uppercase tracking-widest">Recompensa</span>
+                 <span className="text-sk-sm font-mono font-bold text-sk-accent">+10 SC</span>
+               </div>
+               <div className="flex flex-col items-center px-3">
+                 <span className="text-[10px] text-sk-text-4 font-bold uppercase tracking-widest">Estatus</span>
+                 <span className="text-sk-sm font-mono font-bold text-purple-400">+50 XP</span>
+               </div>
+            </div>
+          </div>
         </div>
       </div>
 

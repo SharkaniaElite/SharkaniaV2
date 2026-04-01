@@ -2,7 +2,7 @@
 import { useArticleSchema, useBreadcrumbSchema } from "../components/seo/structured-data";
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, Share2, ChevronRight } from "lucide-react";
+import { ArrowLeft, Clock, Share2, ChevronRight, Lock } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { getBlogPost, formatBlogDate, type BlogPost, type BlogBlock } from "../lib/api/blog";
 import { SEOHead } from "../components/seo/seo-head";
@@ -10,6 +10,8 @@ import { renderWithLinks } from "../lib/render-inline-links";
 import { WptBanner } from "../components/blog/wpt-banner";
 import { TableOfContents, slugify } from "../components/blog/table-of-contents";
 import { RelatedPosts } from "../components/blog/related-posts";
+import { useAuthStore } from "../stores/auth-store";
+import { claimBlogReward } from "../lib/api/players";
 
 // ── OG Meta ───────────────────────────────────────────────
 function setOGMeta(post: BlogPost) {
@@ -67,89 +69,27 @@ function PostSkeleton() {
 }
 
 // ── Block Renderer ────────────────────────────────────────
-// Posiciones de banner dentro del body:
-//   h2Index === 2 → imagen inline del artículo (original)
-//   h2Index === 3 → WptBanner slot="mid"
-
-function BlockRenderer({
-  block, inlineImage, h2Index,
-}: {
-  block: BlogBlock;
-  inlineImage: string | null;
-  h2Index: number;
-}) {
+function BlockRenderer({ block, inlineImage, h2Index }: { block: BlogBlock; inlineImage: string | null; h2Index: number; }) {
   if (block.type === "h2") {
     return (
       <>
-        <h2
-          id={slugify(block.content ?? "")}
-          className="text-sk-xl font-extrabold text-sk-text-1 tracking-tight mt-12 mb-4 first:mt-0 scroll-mt-20"
-        >
+        <h2 id={slugify(block.content ?? "")} className="text-sk-xl font-extrabold text-sk-text-1 tracking-tight mt-12 mb-4 first:mt-0 scroll-mt-20">
           {renderWithLinks(block.content ?? "")}
         </h2>
-
-        {/* Imagen inline del artículo — después del 2do H2 */}
         {h2Index === 2 && inlineImage && (
           <div className="my-6 rounded-xl overflow-hidden border border-sk-border-2">
             <img src={inlineImage} alt="Ilustración del artículo" className="w-full h-auto" />
           </div>
         )}
-
-        {/* Banner WPT mid — después del 3er H2 */}
         {h2Index === 3 && <WptBanner slot="mid" />}
       </>
     );
   }
-
-  if (block.type === "h3") {
-    return (
-      <h3 className="text-sk-md font-bold text-sk-text-1 mt-8 mb-3">
-        {renderWithLinks(block.content ?? "")}
-      </h3>
-    );
-  }
-
-  if (block.type === "callout") {
-    return (
-      <div className="my-8 rounded-lg border border-sk-accent/20 bg-sk-accent-dim px-6 py-5">
-        <p className="text-sk-base text-sk-text-1 font-medium leading-relaxed">
-          {renderWithLinks(block.content ?? "")}
-        </p>
-      </div>
-    );
-  }
-
-  if (block.type === "stat") {
-    return (
-      <div className="my-8 rounded-xl border border-sk-border-2 bg-sk-bg-2 px-6 py-6 flex items-center gap-5">
-        <span className="text-[2.5rem] font-extrabold text-sk-accent leading-none shrink-0">
-          {block.value}
-        </span>
-        <p className="text-sk-base text-sk-text-2 leading-snug">
-          {renderWithLinks(block.content ?? "")}
-        </p>
-      </div>
-    );
-  }
-
-  if (block.type === "list") {
-    return (
-      <ul className="my-5 space-y-2 pl-1">
-        {(block.items ?? []).map((item, j) => (
-          <li key={j} className="flex items-start gap-3 text-sk-base text-sk-text-2 leading-relaxed">
-            <span className="mt-[6px] w-1.5 h-1.5 rounded-full bg-sk-accent shrink-0" />
-            {renderWithLinks(item)}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  return (
-    <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">
-      {renderWithLinks(block.content ?? "")}
-    </p>
-  );
+  if (block.type === "h3") return <h3 className="text-sk-md font-bold text-sk-text-1 mt-8 mb-3">{renderWithLinks(block.content ?? "")}</h3>;
+  if (block.type === "callout") return <div className="my-8 rounded-lg border border-sk-accent/20 bg-sk-accent-dim px-6 py-5"><p className="text-sk-base text-sk-text-1 font-medium leading-relaxed">{renderWithLinks(block.content ?? "")}</p></div>;
+  if (block.type === "stat") return <div className="my-8 rounded-xl border border-sk-border-2 bg-sk-bg-2 px-6 py-6 flex items-center gap-5"><span className="text-[2.5rem] font-extrabold text-sk-accent leading-none shrink-0">{block.value}</span><p className="text-sk-base text-sk-text-2 leading-snug">{renderWithLinks(block.content ?? "")}</p></div>;
+  if (block.type === "list") return <ul className="my-5 space-y-2 pl-1">{(block.items ?? []).map((item, j) => (<li key={j} className="flex items-start gap-3 text-sk-base text-sk-text-2 leading-relaxed"><span className="mt-[6px] w-1.5 h-1.5 rounded-full bg-sk-accent shrink-0" />{renderWithLinks(item)}</li>))}</ul>;
+  return <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">{renderWithLinks(block.content ?? "")}</p>;
 }
 
 // ── Page ──────────────────────────────────────────────────
@@ -161,21 +101,30 @@ export default function BlogPostPage() {
   const [error, setError]     = useState(false);
   const h2Count               = useRef(0);
 
-  // Dentro del componente, después de que 'post' se carga:
-useArticleSchema({
-  title: post?.title ?? '',
-  description: post?.excerpt ?? '',
-  slug: post?.slug ?? '',
-  publishedAt: post?.published_at ?? '',
-  category: post?.category ?? '',
-  imageUrl: post?.image_og ?? undefined,
-});
+  // Gamificación y Minería
+  const { user, isAuthenticated, refreshProfile } = useAuthStore();
+  const REWARD_AMOUNT = 10;
+  const XP_REWARD = 50;
+  const [initialTime, setInitialTime] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const [claimed, setClaimed] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
 
-useBreadcrumbSchema([
-  { name: 'Inicio', url: 'https://sharkania.com' },
-  { name: 'Blog', url: 'https://sharkania.com/blog' },
-  { name: post?.title ?? 'Artículo', url: `https://sharkania.com/blog/${post?.slug ?? ''}` },
-]);
+  useArticleSchema({
+    title: post?.title ?? '',
+    description: post?.excerpt ?? '',
+    slug: post?.slug ?? '',
+    publishedAt: post?.published_at ?? '',
+    category: post?.category ?? '',
+    imageUrl: post?.image_og ?? undefined,
+  });
+
+  useBreadcrumbSchema([
+    { name: 'Inicio', url: 'https://sharkania.com' },
+    { name: 'Blog', url: 'https://sharkania.com/blog' },
+    { name: post?.title ?? 'Artículo', url: `https://sharkania.com/blog/${post?.slug ?? ''}` },
+  ]);
 
   useEffect(() => {
     if (!slug) return;
@@ -183,12 +132,72 @@ useBreadcrumbSchema([
     getBlogPost(slug)
       .then((data) => {
         if (!data) { navigate("/blog", { replace: true }); }
-        else { setPost(data); setOGMeta(data); h2Count.current = 0; }
+        else { 
+          setPost(data); 
+          setOGMeta(data); 
+          h2Count.current = 0; 
+          
+          // Configurar temporizador (minutos a segundos)
+          const timeInSeconds = (data.read_time || 3) * 60;
+          setInitialTime(timeInSeconds);
+          setTimeLeft(timeInSeconds);
+        }
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
     return () => resetOGMeta();
   }, [slug, navigate]);
+
+  // Lógica del Temporizador Anti-AFK
+  useEffect(() => {
+    if (!isAuthenticated || timeLeft <= 0 || claimed) return;
+
+    const timer = setInterval(() => {
+      // Solo descuenta si la pestaña está activa y visible
+      if (document.visibilityState === "visible") {
+        setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isAuthenticated, timeLeft, claimed]);
+
+  // Referencia para el panel de recompensas
+  const rewardBoxRef = useRef<HTMLDivElement>(null);
+
+ // Lógica de Scroll con Intersection Observer (MÁS FIABLE)
+  useEffect(() => {
+    // 1. Si la caja aún no existe en el DOM (ej. está cargando el post), abortamos
+    if (!rewardBoxRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setHasScrolledToBottom(true);
+        }
+      },
+      { threshold: 0.3 } 
+    );
+
+    observer.observe(rewardBoxRef.current);
+
+    return () => observer.disconnect();
+  }, [loading, post]); // 👈 LA CLAVE: Le decimos que se re-ejecute cuando loading o post cambien
+
+  const handleClaimCoins = async () => {
+    if (!user || timeLeft > 0 || !hasScrolledToBottom || claimed) return;
+    
+    setIsClaiming(true);
+    try {
+      await claimBlogReward(user.id, REWARD_AMOUNT, XP_REWARD);
+      await refreshProfile(); // Actualiza el balance en la UI del navbar/store
+      setClaimed(true);
+    } catch (error) {
+      console.error("Error reclamando recompensa", error);
+    } finally {
+      setIsClaiming(false);
+    }
+  };
 
   const handleShare = async () => {
     try { await navigator.clipboard.writeText(window.location.href); }
@@ -211,9 +220,26 @@ useBreadcrumbSchema([
               </>
             )}
           </nav>
-          <button onClick={handleShare} className="flex items-center gap-1.5 text-sk-sm text-sk-text-2 hover:text-sk-accent transition-colors">
-            <Share2 size={13} /> Compartir
-          </button>
+          
+          <div className="flex items-center gap-3">
+            {/* 🎯 RADAR DE MINERÍA FLOTANTE */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-sk-bg-0 border border-sk-border-2 rounded font-mono text-[10px] font-bold shadow-sm">
+              <img 
+                src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif" 
+                alt="SC" 
+                className={`w-3.5 h-3.5 ${timeLeft <= 0 ? "drop-shadow-[0_0_5px_rgba(251,191,36,0.8)]" : "grayscale opacity-70"}`} 
+              />
+              <span className={timeLeft <= 0 ? "text-sk-green" : "text-sk-text-2"}>
+                {timeLeft > 0 
+                  ? `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}` 
+                  : "LISTO ⬇️"}
+              </span>
+            </div>
+
+            <button onClick={handleShare} className="flex items-center gap-1.5 text-sk-sm text-sk-text-2 hover:text-sk-accent transition-colors">
+              <Share2 size={13} /> Compartir
+            </button>
+          </div>
         </div>
       </div>
 
@@ -230,32 +256,17 @@ useBreadcrumbSchema([
 
       {!loading && !error && post && (
         <>
-          <SEOHead
-            title={post.title}
-            description={post.excerpt}
-            path={`/blog/${post.slug}`}
-            ogType="article"
-            ogImage={post.image_og ?? undefined}
-          />
+          <SEOHead title={post.title} description={post.excerpt} path={`/blog/${post.slug}`} ogType="article" ogImage={post.image_og ?? undefined} />
 
-          {/* Hero */}
           {post.image_hero && (
             <div className="w-full max-h-[480px] overflow-hidden bg-sk-bg-3">
               <img src={post.image_hero} alt={post.title} className="w-full h-full object-cover" />
             </div>
           )}
 
-          {/* Layout: artículo — columna única */}
-          <style>{`
-            .blog-grid {
-              max-width: 760px;
-              margin: 0 auto;
-              padding: 0 1.5rem;
-            }
-          `}</style>
+          <style>{`.blog-grid { max-width: 760px; margin: 0 auto; padding: 0 1.5rem; }`}</style>
 
           <div className="blog-grid">
-            {/* Columna principal */}
             <div style={{ minWidth: 0 }}>
               <div className="py-12">
                 <Link to="/blog" className="inline-flex items-center gap-1.5 text-sk-sm text-sk-text-3 hover:text-sk-text-1 transition-colors mb-8">
@@ -272,88 +283,128 @@ useBreadcrumbSchema([
                   <span className="text-[11px] text-sk-text-4">{formatBlogDate(post.published_at)}</span>
                 </div>
 
-                <h1 className="text-sk-3xl font-extrabold text-sk-text-1 tracking-tight leading-tight mb-6">
-                  {post.title}
-                </h1>
+                <h1 className="text-sk-3xl font-extrabold text-sk-text-1 tracking-tight leading-tight mb-6">{post.title}</h1>
+                
+                {/* 📢 CARTEL DE BOUNTY (REGLAS DEL JUEGO) */}
+                <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-sk-bg-2 border border-sk-border-2 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif" 
+                      alt="Shark Coin" 
+                      className="w-10 h-10 drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]" 
+                    />
+                    <div>
+                      <h4 className="text-sm font-extrabold text-sk-text-1 tracking-wide uppercase">
+                        Bounty de Estudio: <span className="text-sk-accent">{REWARD_AMOUNT} SC</span> <span className="text-sk-text-4 mx-1">+</span> <span className="text-purple-400">{XP_REWARD} XP</span>
+                      </h4>
+                      <p className="text-xs text-sk-text-3 mt-0.5">
+                        Permanece en esta pestaña durante <strong className="text-sk-text-2">{post.read_time} minutos</strong> y llega al final del artículo para reclamar tu recompensa.
+                      </p>
+                    </div>
+                  </div>
+                  {!isAuthenticated && (
+                    <Link 
+                      to={`/login?redirect=/blog/${post.slug}`} 
+                      className="shrink-0 w-full sm:w-auto text-center text-[11px] font-bold tracking-widest uppercase text-sk-bg-0 bg-sk-accent px-4 py-2 rounded-lg hover:scale-105 transition-transform"
+                    >
+                      Login para Minar
+                    </Link>
+                  )}
+                </div>
 
-                <p className="text-sk-lg text-sk-text-2 leading-relaxed border-l-2 border-sk-accent pl-5 mb-10">
-                  {post.excerpt}
-                </p>
-
+                <p className="text-sk-lg text-sk-text-2 leading-relaxed border-l-2 border-sk-accent pl-5 mb-10">{post.excerpt}</p>
                 <div className="h-px bg-sk-border-2 mb-10" />
 
-                {/* Table of Contents */}
                 <TableOfContents blocks={post.body} />
 
-                {/* Body */}
                 <div>
                   {post.body.map((block, i) => {
                     const h2Index = post.body.slice(0, i + 1).filter((b) => b.type === "h2").length;
-                    return (
-                      <BlockRenderer
-                        key={i}
-                        block={block}
-                        inlineImage={post.image_inline}
-                        h2Index={h2Index}
-                      />
-                    );
+                    return <BlockRenderer key={i} block={block} inlineImage={post.image_inline} h2Index={h2Index} />;
                   })}
                 </div>
 
-                {/* Banner final — slot "final" (distinto al mid) */}
                 <WptBanner slot="final" className="mt-10" />
 
-                {/* Related Posts */}
-                <RelatedPosts
-                  currentSlug={post.slug}
-                  currentCategory={post.category}
-                />
+                {/* 🎯 MÓDULO DE MINERÍA SHARK COINS */}
+                <div ref={rewardBoxRef} className="mt-12 p-8 bg-sk-bg-2 border border-sk-border-2 rounded-2xl flex flex-col items-center justify-center text-center shadow-sk-lg relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-sk-accent to-transparent opacity-50"></div>
+                  
+                  <div className="flex items-center gap-3 mb-4">
+                    <img 
+                      src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif" 
+                      alt="Shark Coin" 
+                      className="w-12 h-12 drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]" 
+                    />
+                    <h3 className="text-xl font-extrabold text-sk-text-1 tracking-tight">Recompensa de Estudio</h3>
+                  </div>
 
-                {/* CTA Sharkania */}
-                <div className="mt-8 rounded-xl border border-sk-border-2 bg-sk-bg-2 p-8 text-center">
-                  <p className="text-sk-sm text-sk-accent font-semibold uppercase tracking-widest mb-3">
-                    ¿Administras un club?
-                  </p>
-                  <h3 className="text-sk-xl font-extrabold text-sk-text-1 mb-3 tracking-tight">
-                    Mira cómo se vería tu club en Sharkania
-                  </h3>
-                  <p className="text-sk-sm text-sk-text-2 mb-6 max-w-md mx-auto">
-                    Rankings ELO en tiempo real, calendario de torneos y estadísticas de jugadores.
-                    Los primeros 10 Clubs registrados obtendrán las funciones premium gratis por 3 meses.
-                  </p>
-                  <Link to="/register" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold hover:bg-sk-accent-hover transition-colors">
-                    Registrar mi Club <ChevronRight size={14} />
-                  </Link>
+                  {!isAuthenticated ? (
+                    <div className="flex flex-col items-center gap-4 w-full max-w-sm">
+                      <p className="text-sk-sm text-sk-text-2 mb-2">Inicia sesión para reclamar <strong className="text-sk-accent">{REWARD_AMOUNT} SC</strong> por tu tiempo de estudio.</p>
+                      <Link to={`/login?redirect=/blog/${post.slug}`} className="w-full py-3 px-6 rounded-lg bg-sk-bg-3 border border-sk-border-2 font-bold text-sk-text-1 flex items-center justify-center gap-2 hover:bg-sk-bg-4 transition-all">
+                        <Lock size={16} className="text-sk-accent" /> Iniciar Sesión para Minar
+                      </Link>
+                    </div>
+                  ) : claimed ? (
+                    <div className="text-sk-green font-bold text-lg flex flex-col items-center gap-3 bg-sk-green-dim/30 px-8 py-5 rounded-2xl border border-sk-green/20 w-full max-w-sm">
+                      <div className="flex items-center gap-2 text-xl">
+                        <span>✅</span> ¡Análisis Completado!
+                      </div>
+                      <div className="text-[13px] font-mono font-bold w-full flex items-center justify-between bg-sk-bg-0 px-4 py-3 rounded-xl border border-sk-border-2">
+                        <span className="text-sk-accent">+{REWARD_AMOUNT} SHARK COINS</span>
+                        <span className="text-purple-400">+{XP_REWARD} XP</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-5 w-full max-w-sm mt-2">
+                      <div className="w-full bg-sk-bg-0 h-2.5 rounded-full overflow-hidden border border-sk-border-1 relative">
+                        <div 
+                          className="bg-sk-accent h-full transition-all duration-1000 ease-linear absolute left-0 top-0"
+                          style={{ width: `${Math.max(0, 100 - (timeLeft / initialTime) * 100)}%` }}
+                        />
+                      </div>
+                      
+                      <div className="flex w-full justify-between text-[11px] font-mono font-semibold tracking-wide uppercase">
+                        <span className={timeLeft <= 0 ? "text-sk-green" : "text-sk-text-3"}>
+                          {timeLeft > 0 ? `ANÁLISIS: ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}` : "TIEMPO ✅"}
+                        </span>
+                        <span className={hasScrolledToBottom ? "text-sk-green" : "text-sk-red"}>
+                          {hasScrolledToBottom ? "LECTURA ✅" : "SCROLL ⬇️"}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={handleClaimCoins}
+                        disabled={timeLeft > 0 || !hasScrolledToBottom || isClaiming}
+                        className={`w-full py-3.5 px-6 rounded-xl font-bold tracking-widest text-[13px] flex items-center justify-center gap-2 transition-all duration-300 ${
+                          timeLeft <= 0 && hasScrolledToBottom
+                            ? "bg-gradient-to-r from-yellow-500 to-yellow-600 text-black hover:scale-[1.02] shadow-[0_0_20px_rgba(251,191,36,0.3)] cursor-pointer"
+                            : "bg-sk-bg-3 text-sk-text-4 cursor-not-allowed border border-sk-border-2"
+                        }`}
+                      >
+                        {isClaiming ? "FIRMANDO TRANSACCIÓN..." : `RECLAMAR ${REWARD_AMOUNT} SHARK COINS`}
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                <RelatedPosts currentSlug={post.slug} currentCategory={post.category} />
 
                 {/* Share */}
                 <div className="mt-10 pt-8 border-t border-sk-border-2">
                   <p className="text-sk-sm text-sk-text-3 mb-4">¿Te fue útil? Compártelo con tu comunidad.</p>
                   <div className="flex flex-wrap gap-2">
-                    <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-sk-border-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:border-sk-border-3 transition-colors">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                      Facebook
-                    </a>
                     <a href={`https://wa.me/?text=${encodeURIComponent(post.title + " — " + window.location.href)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-sk-border-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:border-sk-border-3 transition-colors">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                       WhatsApp
                     </a>
-                    <a href={`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(post.title)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-sk-border-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:border-sk-border-3 transition-colors">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-                      Telegram
-                    </a>
-                    <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(window.location.href)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-sk-border-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:border-sk-border-3 transition-colors">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.265 5.638 5.9-5.638zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                      X
-                    </a>
-                    <button onClick={() => navigator.clipboard.writeText(window.location.href)} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-sk-border-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:border-sk-border-3 transition-colors">
+                    <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-sk-border-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:border-sk-border-3 transition-colors">
                       <Share2 size={13} /> Copiar enlace
                     </button>
                   </div>
                 </div>
               </div>
             </div>
-
           </div>
         </>
       )}

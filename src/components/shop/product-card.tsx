@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { PurchaseModal } from "./purchase-modal";
-import { useFeatureAccess } from "../../hooks/use-shop";
+import { useProductAccess } from "../../hooks/use-shop";
 import { useAuthStore } from "../../stores/auth-store";
 import type { ShopProduct } from "../../types";
 import { Check, Lock } from "lucide-react";
@@ -19,13 +19,24 @@ const accessLabels: Record<string, string> = {
   permanent: "Permanente",
 };
 
+// 🚧 INTERRUPTOR DE DESARROLLO: 
+// Cuando termines una herramienta, simplemente borra su llave de esta lista para habilitar la venta.
+const COMING_SOON_KEYS = [
+  "tool_field_analysis",
+  "tool_rival_analysis",
+  "tool_elo_dna",
+  "report_monthly",
+  "report_club_trends"
+];
+
 export function ProductCard({ product }: ProductCardProps) {
   const [showModal, setShowModal] = useState(false);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const navigate = useNavigate();
-  const { data: access } = useFeatureAccess(product.feature_key);
+  const { data: access } = useProductAccess(product.id);
 
   const hasAccess = access?.has_access ?? false;
+  const isComingSoon = COMING_SOON_KEYS.includes(product.feature_key); // 👈 Detectamos si está en desarrollo
 
   const handleClick = () => {
     if (!isAuthenticated) {
@@ -33,25 +44,34 @@ export function ProductCard({ product }: ProductCardProps) {
       return;
     }
     
-    // 🚧 FASE BETA: Bloqueamos la compra real y mostramos alerta
-    alert("🚧 Fase Beta: Las compras de herramientas y pases están deshabilitadas temporalmente. ¡Pronto podrás usar tus SharkCoins!");
+    // 🔓 FASE LIVE: Desplegamos el modal de transacción
+    setShowModal(true);
   };
 
   return (
     <>
       <div
-        className={`flex flex-col bg-sk-bg-2 border rounded-xl p-5 transition-all hover:translate-y-[-2px] hover:border-sk-border-3 ${
+        className={`flex flex-col bg-sk-bg-2 border rounded-xl p-5 transition-all relative overflow-hidden ${
           hasAccess ? "border-sk-green/30" : "border-sk-border-1"
-        }`}
+        } ${!isComingSoon ? "hover:translate-y-[-2px] hover:border-sk-border-3" : "opacity-80 grayscale-[0.2]"}`}
       >
+        {/* 🎀 CINTA DE PRÓXIMAMENTE */}
+        {isComingSoon && (
+          <div className="absolute top-4 -right-10 bg-sk-accent text-sk-bg-0 text-[9px] font-extrabold uppercase tracking-widest py-1 px-10 rotate-45 shadow-sm z-10">
+            En Desarrollo
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 rounded-lg bg-sk-bg-4 flex items-center justify-center text-xl">
+          <div className={`w-10 h-10 rounded-lg bg-sk-bg-4 flex items-center justify-center text-xl ${isComingSoon ? "opacity-60" : ""}`}>
             {product.icon}
           </div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-sk-text-4 bg-sk-bg-3 px-2 py-0.5 rounded">
-            {accessLabels[product.access_type]}
-          </span>
+          {!isComingSoon && (
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-sk-text-4 bg-sk-bg-3 px-2 py-0.5 rounded z-0">
+              {accessLabels[product.access_type]}
+            </span>
+          )}
         </div>
 
         {/* Info */}
@@ -68,8 +88,18 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
 
         {/* Precio y acción */}
-        <div className="mt-auto pt-3 border-t border-sk-border-1">
-          {hasAccess ? (
+        <div className="mt-auto pt-3 border-t border-sk-border-1 z-0 relative">
+          {isComingSoon ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-center gap-2 border border-sk-border-2 bg-sk-bg-3/50 text-sk-text-4 cursor-not-allowed"
+              disabled
+            >
+              <Lock size={12} />
+              <span className="text-[10px] font-extrabold uppercase tracking-widest">Próximamente</span>
+            </Button>
+          ) : hasAccess ? (
             <div className="flex items-center justify-center gap-2 py-2 text-sk-green">
               <Check size={16} />
               <span className="text-xs font-semibold">Acceso activo</span>
@@ -87,7 +117,6 @@ export function ProductCard({ product }: ProductCardProps) {
               onClick={handleClick}
             >
               <Lock size={12} className="text-sk-text-3" />
-              {/* 👇 REEMPLAZO: Cambiamos el emoji 🪙 por el componente SharkCoin */}
               <SharkCoin size={14} /> 
               <span className="font-mono font-bold text-sk-text-1">{product.price_coins}</span>
             </Button>

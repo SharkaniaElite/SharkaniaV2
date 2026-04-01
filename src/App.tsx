@@ -45,7 +45,6 @@ const PrivacyPage = lazy(() => import("./pages/privacy").then(m => ({ default: m
 const ForgotPasswordPage = lazy(() => import("./pages/forgot-password").then(m => ({ default: m.ForgotPasswordPage })));
 const UpdatePasswordPage = lazy(() => import("./pages/update-password").then(m => ({ default: m.UpdatePasswordPage })));
 const WelcomePage = lazy(() => import("./pages/welcome"));
-const WalletPage = lazy(() => import("./pages/wallet").then(m => ({ default: m.WalletPage }))); // 🦈 Nueva ruta de Billetera
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -181,15 +180,6 @@ export function App() {
                 element={
                   <ProtectedRoute>
                     <PlayerDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/wallet"
-                element={
-                  <ProtectedRoute>
-                    <WalletPage />
                   </ProtectedRoute>
                 }
               />

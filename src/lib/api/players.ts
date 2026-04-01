@@ -184,3 +184,17 @@ export async function updatePlayer(
   if (error) throw error;
   return data as PlayerWithRoom;
 }
+// Agrega esto al final de src/lib/api/players.ts
+
+/**
+ * Recompensa al usuario con Shark Coins y XP por leer un artículo.
+ */
+export async function claimBlogReward(userId: string, amount: number = 10, xpAmount: number = 50): Promise<void> {
+  const { error } = await supabase.rpc("claim_blog_reward", {
+    p_user_id: userId,
+    p_amount: amount,
+    p_xp_amount: xpAmount, // 👈 Pasamos la experiencia a la BD
+  });
+
+  if (error) throw error;
+}

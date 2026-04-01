@@ -5,6 +5,7 @@ import {
   getShopProductBySlug,
   purchaseProduct,
   checkFeatureAccess,
+  checkProductAccess, // 👈 NUEVO
   getUserPurchases,
   getCreditTransactions,
   getSharkCoinsBalance,
@@ -45,6 +46,7 @@ export function usePurchaseProduct() {
         queryClient.invalidateQueries({ queryKey: ["user-purchases"] });
         queryClient.invalidateQueries({ queryKey: ["credit-transactions"] });
         queryClient.invalidateQueries({ queryKey: ["feature-access"] });
+        queryClient.invalidateQueries({ queryKey: ["product-access"] }); // 👈 FIX: Esto refresca las tarjetas al instante
         // Refrescar el profile del auth store (tiene shark_coins_balance)
         refreshProfile();
       }
@@ -62,6 +64,19 @@ export function useFeatureAccess(featureKey: string) {
     queryFn: () => checkFeatureAccess(featureKey),
     enabled: isAuthenticated && !!featureKey,
     staleTime: 1000 * 60 * 2, // 2 min — chequear relativamente seguido
+  });
+}
+
+// ── Verificar acceso a Producto ──
+
+export function useProductAccess(productId: string) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  return useQuery({
+    queryKey: ["product-access", productId],
+    queryFn: () => checkProductAccess(productId),
+    enabled: isAuthenticated && !!productId,
+    staleTime: 1000 * 60 * 2, // 2 min
   });
 }
 

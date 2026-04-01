@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "../../lib/cn";
-import { Menu, X, Search, LogOut, User, Shield, Settings, Plus } from "lucide-react"; // 👈 Coins eliminado
+import { Menu, X, Search, LogOut, User, Settings } from "lucide-react";
 import { Button } from "../ui/button";
 import { GlobalSearch } from "../search/global-search";
 import { useAuthStore } from "../../stores/auth-store";
@@ -150,21 +150,19 @@ export function Navbar() {
             </Link>
           )}
 
-          {/* WALLET SECCIÓN (Escritorio) */}
+          {/* SECCIÓN DE ECONOMÍA (Escritorio) */}
           {!isLoading && isAuthenticated && profile && (
             <div className="hidden sm:flex items-center gap-2 mr-1">
-              <Link to="/wallet" title="Ir a la billetera" className="flex items-center gap-1.5 bg-sk-bg-2 border border-sk-border-2 hover:border-sk-accent/50 hover:bg-white/[0.02] px-3 py-1.5 rounded-full transition-all cursor-pointer group">
-                {/* 👇 Moneda Oficial con brillo */}
+              <Link to="/shop" title="Ver mi saldo en la tienda" className="flex items-center gap-1.5 bg-sk-bg-2 border border-sk-border-2 hover:border-sk-accent/50 hover:bg-white/[0.02] px-3 py-1.5 rounded-full transition-all cursor-pointer group">
                 <SharkCoin size={16} className="group-hover:scale-110 transition-transform" />
                 <span className="text-sk-sm font-bold text-sk-text-1">
                   {profile.shark_coins_balance?.toLocaleString() || 0}
                 </span>
               </Link>
               
-              <Link to="/wallet">
-                <Button variant="accent" size="sm" className="h-[30px] rounded-full px-3 flex items-center gap-1 shadow-md shadow-sk-accent/20">
-                  <Plus size={14} />
-                  <span className="text-[11px] font-bold">Recargar</span>
+              <Link to="/shop">
+                <Button variant="accent" size="sm" className="h-[30px] rounded-full px-4 flex items-center gap-1.5 shadow-md shadow-sk-accent/20">
+                  <span className="text-[11px] font-extrabold uppercase tracking-widest">Tienda</span>
                 </Button>
               </Link>
             </div>
@@ -234,10 +232,10 @@ export function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div style={MENU_BG} className="lg:hidden">
-          {/* WALLET SECCIÓN (Mobile) */}
+          {/* SECCIÓN DE ECONOMÍA (Mobile) */}
           {isAuthenticated && profile && (
             <Link
-              to="/wallet"
+              to="/shop"
               className="flex items-center justify-between px-4 py-3 mb-2 rounded-lg bg-sk-bg-2 border border-sk-border-2 hover:border-sk-accent/50 transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -246,7 +244,7 @@ export function Navbar() {
                 </div>
                 <div>
                   <p className="text-sk-sm font-bold text-sk-text-1">Mis Shark Coins</p>
-                  <p className="text-[10px] text-sk-text-3">Toca para recargar</p>
+                  <p className="text-[10px] text-sk-text-3 font-mono">IR A LA TIENDA</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 bg-sk-bg-3 px-3 py-1 rounded-full border border-sk-border-2">
@@ -274,8 +272,12 @@ export function Navbar() {
           <div className="mt-4 flex flex-col gap-2">
             {!isAuthenticated && (
               <>
-                <Link to="/login"><Button variant="secondary" size="lg" className="w-full">Iniciar Sesión</Button></Link>
-                <Link to="/register"><Button variant="accent" size="lg" className="w-full">Registrarse</Button></Link>
+                <Link to="/login">
+                  <Button variant="secondary" size="lg" className="w-full">Iniciar Sesión</Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="accent" size="lg" className="w-full">Registrarse</Button>
+                </Link>
               </>
             )}
           </div>
