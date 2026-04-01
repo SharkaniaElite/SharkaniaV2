@@ -6,14 +6,22 @@
 User-agent: *
 Allow: /
 
-# Páginas privadas
+# Páginas privadas y flujos de autenticación
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /dashboard
-Disallow: /wallet
 Disallow: /welcome
 Disallow: /update-password
 Disallow: /forgot-password
 
-# Sitemap
+# Herramientas Premium (Requieren Login)
+# Esto evita que Google pierda tiempo y marque errores de "Página con redirección"
+Disallow: /tools/quiz
+Disallow: /tools/calculadora-icm
+Disallow: /tools/simulador-elo
+Disallow: /tools/calculadora-banca
+Disallow: /tools/replayer
+Disallow: /tools/replayer/*
+
+# Sitemap dinámico (Generado por Cloudflare Worker)
 Sitemap: https://sharkania.com/sitemap.xml
