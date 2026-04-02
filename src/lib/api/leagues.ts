@@ -128,7 +128,7 @@ export async function forceRecalculateStandings(leagueId: string): Promise<boole
 }
 
 // ── 👯‍♂️ MOTOR DE CLONACIÓN DE LIGAS ──
-export async function duplicateLeague(leagueId: string): Promise<boolean> {
+export async function duplicateLeague(leagueId: string, newName: string): Promise<boolean> {
   // 1. Obtener la liga original con sus relaciones (clubes y salas)
   const { data: original, error: fetchError } = await supabase
     .from("leagues")
@@ -138,21 +138,45 @@ export async function duplicateLeague(leagueId: string): Promise<boolean> {
 
   if (fetchError || !original) throw fetchError || new Error("Liga no encontrada");
 
-  // 2. Limpiar datos únicos y preparar la copia
-  const randomSuffix = Math.floor(Math.random() * 10000);
-  const newSlug = `${original.slug}-copia-${randomSuffix}`;
+  // 2. Generar un slug limpio basado en el nuevo nombre
+  const baseSlug = newName
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Quita tildes
+    .replace(/[^a-z0-9]+/g, "-")     // Reemplaza símbolos por guiones
+    .replace(/^-+|-+$/g, "");        // Limpia guiones en los bordes
+
+  let newSlug = baseSlug;
+  let isUnique = false;
+  let counter = 1;
+
+  // 3. Verificar que el slug no exista en la BD para evitar choques
+  while (!isUnique) {
+    const { data: existing } = await supabase
+      .from("leagues")
+      .select("id")
+      .eq("slug", newSlug)
+      .maybeSingle();
+
+    if (existing) {
+      newSlug = `${baseSlug}-${counter}`;
+      counter++;
+    } else {
+      isUnique = true;
+    }
+  }
   
-  // Extraemos lo que NO queremos clonar (id, fechas de creación, texto de búsqueda)
+  // Extraemos lo que NO queremos clonar (id, fechas, texto de búsqueda)
   const { id, created_at, updated_at, fts, league_clubs, league_rooms, ...leagueData } = original;
 
   const newLeague = {
     ...leagueData,
-    name: `${original.name} (Copia)`,
-    slug: newSlug,
+    name: newName, // 👈 Usamos el nombre limpio elegido por ti
+    slug: newSlug, // 👈 Usamos el slug perfecto validado
     status: "upcoming" // Reseteamos el estado para la nueva liga
   };
 
-  // 3. Insertar la nueva liga en la base de datos
+  // 4. Insertar la nueva liga en la base de datos
   const { data: insertedLeague, error: insertError } = await supabase
     .from("leagues")
     .insert(newLeague)
@@ -163,7 +187,7 @@ export async function duplicateLeague(leagueId: string): Promise<boolean> {
 
   const newId = insertedLeague.id;
 
-  // 4. Clonar relaciones (Clubes participantes)
+  // 5. Clonar relaciones (Clubes participantes)
   if (league_clubs && league_clubs.length > 0) {
     const newClubs = league_clubs.map((lc: any) => ({
       league_id: newId,
@@ -173,7 +197,7 @@ export async function duplicateLeague(leagueId: string): Promise<boolean> {
     await supabase.from("league_clubs").insert(newClubs);
   }
 
-  // 5. Clonar relaciones (Salas vinculadas)
+  // 6. Clonar relaciones (Salas vinculadas)
   if (league_rooms && league_rooms.length > 0) {
     const newRooms = league_rooms.map((lr: any) => ({
       league_id: newId,
