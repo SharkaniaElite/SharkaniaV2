@@ -69,7 +69,7 @@ function PostSkeleton() {
 }
 
 // ── Block Renderer ────────────────────────────────────────
-function BlockRenderer({ block, inlineImage, h2Index }: { block: BlogBlock; inlineImage: string | null; h2Index: number; }) {
+function BlockRenderer({ block, inlineImage, h2Index, postTitle }: { block: BlogBlock; inlineImage: string | null; h2Index: number; postTitle: string; }) {
   if (block.type === "h2") {
     return (
       <>
@@ -78,7 +78,12 @@ function BlockRenderer({ block, inlineImage, h2Index }: { block: BlogBlock; inli
         </h2>
         {h2Index === 2 && inlineImage && (
           <div className="my-6 rounded-xl overflow-hidden border border-sk-border-2">
-            <img src={inlineImage} alt="Ilustración del artículo" className="w-full h-auto" />
+            <img 
+              src={inlineImage} 
+              alt={`Gráfico explicativo para: ${postTitle}`} 
+              loading="lazy" 
+              className="w-full h-auto" 
+            />
           </div>
         )}
         {h2Index === 3 && <WptBanner slot="mid" />}
@@ -260,7 +265,13 @@ export default function BlogPostPage() {
 
           {post.image_hero && (
             <div className="w-full max-h-[480px] overflow-hidden bg-sk-bg-3">
-              <img src={post.image_hero} alt={post.title} className="w-full h-full object-cover" />
+              <img 
+                src={post.image_hero} 
+                alt={`Portada del artículo: ${post.title}`} 
+                fetchPriority="high" 
+                loading="eager" 
+                className="w-full h-full object-cover" 
+              />
             </div>
           )}
 
@@ -320,7 +331,7 @@ export default function BlogPostPage() {
                 <div>
                   {post.body.map((block, i) => {
                     const h2Index = post.body.slice(0, i + 1).filter((b) => b.type === "h2").length;
-                    return <BlockRenderer key={i} block={block} inlineImage={post.image_inline} h2Index={h2Index} />;
+                    return <BlockRenderer key={i} block={block} inlineImage={post.image_inline} h2Index={h2Index} postTitle={post.title} />;
                   })}
                 </div>
 
