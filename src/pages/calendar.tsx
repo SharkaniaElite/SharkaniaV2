@@ -350,7 +350,7 @@ export function CalendarPage() {
                               </td>
                               <td className="py-3 px-4 border-b border-sk-border-2">
                                 <Link
-                                  to={`/tournament/${t.slug}`}
+                                  to={`/tournament/${t.slug || t.id}`}
                                   className="font-semibold text-sk-text-1 hover:text-sk-accent transition-colors"
                                 >
                                   {cleanName(t.name)}
@@ -399,7 +399,7 @@ export function CalendarPage() {
                               <td className="py-3 px-4 border-b border-sk-border-2">
                                 {t.results_uploaded ? (
                                   <Link
-                                    to={`/tournament/${t.slug}`}
+                                    to={`/tournament/${t.slug || t.id}`}
                                     className="text-sk-accent text-[11px] font-semibold hover:opacity-80 transition-opacity whitespace-nowrap"
                                   >
                                     Ver resultados →

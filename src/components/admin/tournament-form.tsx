@@ -13,6 +13,22 @@ function toLocalDatetimeInputValue(dateString: string) {
   return localDate.toISOString().slice(0, 16);
 }
 
+// 🛡️ Generador de slugs único (Añade DD-MM para evitar colisiones)
+function generateSlugWithDate(name: string, dateString: string) {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  
+  const baseSlug = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Quita tildes
+    .replace(/[^a-z0-9]+/g, "-")     // Reemplaza espacios/símbolos con guiones
+    .replace(/^-+|-+$/g, "");        // Limpia guiones en los extremos
+    
+  return `${baseSlug}-${day}-${month}`;
+}
+
 interface TournamentFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -67,8 +83,8 @@ export function TournamentForm({
     timezone: "America/Santiago",
     late_registration_minutes: 30,
     max_players: 0,
-    game_type: "NLH" as const,
-    tournament_type: "MTT" as const,
+    game_type: "NLH" as string,
+    tournament_type: "MTT" as string,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -125,6 +141,7 @@ export function TournamentForm({
     const payload: any = {
       club_id: clubId,
       name: form.name,
+      slug: generateSlugWithDate(form.name, form.start_datetime), // 👈 ¡Inyección del slug único!
       description: form.description || null,
       room_id: form.room_id,
       league_id: form.league_id === "" ? null : form.league_id,
@@ -135,8 +152,8 @@ export function TournamentForm({
       timezone: form.timezone,
       late_registration_minutes: form.late_registration_minutes ? Number(form.late_registration_minutes) : null,
       max_players: form.max_players ? Number(form.max_players) : null,
-      game_type: form.game_type,
-      tournament_type: form.tournament_type,
+      game_type: form.game_type as any,
+      tournament_type: form.tournament_type as any,
       status: "scheduled",
     };
 
