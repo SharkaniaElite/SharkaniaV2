@@ -45,9 +45,19 @@ export function ClubAdminPage() {
 
   // Función para manejar el clic en clonar liga
   const handleDuplicateLeague = async (l: League) => {
+    // 1. Pedimos el nombre limpio antes de hacer nada
+    const newName = window.prompt(
+      "🏆 Ingresa el nombre exacto para la nueva liga:\n(Ej: Mega Liga Luxowin Abril)", 
+      `${l.name} (Copia)`
+    );
+
+    // 2. Si el usuario cancela o deja en blanco, abortamos
+    if (!newName || newName.trim() === "") return;
+
     setDuplicatingLeague(l.id);
     try {
-      await duplicateLeague(l.id);
+      // 3. Enviamos el ID y el nombre al backend blindado
+      await duplicateLeague(l.id, newName.trim());
       refresh(); // Refresca la tabla automáticamente
     } catch (err) {
       console.error(err);
