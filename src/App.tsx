@@ -39,6 +39,8 @@ const EloSimulatorPage = lazy(() => import("./pages/elo-simulator").then(m => ({
 const BankrollCalculatorPage = lazy(() => import("./pages/bankroll-calculator").then(m => ({ default: m.BankrollCalculatorPage })));
 const ReplayerPage = lazy(() => import("./pages/replayer").then(m => ({ default: m.ReplayerPage })));
 const ShopPage = lazy(() => import("./pages/shop").then(m => ({ default: m.ShopPage })));
+const GlossaryPage = lazy(() => import("./pages/glossary").then(m => ({ default: m.GlossaryPage })));
+const GlossaryTermPage = lazy(() => import("./pages/glossary-term").then(m => ({ default: m.GlossaryTermPage })));
 // 📄 Páginas Legales
 const TermsPage = lazy(() => import("./pages/terms").then(m => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import("./pages/privacy").then(m => ({ default: m.PrivacyPage })));
@@ -173,6 +175,8 @@ export function App() {
               {/* Blog */}
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
+              <Route path="/glosario" element={<GlossaryPage />} />
+<Route path="/glosario/:slug" element={<GlossaryTermPage />} />
 
               {/* Protected */}
               <Route

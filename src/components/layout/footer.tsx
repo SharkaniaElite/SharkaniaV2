@@ -9,6 +9,7 @@ const FOOTER_LINKS = [
   { label: "Ligas", href: "/leagues" },
   { label: "Comparador", href: "/compare" },
   { label: "Blog", href: "/blog" },
+  { label: "Glosario", href: "/glosario" },
 ];
 
 const LEGAL_LINKS = [
