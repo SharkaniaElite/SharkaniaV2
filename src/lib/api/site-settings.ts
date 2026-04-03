@@ -1,8 +1,4 @@
 // src/lib/api/site-settings.ts
-// ══════════════════════════════════════════════════════════
-// Sharkania — Configuraciones del sitio desde Supabase
-// ══════════════════════════════════════════════════════════
-
 import { supabase } from "../supabase";
 
 // ── Types ─────────────────────────────────────────────────
@@ -13,6 +9,8 @@ export interface BannerConfig {
   width: number;
   height: number;
   label: string;
+  us_src?: string;  // 🇺🇸 Imagen USA
+  us_href?: string; // 🇺🇸 Link USA
 }
 
 export interface BannerSlotConfig {
@@ -20,8 +18,23 @@ export interface BannerSlotConfig {
   mobile: BannerConfig | null;
 }
 
+export interface FloatingConfig {
+  active?: boolean;
+  title?: string;
+  description?: string;
+  image?: string;
+  link?: string;
+  delay?: number;
+  scrollTrigger?: number;
+  us_title?: string;       // 🇺🇸
+  us_description?: string; // 🇺🇸
+  us_image?: string;       // 🇺🇸
+  us_link?: string;        // 🇺🇸
+}
+
 export interface BannersConfig {
   bonusCode: string;
+  floatingCta?: FloatingConfig;
   slots: {
     mid: BannerSlotConfig;
     final: BannerSlotConfig;
@@ -29,7 +42,8 @@ export interface BannersConfig {
   };
 }
 
-// ── Valores por defecto (fallback si Supabase falla) ──────
+// ── Valores por defecto (fallback) ──────
+// Ya incluyen tus enlaces de ACR Poker listos para usar
 
 export const DEFAULT_BANNERS: BannersConfig = {
   bonusCode: "FPHL",
@@ -38,12 +52,16 @@ export const DEFAULT_BANNERS: BannersConfig = {
       desktop: {
         src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505259",
         href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13409",
+        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
+        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
         width: 728, height: 90,
         label: "Leaderboard 728×90",
       },
       mobile: {
         src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505261",
         href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13410",
+        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
+        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
         width: 870, height: 200,
         label: "Wide 870×200",
       },
@@ -52,12 +70,16 @@ export const DEFAULT_BANNERS: BannersConfig = {
       desktop: {
         src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505261",
         href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13410",
+        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
+        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
         width: 870, height: 200,
         label: "Wide 870×200",
       },
       mobile: {
         src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505261",
         href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13410",
+        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
+        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
         width: 870, height: 200,
         label: "Wide 870×200",
       },
@@ -66,6 +88,8 @@ export const DEFAULT_BANNERS: BannersConfig = {
       desktop: {
         src: "https://central.ck-cdn.com/w-pt-partners/2026-03-17/300x250_0e7435e0.jpg",
         href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13647",
+        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
+        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
         width: 300, height: 250,
         label: "Rectangle 300×250",
       },
@@ -82,24 +106,37 @@ export async function getBannersConfig(): Promise<BannersConfig> {
       .from("site_settings")
       .select("value")
       .eq("key", "banners")
-      .maybeSingle(); // 🛡️ Cambiado de .single() a .maybeSingle()
+      .maybeSingle();
 
-    // Si no hay data o hay error, devolvemos los valores por defecto sin que explote
     if (error || !data) return DEFAULT_BANNERS;
-    
-    return data.value as BannersConfig;
-  } catch {
+
+    const mergedSlots = { ...DEFAULT_BANNERS.slots };
+    for (const k of Object.keys(DEFAULT_BANNERS.slots)) {
+      const key = k as keyof BannersConfig["slots"];
+      if (data.value?.slots?.[key]) {
+        mergedSlots[key] = {
+          desktop: data.value.slots[key].desktop ?? DEFAULT_BANNERS.slots[key].desktop,
+          mobile: data.value.slots[key].mobile ?? DEFAULT_BANNERS.slots[key].mobile,
+        };
+      }
+    }
+
+    return {
+      bonusCode: data.value?.bonusCode ?? DEFAULT_BANNERS.bonusCode,
+      floatingCta: data.value?.floatingCta,
+      slots: mergedSlots,
+    };
+  } catch (err) {
     return DEFAULT_BANNERS;
   }
 }
 
 // ── Guardar banners ───────────────────────────────────────
 
-export async function saveBannersConfig(config: BannersConfig): Promise<void> {
+export async function saveBannersConfig(config: BannersConfig) {
   const { error } = await supabase
     .from("site_settings")
-    .upsert({ key: "banners", value: config, updated_at: new Date().toISOString() })
-    .eq("key", "banners");
+    .upsert({ key: "banners", value: config as unknown as Record<string, unknown> }, { onConflict: "key" });
 
   if (error) throw error;
 }

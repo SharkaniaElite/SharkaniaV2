@@ -47,6 +47,12 @@ const SLOT_INFO = {
     desktop: { size: "870×200 px", label: "Wide banner", hint: "Zona de alta intención: el lector terminó el artículo." },
     mobile:  { size: "870×200 px", label: "Wide banner", hint: "Mismo banner en móvil al final del artículo." },
   },
+  sidebar: {
+    title: "Banner Sidebar",
+    description: "Aparece flotando en la columna derecha en pantallas grandes.",
+    desktop: { size: "300×250 px", label: "Rectangle", hint: "Formato cuadrado/rectangular. Ideal para conversiones." },
+    mobile:  null,
+  }
 } as const;
 
 type SlotKey = keyof typeof SLOT_INFO;
@@ -71,16 +77,13 @@ function BannerSlotEditor({
     onChange({ ...value, [side]: { ...current, [field]: val } });
   };
 
-  const clearSide = (side: "desktop" | "mobile") => {
-    onChange({ ...value, [side]: null });
-  };
-
   const resetSide = (side: "desktop" | "mobile") => {
     const def = DEFAULT_BANNERS.slots[slotKey][side];
     onChange({ ...value, [side]: def });
   };
 
-  const sides: Array<{ key: "desktop" | "mobile"; label: string; info: typeof info.desktop | null }> = [
+  // 🛡️ Usamos any para evitar choques de TS con el as const de SLOT_INFO
+  const sides: Array<{ key: "desktop" | "mobile"; label: string; info: any }> = [
     { key: "desktop", label: "Desktop", info: info.desktop },
     ...(info.mobile ? [{ key: "mobile" as const, label: "Mobile", info: info.mobile }] : []),
   ];
@@ -166,7 +169,8 @@ function BannerSlotEditor({
               {/* Campos */}
               <div className="space-y-3">
                 <div>
-                  <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 flex items-center gap-1.5 block">
+                  {/* 🛡️ Tailwind fix: quitamos "block" para que "flex" mande */}
+                  <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-sk-accent" />
                     URL de la imagen (src)
                     <span className="text-sk-text-4 normal-case ml-auto">{sideInfo.size}</span>
@@ -181,7 +185,8 @@ function BannerSlotEditor({
                 </div>
 
                 <div>
-                  <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 flex items-center gap-1.5 block">
+                  {/* 🛡️ Tailwind fix: quitamos "block" para que "flex" mande */}
+                  <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-sk-gold" />
                     Link de destino (href / tracking)
                   </label>
@@ -194,14 +199,43 @@ function BannerSlotEditor({
                   />
                 </div>
 
+                {/* 🇺🇸 Campos USA */}
+                <div className="mt-4 pt-4 border-t border-sk-border-2">
+                  <h4 className="text-[11px] font-bold text-sk-text-1 mb-3 flex items-center gap-1.5">
+                    <span className="text-base">🇺🇸</span> Tráfico Estados Unidos (ACR)
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">Imagen USA (us_src)</label>
+                      <input
+                        type="url"
+                        value={banner?.us_src ?? ""}
+                        onChange={(e) => updateSide(side, "us_src", e.target.value)}
+                        placeholder="https://www.acrpoker.eu/..."
+                        className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">Link Afiliado USA (us_href)</label>
+                      <input
+                        type="url"
+                        value={banner?.us_href ?? ""}
+                        onChange={(e) => updateSide(side, "us_href", e.target.value)}
+                        placeholder="https://go.wpnaffiliates.com/..."
+                        className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Estado */}
                 {isEmpty ? (
-                  <div className="flex items-center gap-2 text-[11px] text-sk-text-4">
+                  <div className="flex items-center gap-2 text-[11px] text-sk-text-4 mt-3">
                     <XIcon size={11} className="text-sk-red" />
                     Sin banner configurado
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-[11px] text-sk-green">
+                  <div className="flex items-center gap-2 text-[11px] text-sk-green mt-3">
                     <Check size={11} />
                     Banner configurado
                   </div>
@@ -873,23 +907,53 @@ export function SuperAdminPage() {
                         </span>
                       </div>
 
+                      {/* Campos Globales */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {[
-                          { key: "title", label: "Título (texto pequeño)", placeholder: "$10,000 gratis cada semana en WPT Global" },
-                          { key: "description", label: "Descripción (texto gris)", placeholder: "Deposita $30 y juega los Elite Freerolls..." },
+                          { key: "title", label: "Título (texto pequeño)", placeholder: "$10,000 gratis en WPT" },
+                          { key: "description", label: "Descripción (texto gris)", placeholder: "Juega los Elite Freerolls..." },
                           { key: "image", label: "URL de imagen (al expandirse)", placeholder: "https://..." },
-                          { key: "link", label: "URL de destino (al hacer clic)", placeholder: "https://tracking.wptpartners.com/..." },
+                          { key: "link", label: "URL de destino", placeholder: "https://tracking.wptpartners.com/..." },
                         ].map((f) => (
                           <div key={f.key}>
                             <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">{f.label}</label>
                             <input
                               type="text"
-                              value={(bannersConfig as any).floatingCta?.[f.key] ?? ""}
+                              value={bannersConfig.floatingCta?.[f.key as keyof import("../lib/api/site-settings").FloatingConfig] as string ?? ""}
                               onChange={(e) => setBannersConfig({
                                 ...bannersConfig,
-                                floatingCta: { ...((bannersConfig as any).floatingCta ?? {}), [f.key]: e.target.value },
-                              } as any)}
-                              placeholder={f.placeholder}
+                                floatingCta: { ...bannersConfig.floatingCta, [f.key]: e.target.value },
+                              })}
+                              className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 focus:outline-none focus:border-sk-accent font-mono"
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Campos 🇺🇸 USA */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-sk-border-2 bg-sk-bg-0/30 p-4 rounded-lg">
+                        <div className="col-span-full flex items-center gap-2 mb-2">
+                          <span className="text-xl">🇺🇸</span>
+                          <div>
+                            <h4 className="text-sk-sm font-bold text-sk-text-1">Tráfico de Estados Unidos (ACR)</h4>
+                            <p className="text-[10px] text-sk-text-3">Si se detecta IP de USA, estos valores sobrescribirán a los de arriba.</p>
+                          </div>
+                        </div>
+                        {[
+                          { key: "us_title", label: "Título USA", placeholder: "Juega en Americas Cardroom" },
+                          { key: "us_description", label: "Descripción USA", placeholder: "Aceptamos jugadores de EE.UU." },
+                          { key: "us_image", label: "URL de imagen USA", placeholder: "https://www.acrpoker.eu/..." },
+                          { key: "us_link", label: "URL de destino USA", placeholder: "https://go.wpnaffiliates.com/..." },
+                        ].map((f) => (
+                          <div key={f.key}>
+                            <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">{f.label}</label>
+                            <input
+                              type="text"
+                              value={bannersConfig.floatingCta?.[f.key as keyof import("../lib/api/site-settings").FloatingConfig] as string ?? ""}
+                              onChange={(e) => setBannersConfig({
+                                ...bannersConfig,
+                                floatingCta: { ...bannersConfig.floatingCta, [f.key]: e.target.value },
+                              })}
                               className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 focus:outline-none focus:border-sk-accent font-mono"
                             />
                           </div>

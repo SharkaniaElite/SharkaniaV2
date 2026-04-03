@@ -1,11 +1,6 @@
 // src/components/blog/wpt-banner.tsx
-// ══════════════════════════════════════════════════════════
-// WPT Global — Banner responsivo
-// Lee configuración desde Supabase (via useBanners hook)
-// Se actualiza sin redeploy cuando el super admin cambia los banners
-// ══════════════════════════════════════════════════════════
-
 import { useBanners } from "../../hooks/use-banners";
+import { useUserCountry } from "../../hooks/use-geo"; // 👈 El Radar
 import type { BannerConfig } from "../../lib/api/site-settings";
 
 type BannerSlot = "mid" | "final" | "sidebar";
@@ -17,8 +12,15 @@ interface WptBannerProps {
 
 export function WptBanner({ slot, className = "" }: WptBannerProps) {
   const banners  = useBanners();
+  const countryCode = useUserCountry();
+  const isUS = countryCode === "US"; // 🇺🇸 Condición mágica
+
   const slotCfg  = banners.slots[slot];
   const bonusCode = banners.bonusCode;
+
+  // Helpers que deciden qué enlace/imagen mostrar
+  const getHref = (b: BannerConfig) => (isUS && b.us_href) ? b.us_href : b.href;
+  const getSrc = (b: BannerConfig) => (isUS && b.us_src) ? b.us_src : b.src;
 
   // ── Sidebar (300×250, solo desktop) ──────────────────────
   if (slot === "sidebar") {
@@ -30,22 +32,22 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
         <style>{`.wpt-sb{display:none}@media(min-width:1024px){.wpt-sb{display:block}}`}</style>
         <div className="wpt-sb">
           <a
-            href={banner.href}
+            href={getHref(banner)} // 👈 URL Inteligente
             target="_blank"
             rel="noopener noreferrer sponsored"
-            aria-label="WPT Global — Freerolls semanales"
+            aria-label="Promoción Poker"
             style={{ display: "block", lineHeight: 0, borderRadius: "8px", overflow: "hidden" }}
           >
             <img
-              src={banner.src}
-              alt="WPT Global Elite Freerolls"
+              src={getSrc(banner)} // 👈 Imagen Inteligente
+              alt="Promoción Poker"
               width={banner.width}
               height={banner.height}
               style={{ display: "block", width: "100%", height: "auto", maxWidth: `${banner.width}px` }}
               loading="lazy"
             />
           </a>
-          {bonusCode && (
+          {bonusCode && !isUS && (
             <p style={{
               marginTop: "6px", fontSize: "10px",
               color: "rgba(161,161,170,0.65)", textAlign: "center",
@@ -64,7 +66,7 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
   const mobileBanner  = slotCfg.mobile  as BannerConfig | null;
   if (!desktopBanner && !mobileBanner) return null;
 
-  const s = slot; // para CSS class names únicos
+  const s = slot;
 
   return (
     <div className={className} style={{ width: "100%", margin: "2.5rem 0" }}>
@@ -78,12 +80,12 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
         .wpt-${s}-code strong{color:#22d3ee;font-weight:700}
       `}</style>
 
-      <small className={`wpt-${s}-label`}>Publicidad</small>
+      <small className={`wpt-${s}-label`}>Publicidad {isUS && "🇺🇸"}</small>
 
       {desktopBanner && (
-        <a href={desktopBanner.href} target="_blank" rel="noopener noreferrer sponsored"
-          aria-label="WPT Global" className={`wpt-${s}-a wpt-${s}-d`}>
-          <img src={desktopBanner.src} alt="WPT Global Elite Freerolls"
+        <a href={getHref(desktopBanner)} target="_blank" rel="noopener noreferrer sponsored"
+          aria-label="Promo" className={`wpt-${s}-a wpt-${s}-d`}>
+          <img src={getSrc(desktopBanner)} alt="Promo"
             width={desktopBanner.width} height={desktopBanner.height}
             style={{ display: "block", width: "100%", height: "auto", maxWidth: `${desktopBanner.width}px`, margin: "0 auto" }}
             loading="lazy" />
@@ -91,16 +93,16 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
       )}
 
       {mobileBanner && (
-        <a href={mobileBanner.href} target="_blank" rel="noopener noreferrer sponsored"
-          aria-label="WPT Global" className={`wpt-${s}-a wpt-${s}-m`}>
-          <img src={mobileBanner.src} alt="WPT Global Elite Freerolls"
+        <a href={getHref(mobileBanner)} target="_blank" rel="noopener noreferrer sponsored"
+          aria-label="Promo" className={`wpt-${s}-a wpt-${s}-m`}>
+          <img src={getSrc(mobileBanner)} alt="Promo"
             width={mobileBanner.width} height={mobileBanner.height}
             style={{ display: "block", width: "100%", height: "auto" }}
             loading="lazy" />
         </a>
       )}
 
-      {bonusCode && (
+      {bonusCode && !isUS && (
         <p className={`wpt-${s}-code`}>
           Usa el código <strong>{bonusCode}</strong> al registrarte
         </p>

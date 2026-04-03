@@ -1,26 +1,21 @@
+// src/components/marketing/FloatingCTA.tsx
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { WPT_PROMO } from "../../config/promotions";
 import { supabase } from "../../lib/supabase";
-
-type FloatingConfig = {
-  active?: boolean;
-  title?: string;
-  description?: string;
-  image?: string;
-  link?: string;
-  delay?: number;
-  scrollTrigger?: number;
-};
+import { useUserCountry } from "../../hooks/use-geo"; // 👈 El Radar
+import type { FloatingConfig } from "../../lib/api/site-settings";
 
 export function FloatingCTA() {
   const location = useLocation();
+  const countryCode = useUserCountry();
+  const isUS = countryCode === "US"; // 🇺🇸 Condición mágica
 
   const [visible, setVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [config, setConfig] = useState<FloatingConfig | null>(null);
 
-  // 🛡️ Inicialización perezosa para el contador social (mantiene la pureza del render)
+  // 🛡️ Inicialización perezosa para el contador social
   const [players] = useState(() => {
     const base = 180;
     const random = Math.floor(Math.random() * 60);
@@ -40,85 +35,79 @@ export function FloatingCTA() {
         const floatingCta = data?.value?.floatingCta;
         if (floatingCta) setConfig(floatingCta);
       } catch (err) {
-        // Fallback silencioso a WPT_PROMO si falla la red
+        // Fallback silencioso
       }
     }
     loadConfig();
   }, []);
 
-  // Valores efectivos: Prioridad a Supabase, luego a la configuración estática
-  const title         = config?.title         ?? WPT_PROMO.title;
-  const description   = config?.description   ?? WPT_PROMO.description;
-  const image         = config?.image         ?? WPT_PROMO.image;
-  const link          = config?.link          ?? WPT_PROMO.link;
-  const delay         = config?.delay         ?? WPT_PROMO.delay;
-  const scrollTrigger = config?.scrollTrigger ?? WPT_PROMO.scrollTrigger;
-  const active        = config?.active        ?? true;
-
-  // Lógica de aparición con Cooldown de 24 horas
+  // 🛡️ Lógica de visibilidad y delays
   useEffect(() => {
-    if (!active) return;
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return;
 
-    // ── CONFIGURACIÓN DE TIEMPOS ──
-    const COOLDOWN_DAYS = 1; // 🕒 Exactamente una vez cada 24 horas
-    const CLICKED_COOLDOWN_DAYS = 30; // 🤫 Si hizo clic, ocultar por un mes
-    
-    const lastShown   = localStorage.getItem("wpt_cta_last_shown");
+    const lastClosed = localStorage.getItem("wpt_cta_last_shown");
     const lastClicked = localStorage.getItem("wpt_cta_last_clicked");
     const now = Date.now();
+    const isDevelopment = import.meta.env.DEV;
 
-    // Verificación de clic previo
-    if (lastClicked) {
-      const daysSince = (now - Number(lastClicked)) / (1000 * 60 * 60 * 24);
-      if (daysSince < CLICKED_COOLDOWN_DAYS) return;
+    if (!isDevelopment) {
+      if (lastClicked) return;
+      if (lastClosed && now - Number(lastClosed) < 1000 * 60 * 60 * 24) return;
     }
 
-    // Verificación de última visualización (Cooldown de 24h)
-    if (lastShown) {
-      const daysSince = (now - Number(lastShown)) / (1000 * 60 * 60 * 24);
-      if (daysSince < COOLDOWN_DAYS) return;
-    }
+    // ── MAGIA GEOGRÁFICA Y DE CONFIGURACIÓN ──
+    const active = config?.active ?? true;
+    if (!active) return; // Si lo apagaste desde el admin, no hace nada
 
-    const show = () => {
-      setVisible(true);
-      // Registramos el momento de la visualización para iniciar el contador de 24h
-      localStorage.setItem("wpt_cta_last_shown", String(now));
-    };
+    const delay = config?.delay ?? WPT_PROMO.delay;
+    const scrollTrigger = config?.scrollTrigger ?? WPT_PROMO.scrollTrigger;
 
-    // Comportamiento específico para la página de ranking (trigger por scroll)
+    // 👇 AQUÍ ESTÁ LA CORRECCIÓN DE TYPESCRIPT
+    let timeoutId: ReturnType<typeof setTimeout>;
+
     if (location.pathname === "/ranking") {
       const handleScroll = () => {
-        const scrollTop = window.scrollY;
-        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-        const percent = scrollTop / docHeight;
-        if (percent > scrollTrigger) {
-          show();
+        const scrollPercent = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight);
+        if (scrollPercent > scrollTrigger) {
+          setVisible(true);
           window.removeEventListener("scroll", handleScroll);
         }
       };
       window.addEventListener("scroll", handleScroll);
       return () => window.removeEventListener("scroll", handleScroll);
+    } else {
+      timeoutId = setTimeout(() => {
+        setVisible(true);
+      }, delay);
     }
 
-    // Comportamiento estándar (trigger por tiempo)
-    const timer = setTimeout(show, delay);
-    return () => clearTimeout(timer);
-  }, [location.pathname, active, delay, scrollTrigger]);
+    return () => clearTimeout(timeoutId);
+  }, [location.pathname, config]);
 
-  if (!visible || !active) return null;
+  if (!visible) return null;
+
+  // ── RESOLUCIÓN FINAL DE VARIABLES ──
+  const baseTitle       = config?.title       ?? WPT_PROMO.title;
+  const baseDescription = config?.description ?? WPT_PROMO.description;
+  const baseImage       = config?.image       ?? WPT_PROMO.image;
+  const baseLink        = config?.link        ?? WPT_PROMO.link;
+
+  // Si es USA y el admin llenó el campo, lo usamos. Si no, fallback al default de USA
+  const title       = (isUS && config?.us_title) ? config.us_title : (isUS ? "Juega en Americas Cardroom" : baseTitle);
+  const description = (isUS && config?.us_description) ? config.us_description : (isUS ? "Jugadores de USA aceptados" : baseDescription);
+  const link        = (isUS && config?.us_link) ? config.us_link : (isUS ? "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom" : baseLink);
+  const image       = (isUS && config?.us_image) ? config.us_image : (isUS ? "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg" : baseImage);
 
   return (
-    <div
-      className="fixed bottom-6 right-6 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:right-6 z-50 cta-slide"
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
-    >
+    <div className="fixed bottom-6 right-6 z-50 animate-fade-in">
       <div
-        className={`relative transition-all duration-300 shadow-2xl rounded-xl border border-white/10 bg-[var(--sk-bg-3)] overflow-hidden ${
+        onMouseEnter={() => setExpanded(true)}
+        onMouseLeave={() => setExpanded(false)}
+        className={`relative bg-sk-bg-2 border border-sk-border-2 rounded-2xl shadow-[0_10px_40px_-10px_rgba(34,211,238,0.15)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-sk-accent hover:shadow-[0_10px_40px_-10px_rgba(34,211,238,0.3)] hover:-translate-y-1 hover:bg-[linear-gradient(180deg,var(--sk-bg-2),var(--sk-bg-3)] overflow-hidden ${
           expanded ? "w-[300px]" : "w-[180px]"
         }`}
       >
-        {/* Botón de cierre: reinicia el contador para que no vuelva a molestar en 24h */}
         <button
           onClick={(e) => {
             e.stopPropagation();
