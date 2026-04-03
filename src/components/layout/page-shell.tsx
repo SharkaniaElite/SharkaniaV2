@@ -37,7 +37,7 @@ export function PageShell({ children }: PageShellProps) {
   };
 
   return (
-    <div className="min-h-screen bg-sk-bg-1 flex flex-col">
+    <div className="min-h-screen bg-sk-bg-1 flex flex-col relative">
       <Navbar />
 
       {/* Spacer para compensar navbar (56px) */}
@@ -57,15 +57,14 @@ export function PageShell({ children }: PageShellProps) {
                 </span>
                 ¡Felicidades a{" "}
                 <Link 
-                  to={`/ranking/${champion.player_slug}`} // 👈 AHORA USA SLUG
+                  to={`/ranking/${champion.player_slug}`}
                   className="text-sk-text-1 font-bold hover:text-sk-gold transition-colors"
                 >
                   {champion.player_nickname}
                 </Link>
                 , campeón oficial de la{" "}
-                {/* 🔗 NUEVO: Enlace SEO directo a la liga */}
                 <Link 
-                  to={`/leagues/${champion.league_slug}`} // 👈 AHORA USA SLUG
+                  to={`/leagues/${champion.league_slug}`}
                   className="font-semibold text-sk-text-1 hover:text-sk-gold transition-colors"
                 >
                   {champion.league_name}
@@ -88,6 +87,20 @@ export function PageShell({ children }: PageShellProps) {
       <Footer />
 
       <AdminAccessBanner />
+
+      {/* 👇 WIDGET CENTRO DE AYUDA (WHATSAPP) */}
+      <a
+        href="https://wa.me/56977910256"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Chatear con Soporte en WhatsApp"
+        className="fixed bottom-[150px] right-6 z-[9999] bg-sk-accent hover:bg-sk-accent/80 text-white px-5 py-3 rounded-full shadow-[0_4px_10px_rgba(0,0,0,0.25)] hover:shadow-[0_6px_15px_rgba(0,0,0,0.3)] hover:-translate-y-1 transition-all duration-300 flex items-center gap-2.5 font-semibold text-sm tracking-wide group"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 96 960 960" width="20" fill="currentColor" className="group-hover:scale-110 transition-transform">
+          <path d="M480 896q-125 0-212.5-87.5T180 596q0-125 87.5-212.5T480 296q125 0 212.5 87.5T780 596q0 125-87.5 212.5T480 896Zm0-60q100 0 170-70t70-170q0-100-70-170t-170-70q-100 0-170 70t-70 170q0 100 70 170t170 70Zm0-240Zm-240-80h480v-40H240v40Z"/>
+        </svg>
+        Centro de Ayuda
+      </a>
     </div>
   );
 }

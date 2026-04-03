@@ -100,7 +100,7 @@ export function FloatingCTA() {
   const image       = (isUS && config?.us_image) ? config.us_image : (isUS ? "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg" : baseImage);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-fade-in">
+    <div className="fixed top-1/2 -translate-y-1/2 right-6 z-50 animate-fade-in">
       <div
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
