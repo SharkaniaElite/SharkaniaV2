@@ -6,7 +6,9 @@ import { ArrowLeft, Clock, Share2, ChevronRight, Lock } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { getBlogPost, formatBlogDate, type BlogPost, type BlogBlock } from "../lib/api/blog";
 import { SEOHead } from "../components/seo/seo-head";
-import { renderWithLinks } from "../lib/render-inline-links";
+import { renderWithLinks, renderWithLinksAndGlossary } from "../lib/render-inline-links";
+import { useGlossaryTerms } from "../hooks/use-glossary";
+import type { GlossaryTerm } from "../lib/api/glossary";
 import { WptBanner } from "../components/blog/wpt-banner";
 import { TableOfContents, slugify } from "../components/blog/table-of-contents";
 import { RelatedPosts } from "../components/blog/related-posts";
@@ -69,7 +71,7 @@ function PostSkeleton() {
 }
 
 // ── Block Renderer ────────────────────────────────────────
-function BlockRenderer({ block, inlineImage, h2Index, postTitle }: { block: BlogBlock; inlineImage: string | null; h2Index: number; postTitle: string; }) {
+function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, alreadyLinked }: { block: BlogBlock; inlineImage: string | null; h2Index: number; postTitle: string; glossaryTerms: GlossaryTerm[]; alreadyLinked: Set<string>; }) {
   if (block.type === "h2") {
     return (
       <>
@@ -90,11 +92,11 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle }: { block: Blog
       </>
     );
   }
-  if (block.type === "h3") return <h3 className="text-sk-md font-bold text-sk-text-1 mt-8 mb-3">{renderWithLinks(block.content ?? "")}</h3>;
-  if (block.type === "callout") return <div className="my-8 rounded-lg border border-sk-accent/20 bg-sk-accent-dim px-6 py-5"><p className="text-sk-base text-sk-text-1 font-medium leading-relaxed">{renderWithLinks(block.content ?? "")}</p></div>;
-  if (block.type === "stat") return <div className="my-8 rounded-xl border border-sk-border-2 bg-sk-bg-2 px-6 py-6 flex items-center gap-5"><span className="text-[2.5rem] font-extrabold text-sk-accent leading-none shrink-0">{block.value}</span><p className="text-sk-base text-sk-text-2 leading-snug">{renderWithLinks(block.content ?? "")}</p></div>;
-  if (block.type === "list") return <ul className="my-5 space-y-2 pl-1">{(block.items ?? []).map((item, j) => (<li key={j} className="flex items-start gap-3 text-sk-base text-sk-text-2 leading-relaxed"><span className="mt-[6px] w-1.5 h-1.5 rounded-full bg-sk-accent shrink-0" />{renderWithLinks(item)}</li>))}</ul>;
-  return <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">{renderWithLinks(block.content ?? "")}</p>;
+  if (block.type === "h3") return <h3 className="text-sk-md font-bold text-sk-text-1 mt-8 mb-3">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</h3>;
+  if (block.type === "callout") return <div className="my-8 rounded-lg border border-sk-accent/20 bg-sk-accent-dim px-6 py-5"><p className="text-sk-base text-sk-text-1 font-medium leading-relaxed">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p></div>;
+  if (block.type === "stat") return <div className="my-8 rounded-xl border border-sk-border-2 bg-sk-bg-2 px-6 py-6 flex items-center gap-5"><span className="text-[2.5rem] font-extrabold text-sk-accent leading-none shrink-0">{block.value}</span><p className="text-sk-base text-sk-text-2 leading-snug">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p></div>;
+  if (block.type === "list") return <ul className="my-5 space-y-2 pl-1">{(block.items ?? []).map((item, j) => (<li key={j} className="flex items-start gap-3 text-sk-base text-sk-text-2 leading-relaxed"><span className="mt-[6px] w-1.5 h-1.5 rounded-full bg-sk-accent shrink-0" />{renderWithLinksAndGlossary(item, glossaryTerms, alreadyLinked)}</li>))}</ul>;
+  return <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p>;
 }
 
 // ── Page ──────────────────────────────────────────────────
@@ -105,6 +107,8 @@ export default function BlogPostPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
   const h2Count               = useRef(0);
+  const { data: glossaryTerms } = useGlossaryTerms();
+  const alreadyLinked = useRef(new Set<string>());
 
   // Gamificación y Minería
   const { user, isAuthenticated, refreshProfile } = useAuthStore();
@@ -140,7 +144,8 @@ export default function BlogPostPage() {
         else { 
           setPost(data); 
           setOGMeta(data); 
-          h2Count.current = 0; 
+          h2Count.current = 0;
+          alreadyLinked.current = new Set(); 
           
           // Configurar temporizador (minutos a segundos)
           const timeInSeconds = (data.read_time || 3) * 60;
@@ -331,7 +336,7 @@ export default function BlogPostPage() {
                 <div>
                   {post.body.map((block, i) => {
                     const h2Index = post.body.slice(0, i + 1).filter((b) => b.type === "h2").length;
-                    return <BlockRenderer key={i} block={block} inlineImage={post.image_inline} h2Index={h2Index} postTitle={post.title} />;
+                    return <BlockRenderer key={i} block={block} inlineImage={post.image_inline} h2Index={h2Index} postTitle={post.title} glossaryTerms={glossaryTerms ?? []} alreadyLinked={alreadyLinked.current} />;
                   })}
                 </div>
 
