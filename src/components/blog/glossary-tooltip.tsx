@@ -65,7 +65,7 @@ export function GlossaryTooltip({
   return (
     <span
       ref={containerRef}
-      className="relative"
+      className="relative inline"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
