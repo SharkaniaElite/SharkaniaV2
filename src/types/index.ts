@@ -306,8 +306,8 @@ export interface PlayerWithRoom extends Player {
 }
 
 export interface TournamentWithDetails extends Tournament {
-  clubs: Pick<Club, "id" | "name" | "country_code">;
-  leagues: Pick<League, "id" | "name"> | null;
+  clubs: Pick<Club, "id" | "name" | "country_code" | "slug">;
+  leagues: Pick<League, "id" | "name" | "slug"> | null;
   poker_rooms: Pick<PokerRoom, "name">;
 }
 
@@ -328,7 +328,7 @@ export interface LeagueWithClubs extends League {
 }
 
 export interface TournamentResultWithPlayer extends TournamentResult {
-  players: Pick<Player, "id" | "nickname" | "country_code">;
+  players: Pick<Player, "id" | "nickname" | "country_code" | "slug">;
 }
 
 export interface LeagueStandingWithPlayer extends LeagueStanding {

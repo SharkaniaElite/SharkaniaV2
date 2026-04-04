@@ -364,7 +364,7 @@ export function CalendarPage() {
                               <td className="py-3 px-4 border-b border-sk-border-2">
                                 {clubData?.id ? (
                                   <Link
-                                    to={`/clubs/${clubData.id}`}
+                                    to={`/clubs/${clubData.slug ?? clubData.id}`}
                                     className="text-sk-accent text-sk-xs hover:opacity-80 transition-opacity flex items-center gap-1.5"
                                   >
                                     <FlagIcon countryCode={clubData.country_code ?? null} />

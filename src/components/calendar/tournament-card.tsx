@@ -158,14 +158,14 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
       {/* Row 3: Club + League */}
       <div className="mt-1 flex justify-between items-center">
         <Link
-          to={`/clubs/${t.club_id}`}
+          to={`/clubs/${t.clubs?.slug ?? t.club_id}`}
           className="text-[11px] text-sk-accent font-medium hover:opacity-80 transition-opacity flex items-center gap-1"
         >
           <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {cleanName(t.clubs?.name ?? "")}
         </Link>
         {t.leagues ? (
           <Link
-            to={`/leagues/${t.league_id}`}
+            to={`/leagues/${t.leagues?.slug ?? t.league_id}`}
             className="text-[10px] text-sk-text-2 font-mono hover:text-sk-accent transition-colors"
           >
             Liga: {cleanName(t.leagues.name)}

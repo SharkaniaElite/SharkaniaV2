@@ -20,7 +20,7 @@ export async function getUpcomingTournaments(): Promise<TournamentWithDetails[]>
   const nowISO = now.toISOString();
   const { data, error } = await supabase
     .from("tournaments")
-    .select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)")
+    .select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)")
     .or(`and(status.eq.scheduled,start_datetime.gte.${nowISO}),status.eq.live,status.eq.late_registration`)
     .order("start_datetime", { ascending: true });
 
@@ -44,7 +44,7 @@ export async function getCompletedTournaments(options?: {
   const pageSize = options?.pageSize ?? 20;
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
-  let query = supabase.from("tournaments").select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)", { count: "exact" })
+  let query = supabase.from("tournaments").select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)", { count: "exact" })
     .eq("status", "completed").order("start_datetime", { ascending: false }).range(from, to);
   if (options?.clubId) query = query.eq("club_id", options.clubId);
   if (options?.leagueId) query = query.eq("league_id", options.leagueId);
@@ -58,25 +58,25 @@ export async function getCompletedTournaments(options?: {
 }
 
 export async function getAllTournaments(): Promise<TournamentWithDetails[]> {
-  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)").order("start_datetime", { ascending: false });
+  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)").order("start_datetime", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapTournamentWithLateReg);
 }
 
 export async function getTournamentsByClub(clubId: string): Promise<TournamentWithDetails[]> {
-  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)").eq("club_id", clubId).order("start_datetime", { ascending: false });
+  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)").eq("club_id", clubId).order("start_datetime", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapTournamentWithLateReg);
 }
 
 export async function getTournamentsByLeague(leagueId: string): Promise<TournamentWithDetails[]> {
-  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)").eq("league_id", leagueId).order("start_datetime", { ascending: false });
+  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)").eq("league_id", leagueId).order("start_datetime", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapTournamentWithLateReg);
 }
 
 export async function getTournamentById(id: string): Promise<TournamentWithDetails | null> {
-  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)").eq("id", id).single();
+  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)").eq("id", id).single();
   if (error) return error.code === "PGRST116" ? null : (function() { throw error; })();
   return data ? mapTournamentWithLateReg(data) : null;
 }
@@ -84,7 +84,7 @@ export async function getTournamentById(id: string): Promise<TournamentWithDetai
 export async function getTournamentBySlug(slug: string): Promise<TournamentWithDetails | null> {
   const { data, error } = await supabase
     .from("tournaments")
-    .select("*, clubs(id, name, country_code), leagues(id, name), poker_rooms(name)")
+    .select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)")
     .eq("slug", slug)
     .single();
     
@@ -93,7 +93,7 @@ export async function getTournamentBySlug(slug: string): Promise<TournamentWithD
 }
 
 export async function getTournamentResults(tournamentId: string): Promise<TournamentResultWithPlayer[]> {
-  const { data, error } = await supabase.from("tournament_results").select("*, players(id, nickname, country_code)").eq("tournament_id", tournamentId).order("position", { ascending: true });
+  const { data, error } = await supabase.from("tournament_results").select("*, players(id, nickname, country_code, slug)").eq("tournament_id", tournamentId).order("position", { ascending: true });
   if (error) throw error;
   return (data as TournamentResultWithPlayer[]) ?? [];
 }

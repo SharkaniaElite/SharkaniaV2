@@ -172,13 +172,13 @@ export function TournamentDetailPage() {
               {/* Meta info */}
               <div className="flex flex-wrap gap-x-6 gap-y-2 text-sk-xs text-sk-text-2">
                 {clubData && (
-                  <Link to={`/clubs/${clubData.id}`} className="text-sk-accent hover:opacity-80 transition-opacity flex items-center gap-1.5 font-medium">
+                  <Link to={`/clubs/${clubData.slug}`} className="text-sk-accent hover:opacity-80 transition-opacity flex items-center gap-1.5 font-medium">
                     <FlagIcon countryCode={clubData.country_code ?? null} />
                     {cleanName(clubData.name)}
                   </Link>
                 )}
                 {leagueData && (
-                  <Link to={`/leagues/${tournament.league_id}`} className="text-sk-purple hover:opacity-80 transition-opacity font-medium">
+                  <Link to={`/leagues/${leagueData.slug}`} className="text-sk-purple hover:opacity-80 transition-opacity font-medium">
                     🏆 {cleanName(leagueData.name)}
                   </Link>
                 )}
@@ -280,7 +280,7 @@ export function TournamentDetailPage() {
                             </div>
                             {playerId ? (
                               <Link
-                                to={`/ranking/${playerId}`}
+                                to={`/ranking/${r.players?.slug ?? playerId}`}
                                 className="font-semibold text-sk-text-1 hover:text-sk-accent transition-colors"
                               >
                                 {cleanName(playerNickname)}
