@@ -1,5 +1,4 @@
 // src/pages/home.tsx
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
@@ -329,7 +328,7 @@ export function HomePage() {
                               <tr key={p.id} className={cn("hover:bg-white/[0.015] transition-colors", rank===1&&"bg-[rgba(251,191,36,0.03)]", rank===2&&"bg-[rgba(203,213,225,0.02)]", rank===3&&"bg-[rgba(217,119,6,0.02)]")}>
                                 <td className="py-3 px-4 border-b border-sk-border-2"><RankBadge rank={rank} /></td>
                                 <td className="py-3 px-4 border-b border-sk-border-2">
-                                  <Link to={`/ranking/${p.id}`} className="flex items-center gap-2 min-w-0 group">
+                                  <Link to={`/ranking/${p.slug}`} className="flex items-center gap-2 min-w-0 group">
                                     <div className="w-7 h-7 rounded-full bg-sk-bg-4 border border-sk-border-2 flex items-center justify-center text-[11px] font-bold text-sk-text-3 shrink-0 group-hover:border-sk-accent/40 transition-colors">
                                       {cleanName(p.nickname).charAt(0).toUpperCase()}
                                     </div>
@@ -404,7 +403,7 @@ export function HomePage() {
                                 </div>
                               </div>
                               <div className="mt-1 flex justify-between items-center">
-                                <Link to={`/clubs/${clubData?.id}`} className="text-[11px] text-sk-accent font-medium hover:opacity-80 transition-opacity flex items-center gap-1">
+                                <Link to={`/clubs/${clubData?.slug ?? clubData?.id}`} className="text-[11px] text-sk-accent font-medium hover:opacity-80 transition-opacity flex items-center gap-1">
                                   <FlagIcon countryCode={clubData?.country_code ?? null} /> {cleanName(clubData?.name ?? "")}
                                 </Link>
                                 {(t as any).leagues?.name && (
@@ -485,7 +484,7 @@ export function HomePage() {
                   const isDemo = (c as any).is_demo;
                   const rooms = c.club_rooms?.map(cr => (cr as any).poker_rooms?.name).filter(Boolean) ?? [];
                   return (
-                    <Link key={c.id} to={`/clubs/${c.id}`} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 cursor-pointer transition-all duration-sk-base hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 flex flex-col gap-4">
+                    <Link key={c.id} to={`/clubs/${c.slug}`} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 cursor-pointer transition-all duration-sk-base hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 flex flex-col gap-4">
                       <div className="flex items-start gap-3">
                         <FlagIcon countryCode={c.country_code ?? null} size={36} />
                         <div className="min-w-0">
@@ -638,7 +637,7 @@ export function HomePage() {
                     const primaryClub = lg.league_clubs?.find((lc:any) => lc.is_primary)?.clubs?.name;
                     const rooms = lg.league_rooms?.map((lr:any) => lr.poker_rooms?.name).filter(Boolean) ?? [];
                     return (
-                      <Link key={lg.id} to={`/leagues/${lg.id}`} className={cn(
+                      <Link key={lg.id} to={`/leagues/${lg.slug ?? lg.id}`} className={cn(
                         "bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 border-t-2 flex flex-col gap-4 cursor-pointer hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 transition-all duration-sk-base",
                         borderColor
                       )}>

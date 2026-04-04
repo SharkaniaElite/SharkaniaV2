@@ -15,7 +15,7 @@ interface TournamentHistoryEntry {
     slug: string;
     buy_in: number;
     start_datetime: string;
-    clubs: { id: string; name: string };
+    clubs: { id: string; name: string; slug?: string };
   };
 }
 
@@ -95,7 +95,7 @@ export function TournamentHistoryTable({
                   </td>
                   <td className="py-3 px-4 border-b border-sk-border-2">
                     <Link
-                      to={`/clubs/${r.tournaments.clubs.id}`}
+                      to={`/clubs/${r.tournaments.clubs.slug ?? r.tournaments.clubs.id}`}
                       className="text-sk-accent text-sk-xs hover:opacity-80 transition-opacity"
                     >
                       {r.tournaments.clubs.name}

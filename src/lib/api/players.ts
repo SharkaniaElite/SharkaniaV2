@@ -135,7 +135,7 @@ export async function getPlayerTournamentResults(
       slug: string; // 👈 ¡CORRECCIÓN 1: Le enseñamos a TypeScript que viene un slug!
       buy_in: number;
       start_datetime: string;
-      clubs: { id: string; name: string };
+      clubs: { id: string; name: string; slug: string };
     };
   })[]
 > {
@@ -143,7 +143,7 @@ export async function getPlayerTournamentResults(
     .from("tournament_results")
     .select(
       // 👇 CORRECCIÓN 2: ¡Le pedimos el slug a Supabase en la consulta!
-      "*, tournaments(id, name, slug, buy_in, start_datetime, clubs(id, name))"
+      "*, tournaments(id, name, slug, buy_in, start_datetime, clubs(id, name, slug))"
     )
     .eq("player_id", playerId)
     .order("created_at", { ascending: false });
