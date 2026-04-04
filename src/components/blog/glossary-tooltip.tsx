@@ -73,7 +73,7 @@ export function GlossaryTooltip({
       {/* The term with underline style */}
       <span
         onClick={handleClick}
-        className="text-sk-accent cursor-help border-b border-dashed border-sk-accent/40 hover:border-sk-accent transition-colors"
+        className="text-sk-accent cursor-help border-b border-dashed border-sk-accent/40 hover:border-sk-accent transition-colors whitespace-nowrap"
         role="button"
         tabIndex={0}
         aria-describedby={`glossary-${slug}`}
@@ -92,7 +92,7 @@ export function GlossaryTooltip({
         <span
           id={`glossary-${slug}`}
           role="tooltip"
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 sm:w-80"
+          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 sm:w-80 pointer-events-auto"
           onMouseEnter={() => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
           }}
