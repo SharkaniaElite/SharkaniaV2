@@ -8,6 +8,7 @@ import { GLOSSARY_CATEGORIES } from "../lib/api/glossary";
 import type { GlossaryCategory } from "../lib/api/glossary";
 import { SEOHead } from "../components/seo/seo-head";
 import { ArrowLeft, ChevronRight, BookOpen, ExternalLink } from "lucide-react";
+import { useDefinedTermSchema, useBreadcrumbSchema } from "../components/seo/structured-data";
 import { useMemo } from "react";
 
 export function GlossaryTermPage() {
@@ -23,6 +24,18 @@ export function GlossaryTermPage() {
   const categoryInfo = term
     ? GLOSSARY_CATEGORIES[term.category as GlossaryCategory]
     : null;
+
+  useDefinedTermSchema({
+    term: term?.term ?? "",
+    description: term?.short_definition ?? "",
+    slug: term?.slug ?? "",
+  });
+
+  useBreadcrumbSchema([
+    { name: "Inicio", url: "https://sharkania.com" },
+    { name: "Glosario", url: "https://sharkania.com/glosario" },
+    { name: term?.term ?? "Término", url: `https://sharkania.com/glosario/${term?.slug ?? ""}` },
+  ]);
 
   if (isLoading) {
     return (

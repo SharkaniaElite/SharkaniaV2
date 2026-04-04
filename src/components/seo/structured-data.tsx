@@ -1,4 +1,5 @@
 // src/components/seo/structured-data.tsx
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect } from "react";
 
 const STRUCTURED_DATA = [
@@ -184,4 +185,49 @@ export function useBreadcrumbSchema(items: BreadcrumbItem[]) {
       el?.remove();
     };
   }, [items]);
+}
+// ── Glossary Term (DefinedTerm) ──
+
+interface DefinedTermSchemaProps {
+  term: string;
+  description: string;
+  slug: string;
+}
+
+export function useDefinedTermSchema({
+  term,
+  description,
+  slug,
+}: DefinedTermSchemaProps) {
+  useEffect(() => {
+    if (!term || !slug) return;
+
+    const id = "sharkania-definedterm-jsonld";
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement("script");
+      el.id = id;
+      el.setAttribute("type", "application/ld+json");
+      document.head.appendChild(el);
+    }
+
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "DefinedTerm",
+      name: term,
+      description,
+      url: `https://sharkania.com/glosario/${slug}`,
+      inDefinedTermSet: {
+        "@type": "DefinedTermSet",
+        name: "Glosario de Poker — Sharkania",
+        url: "https://sharkania.com/glosario",
+      },
+    };
+
+    el.textContent = JSON.stringify(schema);
+
+    return () => {
+      el?.remove();
+    };
+  }, [term, description, slug]);
 }
