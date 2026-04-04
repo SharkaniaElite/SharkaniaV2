@@ -24,10 +24,10 @@ export function ClubsPage() {
   return (
     <PageShell>
     <SEOHead
-  title="Clubes de Poker"
-  description="Encuentra clubes de poker online verificados de toda Latinoamérica y el mundo. PPPoker, PokerBros, ClubGG y más."
-  path="/clubs"
-/>
+      title="Clubes de Poker"
+      description="Encuentra clubes de poker online verificados de toda Latinoamérica y el mundo. PPPoker, PokerBros, ClubGG y más."
+      path="/clubs"
+    />
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           {/* Header */}
@@ -101,12 +101,19 @@ export function ClubsPage() {
                   <Link
                     key={club.id}
                     to={`/clubs/${club.slug}`}
-                    className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 cursor-pointer transition-all duration-200 ease-out hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 flex flex-col gap-4"
+                    className="relative overflow-hidden bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 cursor-pointer transition-all duration-200 ease-out hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 flex flex-col gap-4 group"
+                    style={club.banner_url ? {
+                      // Reducimos la opacidad del degradado (de 0.85 a 0.4) para que la imagen brille
+                      backgroundImage: `linear-gradient(to bottom, rgba(12,13,16,0.4), rgba(12,13,16,0.9)), url('${club.banner_url.split('#')[0]}')`,
+                      backgroundSize: 'cover',
+                      // Respetamos la posición guardada
+                      backgroundPosition: `center ${club.banner_url.match(/#pos=(\d+)/)?.[1] ?? 50}%`
+                    } : undefined}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="relative z-10 flex items-center gap-3">
                       <FlagIcon countryCode={club.country_code} />
                       <div>
-                        <h3 className="text-sk-md font-bold text-sk-text-1 tracking-tight">
+                        <h3 className="text-sk-md font-bold text-sk-text-1 tracking-tight group-hover:text-sk-accent transition-colors">
                           {club.name}
                         </h3>
                         <div className="flex gap-2 mt-1">
@@ -117,7 +124,7 @@ export function ClubsPage() {
                       </div>
                     </div>
                     {club.description && (
-                      <p className="text-sk-sm text-sk-text-2 leading-relaxed line-clamp-2">
+                      <p className="relative z-10 text-sk-sm text-sk-text-2 leading-relaxed line-clamp-2">
                         {club.description}
                       </p>
                     )}

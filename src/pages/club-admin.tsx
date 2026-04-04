@@ -69,11 +69,17 @@ export function ClubAdminPage() {
 
   // Club info editing
   const [editingInfo, setEditingInfo] = useState(false);
-  const [infoForm, setInfoForm] = useState({
+  // 👇 Definimos la interfaz para que banner_url sea siempre string
+  const [infoForm, setInfoForm] = useState<{
+    description: string; email: string; whatsapp: string; website_url: string;
+    discord_url: string; telegram_url: string; instagram_url: string; banner_url: string;
+  }>({
     description: "", email: "", whatsapp: "", website_url: "",
-    discord_url: "", telegram_url: "", instagram_url: "",
+    discord_url: "", telegram_url: "", instagram_url: "", banner_url: "",
   });
   const [savingInfo, setSavingInfo] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [sharkyAlert, setSharkyAlert] = useState(false);
 
   // ── Query: clubs the user can manage ──
   const { data: adminClubs, isLoading } = useQuery({
@@ -82,7 +88,7 @@ export function ClubAdminPage() {
       if (isSuperAdmin) {
         const { data, error } = await supabase
           .from("clubs")
-          .select("id, name, country_code, description, is_approved, email, whatsapp, website_url, discord_url, telegram_url, instagram_url")
+          .select("id, name, country_code, description, is_approved, email, whatsapp, website_url, discord_url, telegram_url, instagram_url, banner_url")
           .order("name");
         if (error) throw error;
         return (data ?? []).map((club) => ({
@@ -93,7 +99,7 @@ export function ClubAdminPage() {
       } else {
         const { data, error } = await supabase
           .from("club_admins")
-          .select("*, clubs(id, name, country_code, description, is_approved, email, whatsapp, website_url, discord_url, telegram_url, instagram_url)")
+          .select("*, clubs(id, name, country_code, description, is_approved, email, whatsapp, website_url, discord_url, telegram_url, instagram_url, banner_url)")
           .eq("user_id", user!.id);
         if (error) throw error;
         return data;
@@ -196,6 +202,70 @@ export function ClubAdminPage() {
     refresh();
   };
 
+  // 🧠 Motor de arrastre y cálculo de posición
+  const getBgPos = (url?: string | null) => {
+    if (!url) return 50;
+    const match = url.match(/#pos=(\d+)/);
+    return match ? parseInt(match[1], 10) : 50;
+  };
+
+  const setBgPos = (url: string, pos: number) => {
+    const cleanUrl = url.split('#')[0];
+    return `${cleanUrl}#pos=${pos}`;
+  };
+
+  const [isDraggingBg, setIsDraggingBg] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartPos, setDragStartPos] = useState(50);
+
+  const handleDragStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    setIsDraggingBg(true);
+    // 👇 Añadimos el "?" después de touches[0] para evitar el error de "Object is possibly undefined"
+    const clientY = 'touches' in e ? (e.touches[0]?.clientY || 0) : e.clientY;
+    setDragStartY(clientY);
+    setDragStartPos(getBgPos(infoForm.banner_url || "")); 
+  };
+
+  const handleDragMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    const currentUrl = infoForm.banner_url;
+    if (!isDraggingBg || !currentUrl) return;
+
+    // 👇 Añadimos el "?" aquí también
+    const clientY = 'touches' in e ? (e.touches[0]?.clientY || 0) : e.clientY;
+    const deltaY = clientY - dragStartY;
+    const newPos = Math.max(0, Math.min(100, dragStartPos - (deltaY / 2)));
+    setInfoForm({ ...infoForm, banner_url: setBgPos(currentUrl, Math.round(newPos)) });
+  };
+
+  const handleDragEnd = () => setIsDraggingBg(false);
+
+  const handleUploadBanner = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // 👇 IMPORTANTE: Añadimos verificación de firstClubId para quitar los errores L219/L226
+    if (!file || !firstClubId) return; 
+
+    if (file.size > 1024 * 1024) {
+      setSharkyAlert(true);
+      return;
+    }
+    setSharkyAlert(false);
+    setUploadingBanner(true);
+    try {
+      // 👇 Añadimos "|| 'jpg'" para que fileExt nunca sea undefined
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `banner-${firstClubId}-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('img_clubs').upload(fileName, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: publicUrlData } = supabase.storage.from('img_clubs').getPublicUrl(fileName);
+      // Inyectamos posición 50 por defecto al subir
+      setInfoForm({ ...infoForm, banner_url: `${publicUrlData.publicUrl}#pos=50` });
+    } catch (err: any) {
+      alert("Error al subir imagen: " + err.message);
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
   const handleSaveInfo = async () => {
     if (!firstClubId) return;
     setSavingInfo(true);
@@ -207,6 +277,7 @@ export function ClubAdminPage() {
       discord_url: infoForm.discord_url || null,
       telegram_url: infoForm.telegram_url || null,
       instagram_url: infoForm.instagram_url || null,
+      banner_url: infoForm.banner_url || null,
     }).eq("id", firstClubId);
     queryClient.invalidateQueries({ queryKey: ["my-admin-clubs"] });
     setSavingInfo(false);
@@ -215,6 +286,7 @@ export function ClubAdminPage() {
 
   const startEditingInfo = () => {
     setEditingInfo(true);
+    setSharkyAlert(false);
     setInfoForm({
       description: club?.description ?? "",
       email: club?.email ?? "",
@@ -223,6 +295,7 @@ export function ClubAdminPage() {
       discord_url: club?.discord_url ?? "",
       telegram_url: club?.telegram_url ?? "",
       instagram_url: club?.instagram_url ?? "",
+      banner_url: club?.banner_url ?? "",
     });
   };
 
@@ -496,6 +569,65 @@ export function ClubAdminPage() {
                     <div>
                       <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-3 mb-1 block">País {isSuperAdmin ? "" : "(no editable)"}</label>
                       <div className="bg-sk-bg-3 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-2">{club?.country_code ?? "—"}</div>
+                    </div>
+                  </div>
+                  {/* Banner Upload Box */}
+                  <div className="bg-sk-bg-3 border border-sk-border-2 rounded-lg p-4">
+                    <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-3 block">
+                      📸 Banner del Club (Fondo Personalizado)
+                    </label>
+                    <div className="flex flex-col gap-3">
+                      {infoForm.banner_url && (
+                        <div className="space-y-3">
+                          <div
+                            className="h-32 w-full rounded-md bg-cover border border-sk-border-2 shadow-inner cursor-ns-resize touch-none relative overflow-hidden group"
+                            style={{
+                              backgroundImage: `url('${infoForm.banner_url.split('#')[0]}')`,
+                              backgroundPosition: `center ${getBgPos(infoForm.banner_url)}%`
+                            }}
+                            onMouseDown={handleDragStart}
+                            onMouseMove={handleDragMove}
+                            onMouseUp={handleDragEnd}
+                            onMouseLeave={handleDragEnd}
+                            onTouchStart={handleDragStart}
+                            onTouchMove={handleDragMove}
+                            onTouchEnd={handleDragEnd}
+                          >
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              <span className="text-white text-[10px] font-bold uppercase tracking-wider drop-shadow-md bg-sk-bg-2/80 px-2 py-1 rounded border border-white/20">↕️ Arrastra para posicionar</span>
+                            </div>
+                          </div>
+                          <input
+                            type="range" min="0" max="100"
+                            value={getBgPos(infoForm.banner_url)}
+                            onChange={(e) => {
+                              // 👇 Solo actuamos si hay una imagen que mover
+                              if (infoForm.banner_url) {
+                                setInfoForm({ ...infoForm, banner_url: setBgPos(infoForm.banner_url, Number(e.target.value)) });
+                              }
+                            }}
+                            className="w-full h-1.5 bg-sk-bg-3 rounded-lg appearance-none cursor-pointer accent-sk-accent"
+                          />
+                        </div>
+                      )}
+                      <input 
+                        type="file" 
+                        accept="image/png, image/jpeg, image/webp" 
+                        onChange={handleUploadBanner} 
+                        disabled={uploadingBanner}
+                        className="text-sk-xs text-sk-text-2 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-sk-accent/10 file:text-sk-accent hover:file:bg-sk-accent/20 cursor-pointer disabled:opacity-50"
+                      />
+                      <p className="text-[10px] text-sk-text-4">Formatos soportados: WEBP, JPG, PNG. Tamaño máximo: 1MB.</p>
+                      
+                      {sharkyAlert && (
+                        <div className="flex items-start gap-3 bg-sk-bg-2 border border-sk-accent/30 p-4 rounded-lg mt-2 animate-in fade-in">
+                          <img src="/mascot/shark-1.webp" alt="Sharky" className="w-12 h-12 object-contain drop-shadow-[0_0_10px_rgba(34,211,238,0.2)]" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                          <div>
+                            <p className="text-sk-sm font-bold text-sk-text-1 mb-1">¡Cuidado con el peso! 🦈</p>
+                            <p className="text-[11px] text-sk-text-2 leading-relaxed">Tu imagen supera el límite de <strong>1MB</strong> para mantener la plataforma rápida. Usa <a href="https://squoosh.app/" target="_blank" rel="noreferrer" className="text-sk-accent hover:underline font-bold">squoosh.app</a> para minimizar su tamaño y resolución, y vuelve a intentarlo.</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div>

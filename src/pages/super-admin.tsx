@@ -15,7 +15,7 @@ import { FlagIcon } from "../components/ui/flag-icon";
 import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
-  Image, Save, Eye, RefreshCw,
+  Image, Save, Eye, RefreshCw, Power
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -423,6 +423,18 @@ export function SuperAdminPage() {
 
   // ── Actions ──
 
+  // 👇 NUEVA FUNCIÓN PARA ACTIVAR/DESACTIVAR
+  const handleToggleClubStatus = async (id: string, currentStatus: boolean) => {
+    if (!confirm(`¿Estás seguro de que quieres ${currentStatus ? "DESACTIVAR" : "ACTIVAR"} este club?`)) return;
+    
+    // Cambiamos el estado en Supabase
+    await supabase.from("clubs").update({ is_approved: !currentStatus }).eq("id", id);
+    
+    // Invalidamos cachés
+    refresh();
+    queryClient.invalidateQueries({ queryKey: ["clubs"] });
+  };
+
   const handleApproveClub = async (req: { id: string; user_id: string; club_name: string; country_code?: string; description?: string }) => {
     const { data: club } = await supabase.from("clubs").insert({ name: req.club_name, country_code: req.country_code, description: req.description, is_approved: true, created_by: req.user_id }).select().single();
     if (!club) return;
@@ -570,15 +582,41 @@ export function SuperAdminPage() {
                 <div className="border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-x-auto">
                   <table className="w-full border-collapse text-sk-sm">
                     <thead>
-                      <tr>{["Club","País","Estado",""].map((h,i) => <th key={i} className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap">{h}</th>)}</tr>
+                      {/* Agregamos el título "Acciones" */}
+                      <tr>{["Club","País","Estado","Acciones"].map((h,i) => <th key={i} className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap">{h}</th>)}</tr>
                     </thead>
                     <tbody>
                       {(allClubs ?? []).map((c) => (
                         <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-3 px-4 border-b border-sk-border-2"><div className="flex items-center gap-2"><span className="font-semibold text-sk-text-1">{c.name}</span>{c.is_demo && <Badge variant="muted">Demo</Badge>}</div></td>
                           <td className="py-3 px-4 border-b border-sk-border-2"><span className="inline-flex items-center gap-1.5"><FlagIcon countryCode={c.country_code} /> {c.country_code ?? "—"}</span></td>
-                          <td className="py-3 px-4 border-b border-sk-border-2"><Badge variant={c.is_approved ? "green" : "orange"}>{c.is_approved ? "Aprobado" : "Pendiente"}</Badge></td>
-                          <td className="py-3 px-4 border-b border-sk-border-2"><Link to="/admin/club" className="inline-flex items-center gap-1.5 text-sk-xs font-semibold text-sk-accent hover:underline"><Settings size={12} /> Gestionar</Link></td>
+                          
+                          {/* Badge de Estado Actualizado */}
+                          <td className="py-3 px-4 border-b border-sk-border-2">
+                            <Badge variant={c.is_approved ? "green" : "muted"}>{c.is_approved ? "Activo" : "Inactivo"}</Badge>
+                          </td>
+                          
+                          {/* Botón de Toggle y Gestionar */}
+                          <td className="py-3 px-4 border-b border-sk-border-2">
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => handleToggleClubStatus(c.id, c.is_approved)}
+                                className={cn(
+                                  "flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded transition-all",
+                                  c.is_approved
+                                    ? "bg-sk-bg-4 text-sk-text-3 hover:bg-sk-red/10 hover:text-sk-red border border-transparent hover:border-sk-red/30"
+                                    : "bg-sk-accent/10 text-sk-accent hover:bg-sk-accent/20 border border-transparent"
+                                )}
+                              >
+                                <Power size={11} />
+                                {c.is_approved ? "Desactivar" : "Activar"}
+                              </button>
+                              
+                              <Link to="/admin/club" className="inline-flex items-center gap-1 text-sk-xs font-semibold text-sk-accent hover:underline">
+                                <Settings size={12} /> Gestionar
+                              </Link>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
