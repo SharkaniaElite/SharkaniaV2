@@ -65,7 +65,8 @@ export function GlossaryTooltip({
   return (
     <span
       ref={containerRef}
-      className="relative inline"
+      className="relative inline-block"
+      style={{ verticalAlign: 'baseline' }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
