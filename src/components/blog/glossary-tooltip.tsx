@@ -65,15 +65,14 @@ export function GlossaryTooltip({
   return (
     <span
       ref={containerRef}
-      className="relative inline-block"
-      style={{ verticalAlign: 'baseline' }}
+      className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {/* The term with underline style */}
       <span
         onClick={handleClick}
-        className="text-sk-accent cursor-help border-b border-dashed border-sk-accent/40 hover:border-sk-accent transition-colors whitespace-nowrap"
+        className="text-sk-accent cursor-help border-b border-dashed border-sk-accent/40 hover:border-sk-accent transition-colors"
         role="button"
         tabIndex={0}
         aria-describedby={`glossary-${slug}`}
