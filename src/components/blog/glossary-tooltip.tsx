@@ -103,18 +103,18 @@ export function GlossaryTooltip({
         <span
           id={`glossary-${slug}`}
           role="tooltip"
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-3 w-[320px] sm:w-[380px] pointer-events-auto flex items-end gap-3 animate-in fade-in zoom-in-95 duration-200 origin-bottom"
+          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-3 w-[360px] sm:w-[440px] pointer-events-auto flex items-end gap-1 sm:gap-2 animate-in fade-in zoom-in-95 duration-200 origin-bottom"
           onMouseEnter={() => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
           }}
           onMouseLeave={handleMouseLeave}
         >
-          {/* Contenedor de la Mascota */}
-          <span className="shrink-0 w-20 h-24 relative mb-2">
+          {/* Contenedor de la Mascota: Mucho más grande, con margen negativo y z-index 10 */}
+          <span className="shrink-0 w-28 h-32 sm:w-36 sm:h-40 relative -mb-2 z-10">
             <img
               src={sharkImage}
               alt="Sharky Mascot"
-              className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]"
+              className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.3)]"
               // Fallback sutil por si la imagen aún no está cargada o falta alguna
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
@@ -123,10 +123,10 @@ export function GlossaryTooltip({
           </span>
 
           {/* Globo de Diálogo (Speech Bubble) */}
-          <span className="relative flex-1 block bg-sk-bg-3 border border-sk-border-3 rounded-2xl rounded-bl-sm shadow-sk-xl p-4 text-left">
-            {/* Picos del globo apuntando a Sharky */}
-            <span className="absolute -left-[7px] bottom-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[8px] border-r-sk-border-3 border-b-[0px] border-b-transparent" />
-            <span className="absolute -left-[5px] bottom-[1px] w-0 h-0 border-t-[10px] border-t-transparent border-r-[6px] border-r-sk-bg-3 border-b-[0px] border-b-transparent" />
+          <span className="relative flex-1 block bg-sk-bg-3 border border-sk-border-3 rounded-2xl rounded-bl-sm shadow-sk-xl p-4 text-left z-0">
+            {/* Picos del globo ajustados para apuntar más arriba (hacia el tiburón) */}
+            <span className="absolute -left-[9px] bottom-[20px] w-0 h-0 border-t-[14px] border-t-transparent border-r-[10px] border-r-sk-border-3 border-b-[0px] border-b-transparent" />
+            <span className="absolute -left-[7px] bottom-[21px] w-0 h-0 border-t-[12px] border-t-transparent border-r-[8px] border-r-sk-bg-3 border-b-[0px] border-b-transparent" />
 
             {/* Cabecera */}
             <span className="flex items-center gap-2 mb-2">
