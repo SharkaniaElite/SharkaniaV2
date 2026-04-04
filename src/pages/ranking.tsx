@@ -119,15 +119,15 @@ export function RankingPage() {
               <ChevronRight size={14} className="text-sk-text-4 group-hover:text-sk-accent transition-colors" />
             </Link>
             <Link
-              to="/tools/simulador-elo"
+              to="/glosario/elo"
               className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all group"
             >
-              <span className="text-lg">🧮</span>
+              <span className="text-lg">📖</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors truncate">
-                  Simulador de ELO
+                  ¿Qué es el ELO?
                 </p>
-                <p className="text-[11px] text-sk-text-3">¿Cuánto subirías si ganas?</p>
+                <p className="text-[11px] text-sk-text-3">Definición completa en el glosario</p>
               </div>
               <ChevronRight size={14} className="text-sk-text-4 group-hover:text-sk-accent transition-colors" />
             </Link>

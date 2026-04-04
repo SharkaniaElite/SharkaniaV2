@@ -102,6 +102,33 @@ export default function BlogPage() {
                </div>
             </div>
           </div>
+        {/* Internal links */}
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/glosario"
+              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all group"
+            >
+              <span className="text-lg">📖</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors">
+                  Glosario de Poker
+                </p>
+                <p className="text-[11px] text-sk-text-3">¿No entiendes un término? Consulta las definiciones</p>
+              </div>
+            </Link>
+            <Link
+              to="/tools"
+              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all group"
+            >
+              <span className="text-lg">🧮</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors">
+                  Herramientas de Poker
+                </p>
+                <p className="text-[11px] text-sk-text-3">Calculadora ICM, simulador ELO, bankroll</p>
+              </div>
+            </Link>
+          </div>
         </div>
       </div>
 

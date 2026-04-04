@@ -246,7 +246,7 @@ export function ToolsPage() {
             ))}
           </div>
 
-          {/* Internal link — Blog */}
+          {/* Internal links — Blog + Glosario */}
           <div className="mb-12 flex flex-col sm:flex-row gap-3">
             <Link
               to="/blog/como-leer-estadisticas-torneo-detectar-leaks-5-minutos"
@@ -258,6 +258,18 @@ export function ToolsPage() {
                   Cómo detectar fugas de dinero en 5 minutos
                 </p>
                 <p className="text-[11px] text-sk-text-3">Artículo del blog — usa estas herramientas para analizar tu juego</p>
+              </div>
+            </Link>
+            <Link
+              to="/glosario"
+              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all group"
+            >
+              <span className="text-lg">📖</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors">
+                  Glosario de Poker
+                </p>
+                <p className="text-[11px] text-sk-text-3">43 términos esenciales del poker competitivo</p>
               </div>
             </Link>
           </div>
