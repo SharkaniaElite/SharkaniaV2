@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "../../lib/cn";
-import { Menu, X, Search, LogOut, User, Settings } from "lucide-react";
+import { Menu, X, Search, LogOut, User, Settings, Mail } from "lucide-react";
 import { Button } from "../ui/button";
 import { GlobalSearch } from "../search/global-search";
 import { useAuthStore } from "../../stores/auth-store";
@@ -130,6 +130,17 @@ export function Navbar() {
             <Search size={18} />
           </button>
 
+          {/* Botón de Contacto Rápido (Desktop) */}
+          <a
+            href="mailto:contacto@sharkania.com"
+            style={{ color: "#a1a1aa" }}
+            className="hidden md:flex w-9 h-9 items-center justify-center hover:text-white transition-colors"
+            aria-label="Contacto por Correo"
+            title="Contacto por Correo"
+          >
+            <Mail size={18} />
+          </a>
+
           {/* Admin Button */}
           {!isLoading && isAuthenticated && isAdmin && (
             <Link
@@ -213,10 +224,10 @@ export function Navbar() {
 
           {/* Hamburger */}
           <button
-  onClick={() => setMobileOpen(!mobileOpen)}
-  className="lg:hidden w-10 h-10 flex items-center justify-center text-sk-text-1 bg-transparent border-none cursor-pointer"
-  aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
->
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="lg:hidden w-10 h-10 flex items-center justify-center text-sk-text-1 bg-transparent border-none cursor-pointer"
+            aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
+          >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
@@ -268,6 +279,15 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+
+          {/* Enlace de Contacto en Mobile */}
+          <a
+            href="mailto:contacto@sharkania.com"
+            className="flex items-center gap-3 text-sk-md font-medium px-4 py-3 rounded-sm w-full transition-colors text-sk-text-2 hover:text-sk-text-1"
+          >
+            <Mail size={18} />
+            Soporte por Correo
+          </a>
 
           <div className="mt-4 flex flex-col gap-2">
             {!isAuthenticated && (

@@ -10,6 +10,15 @@ interface GlossaryTooltipProps {
   children: React.ReactNode;
 }
 
+// 🧠 Motor Lógico: Asigna un tiburón (1 al 10) de forma consistente según la palabra
+const getSharkVariant = (text: string) => {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return (Math.abs(hash) % 10) + 1;
+};
+
 export function GlossaryTooltip({
   term,
   slug,
@@ -20,7 +29,11 @@ export function GlossaryTooltip({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLSpanElement>(null);
 
-  // Close on outside click (mobile)
+  // Determinamos qué pose de Sharky mostrar
+  const sharkId = getSharkVariant(slug);
+  const sharkImage = `/mascot/shark-${sharkId}.webp`;
+
+  // Cerrar al hacer clic fuera (móviles)
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
@@ -35,7 +48,7 @@ export function GlossaryTooltip({
     return () => document.removeEventListener("click", handleClick, true);
   }, [open]);
 
-  // Close on ESC
+  // Cerrar con ESC
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {
@@ -56,7 +69,6 @@ export function GlossaryTooltip({
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    // On mobile (no hover), toggle on tap
     e.preventDefault();
     e.stopPropagation();
     setOpen((prev) => !prev);
@@ -69,7 +81,7 @@ export function GlossaryTooltip({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* The term with underline style */}
+      {/* Palabra Subrayada */}
       <span
         onClick={handleClick}
         className="text-sk-accent cursor-help border-b border-dashed border-sk-accent/40 hover:border-sk-accent transition-colors"
@@ -86,37 +98,55 @@ export function GlossaryTooltip({
         {children}
       </span>
 
-      {/* Tooltip popup */}
+      {/* 🦈 Tooltip popup con Sharky y Globo de Diálogo */}
       {open && (
         <span
           id={`glossary-${slug}`}
           role="tooltip"
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 sm:w-80 pointer-events-auto"
+          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-3 w-[320px] sm:w-[380px] pointer-events-auto flex items-end gap-3 animate-in fade-in zoom-in-95 duration-200 origin-bottom"
           onMouseEnter={() => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
           }}
           onMouseLeave={handleMouseLeave}
         >
-          <span className="block bg-sk-bg-3 border border-sk-border-3 rounded-lg shadow-sk-lg p-4 text-left">
-            {/* Header */}
+          {/* Contenedor de la Mascota */}
+          <span className="shrink-0 w-20 h-24 relative mb-2">
+            <img
+              src={sharkImage}
+              alt="Sharky Mascot"
+              className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]"
+              // Fallback sutil por si la imagen aún no está cargada o falta alguna
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </span>
+
+          {/* Globo de Diálogo (Speech Bubble) */}
+          <span className="relative flex-1 block bg-sk-bg-3 border border-sk-border-3 rounded-2xl rounded-bl-sm shadow-sk-xl p-4 text-left">
+            {/* Picos del globo apuntando a Sharky */}
+            <span className="absolute -left-[7px] bottom-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[8px] border-r-sk-border-3 border-b-[0px] border-b-transparent" />
+            <span className="absolute -left-[5px] bottom-[1px] w-0 h-0 border-t-[10px] border-t-transparent border-r-[6px] border-r-sk-bg-3 border-b-[0px] border-b-transparent" />
+
+            {/* Cabecera */}
             <span className="flex items-center gap-2 mb-2">
               <BookOpen size={12} className="text-sk-accent shrink-0" />
               <span className="font-mono text-[10px] font-bold tracking-wider uppercase text-sk-accent">
-                Glosario
+                El experto dice...
               </span>
             </span>
 
-            {/* Term name */}
+            {/* Término */}
             <span className="block text-sk-sm font-bold text-sk-text-1 mb-1.5">
               {term}
             </span>
 
-            {/* Short definition */}
+            {/* Definición */}
             <span className="block text-[12px] text-sk-text-2 leading-relaxed mb-3">
               {shortDefinition}
             </span>
 
-            {/* Link to full definition */}
+            {/* Enlace */}
             <Link
               to={`/glosario/${slug}`}
               className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-sk-accent hover:underline"
@@ -126,7 +156,7 @@ export function GlossaryTooltip({
             </Link>
           </span>
 
-          {/* Arrow */}
+          {/* Triángulo general apuntando a la palabra subrayada */}
           <span className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-sk-border-3" />
         </span>
       )}
