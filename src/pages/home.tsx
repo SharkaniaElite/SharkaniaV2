@@ -16,9 +16,11 @@ import { getClubs } from "../lib/api/clubs";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
 import { supabase } from "../lib/supabase";
 import { FlagIcon } from "../components/ui/flag-icon";
+import { Trophy, CalendarDays } from "lucide-react"; // 👈 Añade esto arriba
 import { format } from "date-fns";
 import type { PlayerWithRoom, ClubWithRooms, TournamentWithDetails } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -236,9 +238,31 @@ export function HomePage() {
           <p className="text-sk-lg text-sk-text-2 leading-relaxed max-w-[600px] mx-auto animate-sk-fade-up sk-delay-2">
             Mucho más que un ranking. Únete a la élite mundial: explora clubes exclusivos, compite en ligas internacionales, analiza estadísticas avanzadas y forja tu legado en las mesas.
           </p>
-          <div className="flex justify-center gap-3 mt-10 flex-wrap animate-sk-fade-up sk-delay-3">
-            <Link to="/ranking"><Button variant="accent" size="xl">🏆 Ver Ranking Global</Button></Link>
-            <Link to="/calendar"><Button variant="secondary" size="xl">📅 Calendario de Torneos</Button></Link>
+          <div className="flex justify-center gap-4 mt-10 flex-wrap animate-sk-fade-up sk-delay-3">
+            <Link to="/ranking">
+              <Button 
+                variant="accent" 
+                size="xl" 
+                className="group relative overflow-hidden font-extrabold tracking-wide shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_35px_rgba(34,211,238,0.5)] transition-all duration-300 border border-sk-accent/50 hover:border-sk-accent"
+              >
+                {/* Reflejo de luz interior (Efecto cristal/holograma) */}
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out" />
+                
+                <Trophy className="w-5 h-5 mr-2 inline-block group-hover:scale-110 transition-transform duration-300" />
+                Ver Ranking Global
+              </Button>
+            </Link>
+            
+            <Link to="/calendar">
+              <Button 
+                variant="secondary" 
+                size="xl" 
+                className="group font-bold tracking-wide border-sk-border-2 hover:border-sk-text-2 hover:bg-white/[0.03] transition-all duration-300"
+              >
+                <CalendarDays className="w-5 h-5 mr-2 inline-block text-sk-text-4 group-hover:text-sk-text-1 transition-colors duration-300" />
+                Calendario de Torneos
+              </Button>
+            </Link>
           </div>
         </div>
         <div className="absolute bottom-8 left-1/2 flex flex-col items-center gap-2 text-sk-text-4 text-[11px] animate-sk-scroll-bounce max-md:hidden">
@@ -248,34 +272,52 @@ export function HomePage() {
       </section>
 
       {/* ══ STATS BAR ══ */}
-      <div className="bg-sk-bg-0 border-b border-sk-border-2 py-3 overflow-hidden">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <div className="flex justify-center items-center gap-8 flex-wrap">
+      <div className="bg-sk-bg-0 border-y border-sk-border-2 py-3 overflow-hidden relative">
+        {/* Efecto sutil de luz de escáner */}
+        <div className="absolute top-0 left-[-100%] w-1/2 h-full bg-gradient-to-r from-transparent via-sk-accent/5 to-transparent animate-[shimmer_3s_infinite]" />
+        <div className="max-w-[1200px] mx-auto px-6 relative z-10">
+          <div className="flex justify-center items-center gap-6 md:gap-10 flex-wrap">
             {[
-              { label:"Jugadores activos",  value:stats.players.toLocaleString("es") },
-              { label:"Torneos jugados",    value:stats.tournaments.toLocaleString("es") },
-              { label:"Clubes registrados", value:stats.clubs.toLocaleString("es") },
-              { label:"Ligas activas",      value:stats.leagues.toLocaleString("es") },
+              { label:"JUGADORES TRACKEADOS",  value:stats.players.toLocaleString("es") },
+              { label:"TORNEOS DISPUTADOS",    value:stats.tournaments.toLocaleString("es") },
+              { label:"CLUBES VERIFICADOS", value:stats.clubs.toLocaleString("es") },
+              { label:"LIGAS EN CURSO",      value:stats.leagues.toLocaleString("es") },
             ].map(item => (
-              <div key={item.label} className="flex items-center gap-2 text-sk-xs text-sk-text-2">
-                <span>{item.label}</span>
-                <span className="font-mono font-bold text-sk-text-1">{item.value}</span>
+              <div key={item.label} className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-sk-text-3 font-semibold group cursor-default">
+                <span className="group-hover:text-sk-accent transition-colors duration-300">{item.label}</span>
+                <span className="font-mono font-bold text-sk-text-1 text-sk-sm group-hover:text-white transition-colors duration-300">{item.value}</span>
               </div>
             ))}
-            <div className="flex items-center gap-2 text-sk-xs text-sk-text-2">
-              <Badge variant="live">EN VIVO</Badge>
-              <span className="font-mono font-bold text-sk-text-1">{stats.live} torneos</span>
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-sk-text-3 font-semibold group cursor-default">
+              <Badge variant="live" className="shadow-[0_0_10px_rgba(239,68,68,0.4)] animate-pulse">LIVE NOW</Badge>
+              <span className="font-mono font-bold text-sk-text-1 text-sk-sm group-hover:text-white transition-colors duration-300">{stats.live}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* ══ ROOMS ══ */}
-      <section className="py-10 border-b border-sk-border-2">
+      <section className="py-10 border-b border-sk-border-2 bg-[radial-gradient(ellipse_at_center,_var(--sk-bg-2)_0%,_var(--sk-bg-0)_100%)]">
         <div className="max-w-[1200px] mx-auto px-6">
-          <p className="text-center text-[11px] font-semibold tracking-[0.08em] uppercase text-sk-text-2 mb-6">Compatible con las mejores salas online</p>
-          <div className="flex justify-center items-center gap-12 flex-wrap">
-            {ROOMS.map(r => <span key={r} className="font-mono text-sk-sm font-semibold text-sk-text-2 tracking-wide hover:text-sk-text-1 transition-colors">{r}</span>)}
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="h-px bg-gradient-to-r from-transparent to-sk-border-3 flex-1 max-w-[100px]" />
+            <p className="text-center text-[10px] font-bold tracking-[0.15em] uppercase text-sk-text-3">Integración Total Garantizada</p>
+            <div className="h-px bg-gradient-to-l from-transparent to-sk-border-3 flex-1 max-w-[100px]" />
+          </div>
+          <div className="flex justify-center items-center gap-8 md:gap-14 flex-wrap">
+            {/* Quitamos los emojis del string original usando JS replace y estilizamos */}
+            {ROOMS.map(r => {
+              // Limpiamos los emojis por un lado, y el selector de variante (FE0F) por otro para no enojar a ESLint
+              const cleanName = r
+                .replace(/[\u{1F000}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F300}-\u{1F5FF}]/gu, '')
+                .replace(/\uFE0F/g, '')
+                .trim();
+              return (
+                <span key={r} className="font-mono text-sk-sm md:text-sk-base font-bold text-sk-text-3 tracking-widest uppercase hover:text-sk-accent hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] hover:scale-105 transition-all duration-300 cursor-default">
+                  {cleanName}
+                </span>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -451,31 +493,50 @@ export function HomePage() {
           <RevealSection>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
-                { bgClass:"sk-feature-ranking", title:"Ranking ELO Adaptado", desc:"Sistema de puntuación único que considera buy-in, field size, varianza y rendimiento relativo." },
-                { bgClass:"sk-feature-calendar", title:"Calendario en Vivo", desc:"Todos los torneos de los clubes en un solo lugar. Countdown en vivo y late registration." },
-                { bgClass:"sk-feature-clubs", title:"Clubes & Ligas", desc:"Encuentra clubes por país o sala. Únete a ligas con tablas de posiciones y premios." },
-                { bgClass:"sk-feature-compare", title:"Comparador de Jugadores", desc:"Enfrenta a dos jugadores y analiza su historial ELO, torneos en común y rendimiento." },
-                { bgClass:"sk-feature-missions", title:"Misiones & Logros", desc:"Gamificación real: completa misiones, gana XP, desbloquea insignias y sube de nivel." },
-                { bgClass:"sk-feature-search", title:"Búsqueda Instantánea", desc:"Encuentra a cualquier jugador, club, liga o torneo al instante mientras escribes." },
-              ].map(f => (
-                <div 
-                  key={f.title} 
-                  className={cn(
-                    "relative group p-8 rounded-xl border border-sk-border-2 transition-all duration-500 ease-out overflow-hidden min-h-[240px] flex flex-col justify-end",
-                    "hover:border-sk-accent/50 hover:shadow-[0_8px_30px_rgba(34,211,238,0.15)] hover:-translate-y-1",
-                    f.bgClass
-                  )}
-                >
-                  {/* Overlay cinemático oscuro para garantizar legibilidad */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-1/95 via-sk-bg-1/80 to-sk-bg-1/20 z-0 group-hover:from-sk-bg-1/90 transition-colors duration-500" />
-                  
-                  {/* Contenido textual */}
-                  <div className="relative z-10 transform group-hover:-translate-y-2 transition-transform duration-500">
-                    <h3 className="text-sk-lg font-extrabold text-sk-text-1 mb-2 tracking-tight drop-shadow-md">{f.title}</h3>
-                    <p className="text-sk-sm text-sk-text-2 leading-relaxed opacity-90 group-hover:opacity-100 transition-opacity duration-500">{f.desc}</p>
-                  </div>
-                </div>
-              ))}
+                { bgClass:"sk-feature-ranking", title:"Ranking ELO Adaptado", desc:"Sistema de puntuación único que considera buy-in, field size, varianza y rendimiento relativo.", link:"/ranking" },
+                { bgClass:"sk-feature-calendar", title:"Calendario en Vivo", desc:"Todos los torneos de los clubes en un solo lugar. Countdown en vivo y late registration.", link:"/calendar" },
+                { bgClass:"sk-feature-clubs", title:"Clubes & Ligas", desc:"Encuentra clubes por país o sala. Únete a ligas con tablas de posiciones y premios.", link:"/clubs" },
+                { bgClass:"sk-feature-compare", title:"Comparador de Jugadores", desc:"Enfrenta a dos jugadores y analiza su historial ELO, torneos en común y rendimiento.", link:"/compare" },
+                { bgClass:"sk-feature-missions", title:"Misiones & Logros", desc:"Gamificación real: completa misiones, gana XP, desbloquea insignias y sube de nivel.", link:"/register" },
+                { bgClass:"sk-feature-search", title:"Búsqueda Instantánea", desc:"Encuentra a cualquier jugador, club, liga o torneo al instante mientras escribes.", link:"#search" },
+              ].map(f => {
+                const isAnchor = f.link.startsWith("#");
+                const cardClasses = cn(
+                  "relative group p-8 rounded-xl border border-sk-border-2 transition-all duration-500 ease-out overflow-hidden min-h-[240px] flex flex-col justify-end cursor-pointer block",
+                  "hover:border-sk-accent/50 hover:shadow-[0_8px_30px_rgba(34,211,238,0.15)] hover:-translate-y-1",
+                  f.bgClass
+                );
+
+                const cardContent = (
+                  <>
+                    {/* Overlay cinemático oscuro para garantizar legibilidad */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-1/95 via-sk-bg-1/80 to-sk-bg-1/20 z-0 group-hover:from-sk-bg-1/90 transition-colors duration-500" />
+                    
+                    {/* Contenido textual */}
+                    <div className="relative z-10 transform group-hover:-translate-y-2 transition-transform duration-500">
+                      {/* 👇 Añadimos group-hover:text-sk-accent para dar feedback visual de que es clickeable */}
+                      <h3 className="text-sk-lg font-extrabold text-sk-text-1 mb-2 tracking-tight drop-shadow-md group-hover:text-sk-accent transition-colors duration-300">{f.title}</h3>
+                      <p className="text-sk-sm text-sk-text-2 leading-relaxed opacity-90 group-hover:opacity-100 transition-opacity duration-500">{f.desc}</p>
+                    </div>
+                  </>
+                );
+
+                // Si el link es un ancla (como #search), usamos <a> para saltar ahí mismo
+                if (isAnchor) {
+                  return (
+                    <a key={f.title} href={f.link} className={cardClasses}>
+                      {cardContent}
+                    </a>
+                  );
+                }
+
+                // Si es una página interna, usamos el <Link> de React Router
+                return (
+                  <Link key={f.title} to={f.link} className={cardClasses}>
+                    {cardContent}
+                  </Link>
+                );
+              })}
             </div>
           </RevealSection>
         </div>
