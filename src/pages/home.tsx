@@ -176,7 +176,8 @@ export function HomePage() {
       try {
         const { data } = await supabase
           .from("leagues")
-          .select("*, league_clubs(is_primary, clubs(id,name,country_code)), league_rooms(poker_rooms(id,name))")
+          // 👇 Añadimos "banner_url" a los datos que pedimos del club
+          .select("*, league_clubs(is_primary, clubs(id,name,country_code,banner_url)), league_rooms(poker_rooms(id,name))")
           .in("status", ["active", "upcoming", "finished"])
           .order("start_date", { ascending: false })
           .limit(20);
@@ -632,11 +633,16 @@ export function HomePage() {
               desc="Enfrenta a dos jugadores y descubre quién domina en los números. ELO, ITM, ROI y torneos en común." />
           </RevealSection>
           <RevealSection>
-            <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 overflow-hidden">
-              {!compA || !compB
-                ? <div className="animate-sk-pulse h-48 rounded bg-sk-bg-3" />
-                : <>
-                  <div className="grid grid-cols-[1fr_60px_1fr] gap-4 items-center">
+            <div className="relative border border-sk-border-2 rounded-2xl p-6 md:p-10 overflow-hidden shadow-[0_0_40px_rgba(34,211,238,0.05)] sk-comparator-bg group">
+              {/* Overlay cinemático oscuro para no interrumpir la info */}
+              <div className="absolute inset-0 bg-sk-bg-0/85 backdrop-blur-[2px] z-0 group-hover:bg-sk-bg-0/70 transition-all duration-700" />
+              
+              {/* Contenido flotando sobre el fondo */}
+              <div className="relative z-10">
+                {!compA || !compB
+                  ? <div className="animate-sk-pulse h-48 rounded bg-sk-bg-3/50" />
+                  : <>
+                    <div className="grid grid-cols-[1fr_60px_1fr] gap-4 items-center">
                     {/* Player A */}
                     <div className="text-center">
                       <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-xl font-extrabold text-sk-accent mx-auto mb-3">
@@ -697,7 +703,8 @@ export function HomePage() {
                   </div>
                 </>
               }
-            </div>
+              </div> {/* CIERRE de relative z-10 */}
+            </div> {/* CIERRE de relative border sk-comparator-bg */}
           </RevealSection>
         </div>
       </section>
@@ -723,28 +730,46 @@ export function HomePage() {
                     // --------------------------------------------
 
                     const isDemo = lg.is_demo;
-                    const primaryClub = lg.league_clubs?.find((lc:any) => lc.is_primary)?.clubs?.name;
+                    const primaryClubObj = lg.league_clubs?.find((lc:any) => lc.is_primary)?.clubs;
+                    const primaryClub = primaryClubObj?.name;
+                    // 👇 Extraemos la URL y calculamos la posición
+                    const bannerUrl = primaryClubObj?.banner_url;
+                    const bgPos = bannerUrl ? (bannerUrl.match(/#pos=(\d+)/)?.[1] ?? 50) : 50;
+                    const cleanUrl = bannerUrl?.split('#')[0];
+                    
                     const rooms = lg.league_rooms?.map((lr:any) => lr.poker_rooms?.name).filter(Boolean) ?? [];
+                    
                     return (
-                      <Link key={lg.id} to={`/leagues/${lg.slug ?? lg.id}`} className={cn(
-                        "bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 border-t-2 flex flex-col gap-4 cursor-pointer hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 transition-all duration-sk-base",
-                        borderColor
-                      )}>
-                        <div className="flex justify-between items-start">
+                      <Link 
+                        key={lg.id} 
+                        to={`/leagues/${lg.slug ?? lg.id}`} 
+                        className={cn(
+                          "relative overflow-hidden bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 border-t-2 flex flex-col gap-4 cursor-pointer hover:border-sk-accent/50 hover:shadow-sk-md hover:-translate-y-1 transition-all duration-300 group",
+                          borderColor
+                        )}
+                        // 👇 Aplicamos el fondo con el degradado para mantener legibilidad
+                        style={bannerUrl ? {
+                          backgroundImage: `linear-gradient(to bottom, rgba(12,13,16,0.4), rgba(12,13,16,0.95)), url('${cleanUrl}')`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: `center ${bgPos}%`
+                        } : undefined}
+                      >
+                        {/* Envolvemos en relative z-10 para flotar sobre la imagen */}
+                        <div className="relative z-10 flex justify-between items-start">
                           <div className="min-w-0 flex-1 pr-4">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-sk-md font-bold text-sk-text-1 tracking-tight">
+                              <h3 className="text-sk-md font-bold text-sk-text-1 tracking-tight group-hover:text-sk-accent transition-colors">
                                 {currentStatus === "active" ? "🏆 " : "🌎 "}{cleanName(lg.name)}
                               </h3>
                               {isDemo && <DemoBadge />}
                             </div>
-                            <div className="font-mono text-[11px] text-sk-text-2 mt-1">
+                            <div className="font-mono text-[11px] text-sk-text-2 mt-1 group-hover:text-sk-text-1 transition-colors">
                               📅 {lg.start_date?.slice(0,10)} — {lg.end_date?.slice(0,10)}{primaryClub ? ` · ${cleanName(primaryClub)}` : ""}
                             </div>
                           </div>
                           <Badge variant={status.variant}>{status.label}</Badge>
                         </div>
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="relative z-10 flex gap-2 flex-wrap">
                           {rooms.slice(0,3).map((r:string) => <Chip key={r}>{cleanName(r)}</Chip>)}
                           <Chip>NLH</Chip><Chip>MTT</Chip>
                         </div>

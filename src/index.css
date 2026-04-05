@@ -274,3 +274,15 @@ body::before {
 .group:hover.sk-feature-search {
   background-size: 105%; /* Zoom in sutil */
 }
+/* ─────────────────────────────────
+   Fondo Inmersivo - Comparador
+   ───────────────────────────────── */
+.sk-comparator-bg {
+  background-image: url('/bg/feature-comparator.webp');
+  background-size: cover;
+  background-position: center;
+}
+
+.group:hover.sk-comparator-bg {
+  background-size: 102%; /* Un zoom in mucho más suave y elegante para el comparador */
+}
