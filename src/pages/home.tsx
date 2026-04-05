@@ -495,13 +495,29 @@ export function HomePage() {
                 : clubs.map(c => {
                   const isDemo = (c as any).is_demo;
                   const rooms = c.club_rooms?.map(cr => (cr as any).poker_rooms?.name).filter(Boolean) ?? [];
+                  
+                  // 👇 Extraemos la posición y la URL limpia
+                  const bgPos = c.banner_url ? (c.banner_url.match(/#pos=(\d+)/)?.[1] ?? 50) : 50;
+                  const cleanUrl = c.banner_url?.split('#')[0];
+
                   return (
-                    <Link key={c.id} to={`/clubs/${c.slug}`} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 cursor-pointer transition-all duration-sk-base hover:border-sk-border-3 hover:shadow-sk-md hover:-translate-y-0.5 flex flex-col gap-4">
-                      <div className="flex items-start gap-3">
+                    <Link 
+                      key={c.id} 
+                      to={`/clubs/${c.slug}`} 
+                      className="relative overflow-hidden bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 cursor-pointer transition-all duration-300 ease-out hover:border-sk-accent/50 hover:shadow-sk-lg hover:-translate-y-1 flex flex-col gap-4 group"
+                      style={c.banner_url ? {
+                        // 👇 Aplicamos el degradado para legibilidad y la imagen de fondo centrada a gusto
+                        backgroundImage: `linear-gradient(to bottom, rgba(12,13,16,0.35), rgba(12,13,16,0.95)), url('${cleanUrl}')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: `center ${bgPos}%`
+                      } : undefined}
+                    >
+                      {/* Envolvemos en relative z-10 para que flote sobre el fondo */}
+                      <div className="relative z-10 flex items-start gap-3">
                         <FlagIcon countryCode={c.country_code ?? null} size={36} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-sk-md font-bold text-sk-text-1 tracking-tight">{cleanName(c.name)}</h3>
+                            <h3 className="text-sk-md font-bold text-sk-text-1 tracking-tight group-hover:text-sk-accent transition-colors">{cleanName(c.name)}</h3>
                             {isDemo && <DemoBadge />}
                           </div>
                           <div className="flex gap-2 mt-1 flex-wrap">
@@ -509,7 +525,7 @@ export function HomePage() {
                           </div>
                         </div>
                       </div>
-                      <p className="text-sk-sm text-sk-text-2 leading-relaxed line-clamp-2">
+                      <p className="relative z-10 text-sk-sm text-sk-text-2 leading-relaxed line-clamp-2 group-hover:text-sk-text-1 transition-colors">
                         {cleanName(c.description ?? "Club de poker online verificado.")}
                       </p>
                     </Link>
