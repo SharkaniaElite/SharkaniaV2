@@ -231,3 +231,46 @@ body::before {
 .cta-slide {
   animation: cta-slide .6s ease-out;
 }
+/* ─────────────────────────────────
+   Fondos Inmersivos - Home Features
+   ───────────────────────────────── */
+.sk-feature-ranking {
+  background-image: url('/bg/feature-ranking.webp');
+  background-size: cover;
+  background-position: center;
+}
+.sk-feature-calendar {
+  background-image: url('/bg/feature-calendar.webp');
+  background-size: cover;
+  background-position: center;
+}
+.sk-feature-clubs {
+  background-image: url('/bg/feature-clubs.webp');
+  background-size: cover;
+  background-position: center;
+}
+.sk-feature-compare {
+  background-image: url('/bg/feature-compare.webp');
+  background-size: cover;
+  background-position: center;
+}
+.sk-feature-missions {
+  background-image: url('/bg/feature-missions.webp');
+  background-size: cover;
+  background-position: center;
+}
+.sk-feature-search {
+  background-image: url('/bg/feature-search.webp');
+  background-size: cover;
+  background-position: center;
+}
+
+/* Efecto de "respiración" y brillo al pasar el mouse por las tarjetas */
+.group:hover.sk-feature-ranking,
+.group:hover.sk-feature-calendar,
+.group:hover.sk-feature-clubs,
+.group:hover.sk-feature-compare,
+.group:hover.sk-feature-missions,
+.group:hover.sk-feature-search {
+  background-size: 105%; /* Zoom in sutil */
+}

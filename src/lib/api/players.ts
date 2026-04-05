@@ -132,7 +132,7 @@ export async function getPlayerTournamentResults(
     tournaments: {
       id: string;
       name: string;
-      slug: string; // 👈 ¡CORRECCIÓN 1: Le enseñamos a TypeScript que viene un slug!
+      slug: string;
       buy_in: number;
       start_datetime: string;
       clubs: { id: string; name: string; slug: string };
@@ -142,7 +142,6 @@ export async function getPlayerTournamentResults(
   const { data, error } = await supabase
     .from("tournament_results")
     .select(
-      // 👇 CORRECCIÓN 2: ¡Le pedimos el slug a Supabase en la consulta!
       "*, tournaments(id, name, slug, buy_in, start_datetime, clubs(id, name, slug))"
     )
     .eq("player_id", playerId)
@@ -184,16 +183,129 @@ export async function updatePlayer(
   if (error) throw error;
   return data as PlayerWithRoom;
 }
-// Agrega esto al final de src/lib/api/players.ts
+
+// ══════════════════════════════════════════════════════════
+// UNIFIED PLAYER STATS — Para merge de nicknames vinculados
+// ══════════════════════════════════════════════════════════
+
+export interface UnifiedPlayerStats {
+  profile_id: string;
+  primary_player_id: string;
+  alias_count: number;
+  total_tournaments: number;
+  total_cashes: number;
+  total_wins: number;
+  total_prize_won: number;
+  total_buy_ins_spent: number;
+  aliases: Array<{
+    player_id: string;
+    nickname: string;
+    slug: string;
+    room_id: string;
+    elo_rating: number;
+    total_tournaments: number;
+    room_name: string;
+  }>;
+}
+
+export interface UnifiedEloEntry {
+  recorded_at: string;
+  elo_after: number;
+  elo_change: number;
+  tournament_name: string;
+  nickname: string;
+}
+
+/**
+ * Obtiene stats unificadas de un jugador que tiene múltiples nicknames vinculados.
+ * Retorna null si el jugador solo tiene 1 nickname.
+ */
+export async function getUnifiedPlayerStats(
+  slug: string
+): Promise<UnifiedPlayerStats | null> {
+  const { data, error } = await supabase.rpc("get_unified_player_stats", {
+    p_slug: slug,
+  });
+  if (error) {
+    console.error("Error getting unified stats:", error);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Obtiene el historial de ELO unificado para la gráfica.
+ * Combina todos los aliases cronológicamente y recalcula el ELO.
+ */
+export async function getUnifiedEloHistory(
+  slug: string
+): Promise<UnifiedEloEntry[]> {
+  const { data, error } = await supabase.rpc("get_unified_elo_history", {
+    p_slug: slug,
+  });
+  if (error) {
+    console.error("Error getting unified elo history:", error);
+    return [];
+  }
+  return data ?? [];
+}
+
+/**
+ * Obtiene los resultados de torneo de TODOS los aliases vinculados a un profile.
+ * Se usa para el historial unificado en el perfil del jugador.
+ */
+export async function getUnifiedTournamentResults(
+  profileId: string
+): Promise<
+  (TournamentResult & {
+    tournaments: {
+      id: string;
+      name: string;
+      slug: string;
+      buy_in: number;
+      start_datetime: string;
+      clubs: { id: string; name: string; slug: string };
+    };
+    players: { nickname: string };
+  })[]
+> {
+  const { data: playerIds } = await supabase
+    .from("players")
+    .select("id")
+    .eq("profile_id", profileId);
+
+  if (!playerIds || playerIds.length === 0) return [];
+
+  const ids = playerIds.map((p) => p.id);
+
+  const { data, error } = await supabase
+    .from("tournament_results")
+    .select(
+      "*, tournaments(id, name, slug, buy_in, start_datetime, clubs(id, name, slug)), players(nickname)"
+    )
+    .in("player_id", ids)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ══════════════════════════════════════════════════════════
+// GAMIFICACIÓN
+// ══════════════════════════════════════════════════════════
 
 /**
  * Recompensa al usuario con Shark Coins y XP por leer un artículo.
  */
-export async function claimBlogReward(userId: string, amount: number = 10, xpAmount: number = 50): Promise<void> {
+export async function claimBlogReward(
+  userId: string,
+  amount: number = 10,
+  xpAmount: number = 50
+): Promise<void> {
   const { error } = await supabase.rpc("claim_blog_reward", {
     p_user_id: userId,
     p_amount: amount,
-    p_xp_amount: xpAmount, // 👈 Pasamos la experiencia a la BD
+    p_xp_amount: xpAmount,
   });
 
   if (error) throw error;

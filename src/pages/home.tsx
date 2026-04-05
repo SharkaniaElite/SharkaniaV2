@@ -230,11 +230,11 @@ export function HomePage() {
             Plataforma Global de Poker Competitivo
           </div>
           <h1 className="text-sk-hero font-black tracking-[-0.045em] text-sk-text-1 leading-none mb-6 animate-sk-fade-up sk-delay-1">
-            Tu ranking ELO.<br />
-            <span className="bg-gradient-to-br from-sk-accent to-sk-purple bg-clip-text text-transparent">Tu legado competitivo.</span>
+            El ecosistema definitivo<br />
+            <span className="bg-gradient-to-br from-sk-accent to-sk-purple bg-clip-text text-transparent">del poker competitivo.</span>
           </h1>
-          <p className="text-sk-lg text-sk-text-2 leading-relaxed max-w-[560px] mx-auto animate-sk-fade-up sk-delay-2">
-            El primer sistema de ranking ELO diseñado para poker. Rastrea tu rendimiento en torneos, compara jugadores y compite en clubes y ligas de todo el mundo.
+          <p className="text-sk-lg text-sk-text-2 leading-relaxed max-w-[600px] mx-auto animate-sk-fade-up sk-delay-2">
+            Mucho más que un ranking. Únete a la élite mundial: explora clubes exclusivos, compite en ligas internacionales, analiza estadísticas avanzadas y forja tu legado en las mesas.
           </p>
           <div className="flex justify-center gap-3 mt-10 flex-wrap animate-sk-fade-up sk-delay-3">
             <Link to="/ranking"><Button variant="accent" size="xl">🏆 Ver Ranking Global</Button></Link>
@@ -451,17 +451,29 @@ export function HomePage() {
           <RevealSection>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
-                { icon:"📊", title:"Ranking ELO Adaptado",       desc:"Sistema de puntuación único que considera buy-in, field size, varianza y rendimiento relativo." },
-                { icon:"📅", title:"Calendario en Vivo",          desc:"Todos los torneos de todos los clubes en un solo lugar. Countdown en vivo y late registration." },
-                { icon:"🏛️", title:"Clubes & Ligas",              desc:"Encuentra clubes por país, sala o tamaño. Únete a ligas con tablas de posiciones y premios." },
-                { icon:"⚔️", title:"Comparador de Jugadores",     desc:"Enfrenta dos jugadores y analiza su historial ELO, torneos en común y rendimiento comparado." },
-                { icon:"🎯", title:"Misiones & Logros",            desc:"Gamificación real: completa misiones, gana XP, desbloquea badges y sube de nivel." },
-                { icon:"🔍", title:"Búsqueda Instantánea",        desc:"Encuentra cualquier jugador, club, liga o torneo al instante mientras escribes." },
+                { bgClass:"sk-feature-ranking", title:"Ranking ELO Adaptado", desc:"Sistema de puntuación único que considera buy-in, field size, varianza y rendimiento relativo." },
+                { bgClass:"sk-feature-calendar", title:"Calendario en Vivo", desc:"Todos los torneos de los clubes en un solo lugar. Countdown en vivo y late registration." },
+                { bgClass:"sk-feature-clubs", title:"Clubes & Ligas", desc:"Encuentra clubes por país o sala. Únete a ligas con tablas de posiciones y premios." },
+                { bgClass:"sk-feature-compare", title:"Comparador de Jugadores", desc:"Enfrenta a dos jugadores y analiza su historial ELO, torneos en común y rendimiento." },
+                { bgClass:"sk-feature-missions", title:"Misiones & Logros", desc:"Gamificación real: completa misiones, gana XP, desbloquea insignias y sube de nivel." },
+                { bgClass:"sk-feature-search", title:"Búsqueda Instantánea", desc:"Encuentra a cualquier jugador, club, liga o torneo al instante mientras escribes." },
               ].map(f => (
-                <div key={f.title} className="p-8 bg-sk-bg-2 border border-sk-border-2 rounded-lg hover:shadow-sk-md hover:-translate-y-0.5 transition-all duration-sk-base">
-                  <div className="w-10 h-10 rounded-md bg-sk-bg-4 flex items-center justify-center text-lg mb-5">{f.icon}</div>
-                  <h3 className="text-sk-md font-bold text-sk-text-1 mb-2">{f.title}</h3>
-                  <p className="text-sk-sm text-sk-text-2 leading-relaxed">{f.desc}</p>
+                <div 
+                  key={f.title} 
+                  className={cn(
+                    "relative group p-8 rounded-xl border border-sk-border-2 transition-all duration-500 ease-out overflow-hidden min-h-[240px] flex flex-col justify-end",
+                    "hover:border-sk-accent/50 hover:shadow-[0_8px_30px_rgba(34,211,238,0.15)] hover:-translate-y-1",
+                    f.bgClass
+                  )}
+                >
+                  {/* Overlay cinemático oscuro para garantizar legibilidad */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-1/95 via-sk-bg-1/80 to-sk-bg-1/20 z-0 group-hover:from-sk-bg-1/90 transition-colors duration-500" />
+                  
+                  {/* Contenido textual */}
+                  <div className="relative z-10 transform group-hover:-translate-y-2 transition-transform duration-500">
+                    <h3 className="text-sk-lg font-extrabold text-sk-text-1 mb-2 tracking-tight drop-shadow-md">{f.title}</h3>
+                    <p className="text-sk-sm text-sk-text-2 leading-relaxed opacity-90 group-hover:opacity-100 transition-opacity duration-500">{f.desc}</p>
+                  </div>
                 </div>
               ))}
             </div>
