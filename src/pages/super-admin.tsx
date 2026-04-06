@@ -32,7 +32,7 @@ import { syncAllUnifiedElos } from "../lib/api/elo-engine";
 // ── Tipos ─────────────────────────────────────────────────
 
 // 👇 AÑADIMOS "missions" A LOS TIPOS DE TABS
-type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners";
+type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners" | "glossary";
 
 // ── Descripción de cada slot de banner ───────────────────
 
@@ -381,6 +381,15 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
     enabled: tab === "scoring",
   });
 
+  const { data: glossaryTerms } = useQuery({
+    queryKey: ["admin-glossary"],
+    queryFn: async () => {
+      const { data } = await supabase.from("glossary_terms").select("*").order("term");
+      return data ?? [];
+    },
+    enabled: tab === "glossary",
+  });
+
   const { data: profiles } = useQuery({
     queryKey: ["admin-profiles"],
     queryFn: async () => {
@@ -523,6 +532,25 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
     { key: "type", label: "Tipo", type: "select" as const, options: [{ value: "simple", label: "Simple" }, { value: "complex", label: "Complex" }] },
   ];
 
+  const glossaryFields = [
+    { key: "term", label: "Término", type: "text" as const, required: true },
+    { key: "slug", label: "Slug", type: "text" as const, required: true, placeholder: "ej: icm-poker" },
+    { key: "short_definition", label: "Definición corta", type: "textarea" as const, required: true },
+    { key: "full_definition", label: "Definición completa", type: "textarea" as const },
+    { key: "category", label: "Categoría", type: "select" as const, required: true, options: [
+      { value: "estrategia", label: "Estrategia" },
+      { value: "torneos", label: "Torneos" },
+      { value: "estadisticas", label: "Estadísticas" },
+      { value: "mental-game", label: "Mental Game" },
+      { value: "jugadores", label: "Jugadores" },
+      { value: "formatos", label: "Formatos" },
+      { value: "plataformas", label: "Plataformas" },
+      { value: "sharkania", label: "Sharkania" },
+    ]},
+    { key: "sort_order", label: "Orden", type: "number" as const },
+    { key: "is_active", label: "Activo", type: "checkbox" as const },
+  ];
+
   const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0);
 
   // 👇 AÑADIMOS LA PESTAÑA DE MISIONES AL ARRAY TABS CON SU BADGE DINÁMICO
@@ -534,6 +562,7 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
     { key: "rooms",     label: "Salas" },
     { key: "scoring",   label: "Scoring" },
     { key: "banners",   label: "Banners" },
+    { key: "glossary",  label: "Glosario", badge: glossaryTerms?.length },
   ];
 
   return (
@@ -874,6 +903,30 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
                   cells: [<span className="font-semibold text-sk-text-1">{s.name}</span>, <Badge variant="accent">{s.type}</Badge>, <span className="text-sk-text-2 text-sk-xs line-clamp-1">{s.description ?? "—"}</span>],
                   onEdit: () => setEntityForm({ table: "scoring_systems", title: "Scoring System", fields: scoringFields, data: s }),
                   onDelete: () => handleDeleteEntity("scoring_systems", s.id, s.name),
+                }))}
+              />
+            </div>
+          )}
+
+          {/* ══ GLOSARIO ══ */}
+          {tab === "glossary" && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-sk-md font-bold text-sk-text-1">Glosario ({glossaryTerms?.length})</h2>
+                <Button variant="accent" size="sm" onClick={() => setEntityForm({ table: "glossary_terms", title: "Término", fields: glossaryFields, data: null })}><Plus size={14} /> Crear</Button>
+              </div>
+              <AdminTable
+                headers={["Término", "Categoría", "Slug", "Activo"]}
+                rows={(glossaryTerms ?? []).map((t: Record<string, unknown>) => ({
+                  id: t.id as string,
+                  cells: [
+                    <span className="font-semibold text-sk-text-1">{t.term as string}</span>,
+                    <Badge variant="accent">{t.category as string}</Badge>,
+                    <span className="font-mono text-sk-xs text-sk-text-2">{t.slug as string}</span>,
+                    (t.is_active as boolean) ? <Badge variant="green">Sí</Badge> : <Badge variant="muted">No</Badge>,
+                  ],
+                  onEdit: () => setEntityForm({ table: "glossary_terms", title: "Término", fields: glossaryFields, data: t }),
+                  onDelete: () => handleDeleteEntity("glossary_terms", t.id as string, t.term as string),
                 }))}
               />
             </div>
