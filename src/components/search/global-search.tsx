@@ -75,13 +75,13 @@ export function GlobalSearch({ variant = "full" }: GlobalSearchProps) {
   }, []);
 
   const handleSelect = (result: SearchResult) => {
-    const route = result.type === "player"
-      ? `/ranking/${result.id}`
-      : result.type === "club"
-        ? `/clubs/${result.id}`
-        : result.type === "league"
-          ? `/leagues/${result.id}`
-          : "/calendar";
+    const identifier = (result as any).slug || result.id;
+    
+    // 👇 Ahora SÍ usamos TYPE_ROUTES para obtener la ruta base automáticamente
+    const basePath = TYPE_ROUTES[result.type];
+    
+    // Armamos la URL final (los torneos van a /calendar general, el resto a su perfil)
+    const route = result.type === "tournament" ? basePath : `${basePath}/${identifier}`;
 
     navigate(route);
     setQuery("");
