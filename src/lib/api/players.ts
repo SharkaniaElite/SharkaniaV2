@@ -42,35 +42,26 @@ export async function getPlayers(
     orderDir = "desc",
   } = filters;
 
-  let query = supabase
-    .from("players")
-    .select(BASE_PLAYER_SELECT, { count: "exact" });
-
-  if (search) {
-    query = query.ilike("nickname", `%${search}%`);
-  }
-
-  if (countryCode) {
-    query = query.eq("country_code", countryCode);
-  }
-
-  if (roomId) {
-    query = query.eq("room_id", roomId);
-  }
-
   const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
 
-  const { data, error, count } = await query
-    .order(orderBy, { ascending: orderDir === "asc" })
-    .range(from, to);
+  // 👇 Llamamos a la función SQL que agrupa los alias y trae el unified_elo
+  const { data, error } = await supabase.rpc("get_unified_ranking", {
+    p_search: search || null,
+    p_country: countryCode || null,
+    p_room: roomId || null,
+    p_order_by: orderBy,
+    p_order_dir: orderDir,
+    p_limit: pageSize,
+    p_offset: from,
+  });
 
   if (error) throw error;
 
-  const total = count ?? 0;
+  // Extraemos el total de jugadores agrupados que viene en la primera fila
+  const total = data && data.length > 0 ? Number(data[0].total_count) : 0;
 
   return {
-    data: (data as PlayerWithRoom[]) ?? [],
+    data: (data as any) ?? [],
     count: total,
     page,
     pageSize,

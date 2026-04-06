@@ -87,14 +87,28 @@ export async function getLeagueStandings(
 ): Promise<LeagueStandingWithPlayer[]> {
   const { data, error } = await supabase
     .from("league_standings")
-    .select("*, players(id, nickname, slug, country_code, elo_rating)")
+    // 👇 Añadimos "profiles(unified_elo)" a la consulta cruzando a través de players
+    .select("*, players(id, nickname, slug, country_code, elo_rating, profiles(unified_elo))")
     .eq("league_id", leagueId)
     .order("total_points", { ascending: false })
-    .order("best_position", { ascending: true }) // 👇 Obliga a que el 5° (E) vaya antes que el 6° (F)
-    .order("tournaments_played", { ascending: false }); // 👇 Por si acaso tienen la misma posición en distintos torneos
+    .order("best_position", { ascending: true })
+    .order("tournaments_played", { ascending: false });
 
   if (error) throw error;
-  return (data as LeagueStandingWithPlayer[]) ?? [];
+
+  // 👇 MAGIA FRONTEND: Interceptamos la respuesta y si el jugador tiene un ELO unificado, 
+  // pisamos el elo_rating normal. Así el componente React de la tabla no se entera del cambio.
+  const standings = (data || []).map((standing: any) => {
+    if (standing.players) {
+      const unifiedElo = standing.players.profiles?.unified_elo;
+      if (unifiedElo !== undefined && unifiedElo !== null) {
+        standing.players.elo_rating = unifiedElo;
+      }
+    }
+    return standing;
+  });
+
+  return standings as LeagueStandingWithPlayer[];
 }
 
 export async function searchLeagues(
