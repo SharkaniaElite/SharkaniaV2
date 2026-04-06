@@ -3,6 +3,7 @@ import { supabase } from "../supabase";
 
 interface PlayerEloData {
   id: string;
+  profile_id?: string | null;
   elo_rating: number;
   elo_peak: number;
   total_tournaments: number;
@@ -103,6 +104,17 @@ export async function calculateElo(tournamentId: string): Promise<{ success: boo
       }).eq("tournament_id", tournamentId).eq("player_id", change.playerId);
     }
 
+    // 👇 MAGIA UNIFICADA: Identificamos qué perfiles reales jugaron y actualizamos su ELO unificado automáticamente
+    const uniqueProfileIds = [...new Set(
+      Array.from(playerMap.values())
+        .map(p => p.profile_id)
+        .filter(Boolean)
+    )];
+
+    for (const pid of uniqueProfileIds) {
+      if (pid) await syncUnifiedEloForProfile(pid);
+    }
+
     await supabase.from("tournaments").update({ results_uploaded: true, status: "completed" }).eq("id", tournamentId);
     return { success: true, message: "ELO calculado" };
   } catch (err) {
@@ -125,4 +137,76 @@ export async function reverseElo(tournamentId: string) {
   }).eq("id", tournamentId);
 
   return { success: true, message: "ELO revertido" };
+}
+
+// ═══════════════════════════════════════════════════
+// SINCRONIZACIÓN DE ELO UNIFICADO (Dato Materializado)
+// ═══════════════════════════════════════════════════
+
+/**
+ * Recalcula y guarda el ELO unificado de un solo perfil. 
+ * Se dispara automáticamente cada vez que un jugador termina un torneo.
+ */
+export async function syncUnifiedEloForProfile(profileId: string) {
+  const { data: players } = await supabase.from("players").select("slug, elo_rating").eq("profile_id", profileId);
+  
+  if (!players || players.length === 0) return;
+  
+  // 👇 Extraemos de forma segura para TypeScript
+  const mainPlayer = players[0];
+  if (!mainPlayer || !mainPlayer.slug) return;
+  
+  const { data: history } = await supabase.rpc("get_unified_elo_history", { p_slug: mainPlayer.slug });
+  
+  let finalElo = Number(mainPlayer.elo_rating);
+  if (history && history.length > 0) {
+    const lastEntry = history[history.length - 1];
+    if (lastEntry) {
+      finalElo = Number(lastEntry.elo_after);
+    }
+  }
+  
+  await supabase.from("profiles").update({ unified_elo: finalElo }).eq("id", profileId);
+}
+
+/**
+ * Script masivo de Backfill (Solo para uso del Super Admin).
+ * Recorre TODOS los perfiles de la base de datos y materializa su ELO real.
+ */
+export async function syncAllUnifiedElos(): Promise<{ success: boolean; message: string }> {
+  try {
+    const { data: profiles, error } = await supabase
+      .from("profiles")
+      .select("id, players!inner(slug, elo_rating)"); // Trae solo perfiles que tienen jugadores
+
+    if (error || !profiles) return { success: false, message: "Error obteniendo perfiles." };
+
+    let updatedCount = 0;
+    for (const p of profiles) {
+      if (!p.players) continue;
+      
+      // 👇 Convertimos a array de forma segura por si Supabase devuelve un objeto singular o un array
+      const playersList = Array.isArray(p.players) ? p.players : [p.players];
+      const mainPlayer = playersList[0];
+      
+      if (!mainPlayer || !mainPlayer.slug) continue;
+      
+      const { data: history } = await supabase.rpc("get_unified_elo_history", { p_slug: mainPlayer.slug });
+      
+      let finalElo = Number(mainPlayer.elo_rating);
+      if (history && history.length > 0) {
+        const lastEntry = history[history.length - 1];
+        if (lastEntry) {
+          finalElo = Number(lastEntry.elo_after);
+        }
+      }
+
+      await supabase.from("profiles").update({ unified_elo: finalElo }).eq("id", p.id);
+      updatedCount++;
+    }
+
+    return { success: true, message: `¡Migración completada! ${updatedCount} perfiles actualizados con ELO real.` };
+  } catch (err) {
+    return { success: false, message: "Error interno en la sincronización." };
+  }
 }

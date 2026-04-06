@@ -27,6 +27,8 @@ import {
 // 👇 IMPORTAMOS EL PANEL DE ADMINISTRACIÓN DE MISIONES
 import { MissionsAdminTab } from "../components/admin/missions-admin-tab";
 
+import { syncAllUnifiedElos } from "../lib/api/elo-engine";
+
 // ── Tipos ─────────────────────────────────────────────────
 
 // 👇 AÑADIMOS "missions" A LOS TIPOS DE TABS
@@ -290,6 +292,21 @@ export function SuperAdminPage() {
   const [bannersSaving, setBannersSaving] = useState(false);
   const [bannersSaved, setBannersSaved]   = useState(false);
   const [bannersLoading, setBannersLoading] = useState(false);
+
+const [isSyncingElo, setIsSyncingElo] = useState(false);
+  
+  const handleSyncElo = async () => {
+    if (!confirm("¿Estás seguro de sincronizar los ELOs de toda la base de datos? Esto materializará el 'unified_elo' para que el ranking sea preciso.")) return;
+    setIsSyncingElo(true);
+    try {
+      const res = await syncAllUnifiedElos();
+      alert(res.message);
+    } catch (e: any) {
+      alert("Error crítico: " + e.message);
+    } finally {
+      setIsSyncingElo(false);
+    }
+  };
 
   const queryClient = useQueryClient();
   const refresh     = () => queryClient.invalidateQueries();
@@ -563,6 +580,28 @@ export function SuperAdminPage() {
                 <StatCard label="Torneos" value={formatNumber(stats?.tournaments ?? 0)} accent="gold" />
                 <StatCard label="Ligas" value={formatNumber(stats?.leagues ?? 0)} />
               </div>
+
+              {/* 👇 NUEVA SECCIÓN: HERRAMIENTAS DE SISTEMA */}
+              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Settings size={16} className="text-sk-accent" />
+                  <h2 className="text-sk-md font-bold text-sk-text-1">Herramientas de Sistema</h2>
+                </div>
+                <p className="text-sk-xs text-sk-text-3 mb-4">Ejecuta rutinas de mantenimiento y sincronización de base de datos. Úsalo con precaución.</p>
+                <div className="flex gap-3 flex-wrap">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleSyncElo}
+                    isLoading={isSyncingElo}
+                    className="border-sk-border-3 hover:border-sk-accent hover:text-sk-accent transition-colors"
+                  >
+                    <RefreshCw size={14} className={isSyncingElo ? "animate-spin" : ""} />
+                    Sincronizar ELOs Unificados (Backfill)
+                  </Button>
+                </div>
+              </div>
+
               {pendingTotal > 0 && (
                 <div className="bg-sk-gold-dim border border-sk-gold/20 rounded-lg p-4 flex items-center gap-3">
                   <AlertCircle size={18} className="text-sk-gold shrink-0" />
