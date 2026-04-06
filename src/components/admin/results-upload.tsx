@@ -19,25 +19,6 @@ import {
   XCircle,
 } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
-
-// ── Types ──
-
-interface ResultRow {
-  position: number;
-  nickname: string;
-  playerId: string;
-  prizeWon: number;
-  leaguePoints: number; 
-  status: "pending" | "found" | "not_found" | "created";
-}
-
-interface ResultsUploadProps {
-  tournament: TournamentWithDetails;
-  isOpen: boolean;
-  onClose: () => void;
-  onComplete: () => void;
-}
-
 import { parseCSVSmart, type CSVValidationError } from "../../lib/csv-parser";
 
 // ── Types ──
