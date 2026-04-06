@@ -15,7 +15,7 @@ interface TournamentHistoryEntry {
     slug: string;
     buy_in: number;
     start_datetime: string;
-    clubs: { id: string; name: string; slug?: string };
+    clubs: { id: string; name: string; slug?: string } | null; // 👈 Le decimos que puede venir nulo
   };
 }
 
@@ -94,12 +94,17 @@ export function TournamentHistoryTable({
                     </Link>
                   </td>
                   <td className="py-3 px-4 border-b border-sk-border-2">
-                    <Link
-                      to={`/clubs/${r.tournaments.clubs.slug ?? r.tournaments.clubs.id}`}
-                      className="text-sk-accent text-sk-xs hover:opacity-80 transition-opacity"
-                    >
-                      {r.tournaments.clubs.name}
-                    </Link>
+                    {/* 👇 Verificamos si existe el club antes de intentar armar el Link */}
+                    {r.tournaments.clubs ? (
+                      <Link
+                        to={`/clubs/${r.tournaments.clubs.slug ?? r.tournaments.clubs.id}`}
+                        className="text-sk-accent text-sk-xs hover:opacity-80 transition-opacity"
+                      >
+                        {r.tournaments.clubs.name}
+                      </Link>
+                    ) : (
+                      <span className="text-sk-text-3 text-sk-xs italic">—</span>
+                    )}
                   </td>
                   <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono text-sk-text-2">
                     {formatCurrency(r.tournaments.buy_in)}
