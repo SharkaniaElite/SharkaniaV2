@@ -101,6 +101,15 @@ export function RegisterPage() {
         whatsapp,
       }, captchaToken);
 
+      // 🛡️ Detectar email duplicado: Supabase retorna user con identities vacío
+      if (result.user && (!result.user.identities || result.user.identities.length === 0)) {
+        setError("Este email ya tiene una cuenta registrada. Inicia sesión para continuar.");
+        setLoading(false);
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
+        return;
+      }
+
       // 📧 INTEGRACIÓN CON MOTOR DE CORREOS (Solo para notificar solicitudes de Club)
       if (result.user && regType === "club") {
         await supabase.from("email_queue").insert({
@@ -117,12 +126,12 @@ export function RegisterPage() {
       }
 
       if (regType === "club" && result.user) {
-        await supabase.from("club_registration_requests").insert({
-          user_id: result.user.id,
-          club_name: clubName,
-          country_code: finalClubCountry,
-          description: clubDescription || null,
-          whatsapp,
+        await supabase.rpc("create_club_registration_request", {
+          p_user_id: result.user.id,
+          p_club_name: clubName,
+          p_country_code: finalClubCountry,
+          p_description: clubDescription || null,
+          p_whatsapp: whatsapp,
         });
         setSuccess("¡Cuenta creada! Tu solicitud de club ha sido enviada. Un administrador la revisará pronto.");
       } else if (result.session?.user) {

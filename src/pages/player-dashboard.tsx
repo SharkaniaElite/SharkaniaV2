@@ -14,7 +14,8 @@ import { useQuery } from "@tanstack/react-query";
 import { PlayerStatsGrid } from "../components/players/player-stats-grid";
 import { EloChart } from "../components/players/elo-chart";
 import { TournamentHistoryTable } from "../components/players/tournament-history-table";
-import { usePlayer, usePlayerEloHistory, usePlayerTournamentResults } from "../hooks/use-players";
+import { usePlayer, usePlayerEloHistory, usePlayerTournamentResults, useUnifiedEloHistory, useUnifiedTournamentResults } from "../hooks/use-players";
+import { getUnifiedPlayerStats } from "../lib/api/players";
 import { supabase } from "../lib/supabase";
 import { SEOHead } from "../components/seo/seo-head";
 import { SharkCoin } from "../components/ui/shark-coin";
@@ -55,7 +56,7 @@ export function PlayerDashboardPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("players")
-        .select("id, nickname, elo_rating, poker_rooms(name)")
+        .select("id, nickname, slug, elo_rating, poker_rooms(name)")
         .eq("profile_id", user!.id);
       return data ?? [];
     },
@@ -64,9 +65,60 @@ export function PlayerDashboardPage() {
 
   // ── Datos completos para el Perfil Privado ──
   const primaryPlayerId = linkedPlayers?.[0]?.id;
-  const { data: fullPlayer } = usePlayer(primaryPlayerId || ""); 
-  const { data: eloHistory, isLoading: isLoadingElo } = usePlayerEloHistory(primaryPlayerId || "");
-  const { data: tournamentResults, isLoading: isLoadingResults } = usePlayerTournamentResults(primaryPlayerId || "");
+  const primaryPlayerSlug = linkedPlayers?.[0]?.slug;
+  const hasMultipleNicknames = (linkedPlayers ?? []).length > 1;
+  const { data: fullPlayer } = usePlayer(primaryPlayerId || "");
+
+  // Stats unificadas (solo se usa si tiene múltiples nicknames)
+  const { data: unifiedStats } = useQuery({
+    queryKey: ["dashboard-unified-stats", primaryPlayerSlug],
+    queryFn: () => getUnifiedPlayerStats(primaryPlayerSlug!),
+    enabled: !!primaryPlayerSlug && hasMultipleNicknames,
+  });
+
+  // ELO History: unificado si tiene aliases, individual si no
+  const { data: unifiedElo, isLoading: unifiedEloLoading } = useUnifiedEloHistory(
+    hasMultipleNicknames ? primaryPlayerSlug : undefined
+  );
+  const { data: individualElo, isLoading: individualEloLoading } = usePlayerEloHistory(
+    !hasMultipleNicknames ? primaryPlayerId || "" : undefined
+  );
+  const eloHistory = hasMultipleNicknames
+    ? (unifiedElo ?? []).map((e) => ({
+        id: `${e.recorded_at}-${e.nickname}`,
+        player_id: "",
+        tournament_id: "",
+        elo_before: Number(e.elo_after) - Number(e.elo_change),
+        elo_after: Number(e.elo_after),
+        elo_change: Number(e.elo_change),
+        recorded_at: e.recorded_at,
+      }))
+    : individualElo ?? [];
+  const isLoadingElo = hasMultipleNicknames ? unifiedEloLoading : individualEloLoading;
+
+  // Tournament Results: unificado si tiene aliases, individual si no
+  const { data: unifiedResults, isLoading: unifiedResultsLoading } = useUnifiedTournamentResults(
+    hasMultipleNicknames ? user?.id : undefined
+  );
+  const { data: individualResults, isLoading: individualResultsLoading } = usePlayerTournamentResults(
+    !hasMultipleNicknames ? primaryPlayerId || "" : undefined
+  );
+  const tournamentResults = hasMultipleNicknames ? unifiedResults ?? [] : individualResults ?? [];
+  const isLoadingResults = hasMultipleNicknames ? unifiedResultsLoading : individualResultsLoading;
+
+  // Player con stats unificadas para el StatsGrid
+  const displayPlayer = hasMultipleNicknames && fullPlayer && unifiedStats
+    ? {
+        ...fullPlayer,
+        elo_rating: eloHistory.length > 0 ? eloHistory[eloHistory.length - 1]!.elo_after : fullPlayer.elo_rating,
+        elo_peak: eloHistory.length > 0 ? Math.max(...eloHistory.map((e) => Number(e.elo_after))) : fullPlayer.elo_peak,
+        total_tournaments: unifiedStats.total_tournaments,
+        total_cashes: unifiedStats.total_cashes,
+        total_wins: unifiedStats.total_wins,
+        total_prize_won: unifiedStats.total_prize_won,
+        total_buy_ins_spent: unifiedStats.total_buy_ins_spent,
+      }
+    : fullPlayer;
 
   if (!profile || !user) {
     return <PageShell><div className="pt-20 min-h-screen flex items-center justify-center"><Spinner size="lg" /></div></PageShell>;
@@ -297,7 +349,7 @@ export function PlayerDashboardPage() {
                 </div>
                 <Badge variant="green">VIP Gratis</Badge>
               </div>
-              <PlayerStatsGrid player={fullPlayer} hasAccess={true} />
+              <PlayerStatsGrid player={displayPlayer ?? fullPlayer} hasAccess={true} />
               <EloChart history={eloHistory ?? []} isLoading={isLoadingElo} />
               <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6">
                 <h3 className="text-sk-md font-bold text-sk-text-1 mb-4 flex items-center gap-2">🎯 Mi Historial de Torneos</h3>

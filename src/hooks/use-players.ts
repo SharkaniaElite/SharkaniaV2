@@ -7,6 +7,9 @@ import {
   getPlayerEloHistory,
   getPlayerTournamentResults,
   searchPlayers,
+  getUnifiedPlayerStats,
+  getUnifiedEloHistory,
+  getUnifiedTournamentResults,
 } from "../lib/api/players";
 
 interface UsePlayersOptions {
@@ -99,5 +102,31 @@ export function useSearchPlayers(query: string, limit: number = 10) {
 
     // 🔥 búsqueda debe ser rápida, poco cache
     staleTime: 1000 * 30,
+  });
+}
+export function useUnifiedPlayerStats(slug: string | undefined) {
+  return useQuery({
+    queryKey: ["unified-stats", slug],
+    queryFn: () => getUnifiedPlayerStats(slug!),
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useUnifiedEloHistory(slug: string | undefined) {
+  return useQuery({
+    queryKey: ["unified-elo-history", slug],
+    queryFn: () => getUnifiedEloHistory(slug!),
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useUnifiedTournamentResults(profileId: string | undefined) {
+  return useQuery({
+    queryKey: ["unified-tournament-results", profileId],
+    queryFn: () => getUnifiedTournamentResults(profileId!),
+    enabled: !!profileId,
+    staleTime: 1000 * 60 * 2,
   });
 }

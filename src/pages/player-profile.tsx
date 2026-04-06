@@ -12,29 +12,92 @@ import {
   usePlayerBySlug,
   usePlayerEloHistory,
   usePlayerTournamentResults,
+  useUnifiedPlayerStats,
+  useUnifiedEloHistory,
+  useUnifiedTournamentResults,
 } from "../hooks/use-players";
 import { getCountryName } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { formatElo } from "../lib/format";
-import { ArrowLeft, Info, ShieldCheck } from "lucide-react"; // 👈 Importamos ShieldCheck
+import { ArrowLeft, Info, ShieldCheck, Link2 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
-import { useAuthStore } from "../stores/auth-store"; // 👈 Importamos la tienda de autenticación
+import { useAuthStore } from "../stores/auth-store";
 
 export function PlayerProfilePage() {
   const { playerSlug } = useParams<{ playerSlug: string }>();
   const topRef = useRef<HTMLDivElement>(null);
-  
+
   // 🔑 Obtenemos el perfil del usuario activo para ver sus privilegios
   const userProfile = useAuthStore((s) => s.profile);
   const isSuperAdmin = userProfile?.role === "super_admin";
 
+  // Datos del player individual
   const { data: player, isLoading, error } = usePlayerBySlug(playerSlug);
-  const { data: eloHistory, isLoading: eloLoading } =
-    usePlayerEloHistory(player?.id);
-  const { data: tournamentResults, isLoading: resultsLoading } =
-    usePlayerTournamentResults(player?.id);
 
-  // Scroll to top when playerId changes
+  // Datos unificados (solo retorna algo si tiene aliases vinculados)
+  const { data: unifiedStats } = useUnifiedPlayerStats(playerSlug);
+
+  // Decidir si usar historial unificado o individual
+  const hasAliases = !!unifiedStats && unifiedStats.alias_count > 1;
+
+  // ELO History: unificado si tiene aliases, individual si no
+  const { data: unifiedEloHistory, isLoading: unifiedEloLoading } =
+    useUnifiedEloHistory(hasAliases ? playerSlug : undefined);
+  const { data: individualEloHistory, isLoading: individualEloLoading } =
+    usePlayerEloHistory(!hasAliases ? player?.id : undefined);
+
+  // Tournament Results: unificado si tiene aliases, individual si no
+  const { data: unifiedResults, isLoading: unifiedResultsLoading } =
+    useUnifiedTournamentResults(
+      hasAliases ? unifiedStats?.profile_id : undefined
+    );
+  const { data: individualResults, isLoading: individualResultsLoading } =
+    usePlayerTournamentResults(!hasAliases ? player?.id : undefined);
+
+  // Seleccionar los datos correctos
+  const eloHistory = hasAliases
+    ? (unifiedEloHistory ?? []).map((e) => ({
+        id: `${e.recorded_at}-${e.nickname}`,
+        player_id: "",
+        tournament_id: "",
+        elo_before: Number(e.elo_after) - Number(e.elo_change),
+        elo_after: Number(e.elo_after),
+        elo_change: Number(e.elo_change),
+        recorded_at: e.recorded_at,
+      }))
+    : individualEloHistory ?? [];
+
+  const eloLoading = hasAliases ? unifiedEloLoading : individualEloLoading;
+
+  const tournamentResults = hasAliases
+    ? unifiedResults ?? []
+    : individualResults ?? [];
+  const resultsLoading = hasAliases
+    ? unifiedResultsLoading
+    : individualResultsLoading;
+
+  // Stats del player: unificadas o individuales
+  const displayStats = hasAliases && player
+    ? {
+        ...player,
+        elo_rating:
+          eloHistory.length > 0
+            ? eloHistory[eloHistory.length - 1]!.elo_after
+            : player.elo_rating,
+        total_tournaments: unifiedStats.total_tournaments,
+        total_cashes: unifiedStats.total_cashes,
+        total_wins: unifiedStats.total_wins,
+        total_prize_won: unifiedStats.total_prize_won,
+        total_buy_ins_spent: unifiedStats.total_buy_ins_spent,
+      }
+    : player;
+
+  // ELO peak unificado
+  const unifiedEloPeak = hasAliases && eloHistory.length > 0
+    ? Math.max(...eloHistory.map((e) => Number(e.elo_after)))
+    : undefined;
+
+  // Scroll to top when playerSlug changes
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     document.documentElement.scrollTop = 0;
@@ -48,7 +111,10 @@ export function PlayerProfilePage() {
   if (isLoading) {
     return (
       <PageShell>
-        <div ref={topRef} className="pt-20 min-h-screen flex items-center justify-center">
+        <div
+          ref={topRef}
+          className="pt-20 min-h-screen flex items-center justify-center"
+        >
           <Spinner size="lg" />
         </div>
       </PageShell>
@@ -58,7 +124,10 @@ export function PlayerProfilePage() {
   if (error || !player) {
     return (
       <PageShell>
-        <div ref={topRef} className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4">
+        <div
+          ref={topRef}
+          className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4"
+        >
           <span className="text-5xl">🃏</span>
           <h1 className="text-sk-2xl font-bold text-sk-text-1">
             Jugador no encontrado
@@ -77,16 +146,22 @@ export function PlayerProfilePage() {
     );
   }
 
-  const profileData = (player as any).profiles;
+  const profileData = (player as unknown as Record<string, unknown>).profiles as
+    | { avatar_url: string | null; display_name: string | null }
+    | undefined;
   const avatarUrl = profileData?.avatar_url ?? null;
   const displayName = profileData?.display_name ?? null;
   const cleanNickname = player.nickname.replace(/^\[DEMO\]\s*/, "");
+
+  // ELO a mostrar: unificado o individual
+  const displayElo = displayStats?.elo_rating ?? player.elo_rating;
+  const displayEloPeak = unifiedEloPeak ?? player.elo_peak;
 
   return (
     <PageShell>
       <SEOHead
         title={`${cleanNickname} — Perfil`}
-        description={`Perfil de ${cleanNickname}. ELO ${Math.round(Number(player.elo_rating)).toLocaleString()}, ${player.total_tournaments} torneos. ${getCountryName(player.country_code)}.`}
+        description={`Perfil de ${cleanNickname}. ELO ${Math.round(Number(displayElo)).toLocaleString()}, ${displayStats?.total_tournaments ?? player.total_tournaments} torneos. ${getCountryName(player.country_code)}.`}
         path={`/ranking/${playerSlug}`}
       />
       <div ref={topRef} className="pt-20 pb-16">
@@ -132,17 +207,47 @@ export function PlayerProfilePage() {
                     </span>
                   )}
                 </div>
+
+                {/* Badge de nicknames vinculados */}
+                {hasAliases && (
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sk-accent-dim text-sk-accent text-[11px] font-semibold">
+                      <Link2 size={11} />
+                      {unifiedStats.alias_count} nicknames vinculados
+                    </span>
+                    {unifiedStats.aliases.map((alias) => (
+                      <Link
+                        key={alias.player_id}
+                        to={`/ranking/${alias.slug}`}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sk-bg-4 border border-sk-border-2 text-[10px] font-mono font-semibold text-sk-text-2 hover:text-sk-accent hover:border-sk-accent/30 transition-all"
+                      >
+                        {alias.nickname}
+                        <span className="text-sk-text-4">
+                          ({alias.room_name})
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="text-right">
                 <div className="font-mono text-sk-3xl font-extrabold text-sk-accent tracking-tight leading-none">
-                  {formatElo(player.elo_rating)}
+                  {formatElo(displayElo)}
                 </div>
-                <Link 
-                  to="/sistema-elo" 
+                {hasAliases && (
+                  <span className="text-[10px] font-mono text-sk-accent/60 block mt-0.5">
+                    ELO UNIFICADO
+                  </span>
+                )}
+                <Link
+                  to="/sistema-elo"
                   className="inline-flex items-center justify-end gap-1.5 font-mono text-[11px] font-semibold text-sk-text-3 hover:text-sk-accent transition-colors mt-1.5 group"
                 >
-                  <Info size={12} className="group-hover:scale-110 transition-transform" />
+                  <Info
+                    size={12}
+                    className="group-hover:scale-110 transition-transform"
+                  />
                   ¿Qué significa esto?
                 </Link>
               </div>
@@ -151,25 +256,39 @@ export function PlayerProfilePage() {
 
           {/* Stats Grid con indicador de ByPass para SuperAdmin */}
           <div className="mb-6 relative">
-             {isSuperAdmin && (
+            {isSuperAdmin && (
               <div className="absolute -top-3 right-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-sk-bg-0 border border-sk-border-2 text-sk-text-2 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm pointer-events-none">
                 <ShieldCheck size={10} className="text-sk-accent" />
                 Admin Bypass Activo
               </div>
             )}
-            {/* 👑 Si es super_admin, le pasamos hasAccess en true automáticamente */}
-            <PlayerStatsGrid player={player} hasAccess={isSuperAdmin} />
+            <PlayerStatsGrid
+              player={
+                displayStats
+                  ? {
+                      ...displayStats,
+                      elo_peak: displayEloPeak,
+                    }
+                  : player
+              }
+              hasAccess={isSuperAdmin}
+            />
           </div>
 
           {/* ELO Chart */}
           <div className="mb-6">
-            <EloChart history={eloHistory ?? []} isLoading={eloLoading} />
+            {hasAliases && (
+              <p className="text-[11px] font-mono text-sk-accent/60 mb-2">
+                📈 Gráfica de ELO unificada — combina{" "}
+                {unifiedStats.aliases.map((a) => a.nickname).join(" + ")}
+              </p>
+            )}
+            <EloChart history={eloHistory} isLoading={eloLoading} />
           </div>
 
           {/* Tournament History */}
           <div className="relative">
-             {/* Opcional: Reutilizamos el badge para que sepas que la tabla también está desbloqueada por ser admin */}
-             {isSuperAdmin && (
+            {isSuperAdmin && (
               <div className="absolute top-0 right-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-sk-bg-0 border border-sk-border-2 text-sk-text-2 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm pointer-events-none">
                 <ShieldCheck size={10} className="text-sk-accent" />
                 Admin Bypass Activo
@@ -177,11 +296,16 @@ export function PlayerProfilePage() {
             )}
             <h3 className="text-sk-md font-bold text-sk-text-1 mb-4">
               🎯 Historial de Torneos
+              {hasAliases && (
+                <span className="text-sk-xs text-sk-text-3 font-normal ml-2">
+                  ({unifiedStats.total_tournaments} torneos combinados)
+                </span>
+              )}
             </h3>
             <TournamentHistoryTable
-              results={(tournamentResults as any) ?? []}
+              results={tournamentResults as never[]}
               isLoading={resultsLoading}
-              hasAccess={isSuperAdmin} // 👈 AQUÍ LE PASAMOS LA LLAVE MAESTRA
+              hasAccess={isSuperAdmin}
             />
           </div>
         </div>
