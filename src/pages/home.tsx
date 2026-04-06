@@ -16,7 +16,7 @@ import { getClubs } from "../lib/api/clubs";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
 import { supabase } from "../lib/supabase";
 import { FlagIcon } from "../components/ui/flag-icon";
-import { Trophy, CalendarDays } from "lucide-react"; // 👈 Añade esto arriba
+import { Trophy, CalendarDays, Settings, LineChart, Globe, Building } from "lucide-react";
 import { format } from "date-fns";
 import type { PlayerWithRoom, ClubWithRooms, TournamentWithDetails } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
@@ -786,29 +786,72 @@ export function HomePage() {
       </section>
 
       {/* ══ FOR CLUBS ══ */}
-      <section className="py-20 bg-sk-bg-0">
-        <div className="max-w-[1200px] mx-auto px-6">
+      <section className="py-24 bg-sk-bg-0 relative overflow-hidden">
+        {/* Luz de ambiente de fondo */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[300px] bg-sk-accent/5 blur-[120px] rounded-full pointer-events-none" />
+
+        <div className="max-w-[1200px] mx-auto px-6 relative z-10">
           <RevealSection>
             <SectionHeader overline="Para Clubes & Organizadores" title="Haz crecer tu club con Sharkania"
               desc="Herramientas profesionales para gestionar tu club, crear ligas y atraer jugadores." />
           </RevealSection>
+          
           <RevealSection>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
-                { icon:"🎛️", title:"Panel de Administración", desc:"Crea y gestiona torneos, sube resultados y configura ligas desde un dashboard intuitivo." },
-                { icon:"📈", title:"Ranking Personalizable",   desc:"Crea sistemas de puntos propios. Simple o complejo — tú decides." },
-                { icon:"🌍", title:"Visibilidad Global",        desc:"Tu club aparece en el calendario global. Jugadores de todo el mundo pueden encontrarte." },
+                { 
+                  icon: <Settings className="text-sk-accent" size={24} />, 
+                  title: "Panel de Administración", 
+                  desc: "Crea y gestiona torneos, sube resultados y configura ligas desde un dashboard intuitivo.",
+                  bgClass: "sk-club-admin" 
+                },
+                { 
+                  icon: <LineChart className="text-sk-gold" size={24} />, 
+                  title: "Ranking Personalizable",   
+                  desc: "Crea sistemas de puntos propios. Simple o complejo — tú decides.",
+                  bgClass: "sk-club-ranking" 
+                },
+                { 
+                  icon: <Globe className="text-sk-purple" size={24} />, 
+                  title: "Visibilidad Global",        
+                  desc: "Tu club aparece en el calendario global. Jugadores de todo el mundo pueden encontrarte.",
+                  bgClass: "sk-club-global" 
+                },
               ].map(f => (
-                <div key={f.title} className="p-8 bg-sk-bg-2 border border-sk-border-2 rounded-lg hover:shadow-sk-md hover:-translate-y-0.5 transition-all duration-sk-base">
-                  <div className="w-10 h-10 rounded-md bg-sk-bg-4 flex items-center justify-center text-lg mb-5">{f.icon}</div>
-                  <h3 className="text-sk-md font-bold text-sk-text-1 mb-2">{f.title}</h3>
-                  <p className="text-sk-sm text-sk-text-2 leading-relaxed">{f.desc}</p>
+                // 👇 La clase de la imagen ahora va en el contenedor principal, igual que en Features
+                <div key={f.title} className={cn(
+  "group relative overflow-hidden rounded-2xl border border-sk-border-2 min-h-[320px] flex flex-col justify-end p-8 transition-all duration-500 hover:border-sk-accent/40 hover:shadow-[0_8px_30px_rgba(34,211,238,0.12)] hover:-translate-y-2",
+  f.bgClass
+)}>
+                  
+                  {/* 👇 OVERLAY DEGRADADO (Cinemático y claro, idéntico a las Features) */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-1/95 via-sk-bg-1/80 to-sk-bg-1/20 z-0 group-hover:from-sk-bg-1/90 transition-colors duration-500" />
+
+                  {/* CONTENIDO TEXTUAL */}
+                  <div className="relative z-10 transform group-hover:-translate-y-2 transition-transform duration-500">
+                    <div className="w-12 h-12 rounded-xl bg-sk-bg-4/80 backdrop-blur-sm border border-sk-border-2 flex items-center justify-center mb-6 shadow-lg group-hover:border-sk-accent/50 group-hover:bg-sk-accent/10 transition-colors duration-500">
+                      {f.icon}
+                    </div>
+                    <h3 className="text-sk-lg font-extrabold text-sk-text-1 mb-3 tracking-tight group-hover:text-sk-accent transition-colors duration-300">{f.title}</h3>
+                    <p className="text-sk-sm text-sk-text-2 leading-relaxed opacity-90 group-hover:opacity-100 transition-opacity duration-500">{f.desc}</p>
+                  </div>
                 </div>
               ))}
             </div>
           </RevealSection>
-          <RevealSection className="text-center mt-8">
-            <Link to="/register"><Button variant="primary" size="xl">🏛️ Registrar mi Club</Button></Link>
+
+          <RevealSection className="flex justify-center mt-14">
+            {/* BOTÓN ULTRA MODERNO (Con efecto Neon Underglow y sin emojis) */}
+            <Link 
+              to="/register" 
+              className="relative inline-flex items-center justify-center gap-3 px-10 py-5 bg-sk-bg-1 border border-sk-border-2 rounded-2xl font-extrabold text-sk-md text-sk-text-1 overflow-hidden group transition-all duration-300 hover:border-sk-accent hover:text-sk-bg-0 hover:bg-sk-accent hover:shadow-[0_0_40px_rgba(34,211,238,0.4)] hover:-translate-y-1"
+            >
+              <Building className="text-sk-text-3 group-hover:text-sk-bg-0 transition-colors" size={22} />
+              <span className="relative z-10 tracking-wide">Registrar mi Club</span>
+              
+              {/* Brillo interno que cruza el botón al pasar el mouse */}
+              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out" />
+            </Link>
           </RevealSection>
         </div>
       </section>
@@ -823,13 +866,15 @@ export function HomePage() {
           </div>
           <h2 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight mb-3">Empieza a construir tu legado</h2>
           <p className="text-sk-md text-sk-text-2 mb-8">
-            Únete a miles de jugadores que ya están rankeados en Sharkania. Gratis para siempre. Premium para los que quieren más.
+            Únete a miles de jugadores rankeados. Completa misiones, gana <span className="text-sk-accent font-bold">Shark Coins</span> y desbloquea herramientas tácticas en La Bóveda. Tu dedicación financia tu progreso.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
             <Link to="/register"><Button variant="accent" size="xl">Crear cuenta gratis</Button></Link>
             <Link to="/register"><Button variant="secondary" size="xl">Registrar mi club</Button></Link>
           </div>
-          <p className="mt-4 text-[11px] text-sk-text-3">No se requiere tarjeta de crédito · Gratis para siempre · Setup en 2 minutos</p>
+          <p className="mt-5 text-[10px] text-sk-text-3 font-mono uppercase tracking-widest">
+            Economía meritocrática · Cero Pay-to-win · Setup en 2 minutos
+          </p>
         </RevealSection>
       </section>
 

@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom"; // 👈 Añadido useLocation
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
 import { ProductCard } from "../components/shop/product-card";
 import { useShopProducts } from "../hooks/use-shop";
 import { useAuthStore } from "../stores/auth-store";
 import { SkeletonCard } from "../components/ui/skeleton";
-import { Link } from "react-router-dom";
 import { Pickaxe, Lock } from "lucide-react"; 
 import { SharkCoin } from "../components/ui/shark-coin"; 
 import type { ProductCategory } from "../types";
@@ -24,6 +24,35 @@ export function ShopPage() {
   );
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const profile = useAuthStore((s) => s.profile);
+  const location = useLocation(); // 👈 Hook para leer el #hash de la URL
+
+  // 🪄 EFECTO DE MAGIA: Scroll y Destello (Highlight)
+  useEffect(() => {
+    if (products && products.length > 0 && location.hash === "#stats-espia") {
+      // Pequeño timeout para asegurar que React ya pintó las tarjetas
+      setTimeout(() => {
+        const el = document.getElementById("stats-espia");
+        if (el) {
+          // 1. Scroll suave hacia la tarjeta
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          
+          // 2. Le inyectamos clases de destello (neón cyan)
+          el.classList.add(
+            "ring-4", "ring-sk-accent", "ring-offset-4", "ring-offset-sk-bg-0", 
+            "shadow-[0_0_40px_rgba(34,211,238,0.5)]", "scale-[1.02]", "z-10"
+          );
+          
+          // 3. Apagamos el destello suavemente después de 2.5 segundos
+          setTimeout(() => {
+            el.classList.remove(
+              "ring-4", "ring-sk-accent", "ring-offset-4", "ring-offset-sk-bg-0", 
+              "shadow-[0_0_40px_rgba(34,211,238,0.5)]", "scale-[1.02]", "z-10"
+            );
+          }, 2500);
+        }
+      }, 300);
+    }
+  }, [products, location.hash]);
 
   return (
     <PageShell>
@@ -60,7 +89,6 @@ export function ShopPage() {
                     </span>
                   </div>
                   
-                  {/* Botón de Minería que redirige al Blog */}
                   <Link
                     to="/blog"
                     className="flex items-center gap-2 px-6 py-3.5 bg-sk-bg-1 border border-sk-accent/30 rounded-xl text-sk-sm font-bold text-sk-accent hover:bg-sk-accent hover:text-sk-bg-0 transition-all shadow-[0_0_15px_rgba(0,255,204,0.1)] hover:shadow-[0_0_20px_rgba(0,255,204,0.3)]"
@@ -108,9 +136,20 @@ export function ShopPage() {
             </div>
           ) : products && products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              {products.map((product) => {
+                // 👇 Detectamos cuál es la tarjeta "Stats Espía" sin importar su ID en BD
+                const isStatsEspia = (product as any).name?.toLowerCase().includes("espía") || (product as any).title?.toLowerCase().includes("espía");
+                
+                return (
+                  <div 
+                    key={product.id} 
+                    id={isStatsEspia ? "stats-espia" : `product-${product.id}`}
+                    className="transition-all duration-700 ease-in-out scroll-mt-24 rounded-2xl relative"
+                  >
+                    <ProductCard product={product} />
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-20 bg-sk-bg-2 border border-sk-border-2 rounded-2xl">

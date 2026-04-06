@@ -286,3 +286,26 @@ body::before {
 .group:hover.sk-comparator-bg {
   background-size: 102%; /* Un zoom in mucho más suave y elegante para el comparador */
 }
+/* ══ IMÁGENES DE LA SECCIÓN CLUBES (HOME) ══ */
+.sk-club-admin {
+  background-image: url('/bg/club-admin.webp');
+  background-size: cover;
+  background-position: center;
+}
+
+.sk-club-ranking {
+  background-image: url('/bg/club-ranking.webp');
+  background-size: cover;
+  background-position: center;
+}
+
+.sk-club-global {
+  background-image: url('/bg/club-global.webp');
+  background-size: cover;
+  background-position: center;
+}
+.group:hover.sk-club-admin,
+.group:hover.sk-club-ranking,
+.group:hover.sk-club-global {
+  background-size: 105%;
+}

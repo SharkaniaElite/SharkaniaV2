@@ -158,11 +158,20 @@ export function TournamentHistoryTable({
 
       {/* Overlay con gradiente y botón si no tiene acceso */}
       {!hasAccess && results.length > 2 && (
-        <div className="absolute bottom-0 left-0 right-0 h-[140px] bg-gradient-to-t from-sk-bg-2 via-sk-bg-2/80 to-transparent flex items-end justify-center pb-6">
-          <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-sk-bg-0 border border-sk-border-3 text-sk-sm font-bold text-sk-text-1 shadow-lg">
-            <Lock size={14} className="text-sk-accent" />
-            Historial protegido
-          </div>
+        <div className="absolute bottom-0 left-0 right-0 h-[180px] bg-gradient-to-t from-sk-bg-2 via-sk-bg-2/95 to-transparent flex items-end justify-center pb-8 z-10">
+          <Link 
+            to="/shop#stats-espia"
+            className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 px-6 py-3.5 rounded-full bg-sk-bg-0 border border-sk-border-3 shadow-xl hover:border-sk-accent/60 hover:shadow-[0_0_25px_rgba(34,211,238,0.15)] transition-all duration-300 group cursor-pointer"
+          >
+            <div className="flex items-center gap-2 text-sk-sm font-bold text-sk-text-1 group-hover:text-sk-accent transition-colors">
+              <Lock size={15} className="text-sk-accent" />
+              Historial completo bloqueado
+            </div>
+            <div className="hidden sm:block w-1.5 h-1.5 rounded-full bg-sk-border-3" />
+            <div className="text-[11px] sm:text-xs text-sk-text-3">
+              Activa <span className="text-sk-text-1 font-semibold">Stats Espía</span> por 100 🦈 /mes — <span className="text-sk-text-1 font-bold group-hover:underline">Ver Tienda</span>
+            </div>
+          </Link>
         </div>
       )}
     </div>
