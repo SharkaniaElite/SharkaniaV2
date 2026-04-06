@@ -50,6 +50,7 @@ async function resolvePlayer(
     .from("players")
     .select("id, nickname")
     .ilike("nickname", nickname.trim())
+    .eq("room_id", roomId)
     .limit(1);
 
   if (existing && existing.length > 0 && existing[0]) {
