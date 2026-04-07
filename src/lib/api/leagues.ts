@@ -24,7 +24,7 @@ export async function getLeagues(): Promise<LeagueWithClubs[]> {
   const { data, error } = await supabase
     .from("leagues")
     .select(
-      "*, league_clubs(is_primary, clubs(id, name, country_code, slug)), league_rooms(poker_rooms(id, name))"
+      "*, league_clubs(is_primary, clubs(id, name, country_code, slug, banner_url)), league_rooms(poker_rooms(id, name))"
     )
     .order("start_date", { ascending: false });
 
@@ -43,7 +43,7 @@ export async function getLeagueById(
   const { data, error } = await supabase
     .from("leagues")
     .select(
-      "*, league_clubs(is_primary, clubs(id, name, country_code, slug)), league_rooms(poker_rooms(id, name))"
+      "*, league_clubs(is_primary, clubs(id, name, country_code, slug, banner_url)), league_rooms(poker_rooms(id, name))"
     )
     .eq("id", id)
     .single();
@@ -66,7 +66,7 @@ export async function getLeagueBySlug(
   const { data, error } = await supabase
     .from("leagues")
     .select(
-      "*, league_clubs(is_primary, clubs(id, name, country_code, slug)), league_rooms(poker_rooms(id, name))"
+      "*, league_clubs(is_primary, clubs(id, name, country_code, slug, banner_url)), league_rooms(poker_rooms(id, name))"
     )
     .eq("slug", slug)
     .single();
