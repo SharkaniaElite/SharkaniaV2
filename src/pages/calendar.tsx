@@ -5,7 +5,6 @@ import { PageShell } from "../components/layout/page-shell";
 import { TournamentCard } from "../components/calendar/tournament-card";
 import { TournamentDetailModal } from "../components/calendar/tournament-detail-modal";
 import { Spinner } from "../components/ui/spinner";
-import { EmptyState } from "../components/ui/empty-state";
 import { Button } from "../components/ui/button";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { useUpcomingTournaments, useCompletedTournaments } from "../hooks/use-tournaments";
@@ -16,6 +15,7 @@ import { format } from "date-fns";
 import { getCountryName } from "../lib/countries";
 import type { TournamentWithDetails } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
+import { Building2, Swords, CalendarOff, History } from "lucide-react"; // 👈 Nuevos iconos
 
 
 type TabKey = "upcoming" | "history";
@@ -107,45 +107,93 @@ export function CalendarPage() {
 />
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
-          {/* Header */}
-          <div className="mb-8">
-            <p className="font-mono text-[11px] font-bold tracking-[0.08em] uppercase text-sk-accent mb-3">
-              Calendario de Torneos
-            </p>
-            <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1 mb-2">
-              📅 Torneos
-            </h1>
-            <p className="text-sk-base text-sk-text-2">
-              {tab === "upcoming"
-                ? `${upcomingFiltered.length} torneos próximos${liveCount > 0 ? ` · ${liveCount} en vivo` : ""}`
-                : `${historyTotal.toLocaleString("es")} torneos completados`}
-            </p>
+          {/* ══ HEADER: LIVE DATA CORE ══ */}
+          <div className="mb-8 relative">
+            {/* Luz de ambiente holográfica */}
+            <div className="absolute -top-10 -left-10 w-40 h-40 bg-sk-accent/10 blur-[50px] rounded-full pointer-events-none" />
+
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 relative z-10">
+              <div>
+                {/* 1. Indicador de Radar en Vivo */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="relative flex items-center justify-center w-4 h-4">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-sk-accent opacity-30 animate-ping" />
+                    <div className="relative w-2 h-2 rounded-full bg-sk-accent shadow-[0_0_12px_rgba(34,211,238,1)]" />
+                  </div>
+                  <p className="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-sk-accent">
+                    Red de Torneos Activa
+                  </p>
+                </div>
+
+                {/* 2. Título Metálico Holográfico */}
+                <h1 className="text-sk-4xl md:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-3">
+                  Calendario Global
+                </h1>
+                
+                {/* 3. Subtítulo Técnico */}
+                <p className="text-sk-base text-sk-text-2">
+                  <span className="font-mono text-sk-text-1">
+                    {tab === "upcoming" ? upcomingFiltered.length : historyTotal.toLocaleString("es")}
+                  </span> torneos {tab === "upcoming" ? "programados en la matriz" : "registrados en el archivo"}.
+                  
+                  {liveCount > 0 && tab === "upcoming" && (
+                    <span className="ml-3 font-mono text-[11px] text-sk-green animate-pulse uppercase tracking-widest">
+                      [ {liveCount} EN VIVO ]
+                    </span>
+                  )}
+                  {(loadingUpcoming || loadingHistory) && (
+                    <span className="ml-3 font-mono text-[11px] text-sk-accent animate-pulse uppercase tracking-widest">
+                      [ Sincronizando agenda... ]
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* 4. Divisor Arquitectónico Cyberpunk */}
+            <div className="mt-8 flex items-center gap-3 opacity-60">
+              <div className="w-1.5 h-1.5 rotate-45 bg-sk-accent" />
+              <div className="h-px bg-gradient-to-r from-sk-accent/80 via-sk-accent/20 to-transparent flex-1" />
+            </div>
           </div>
 
-          {/* Internal links */}
-          <div className="mb-6 flex flex-col sm:flex-row gap-3">
+          {/* 🧠 ENLACES TÁCTICOS */}
+          <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
               to="/clubs"
-              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all group"
+              className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-xl border border-sk-border-2 bg-sk-bg-2/50 backdrop-blur-sm hover:bg-sk-bg-3 hover:border-sk-accent/40 hover:shadow-[0_4px_30px_rgba(34,211,238,0.1)] transition-all duration-300"
             >
-              <span className="text-lg">🏛️</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors">
-                  Ver todos los clubes
+              <div className="absolute inset-0 bg-gradient-to-r from-sk-accent/0 via-sk-accent/5 to-sk-accent/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              
+              <div className="w-12 h-12 rounded-lg bg-sk-bg-0 border border-sk-border-2 flex items-center justify-center shrink-0 group-hover:border-sk-accent/50 group-hover:bg-sk-accent/10 transition-colors duration-300 relative z-10">
+                <Building2 size={20} className="text-sk-accent" />
+              </div>
+              <div className="flex-1 min-w-0 relative z-10">
+                <p className="text-sk-sm font-extrabold text-sk-text-1 group-hover:text-sk-accent transition-colors truncate tracking-tight">
+                  Explorar Clubes
                 </p>
-                <p className="text-[11px] text-sk-text-3">Encuentra tu próxima mesa</p>
+                <p className="text-[11px] text-sk-text-3 mt-0.5 leading-snug">
+                  Encuentra mesas activas en la red global
+                </p>
               </div>
             </Link>
+
             <Link
               to="/register"
-              className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border border-sk-accent/20 bg-sk-accent-dim hover:bg-sk-accent-glow transition-all group"
+              className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-xl border border-sk-border-2 bg-sk-bg-2/50 backdrop-blur-sm hover:bg-sk-bg-3 hover:border-sk-purple/40 hover:shadow-[0_4px_30px_rgba(167,139,250,0.1)] transition-all duration-300"
             >
-              <span className="text-lg">🦈</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sk-sm font-semibold text-sk-accent">
-                  ¿Administras un club?
+              <div className="absolute inset-0 bg-gradient-to-r from-sk-purple/0 via-sk-purple/5 to-sk-purple/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              
+              <div className="w-12 h-12 rounded-lg bg-sk-bg-0 border border-sk-border-2 flex items-center justify-center shrink-0 group-hover:border-sk-purple/50 group-hover:bg-sk-purple/10 transition-colors duration-300 relative z-10">
+                <Swords size={20} className="text-sk-purple" />
+              </div>
+              <div className="flex-1 min-w-0 relative z-10">
+                <p className="text-sk-sm font-extrabold text-sk-text-1 group-hover:text-sk-purple transition-colors truncate tracking-tight">
+                  Portal de Organizadores
                 </p>
-                <p className="text-[11px] text-sk-text-2">Publica tu calendario gratis</p>
+                <p className="text-[11px] text-sk-text-3 mt-0.5 leading-snug">
+                  Sincroniza el calendario de tu club
+                </p>
               </div>
             </Link>
           </div>
@@ -212,7 +260,7 @@ export function CalendarPage() {
                 onChange={(e) => { setCountryFilter(e.target.value); resetFilters(); }}
                 className="bg-sk-bg-2 border border-sk-border-2 rounded-md px-3 py-2 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent min-w-[160px]"
               >
-                <option value="">🌎 Todos los países</option>
+                <option value="">Todos los países</option>
                 {countries.map((cc) => (
                   <option key={cc} value={cc}>
                     {getCountryName(cc) || cc}
@@ -226,7 +274,7 @@ export function CalendarPage() {
                 onChange={(e) => { setClubFilter(e.target.value); resetFilters(); }}
                 className="bg-sk-bg-2 border border-sk-border-2 rounded-md px-3 py-2 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent min-w-[180px]"
               >
-                <option value="">🏛️ Todos los clubes</option>
+                <option value="">Todos los clubes</option>
                 {(clubs ?? [])
                   .filter((c) => !countryFilter || c.country_code === countryFilter)
                   .map((c) => (
@@ -242,7 +290,7 @@ export function CalendarPage() {
                 onChange={(e) => { setLeagueFilter(e.target.value); resetFilters(); }}
                 className="bg-sk-bg-2 border border-sk-border-2 rounded-md px-3 py-2 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent min-w-[180px]"
               >
-                <option value="">🏆 Todas las ligas</option>
+                <option value="">Todas las ligas</option>
                 {(leagues ?? []).map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name.replace(/^\[DEMO\]\s*/, "")}
@@ -256,13 +304,13 @@ export function CalendarPage() {
                 onChange={(e) => { setRoomFilter(e.target.value); resetFilters(); }}
                 className="bg-sk-bg-2 border border-sk-border-2 rounded-md px-3 py-2 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent min-w-[160px]"
               >
-                <option value="">♠️ Todas las salas</option>
+                <option value="">Todas las salas</option>
                 {rooms?.map((r) => (
                   <option key={r.id} value={r.id}>{r.name}</option>
                 ))}
               </select>
             </div>
-          </div>
+          </div> {/* 👈 ¡ESTE ES EL DIV QUE FALTABA! Cierra el bloque de filtros */}
 
           {/* ════════════════════════════════════════════════════════
               TAB: PRÓXIMOS
@@ -274,15 +322,15 @@ export function CalendarPage() {
                   <Spinner size="lg" />
                 </div>
               ) : upcomingSorted.length === 0 ? (
-                <EmptyState
-                  icon="📅"
-                  title="No hay torneos próximos"
-                  description={
-                    roomFilter || clubFilter || leagueFilter || countryFilter
+                  <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-12 flex flex-col items-center justify-center text-center">
+                  <CalendarOff className="text-sk-text-4 mb-4 opacity-50" size={48} />
+                  <h3 className="text-sk-lg font-bold text-sk-text-1 mb-2">No hay torneos próximos</h3>
+                  <p className="text-sk-text-3 text-sk-sm max-w-md mx-auto">
+                    {roomFilter || clubFilter || leagueFilter || countryFilter
                       ? "No se encontraron torneos con los filtros seleccionados."
-                      : "No hay torneos programados por el momento. Vuelve pronto."
-                  }
-                />
+                      : "No hay torneos programados por el momento. Vuelve pronto."}
+                  </p>
+                </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   {upcomingSorted.map((t) => (
@@ -307,11 +355,13 @@ export function CalendarPage() {
                   <Spinner size="lg" />
                 </div>
               ) : historyFiltered.length === 0 ? (
-                <EmptyState
-                  icon="🏆"
-                  title="Sin historial"
-                  description="No hay torneos completados con los filtros seleccionados."
-                />
+                <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-12 flex flex-col items-center justify-center text-center">
+                  <History className="text-sk-text-4 mb-4 opacity-50" size={48} />
+                  <h3 className="text-sk-lg font-bold text-sk-text-1 mb-2">Sin historial</h3>
+                  <p className="text-sk-text-3 text-sk-sm max-w-md mx-auto">
+                    No hay torneos completados con los filtros seleccionados.
+                  </p>
+                </div>
               ) : (
                 <>
                   {/* History Table */}
