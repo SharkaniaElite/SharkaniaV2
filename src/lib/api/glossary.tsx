@@ -1,5 +1,7 @@
 // src/lib/api/glossary.ts
+import React from "react";
 import { supabase } from "../supabase";
+import { Link } from "react-router-dom";
 
 export interface GlossaryTerm {
   id: string;
@@ -64,4 +66,41 @@ export async function getGlossaryTermBySlug(
   }
 
   return data as GlossaryTerm;
+}
+
+/**
+ * Transforma un texto plano en un array de elementos React, 
+ * inyectando links automáticos a los términos del glosario.
+ */
+export function renderWithLinksAndGlossary(text: string, terms: string[] = []): (string | React.ReactNode)[] | string {
+  if (!text || !terms || terms.length === 0) return text;
+
+  // Filtramos términos vacíos y escapamos caracteres especiales para el Regex
+  const escapedTerms = terms
+    .filter(t => t && t.length > 0)
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
+    
+  if (!escapedTerms) return text;
+  
+  // Regex que busca los términos exactos (case insensitive)
+  const regex = new RegExp(`\\b(${escapedTerms})\\b`, 'gi');
+  const parts = text.split(regex);
+
+  return parts.map((part, i) => {
+    const isMatch = terms.some(t => t.toLowerCase() === part.toLowerCase());
+    
+    if (isMatch) {
+      return (
+        <Link
+          key={i}
+          to={`/glosario/${part.toLowerCase().replace(/\s+/g, '-')}`}
+          className="text-sk-accent hover:underline font-bold transition-all"
+        >
+          {part}
+        </Link>
+      );
+    }
+    return part;
+  });
 }

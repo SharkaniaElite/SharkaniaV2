@@ -16,6 +16,9 @@ import { RoomProfilerPage } from "./pages/room-profiler";
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
+const AcademyPage = lazy(() => import("./pages/academy").then(m => ({ default: m.AcademyPage })));
+const AcademyModulePage = lazy(() => import("./pages/academy-module").then(m => ({ default: m.AcademyModulePage })));
+const AcademyLessonPage = lazy(() => import("./pages/academy-lesson").then(m => ({ default: m.AcademyLessonPage })));
 const RankingPage = lazy(() => import("./pages/ranking").then(m => ({ default: m.RankingPage })));
 const PlayerProfilePage = lazy(() => import("./pages/player-profile").then(m => ({ default: m.PlayerProfilePage })));
 const CalendarPage = lazy(() => import("./pages/calendar").then(m => ({ default: m.CalendarPage })));
@@ -113,7 +116,9 @@ export function App() {
               <Route path="/sistema-elo" element={<EloSystemPage />} />
               <Route path="/tutorial-csv" element={<TutorialCsvPage />} />
               <Route path="/tools/perfilador-salas" element={<RoomProfilerPage />} />
-
+              <Route path="/academia" element={<AcademyPage />} />
+              <Route path="/academia/:moduleSlug" element={<AcademyModulePage />} />
+              <Route path="/academia/:moduleSlug/:lessonSlug" element={<AcademyLessonPage />} />
               {/* Legal */}
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />

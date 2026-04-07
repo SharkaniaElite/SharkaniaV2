@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { label: "Ligas", href: "/leagues" },
   { label: "Comparador", href: "/compare" },
   { label: "Herramientas", href: "/tools" },
+  { label: "Academia", href: "/academia" },
   { label: "Tienda", href: "/shop" },
   { label: "Blog", href: "/blog" },
 ];

@@ -36,10 +36,11 @@ export interface AcademyLesson {
 }
 
 export interface LessonBlock {
-  type: "text" | "h2" | "h3" | "callout" | "stat" | "list" | "hand" | "tip" | "warning" | "action" | "p";
+  type: "text" | "h2" | "h3" | "callout" | "stat" | "list" | "hand" | "tip" | "warning" | "action" | "p" | "hand_ranking_chart" | "hand-ranking";
   content?: string;
   value?: string;
   items?: string[];
+  cards?: string[];
 }
 
 export interface QuizQuestion {

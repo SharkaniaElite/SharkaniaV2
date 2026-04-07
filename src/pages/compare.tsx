@@ -20,7 +20,7 @@ import {
   calcRoi,
 } from "../lib/format";
 import { cn } from "../lib/cn";
-import { Search, Lock, Zap, Target, TrendingUp, ShieldAlert } from "lucide-react";
+import { Search, Lock, Zap, Target, TrendingUp, Sparkles, Scale, Unlock, Clock } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { format } from "date-fns";
 import type { PlayerWithRoom, EloHistory } from "../types";
@@ -146,7 +146,7 @@ function CompareRow({
   );
 }
 
-// ── CompBar Component (Movido afuera para cumplir las reglas de React) ──
+// ── CompBar Component ──
 function CompBar({ label, icon: Icon, valA, valB, max, formatFn, explanation }: any) {
   const pctA = Math.min((valA / max) * 100, 100);
   const pctB = Math.min((valB / max) * 100, 100);
@@ -240,13 +240,34 @@ function DualEloChart({ historyA, historyB, nameA, nameB }: { historyA: EloHisto
 
 // ── Main Page ──
 export function ComparePage() {
+  // 👇 Tiburón táctico aleatorio (1 al 10) que cambia en cada visita
+  const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
+
   const { isAuthenticated } = useAuthStore();
-  const { data: radarAccess } = useFeatureAccess("pass_radar");
-  const hasRadarAccess = radarAccess?.has_access ?? false;
+  
+  // 👇 Verificamos si tiene la suscripción mensual "Stats Espía"
+  const { data: premiumAccess } = useFeatureAccess("stats_espia");
+  const hasPremiumAccess = premiumAccess?.has_access ?? false;
+
+  // 👇 1. Leemos el disco duro del navegador (localStorage) para ver si ya vino hoy
+  const [hasUsedFreeDaily, setHasUsedFreeDaily] = useState(() => {
+    return localStorage.getItem("sk_free_date") === new Date().toDateString();
+  });
+
+  // 👇 2. Recordamos a qué jugadores comparó, para dejarle ver SU consulta gratis sin cortarle la pantalla
+  const [allowedPair, setAllowedPair] = useState(() => {
+    return localStorage.getItem("sk_free_pair");
+  });
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [idA, setIdA] = useState<string | null>(searchParams.get("a"));
   const [idB, setIdB] = useState<string | null>(searchParams.get("b"));
+
+  const currentPair = `${idA}-${idB}`;
+  const isAllowedPair = allowedPair === currentPair || allowedPair === `${idB}-${idA}`;
+
+  // 👇 3. Nueva Regla: Puede buscar si tiene premium, si no ha usado el gratis, O si está viendo el par que le salió gratis.
+  const canSearch = hasPremiumAccess || !hasUsedFreeDaily || isAllowedPair;
 
   const { data: playerA, isLoading: loadingA } = usePlayer(idA ?? undefined);
   const { data: playerB, isLoading: loadingB } = usePlayer(idB ?? undefined);
@@ -260,18 +281,80 @@ export function ComparePage() {
     setSearchParams(params, { replace: true });
   }, [idA, idB, setSearchParams]);
 
+  // 👇 4. QUEMAR EL CARTUCHO: Si elige a los dos y no es premium, registramos el uso diario
+  useEffect(() => {
+    if (idA && idB && !hasPremiumAccess) {
+      const today = new Date().toDateString();
+      if (localStorage.getItem("sk_free_date") !== today) {
+        // 1. Guardamos en el disco duro (localStorage)
+        localStorage.setItem("sk_free_date", today);
+        localStorage.setItem("sk_free_pair", currentPair);
+        
+        // 2. Diferimos el estado al siguiente micro-ciclo para calmar a React y evitar el Cascading Render
+        setTimeout(() => {
+          setAllowedPair(currentPair);
+          setHasUsedFreeDaily(true);
+        }, 0);
+      }
+    }
+  }, [idA, idB, hasPremiumAccess, currentPair]);
+
+  // 🚨 VISTA 1: USUARIO NO REGISTRADO (El vendedor)
   if (!isAuthenticated) {
     return (
       <PageShell>
         <SEOHead title="Comparador de Jugadores" description="Compara estadísticas de dos jugadores de poker: ELO, ITM%, ROI, torneos jugados y evolución histórica." path="/compare" />
-        <div className="pt-32 pb-16 min-h-[80vh] flex items-center justify-center px-6">
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-10 text-center max-w-md w-full shadow-sk-lg">
-            <ShieldAlert size={48} className="mx-auto mb-4 text-sk-accent" />
-            <h2 className="text-sk-xl font-extrabold text-sk-text-1 mb-3">Herramienta Exclusiva</h2>
-            <p className="text-sk-sm text-sk-text-2 mb-6">El comparador Head-to-Head es una herramienta gratuita reservada para usuarios registrados. Crea tu cuenta para enfrentar a cualquier jugador de la base de datos.</p>
-            <div className="flex gap-3 justify-center">
-              <Link to="/register"><Button variant="accent">Crear cuenta gratis</Button></Link>
-              <Link to="/login"><Button variant="secondary">Iniciar Sesión</Button></Link>
+        <div className="pt-24 pb-16 min-h-[80vh] flex items-center justify-center px-6">
+          <div className="max-w-[900px] w-full">
+            {/* ══ BANNER DE INTELIGENCIA (NO REGISTRADOS) ══ */}
+            <div className="bg-sk-bg-2 border border-sk-gold/20 rounded-2xl p-6 md:p-10 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_0_30px_rgba(251,191,36,0.05)]">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-sk-gold/5 blur-[50px] rounded-full pointer-events-none" />
+              <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sk-gold/20 to-transparent" />
+
+              <div className="shrink-0 relative z-10">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute inset-0 bg-sk-accent/10 blur-xl rounded-full scale-150 group-hover:bg-sk-gold/15 transition-colors duration-500" />
+                  <img 
+                    src={`/mascot/shark-${mascotId}.webp`} 
+                    alt="Sharkania Tactical Analyst" 
+                    className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 text-center md:text-left relative z-10">
+                <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
+                  <Lock className="text-sk-gold" size={16} />
+                  <p className="font-mono text-[11px] font-bold tracking-[0.15em] uppercase text-sk-gold">
+                    ACCESO RESTRINGIDO · NIVEL: LA BÓVEDA
+                  </p>
+                  <Sparkles className="text-sk-gold animate-pulse" size={16} />
+                </div>
+
+                <h1 className="text-sk-3xl md:text-sk-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-4 leading-none">
+                  Comparador de Élite
+                </h1>
+
+                <div className="space-y-3 max-w-2xl text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed mb-6">
+                  <p>
+                    <strong className="text-sk-text-1">"Disecciona a tu rival antes del primer showdown."</strong> Contrasta el ELO, volumen, victorias y métricas ocultas lado a lado.
+                  </p>
+                  <p className="text-sk-accent font-semibold">
+                    Crea tu cuenta ahora y obtén 1 USO GRATUITO al día, además de <strong className="text-sk-gold">100 Shark Coins de regalo</strong> para desbloquear reportes completos.
+                  </p>
+                </div>
+
+                <div className="flex gap-3 justify-center md:justify-start flex-wrap">
+                  <Link to="/register">
+                    <Button variant="accent" className="font-bold tracking-wide shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+                      Reclamar mis 100 SC
+                    </Button>
+                  </Link>
+                  <Link to="/login">
+                    <Button variant="secondary">Iniciar Sesión</Button>
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -303,72 +386,110 @@ export function ComparePage() {
       })()
     : [];
 
+  // 🚨 VISTA 2: USUARIOS REGISTRADOS
   return (
     <PageShell>
       <SEOHead title="Comparador de Jugadores" path="/compare" />
       <div className="pt-20 pb-16">
         <div className="max-w-[900px] mx-auto px-6">
-          <div className="mb-8 text-center">
-            <p className="font-mono text-[11px] font-bold tracking-[0.08em] uppercase text-sk-accent mb-3">Head to Head</p>
-            <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1 mb-2">⚔️ Comparar Jugadores</h1>
+          
+          <div className="mb-6 text-center">
+            <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1 mb-2">Comparar Jugadores</h1>
             <p className="text-sk-base text-sk-text-2">Enfrenta a dos rivales y descubre quién domina la mesa.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            <PlayerSelector label="Jugador A (Azul)" selectedId={idA} onSelect={setIdA} />
-            <PlayerSelector label="Jugador B (Morado)" selectedId={idB} onSelect={setIdB} />
+          {/* 🧠 ESTADO DE ACCESO (Badges Tácticos) */}
+          <div className="mb-8 flex justify-center">
+            {hasPremiumAccess ? (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-sk-green/10 border border-sk-green/20 rounded-full text-sk-green text-sk-xs font-mono font-bold tracking-wide">
+                <Unlock size={14} /> STATS ESPÍA: ACCESO ILIMITADO
+              </div>
+            ) : !hasUsedFreeDaily ? (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-sk-accent/10 border border-sk-accent/20 rounded-full text-sk-accent text-sk-xs font-mono font-bold tracking-wide">
+                <Clock size={14} /> 1 USO GRATUITO DISPONIBLE HOY
+              </div>
+            ) : null}
           </div>
 
-          {(loadingA || loadingB) && (idA || idB) && <div className="flex justify-center py-12"><Spinner size="lg" /></div>}
-
-          {bothSelected && (
-            <div className="space-y-6">
+          {/* 🚨 PAYWALL: Si ya gastó su tiro y no tiene premium */}
+          {!canSearch ? (
+            <div className="bg-sk-bg-2 border border-sk-border-2 rounded-2xl p-10 text-center shadow-sk-lg">
+              <Lock className="mx-auto mb-5 text-sk-text-4 opacity-50" size={56} strokeWidth={1.5} />
+              <h3 className="text-sk-xl font-black text-sk-text-1 mb-3">Límite Diario Alcanzado</h3>
+              <p className="text-sk-text-2 text-sk-sm max-w-md mx-auto mb-8 leading-relaxed">
+                Has consumido tu consulta gratuita de hoy. Desbloquea <strong className="text-sk-text-1">Stats Espía</strong> en la tienda para obtener acceso ilimitado a este comparador y a las métricas ocultas.
+              </p>
               
-              {/* Bloque Gráfico Explicativo ELO */}
-              <EloVisualBreakdown playerA={playerA} playerB={playerB} />
-
-              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6">
-                <div className="grid grid-cols-[1fr_60px_1fr] gap-4 items-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent overflow-hidden flex items-center justify-center mx-auto mb-3">
-                      {playerA.profiles?.avatar_url ? <img src={playerA.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-sk-xl font-extrabold text-sk-accent">{playerA.nickname.charAt(0).toUpperCase()}</span>}
-                    </div>
-                    <div className="font-bold text-sk-text-1 text-sk-md"><FlagIcon countryCode={playerA.country_code} /> {playerA.nickname}</div>
-                  </div>
-                  <div className="text-center"><div className="text-sk-2xl font-black text-sk-text-3 tracking-tight">VS</div></div>
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-purple overflow-hidden flex items-center justify-center mx-auto mb-3">
-                      {playerB.profiles?.avatar_url ? <img src={playerB.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-sk-xl font-extrabold text-sk-purple">{playerB.nickname.charAt(0).toUpperCase()}</span>}
-                    </div>
-                    <div className="font-bold text-sk-text-1 text-sk-md"><FlagIcon countryCode={playerB.country_code} /> {playerB.nickname}</div>
-                  </div>
-                </div>
-
-                <div className="w-full h-px my-6 bg-gradient-to-r from-transparent via-sk-border-3 to-transparent" />
-
-                <div>
-                  {compareData.map((row) => (
-                    <CompareRow key={row.label} label={row.label} valueA={row.a} valueB={row.b} aWins={row.aWins} isPremium={row.premium} hasAccess={hasRadarAccess} />
-                  ))}
-                </div>
-                
-                {!hasRadarAccess && (
-                  <div className="mt-6 text-center bg-sk-bg-3 border border-sk-border-2 rounded-lg p-4">
-                    <p className="text-[11px] text-sk-text-3 mb-2 uppercase tracking-widest font-semibold">🔒 Métricas Protegidas</p>
-                    <p className="text-sk-sm text-sk-text-1 mb-3">Consigue el <strong>Pase Radar</strong> en la tienda para revelar el ROI y Profit de cualquier enfrentamiento.</p>
-                  </div>
-                )}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link to="/shop">
+                  <Button variant="secondary" className="w-full sm:w-auto flex flex-col items-center py-6 px-8 border-sk-border-2 hover:border-sk-accent hover:bg-sk-accent/5 transition-all">
+                    <span className="text-sk-sm font-bold text-sk-text-1 mb-1">Pase Diario</span>
+                    <span className="font-mono text-sk-accent flex items-center gap-1.5"><Zap size={14}/> 15 SC</span>
+                  </Button>
+                </Link>
+                <Link to="/shop">
+                  <Button variant="accent" className="w-full sm:w-auto flex flex-col items-center py-6 px-8 shadow-[0_0_20px_rgba(34,211,238,0.15)]">
+                    <span className="text-sk-sm font-bold mb-1">Mes Ilimitado (Stats Espía)</span>
+                    <span className="font-mono flex items-center gap-1.5"><Sparkles size={14}/> 200 SC</span>
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            /* 👇 INTERFAZ DEL COMPARADOR (Si canSearch es true) */
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                <PlayerSelector label="Jugador A (Azul)" selectedId={idA} onSelect={setIdA} />
+                <PlayerSelector label="Jugador B (Morado)" selectedId={idB} onSelect={setIdB} />
               </div>
 
-              <DualEloChart historyA={historyA ?? []} historyB={historyB ?? []} nameA={playerA.nickname} nameB={playerB.nickname} />
-            </div>
-          )}
+              {(loadingA || loadingB) && (idA || idB) && <div className="flex justify-center py-12"><Spinner size="lg" /></div>}
 
-          {!bothSelected && !loadingA && !loadingB && (
-            <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-12 text-center">
-              <span className="text-5xl mb-4 block">⚖️</span>
-              <p className="text-sk-text-2 text-sk-md">Selecciona dos jugadores arriba para enfrentar sus estadísticas.</p>
-            </div>
+              {bothSelected && (
+                <div className="space-y-6">
+                  <EloVisualBreakdown playerA={playerA} playerB={playerB} />
+
+                  <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6">
+                    <div className="grid grid-cols-[1fr_60px_1fr] gap-4 items-center">
+                      <div className="text-center">
+                        <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent overflow-hidden flex items-center justify-center mx-auto mb-3">
+                          {playerA.profiles?.avatar_url ? <img src={playerA.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-sk-xl font-extrabold text-sk-accent">{playerA.nickname.charAt(0).toUpperCase()}</span>}
+                        </div>
+                        <div className="font-bold text-sk-text-1 text-sk-md"><FlagIcon countryCode={playerA.country_code} /> {playerA.nickname}</div>
+                      </div>
+                      <div className="text-center"><div className="text-sk-2xl font-black text-sk-text-3 tracking-tight">VS</div></div>
+                      <div className="text-center">
+                        <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-purple overflow-hidden flex items-center justify-center mx-auto mb-3">
+                          {playerB.profiles?.avatar_url ? <img src={playerB.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-sk-xl font-extrabold text-sk-purple">{playerB.nickname.charAt(0).toUpperCase()}</span>}
+                        </div>
+                        <div className="font-bold text-sk-text-1 text-sk-md"><FlagIcon countryCode={playerB.country_code} /> {playerB.nickname}</div>
+                      </div>
+                    </div>
+
+                    <div className="w-full h-px my-6 bg-gradient-to-r from-transparent via-sk-border-3 to-transparent" />
+
+                    <div>
+                      {/* Le pasamos true a hasAccess porque si llegó aquí, el paywall ya le dio permiso */}
+                      {compareData.map((row) => (
+                        <CompareRow key={row.label} label={row.label} valueA={row.a} valueB={row.b} aWins={row.aWins} isPremium={false} hasAccess={true} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <DualEloChart historyA={historyA ?? []} historyB={historyB ?? []} nameA={playerA.nickname} nameB={playerB.nickname} />
+                </div>
+              )}
+
+              {!bothSelected && !loadingA && !loadingB && (
+                <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-inner">
+                  <Scale className="text-sk-text-4 mb-5 opacity-40" size={56} strokeWidth={1.5} />
+                  <h3 className="text-sk-lg font-bold text-sk-text-1 mb-2 tracking-tight">Esperando parámetros tácticos</h3>
+                  <p className="text-sk-text-3 text-sk-sm max-w-md mx-auto">
+                    Utiliza los selectores superiores para elegir dos perfiles de la matriz y comenzar la extracción de datos.
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
