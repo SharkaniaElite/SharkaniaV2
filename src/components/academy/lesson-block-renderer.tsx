@@ -6,6 +6,7 @@ import { renderWithLinksAndGlossary } from "../../lib/render-inline-links";
 import { useGlossaryTerms } from "../../hooks/use-glossary";
 import { HandRankingVisualizer } from "./hand-ranking-visualizer"; // 👈 Nueva importación
 import type { GlossaryTerm } from "../../lib/api/glossary";
+import { WptBanner } from "../blog/wpt-banner";
 interface LessonBlockRendererProps {
   blocks: LessonBlock[];
   glossaryTerms?: string[];
@@ -22,7 +23,7 @@ function GlossaryLink({ term }: { term: string }) {
   );
 }
 
-function BlockRenderer({ block, glossaryTerms, mascotId, alreadyLinked }: { block: LessonBlock, glossaryTerms: GlossaryTerm[], mascotId: number, alreadyLinked: Set<string> }) {
+function BlockRenderer({ block, glossaryTerms, mascotId, alreadyLinked, h2Index }: { block: LessonBlock, glossaryTerms: GlossaryTerm[], mascotId: number, alreadyLinked: Set<string>, h2Index: number }) {
   const renderContent = (text?: string) => text ? renderWithLinksAndGlossary(text, glossaryTerms, alreadyLinked) : null;
 
   switch (block.type) {
@@ -37,9 +38,12 @@ function BlockRenderer({ block, glossaryTerms, mascotId, alreadyLinked }: { bloc
 
     case "h2":
       return (
-        <h2 className="text-sk-lg font-extrabold text-sk-text-1 tracking-tight mt-8 mb-3">
-          {renderContent(block.content)}
-        </h2>
+        <>
+          <h2 className="text-sk-lg font-extrabold text-sk-text-1 tracking-tight mt-8 mb-3">
+            {renderContent(block.content)}
+          </h2>
+          {h2Index === 3 && <WptBanner slot="mid" />}
+        </>
       );
 
     case "h3":
@@ -189,9 +193,10 @@ export function LessonBlockRenderer({ blocks, glossaryTerms }: LessonBlockRender
 
   return (
     <div className="space-y-3">
-      {blocks.map((block, i) => (
-        <BlockRenderer key={i} block={block} glossaryTerms={allGlossaryTerms ?? []} mascotId={mascotId} alreadyLinked={alreadyLinked} />
-      ))}
+      {blocks.map((block, i) => {
+        const h2Index = blocks.slice(0, i + 1).filter((b) => b.type === "h2").length;
+        return <BlockRenderer key={i} block={block} glossaryTerms={allGlossaryTerms ?? []} mascotId={mascotId} alreadyLinked={alreadyLinked} h2Index={h2Index} />;
+      })}
 
       {/* Glossary terms footer */}
       {glossaryTerms && glossaryTerms.length > 0 && (

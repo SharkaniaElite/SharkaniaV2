@@ -56,7 +56,9 @@ export function AcademyPage() {
               </h1>
 
               <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed">
-                <strong className="text-sk-text-1">"En Sharkania no regalamos la llave; te enseñamos a forjarla."</strong> 
+                <strong className="text-sk-text-1">"En Sharkania no regalamos la llave; te enseñamos a forjarla."</strong>
+              </p>
+              <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed mt-2">
                 Domina los MTTs con nuestra ruta de 6 niveles diseñada para resultados inmediatos.
               </p>
             </div>

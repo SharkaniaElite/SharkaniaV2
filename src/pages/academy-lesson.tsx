@@ -18,7 +18,7 @@ import {
 } from "../hooks/use-academy";
 import { useAuthStore } from "../stores/auth-store";
 import { ArrowLeft, Clock, Zap, BookOpen } from "lucide-react";
-
+import { WptBanner } from "../components/blog/wpt-banner";
 export function AcademyLessonPage() {
   const { moduleSlug, lessonSlug } = useParams<{ moduleSlug: string; lessonSlug: string }>();
   const navigate = useNavigate();
@@ -165,6 +165,9 @@ export function AcademyLessonPage() {
               glossaryTerms={lesson.glossary_terms}
             />
           </div>
+
+          {/* Banner final */}
+          <WptBanner slot="final" className="mt-10" />
 
           {/* Quiz section */}
           {lesson.quiz.length > 0 && (
