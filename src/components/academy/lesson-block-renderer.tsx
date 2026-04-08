@@ -85,7 +85,7 @@ function BlockRenderer({ block, glossaryTerms, mascotId, alreadyLinked }: { bloc
 
     case "tip":
       return (
-        <div className="bg-sk-bg-3 border border-sk-accent/20 rounded-xl px-5 py-5 my-6 flex gap-4 overflow-hidden relative shadow-sm">
+        <div className="bg-sk-bg-3 border border-sk-accent/20 rounded-xl px-5 py-5 my-6 flex gap-4 overflow-visible relative shadow-sm">
           <div className="absolute top-0 right-0 w-32 h-32 bg-sk-accent/5 blur-3xl rounded-full pointer-events-none" />
           
           <div className="w-14 h-14 shrink-0 relative z-10 -ml-1">
