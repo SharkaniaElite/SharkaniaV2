@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, Target, Lightbulb } from "lucide-react";
 import type { LessonBlock } from "../../lib/api/academy";
-import { renderWithLinksAndGlossary } from "../../lib/api/glossary";
+import { renderWithLinksAndGlossary } from "../../lib/render-inline-links";
+import { useGlossaryTerms } from "../../hooks/use-glossary";
 import { HandRankingVisualizer } from "./hand-ranking-visualizer"; // 👈 Nueva importación
-
+import type { GlossaryTerm } from "../../lib/api/glossary";
 interface LessonBlockRendererProps {
   blocks: LessonBlock[];
   glossaryTerms?: string[];
@@ -21,9 +22,8 @@ function GlossaryLink({ term }: { term: string }) {
   );
 }
 
-function BlockRenderer({ block, glossaryTerms, mascotId }: { block: LessonBlock, glossaryTerms?: string[], mascotId: number }) {
-  // Función auxiliar que renderiza el contenido e inyecta los links mágicos
-  const renderContent = (text?: string) => text ? renderWithLinksAndGlossary(text, glossaryTerms) : null;
+function BlockRenderer({ block, glossaryTerms, mascotId, alreadyLinked }: { block: LessonBlock, glossaryTerms: GlossaryTerm[], mascotId: number, alreadyLinked: Set<string> }) {
+  const renderContent = (text?: string) => text ? renderWithLinksAndGlossary(text, glossaryTerms, alreadyLinked) : null;
 
   switch (block.type) {
     case "p":
@@ -184,11 +184,13 @@ function BlockRenderer({ block, glossaryTerms, mascotId }: { block: LessonBlock,
 
 export function LessonBlockRenderer({ blocks, glossaryTerms }: LessonBlockRendererProps) {
   const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
+  const { data: allGlossaryTerms } = useGlossaryTerms();
+  const [alreadyLinked] = useState(() => new Set<string>());
 
   return (
     <div className="space-y-3">
       {blocks.map((block, i) => (
-        <BlockRenderer key={i} block={block} glossaryTerms={glossaryTerms} mascotId={mascotId} />
+        <BlockRenderer key={i} block={block} glossaryTerms={allGlossaryTerms ?? []} mascotId={mascotId} alreadyLinked={alreadyLinked} />
       ))}
 
       {/* Glossary terms footer */}

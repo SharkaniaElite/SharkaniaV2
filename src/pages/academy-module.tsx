@@ -21,6 +21,7 @@ export function AcademyModulePage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
+  const isSuperAdmin = profile?.role === "super_admin";
 
   const { data: modules, isLoading: modulesLoading } = useAcademyModules();
   const module = modules?.find((m) => m.level === moduleSlug);
@@ -29,7 +30,7 @@ export function AcademyModulePage() {
 
   const { data: userModules } = useUserModuleProgress();
   const isUnlocked = module
-    ? module.price_coins === 0 || userModules?.some((um) => um.module_id === module.id)
+    ? isSuperAdmin || module.price_coins === 0 || userModules?.some((um) => um.module_id === module.id)
     : false;
 
   const lessonIds = lessons?.map((l) => l.id) ?? [];
@@ -174,7 +175,7 @@ export function AcademyModulePage() {
                 const isPassed = progress?.quiz_passed ?? false;
                 const isStarted = !!progress;
                 const previousPassed = i === 0 || (progressMap.get(lessons[i - 1]!.id)?.quiz_passed ?? false);
-                const canAccess = previousPassed;
+                const canAccess = isSuperAdmin || previousPassed;
 
                 return (
                   <div
