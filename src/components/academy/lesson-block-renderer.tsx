@@ -7,6 +7,7 @@ import { useGlossaryTerms } from "../../hooks/use-glossary";
 import { HandRankingVisualizer } from "./hand-ranking-visualizer"; // 👈 Nueva importación
 import type { GlossaryTerm } from "../../lib/api/glossary";
 import { WptBanner } from "../blog/wpt-banner";
+import { processInlineCards } from "./inline-cards";
 interface LessonBlockRendererProps {
   blocks: LessonBlock[];
   glossaryTerms?: string[];
@@ -24,7 +25,11 @@ function GlossaryLink({ term }: { term: string }) {
 }
 
 function BlockRenderer({ block, glossaryTerms, mascotId, alreadyLinked, h2Index }: { block: LessonBlock, glossaryTerms: GlossaryTerm[], mascotId: number, alreadyLinked: Set<string>, h2Index: number }) {
-  const renderContent = (text?: string) => text ? renderWithLinksAndGlossary(text, glossaryTerms, alreadyLinked) : null;
+  const renderContent = (text?: string) => {
+    if (!text) return null;
+    const withGlossary = renderWithLinksAndGlossary(text, glossaryTerms, alreadyLinked);
+    return processInlineCards(withGlossary);
+  };
 
   switch (block.type) {
     case "p":
