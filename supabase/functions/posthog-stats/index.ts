@@ -7,32 +7,47 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // 1. Manejar pre-vuelo de CORS (necesario para que el navegador no bloquee la petición)
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
     const POSTHOG_KEY = Deno.env.get('POSTHOG_PERSONAL_API_KEY')
     const PROJECT_ID = Deno.env.get('POSTHOG_PROJECT_ID')
 
-    if (!POSTHOG_KEY || !PROJECT_ID) {
-      throw new Error('Faltan las variables de entorno en Supabase')
-    }
-
-    // 2. Construir la consulta a PostHog
-    // Filtramos por: Evento $pageview | Math: unique_group (Visitas Únicas) | Propiedad: is_identified = true
-    const posthogUrl = `https://us.i.posthog.com/api/projects/${PROJECT_ID}/insights/trend/?events=[{"id":"$pageview","math":"unique_group"}]&properties=[{"key":"is_identified","value":"true","operator":"exact","type":"person"}]&date_from=-7d`
-
-    const response = await fetch(posthogUrl, {
-      headers: {
-        'Authorization': `Bearer ${POSTHOG_KEY}`,
-      },
-    })
+    // 🚀 CAMBIO CLAVE: Usamos el endpoint /query/ con método POST
+    const response = await fetch(
+      `https://us.i.posthog.com/api/projects/${PROJECT_ID}/query/`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${POSTHOG_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          "query": {
+            "kind": "TrendsQuery",
+            "dateRange": { "date_from": "-7d" },
+            "series": [
+              {
+                "kind": "EventsNode",
+                "event": "$pageview",
+                "math": "unique_group"
+              }
+            ],
+            "properties": [
+              {
+                "key": "is_identified",
+                "value": "true",
+                "operator": "exact",
+                "type": "person"
+              }
+            ]
+          }
+        })
+      }
+    )
 
     const data = await response.json()
 
-    // 3. Devolver la respuesta limpia a tu Super Admin
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

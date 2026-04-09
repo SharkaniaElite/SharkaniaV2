@@ -17,7 +17,7 @@ export const PostHogStatsCard = () => {
       if (funcError) throw funcError;
 
       // PostHog devuelve los datos en data.result[0].count para este tipo de consulta
-      const count = data?.result?.[0]?.count || 0;
+      const count = data?.results?.[0]?.count || 0;
       setUniqueVisitors(count);
     } catch (err) {
       console.error("Error cargando stats de PostHog:", err);
