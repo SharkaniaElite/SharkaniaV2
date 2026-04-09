@@ -16,6 +16,7 @@ import {
   useUnifiedEloHistory,
   useUnifiedTournamentResults,
 } from "../hooks/use-players";
+import { useFeatureAccess } from "../hooks/use-shop";
 import { getCountryName } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { formatElo } from "../lib/format";
@@ -31,6 +32,9 @@ export function PlayerProfilePage() {
   const userProfile = useAuthStore((s) => s.profile);
   const isSuperAdmin = userProfile?.role === "super_admin";
 
+  const { data: spyAccess } = useFeatureAccess("cosmetic_extended_stats");
+
+  const hasFullAccess = isSuperAdmin || !!spyAccess?.has_access;
   // Datos del player individual
   const { data: player, isLoading, error } = usePlayerBySlug(playerSlug);
 
@@ -271,7 +275,7 @@ export function PlayerProfilePage() {
                     }
                   : player
               }
-              hasAccess={isSuperAdmin}
+              hasAccess={hasFullAccess}
             />
           </div>
 
@@ -305,7 +309,7 @@ export function PlayerProfilePage() {
             <TournamentHistoryTable
               results={tournamentResults as never[]}
               isLoading={resultsLoading}
-              hasAccess={isSuperAdmin}
+              hasAccess={hasFullAccess}
             />
           </div>
         </div>
