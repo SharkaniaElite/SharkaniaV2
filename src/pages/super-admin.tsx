@@ -26,7 +26,7 @@ import {
 
 // 👇 IMPORTAMOS EL PANEL DE ADMINISTRACIÓN DE MISIONES
 import { MissionsAdminTab } from "../components/admin/missions-admin-tab";
-
+import { PostHogStatsCard } from "../components/admin/posthog-stats-card";
 import { syncAllUnifiedElos } from "../lib/api/elo-engine";
 
 // ── Tipos ─────────────────────────────────────────────────
@@ -603,7 +603,8 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
           {/* ══ OVERVIEW ══ */}
           {tab === "overview" && (
             <div className="space-y-8">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <PostHogStatsCard />
                 <StatCard label="Jugadores" value={formatNumber(stats?.players ?? 0)} accent="accent" />
                 <StatCard label="Clubes" value={formatNumber(stats?.clubs ?? 0)} accent="green" />
                 <StatCard label="Torneos" value={formatNumber(stats?.tournaments ?? 0)} accent="gold" />
