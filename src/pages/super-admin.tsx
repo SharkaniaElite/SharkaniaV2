@@ -28,11 +28,12 @@ import {
 import { MissionsAdminTab } from "../components/admin/missions-admin-tab";
 import { PostHogStatsCard } from "../components/admin/posthog-stats-card";
 import { syncAllUnifiedElos } from "../lib/api/elo-engine";
+import { AnalyticsTab } from "../components/admin/analytics-tab";
 
 // ── Tipos ─────────────────────────────────────────────────
 
 // 👇 AÑADIMOS "missions" A LOS TIPOS DE TABS
-type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners" | "glossary";
+type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners" | "glossary" | "analytics";
 
 // ── Descripción de cada slot de banner ───────────────────
 
@@ -556,6 +557,7 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
   // 👇 AÑADIMOS LA PESTAÑA DE MISIONES AL ARRAY TABS CON SU BADGE DINÁMICO
   const TABS: { key: AdminTab; label: string; badge?: number }[] = [
     { key: "overview",  label: "General" },
+    { key: "analytics", label: "Analytics" },
     { key: "users",     label: "Usuarios" },
     { key: "requests",  label: "Solicitudes", badge: pendingTotal > 0 ? pendingTotal : undefined },
     { key: "missions",  label: "Misiones", badge: (stats?.pendingMissions ?? 0) > 0 ? stats!.pendingMissions : undefined },
@@ -695,7 +697,9 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
               </div>
             </div>
           )}
-
+{tab === "analytics" && (
+  <AnalyticsTab />
+)}
           {/* ══ USUARIOS ══ */}
           {tab === "users" && (
             <div className="flex gap-6 min-h-[600px]">

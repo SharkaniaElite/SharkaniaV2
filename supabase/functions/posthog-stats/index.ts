@@ -10,10 +10,23 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    const { range = '7d' } = await req.json().catch(() => ({}));
     const POSTHOG_KEY = Deno.env.get('POSTHOG_PERSONAL_API_KEY')
     const PROJECT_ID = Deno.env.get('POSTHOG_PROJECT_ID')
 
-    // 🚀 CONSULTA MAESTRA: Pedimos Visitantes, Top Páginas y Top Países
+    // Mapeo de rangos a intervalos de HogQL
+    const rangeMap: Record<string, string> = {
+      'today': '24 HOUR',
+      '7d': '7 DAY',
+      '15d': '15 DAY',
+      '30d': '30 DAY',
+      '3m': '3 MONTH',
+      '6m': '6 MONTH',
+      '1y': '1 YEAR'
+    };
+
+    const interval = rangeMap[range] || '7 DAY';
+
     const response = await fetch(
       `https://us.i.posthog.com/api/projects/${PROJECT_ID}/query/`,
       {
@@ -27,7 +40,6 @@ serve(async (req) => {
             "kind": "DataTableNode",
             "source": {
               "kind": "HogQLQuery",
-              // Esta query saca: Visitantes únicos, lista de páginas populares y países
               "query": `
                 SELECT 
                   count(DISTINCT person_id) as unique_users,
@@ -35,7 +47,7 @@ serve(async (req) => {
                   topK(properties.$geoip_country_name, 5) as top_countries,
                   topK(properties.$device_type, 3) as devices
                 FROM events 
-                WHERE event = '$pageview' AND timestamp > now() - INTERVAL 7 DAY
+                WHERE event = '$pageview' AND timestamp > now() - INTERVAL ${interval}
               `
             }
           }
@@ -44,8 +56,6 @@ serve(async (req) => {
     )
 
     const rawData = await response.json()
-    
-    // Formateamos la respuesta para que el frontend la entienda fácil
     const stats = {
       uniqueVisitors: rawData.results[0][0],
       pages: rawData.results[0][1],
