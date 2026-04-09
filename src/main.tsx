@@ -8,13 +8,18 @@ import "./index.css";
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
 
-// 2. Inicializamos el Radar (Con tus llaves oficiales)
-posthog.init('phc_rkMUXTSGtnQRAqREY2kMwJTZZ3yBCsp7PgiLuKBKNjpi', {
-  api_host: 'https://us.i.posthog.com',
-  autocapture: true,         // Captura clics en botones automáticamente
-  capture_pageview: true,    // Captura los cambios de URL dinámicos
-  capture_pageleave: true,   // Mide el tiempo exacto que pasan en cada página
-});
+// 2. Inicializamos el Radar SOLO en producción (Aislando localhost)
+if (typeof window !== 'undefined' && 
+    window.location.hostname !== 'localhost' && 
+    window.location.hostname !== '127.0.0.1') {
+  
+  posthog.init('phc_rkMUXTSGtnQRAqREY2kMwJTZZ3yBCsp7PgiLuKBKNjpi', {
+    api_host: 'https://us.i.posthog.com',
+    autocapture: true,         // Captura clics en botones automáticamente
+    capture_pageview: true,    // Captura los cambios de URL dinámicos
+    capture_pageleave: true,   // Mide el tiempo exacto que pasan en cada página
+  });
+}
 
 // Detector de nuevas versiones de Vite
 window.addEventListener('vite:preloadError', (event) => {
