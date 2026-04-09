@@ -9,7 +9,7 @@ import {
   useSearchPlayers,
 } from "../hooks/use-players";
 import { useAuthStore } from "../stores/auth-store";
-import { useFeatureAccess } from "../hooks/use-shop";
+import { useFeatureAccess, useSharkCoinsBalance } from "../hooks/use-shop";
 import { FlagIcon } from "../components/ui/flag-icon";
 import {
   formatElo,
@@ -243,7 +243,8 @@ export function ComparePage() {
   // 👇 Tiburón táctico aleatorio (1 al 10) que cambia en cada visita
   const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
 
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const { data: balance } = useSharkCoinsBalance();
   
   // 👇 Verificamos si tiene la suscripción mensual "Stats Espía"
   const { data: premiumAccess } = useFeatureAccess("stats_espia");
@@ -393,9 +394,56 @@ export function ComparePage() {
       <div className="pt-20 pb-16">
         <div className="max-w-[900px] mx-auto px-6">
           
-          <div className="mb-6 text-center">
-            <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1 mb-2">Comparar Jugadores</h1>
-            <p className="text-sk-base text-sk-text-2">Enfrenta a dos rivales y descubre quién domina la mesa.</p>
+          {/* ══ HERO SECTION UNIFICADO ══ */}
+          <div className="bg-sk-bg-2 border border-sk-accent/20 rounded-2xl p-6 md:p-10 mb-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_0_40px_rgba(34,211,238,0.05)]">
+            <div className="absolute -top-10 -left-10 w-40 h-40 bg-sk-accent/10 blur-[50px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sk-accent/30 to-transparent" />
+
+            <div className="shrink-0 relative z-10">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 bg-sk-accent/10 blur-xl rounded-full scale-150 group-hover:bg-sk-accent/20 transition-colors duration-500" />
+                <img
+                  src={`/mascot/shark-${mascotId}.webp`}
+                  alt="Sharkania Quartermaster"
+                  className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 text-center md:text-left relative z-10">
+              <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
+                <Target className="text-sk-accent" size={16} />
+                <p className="font-mono text-[11px] font-bold tracking-[0.15em] uppercase text-sk-accent">
+                  INTELIGENCIA COMPETITIVA
+                </p>
+                <Sparkles className="text-sk-accent animate-pulse" size={16} />
+              </div>
+
+              <h1 className="text-sk-3xl md:text-sk-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-4 leading-none">
+                Comparador de Élite
+              </h1>
+
+              <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed">
+                Enfrenta a dos rivales y descubre quién domina la mesa.
+              </p>
+            </div>
+
+            {/* Saldo de Monedas */}
+            {user && (
+              <div className="shrink-0 bg-sk-bg-0/50 backdrop-blur-md border border-sk-border-2 rounded-xl p-5 text-center min-w-[160px] relative z-10 group-hover:border-sk-accent/40 transition-colors">
+                <p className="text-[10px] font-mono text-sk-text-3 font-bold uppercase tracking-widest mb-3">
+                  Tu Reserva
+                </p>
+                <div className="flex items-center justify-center gap-2 text-sk-3xl font-black text-sk-accent tracking-tighter leading-none mb-1">
+                  {balance ?? 0}
+                  <img
+                    src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif"
+                    alt="SC"
+                    className="w-7 h-7 drop-shadow-md"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 🧠 ESTADO DE ACCESO (Badges Tácticos) */}

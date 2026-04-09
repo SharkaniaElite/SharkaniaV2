@@ -7,7 +7,9 @@ import { Button } from "../components/ui/button";
 import { usePlayers } from "../hooks/use-players";
 import { usePokerRooms } from "../hooks/use-clubs";
 import { useDebounce } from "../hooks/use-debounce";
-import { ChevronLeft, ChevronRight, LineChart, BookOpen, Bot, X } from "lucide-react";
+import { useAuthStore } from "../stores/auth-store";
+import { useSharkCoinsBalance } from "../hooks/use-shop";
+import { ChevronLeft, ChevronRight, LineChart, BookOpen, Bot, X, Sparkles, Trophy } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/cn"; // 👈 Añade esto para las animaciones del panel
@@ -50,6 +52,8 @@ export function RankingPage() {
   // 👇 ESTADOS PARA EL PANEL DE INTELIGENCIA Y LA MASCOTA
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [mascotId, setMascotId] = useState(1);
+  const user = useAuthStore((s) => s.user);
+  const { data: balance } = useSharkCoinsBalance();
 
   // Función para abrir el panel y cambiar de tiburón
   const openIntelligenceHub = () => {
@@ -89,57 +93,68 @@ export function RankingPage() {
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
 
-          {/* ══ HEADER: LIVE DATA CORE (ESPAÑOL) ══ */}
-          <div className="mb-8 relative">
-            {/* Luz de ambiente holográfica */}
+          {/* ══ HERO SECTION UNIFICADO ══ */}
+          <div className="bg-sk-bg-2 border border-sk-accent/20 rounded-2xl p-6 md:p-10 mb-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_0_40px_rgba(34,211,238,0.05)]">
             <div className="absolute -top-10 -left-10 w-40 h-40 bg-sk-accent/10 blur-[50px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sk-accent/30 to-transparent" />
 
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 relative z-10">
-              <div>
-                {/* 1. Indicador de Radar en Vivo */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="relative flex items-center justify-center w-4 h-4">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-sk-accent opacity-30 animate-ping" />
-                    <div className="relative w-2 h-2 rounded-full bg-sk-accent shadow-[0_0_12px_rgba(34,211,238,1)]" />
-                  </div>
-                  <p className="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-sk-accent">
-                    Red ELO Activa
-                  </p>
-                </div>
+            <div className="shrink-0 relative z-10">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 bg-sk-accent/10 blur-xl rounded-full scale-150 group-hover:bg-sk-accent/20 transition-colors duration-500" />
+                <img
+                  src={`/mascot/shark-${mascotId}.webp`}
+                  alt="Sharkania Quartermaster"
+                  className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+            </div>
 
-                {/* 2. Título Metálico Holográfico */}
-                <h1 className="text-sk-4xl md:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-3">
-                  Ranking Global
-                </h1>
-                
-                {/* 3. Subtítulo Técnico */}
-                <p className="text-sk-base text-sk-text-2">
-                  <span className="font-mono text-sk-text-1">{totalCount}</span> perfiles activos en la matriz.
-                  {isFetching && (
-                    <span className="ml-3 font-mono text-[11px] text-sk-accent animate-pulse uppercase tracking-widest">
-                      [ Procesando datos... ]
-                    </span>
-                  )}
+            <div className="flex-1 text-center md:text-left relative z-10">
+              <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
+                <Trophy className="text-sk-accent" size={16} />
+                <p className="font-mono text-[11px] font-bold tracking-[0.15em] uppercase text-sk-accent">
+                  RED ELO ACTIVA
                 </p>
+                <Sparkles className="text-sk-accent animate-pulse" size={16} />
               </div>
 
-              {/* Botón de Inteligencia Táctica */}
-              <div className="shrink-0 mb-1">
-                <button
-                  onClick={openIntelligenceHub}
-                  className="inline-flex items-center gap-2 text-[11px] font-mono font-bold text-sk-accent hover:text-sk-bg-0 hover:bg-sk-accent transition-all border border-sk-accent/50 hover:border-sk-accent rounded-full px-5 py-2.5 shadow-[0_0_15px_rgba(34,211,238,0.1)] hover:shadow-[0_0_25px_rgba(34,211,238,0.3)] group"
-                >
-                  <Bot size={16} className="group-hover:animate-pulse" />
-                  ANALIZAR ALGORITMO
-                </button>
-              </div>
+              <h1 className="text-sk-3xl md:text-sk-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-4 leading-none">
+                Ranking Global
+              </h1>
+
+              <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed mb-4">
+                <span className="font-mono text-sk-text-1">{totalCount}</span> perfiles activos en la matriz.
+                {isFetching && (
+                  <span className="ml-3 font-mono text-[11px] text-sk-accent animate-pulse uppercase tracking-widest">
+                    [ Procesando datos... ]
+                  </span>
+                )}
+              </p>
+              
+              <button
+                onClick={openIntelligenceHub}
+                className="inline-flex items-center justify-center md:justify-start gap-2 text-[11px] font-mono font-bold text-sk-accent hover:text-sk-bg-0 hover:bg-sk-accent transition-all border border-sk-accent/50 hover:border-sk-accent rounded-full px-5 py-2.5 shadow-[0_0_15px_rgba(34,211,238,0.1)] group"
+              >
+                <Bot size={16} className="group-hover:animate-pulse" />
+                ANALIZAR ALGORITMO
+              </button>
             </div>
 
-            {/* 4. Divisor Arquitectónico Cyberpunk */}
-            <div className="mt-8 flex items-center gap-3 opacity-60">
-              <div className="w-1.5 h-1.5 rotate-45 bg-sk-accent" />
-              <div className="h-px bg-gradient-to-r from-sk-accent/80 via-sk-accent/20 to-transparent flex-1" />
-            </div>
+            {user && (
+              <div className="shrink-0 bg-sk-bg-0/50 backdrop-blur-md border border-sk-border-2 rounded-xl p-5 text-center min-w-[160px] relative z-10 group-hover:border-sk-accent/40 transition-colors">
+                <p className="text-[10px] font-mono text-sk-text-3 font-bold uppercase tracking-widest mb-3">
+                  Tu Reserva
+                </p>
+                <div className="flex items-center justify-center gap-2 text-sk-3xl font-black text-sk-accent tracking-tighter leading-none mb-1">
+                  {balance ?? 0}
+                  <img
+                    src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif"
+                    alt="SC"
+                    className="w-7 h-7 drop-shadow-md"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
 {/* 🧠 INTELIGENCIA TÁCTICA (Links internos) */}
