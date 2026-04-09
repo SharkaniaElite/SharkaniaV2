@@ -1,5 +1,6 @@
+// src/components/admin/posthog-stats-card.tsx
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase'; // Ajusta la ruta a tu cliente de supabase
+import { supabase } from '../../lib/supabase';
 import { Users, AlertCircle, Loader2 } from 'lucide-react';
 
 export const PostHogStatsCard = () => {
@@ -10,13 +11,13 @@ export const PostHogStatsCard = () => {
   const fetchStats = async () => {
     try {
       setLoading(true);
+      setError(false);
       
-      // 🎯 LLAMADA AL TÚNEL: Invocamos la Edge Function
       const { data, error: funcError } = await supabase.functions.invoke('posthog-stats');
 
       if (funcError) throw funcError;
 
-      // PostHog devuelve los datos en data.result[0].count para este tipo de consulta
+      // Extraemos el conteo del primer set de resultados
       const count = data?.results?.[0]?.count || 0;
       setUniqueVisitors(count);
     } catch (err) {
@@ -38,7 +39,7 @@ export const PostHogStatsCard = () => {
 
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-[0.2em]">
-          Usuarios Únicos (7d)
+          Visitantes Únicos (7d)
         </h3>
         <div className="p-2 bg-cyan-500/10 rounded-lg">
           <Users className="text-cyan-400 w-4 h-4" />
@@ -57,14 +58,14 @@ export const PostHogStatsCard = () => {
             <span className="text-4xl font-black text-white tracking-tighter">
               {uniqueVisitors}
             </span>
-            <span className="text-zinc-500 text-sm font-medium">Jugadores</span>
+            <span className="text-zinc-500 text-sm font-medium">Visitantes</span>
           </>
         )}
       </div>
 
       <div className="mt-4 flex items-center justify-between">
-        <div className="text-[10px] text-zinc-500 font-mono uppercase">
-          Solo Identificados
+        <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">
+          Tráfico Total del Sitio
         </div>
         <button 
           onClick={fetchStats}

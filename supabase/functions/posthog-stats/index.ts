@@ -13,7 +13,10 @@ serve(async (req) => {
     const POSTHOG_KEY = Deno.env.get('POSTHOG_PERSONAL_API_KEY')
     const PROJECT_ID = Deno.env.get('POSTHOG_PROJECT_ID')
 
-    // 🚀 CAMBIO CLAVE: Usamos el endpoint /query/ con método POST
+    if (!POSTHOG_KEY || !PROJECT_ID) {
+      throw new Error('Missing environment variables')
+    }
+
     const response = await fetch(
       `https://us.i.posthog.com/api/projects/${PROJECT_ID}/query/`,
       {
@@ -32,15 +35,8 @@ serve(async (req) => {
                 "event": "$pageview",
                 "math": "unique_group"
               }
-            ],
-            "properties": [
-              {
-                "key": "is_identified",
-                "value": "true",
-                "operator": "exact",
-                "type": "person"
-              }
             ]
+            // 🚀 Filtro de 'is_identified' eliminado para capturar TODO el tráfico
           }
         })
       }
