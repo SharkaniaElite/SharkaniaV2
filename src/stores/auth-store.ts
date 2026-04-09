@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { supabase } from "../lib/supabase";
 import type { Profile } from "../types";
 import type { User } from "@supabase/supabase-js";
+import posthog from "posthog-js"; // 👈 Importamos el radar
 
 interface AuthState {
   user: User | null;
@@ -60,6 +61,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       clearTimeout(initTimeout);
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
+
+        console.log("🚨 [RADAR SHARKANIA] Auto-Login detectado:", session.user.email);
+        
+        // 🎯 RADAR: Identificar al usuario en la carga inicial
+        posthog.identify(session.user.id, {
+          email: session.user.email,
+          role: profile?.role,
+        });
+
         set({
           user: session.user,
           profile,
@@ -80,6 +90,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       // On sign out, immediately clear everything
       if (event === "SIGNED_OUT" || !session) {
+        // 🎯 RADAR: Limpiar la identidad al cerrar sesión
+        posthog.reset();
+        
         set({
           user: null,
           profile: null,
@@ -96,6 +109,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Only fetch profile on actual sign in, not on every token refresh
         if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
           const profile = await fetchProfile(session.user.id);
+
+          // 🚨 EL CHIVATO: Esto imprimirá en tu consola si realmente llega aquí
+          console.log("🚨 [RADAR SHARKANIA] Identificando a:", session.user.email);
+          console.log("🚨 [RADAR SHARKANIA] ID Supabase:", session.user.id);
+          
+          // 🎯 RADAR: Identificar al usuario en nuevo login
+          posthog.identify(session.user.id, {
+            email: session.user.email,
+            role: profile?.role,
+          });
+
           set({ profile, isLoading: false });
         }
       }
@@ -114,6 +138,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    // 🎯 RADAR: Limpiar la identidad antes de borrar el estado
+    posthog.reset();
+
     // Immediately clear state FIRST (prevents UI hanging)
     set({
       user: null,

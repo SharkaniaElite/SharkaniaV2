@@ -4,6 +4,19 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import "./index.css";
 
+// 1. Importamos la telemetría de PostHog
+import posthog from 'posthog-js';
+import { PostHogProvider } from 'posthog-js/react';
+
+// 2. Inicializamos el Radar (Con tus llaves oficiales)
+posthog.init('phc_rkMUXTSGtnQRAqREY2kMwJTZZ3yBCsp7PgiLuKBKNjpi', {
+  api_host: 'https://us.i.posthog.com',
+  autocapture: true,         // Captura clics en botones automáticamente
+  capture_pageview: true,    // Captura los cambios de URL dinámicos
+  capture_pageleave: true,   // Mide el tiempo exacto que pasan en cada página
+});
+
+// Detector de nuevas versiones de Vite
 window.addEventListener('vite:preloadError', (event) => {
   console.warn('Detectada nueva versión de la app. Recargando...', event);
   window.location.reload();
@@ -17,6 +30,9 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    {/* 3. Envolvemos la App en el campo de fuerza de PostHog */}
+    <PostHogProvider client={posthog}>
+      <App />
+    </PostHogProvider>
   </StrictMode>
 );
