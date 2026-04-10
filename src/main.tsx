@@ -4,21 +4,28 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import "./index.css";
 
-// 1. Importamos la telemetría de PostHog
+// Importamos la telemetría de PostHog
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
 
-// 2. Inicializamos el Radar SOLO en producción (Aislando localhost)
+// 1. Importamos Microsoft Clarity
+import Clarity from '@microsoft/clarity';
+
+// 2. Inicializamos el Radar y las Cámaras SOLO en producción (Aislando localhost)
 if (typeof window !== 'undefined' && 
     window.location.hostname !== 'localhost' && 
     window.location.hostname !== '127.0.0.1') {
   
+  // Encendemos PostHog
   posthog.init('phc_rkMUXTSGtnQRAqREY2kMwJTZZ3yBCsp7PgiLuKBKNjpi', {
     api_host: 'https://us.i.posthog.com',
-    autocapture: true,         // Captura clics en botones automáticamente
-    capture_pageview: true,    // Captura los cambios de URL dinámicos
-    capture_pageleave: true,   // Mide el tiempo exacto que pasan en cada página
+    autocapture: true,         
+    capture_pageview: true,    
+    capture_pageleave: true,   
   });
+
+  // Encendemos Microsoft Clarity (Con tu ID de proyecto de Bing)
+  Clarity.init("w9gk77cgdx");
 }
 
 // Detector de nuevas versiones de Vite
@@ -35,7 +42,6 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    {/* 3. Envolvemos la App en el campo de fuerza de PostHog */}
     <PostHogProvider client={posthog}>
       <App />
     </PostHogProvider>
