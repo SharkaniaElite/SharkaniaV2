@@ -203,22 +203,24 @@ export function LeagueDetailPage() {
               <EmptyState icon="📅" title="Sin torneos en esta liga" />
             ) : (
               <div className="flex flex-col gap-2">
-                {/* 🕒 Torneos Activos */}
+                {/* 🕒 Torneos Activos (Orden ASCENDENTE: Más próximo arriba) */}
                 {(tournaments ?? [])
                   .filter(t => 
                     !["completed", "cancelled"].includes(t.status) && 
                     !(t.status === "late_registration" && t.late_reg_end && new Date(t.late_reg_end) <= new Date())
                   )
+                  .sort((a, b) => new Date(a.start_datetime || 0).getTime() - new Date(b.start_datetime || 0).getTime())
                   .map((t) => (
                     <TournamentCard key={t.id} tournament={t} onInfoClick={() => setSelectedTournament(t)} />
                   ))}
                 
-                {/* ✅ Torneos Finalizados */}
+                {/* ✅ Torneos Finalizados (Orden DESCENDENTE: Más reciente terminado arriba) */}
                 {(tournaments ?? [])
                   .filter(t => 
                     t.status === "completed" || 
                     (t.status === "late_registration" && t.late_reg_end && new Date(t.late_reg_end) <= new Date())
                   )
+                  .sort((a, b) => new Date(b.start_datetime || 0).getTime() - new Date(a.start_datetime || 0).getTime())
                   .map((t) => (
                     <div key={t.id} className="opacity-60">
                       <TournamentCard tournament={t} onInfoClick={() => setSelectedTournament(t)} />
