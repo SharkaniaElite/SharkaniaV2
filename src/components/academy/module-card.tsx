@@ -7,6 +7,7 @@ interface ModuleCardProps {
   module: ModuleWithProgress;
   index: number;
   previousCompleted: boolean;
+  isSuperAdmin?: boolean;
 }
 
 // 1. Creamos un color por defecto seguro para que TypeScript no se asuste
@@ -21,10 +22,10 @@ const LEVEL_COLORS: Record<string, typeof defaultColors> = {
   elite: { border: "border-t-sk-red", accent: "text-sk-red", bg: "bg-sk-red-dim" },
 };
 
-export function ModuleCard({ module: m, index, previousCompleted }: ModuleCardProps) {
+export function ModuleCard({ module: m, index, previousCompleted, isSuperAdmin }: ModuleCardProps) {
   // 2. Usamos el defaultColors directo, lo que elimina el error de TypeScript
   const colors = LEVEL_COLORS[m.level] ?? defaultColors;
-  const canAccess = m.isUnlocked && (index === 0 || previousCompleted);
+  const canAccess = isSuperAdmin || (m.isUnlocked && (index === 0 || previousCompleted));
   const progress = m.totalActiveLessons > 0
     ? Math.round((m.lessonsCompleted / m.totalActiveLessons) * 100)
     : 0;

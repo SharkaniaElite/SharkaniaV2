@@ -13,6 +13,7 @@ import { Flame, BookOpen, Trophy, Target, Lock, Sparkles, GraduationCap } from "
 export function AcademyPage() {
   const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
   const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const { data: modules, isLoading } = useModulesWithProgress();
   const { data: streak } = useStudyStreak();
 
@@ -142,6 +143,7 @@ export function AcademyPage() {
                     module={m} 
                     index={i}
                     previousCompleted={i === 0 || (modules[i - 1]?.isCompleted ?? false)}
+                    isSuperAdmin={profile?.role === "super_admin"}
                   />
                 ))}
               </div>
