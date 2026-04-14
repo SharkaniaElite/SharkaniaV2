@@ -9,8 +9,8 @@ export interface BannerConfig {
   width: number;
   height: number;
   label: string;
-  us_src?: string;  // 🇺🇸 Imagen USA
-  us_href?: string; // 🇺🇸 Link USA
+  us_src?: string;  
+  us_href?: string; 
 }
 
 export interface BannerSlotConfig {
@@ -26,16 +26,17 @@ export interface FloatingConfig {
   link?: string;
   delay?: number;
   scrollTrigger?: number;
-  us_title?: string;       // 🇺🇸
-  us_description?: string; // 🇺🇸
-  us_image?: string;       // 🇺🇸
-  us_link?: string;        // 🇺🇸
+  us_title?: string;       
+  us_description?: string; 
+  us_image?: string;       
+  us_link?: string;        
 }
 
 export interface BannersConfig {
   bonusCode: string;
   floatingCta?: FloatingConfig;
   slots: {
+    super: BannerSlotConfig; // 👈 NUEVO: Slot para el Super Banner Global
     mid: BannerSlotConfig;
     final: BannerSlotConfig;
     sidebar: BannerSlotConfig;
@@ -43,11 +44,29 @@ export interface BannersConfig {
 }
 
 // ── Valores por defecto (fallback) ──────
-// Ya incluyen tus enlaces de ACR Poker listos para usar
 
 export const DEFAULT_BANNERS: BannersConfig = {
   bonusCode: "FPHL",
   slots: {
+    // 👇 NUEVO: Configuración por defecto del Super Banner
+    super: {
+      desktop: {
+        src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505259",
+        href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13409",
+        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
+        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
+        width: 1780, height: 121,
+        label: "Super Banner 1780x121",
+      },
+      mobile: {
+        src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505261",
+        href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13410",
+        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
+        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
+        width: 870, height: 200,
+        label: "Super Banner 870x200",
+      },
+    },
     mid: {
       desktop: {
         src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505259",

@@ -24,7 +24,6 @@ import {
   type BannersConfig, type BannerConfig,
 } from "../lib/api/site-settings";
 
-// 👇 IMPORTAMOS EL PANEL DE ADMINISTRACIÓN DE MISIONES
 import { MissionsAdminTab } from "../components/admin/missions-admin-tab";
 import { PostHogStatsCard } from "../components/admin/posthog-stats-card";
 import { syncAllUnifiedElos } from "../lib/api/elo-engine";
@@ -32,12 +31,18 @@ import { AnalyticsTab } from "../components/admin/analytics-tab";
 
 // ── Tipos ─────────────────────────────────────────────────
 
-// 👇 AÑADIMOS "missions" A LOS TIPOS DE TABS
 type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners" | "glossary" | "analytics";
 
 // ── Descripción de cada slot de banner ───────────────────
 
 const SLOT_INFO = {
+  // 👇 NUEVO: Configuración visual del form para el Super Banner
+  super: {
+    title: "Super Banner Global",
+    description: "Aparece FIJO en la parte superior de TODAS las páginas, justo debajo del menú.",
+    desktop: { size: "1780×121 px", label: "Top Super Banner", hint: "Formato ultra ancho. Alta visibilidad y persistente al hacer scroll." },
+    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Se ajusta al ancho del dispositivo móvil." },
+  },
   mid: {
     title: "Banner Mid-Article",
     description: "Aparece dentro del artículo después del 3er título H2.",
@@ -85,7 +90,6 @@ function BannerSlotEditor({
     onChange({ ...value, [side]: def });
   };
 
-  // 🛡️ Usamos any para evitar choques de TS con el as const de SLOT_INFO
   const sides: Array<{ key: "desktop" | "mobile"; label: string; info: any }> = [
     { key: "desktop", label: "Desktop", info: info.desktop },
     ...(info.mobile ? [{ key: "mobile" as const, label: "Mobile", info: info.mobile }] : []),
@@ -93,7 +97,6 @@ function BannerSlotEditor({
 
   return (
     <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl overflow-hidden">
-      {/* Header del slot */}
       <div className="px-6 py-4 border-b border-sk-border-2 bg-sk-bg-3">
         <div className="flex items-center gap-2 mb-1">
           <Image size={15} className="text-sk-accent" />
@@ -116,7 +119,6 @@ function BannerSlotEditor({
                 i < sides.length - 1 && "md:border-r border-b md:border-b-0 border-sk-border-2"
               )}
             >
-              {/* Cabecera del side */}
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-0.5">
@@ -150,14 +152,12 @@ function BannerSlotEditor({
                 </div>
               </div>
 
-              {/* Hint */}
               <div className="bg-sk-bg-3 border border-sk-border-1 rounded-md px-3 py-2 mb-4">
                 <p className="text-[10px] text-sk-text-3 leading-relaxed">
                   💡 {sideInfo.hint}
                 </p>
               </div>
 
-              {/* Preview de la imagen actual */}
               {banner?.src && (
                 <div className="mb-4 rounded-lg overflow-hidden border border-sk-border-2 bg-sk-bg-3">
                   <img
@@ -169,10 +169,8 @@ function BannerSlotEditor({
                 </div>
               )}
 
-              {/* Campos */}
               <div className="space-y-3">
                 <div>
-                  {/* 🛡️ Tailwind fix: quitamos "block" para que "flex" mande */}
                   <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-sk-accent" />
                     URL de la imagen (src)
@@ -188,10 +186,9 @@ function BannerSlotEditor({
                 </div>
 
                 <div>
-                  {/* 🛡️ Tailwind fix: quitamos "block" para que "flex" mande */}
                   <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-sk-gold" />
-                    Link de destino (href / tracking)
+                    Link de destino (href)
                   </label>
                   <input
                     type="url"
@@ -202,7 +199,6 @@ function BannerSlotEditor({
                   />
                 </div>
 
-                {/* 🇺🇸 Campos USA */}
                 <div className="mt-4 pt-4 border-t border-sk-border-2">
                   <h4 className="text-[11px] font-bold text-sk-text-1 mb-3 flex items-center gap-1.5">
                     <span className="text-base">🇺🇸</span> Tráfico Estados Unidos (ACR)
@@ -231,7 +227,6 @@ function BannerSlotEditor({
                   </div>
                 </div>
 
-                {/* Estado */}
                 {isEmpty ? (
                   <div className="flex items-center gap-2 text-[11px] text-sk-text-4 mt-3">
                     <XIcon size={11} className="text-sk-red" />
@@ -248,7 +243,6 @@ function BannerSlotEditor({
           );
         })}
 
-        {/* Si sidebar no tiene mobile, mostrar info */}
         {slotKey === "sidebar" && (
           <div className="p-5 flex items-center justify-center border-t border-sk-border-2 md:border-t-0 md:border-l md:border-sk-border-2">
             <div className="text-center">
@@ -279,7 +273,6 @@ export function SuperAdminPage() {
     data: Record<string, unknown> | null;
   } | null>(null);
 
-  // Users tab state
   const [selectedUser, setSelectedUser]   = useState<Record<string, any> | null>(null);
   const [editingUser, setEditingUser]     = useState(false);
   const [userEditData, setUserEditData]   = useState<Record<string, string>>({});
@@ -288,13 +281,12 @@ export function SuperAdminPage() {
   const [claimResults, setClaimResults]   = useState<any[]>([]);
   const [claimSearching, setClaimSearching] = useState(false);
 
-  // Banners tab state
   const [bannersConfig, setBannersConfig] = useState<BannersConfig | null>(null);
   const [bannersSaving, setBannersSaving] = useState(false);
   const [bannersSaved, setBannersSaved]   = useState(false);
   const [bannersLoading, setBannersLoading] = useState(false);
 
-const [isSyncingElo, setIsSyncingElo] = useState(false);
+  const [isSyncingElo, setIsSyncingElo] = useState(false);
   
   const handleSyncElo = async () => {
     if (!confirm("¿Estás seguro de sincronizar los ELOs de toda la base de datos? Esto materializará el 'unified_elo' para que el ranking sea preciso.")) return;
@@ -312,12 +304,9 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
   const queryClient = useQueryClient();
   const refresh     = () => queryClient.invalidateQueries();
 
-  // ── Queries ──
-
   const { data: stats } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: async () => {
-      // 👇 AÑADIMOS LA CONSULTA DE MISIONES PENDIENTES
       const [players, clubs, tournaments, leagues, pendingClubs, pendingClaims, pendingMissions] = await Promise.all([
         supabase.from("players").select("*", { count: "exact", head: true }),
         supabase.from("clubs").select("*", { count: "exact", head: true }),
@@ -409,10 +398,8 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
     enabled: !!selectedUser?.id,
   });
 
-  // ── Cargar banners al entrar a la tab ──
-
   const handleLoadBanners = async () => {
-    if (bannersConfig) return; // ya cargados
+    if (bannersConfig) return; 
     setBannersLoading(true);
     try {
       const cfg = await getBannersConfig();
@@ -427,7 +414,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
     setBannersSaving(true);
     try {
       await saveBannersConfig(bannersConfig);
-      // Invalidar caché del hook useBanners para que los cambios se reflejen
       queryClient.invalidateQueries({ queryKey: ["site-settings-banners"] });
       setBannersSaved(true);
       setTimeout(() => setBannersSaved(false), 3000);
@@ -448,16 +434,9 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
     }
   };
 
-  // ── Actions ──
-
-  // 👇 NUEVA FUNCIÓN PARA ACTIVAR/DESACTIVAR
   const handleToggleClubStatus = async (id: string, currentStatus: boolean) => {
     if (!confirm(`¿Estás seguro de que quieres ${currentStatus ? "DESACTIVAR" : "ACTIVAR"} este club?`)) return;
-    
-    // Cambiamos el estado en Supabase
     await supabase.from("clubs").update({ is_approved: !currentStatus }).eq("id", id);
-    
-    // Invalidamos cachés
     refresh();
     queryClient.invalidateQueries({ queryKey: ["clubs"] });
   };
@@ -520,8 +499,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
     refetchSelectedUserPlayers();
   };
 
-  // ── Field definitions ──
-
   const roomFields = [
     { key: "name", label: "Nombre", type: "text" as const, required: true },
     { key: "website_url", label: "Website", type: "text" as const, placeholder: "https://..." },
@@ -554,7 +531,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
 
   const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0);
 
-  // 👇 AÑADIMOS LA PESTAÑA DE MISIONES AL ARRAY TABS CON SU BADGE DINÁMICO
   const TABS: { key: AdminTab; label: string; badge?: number }[] = [
     { key: "overview",  label: "General" },
     { key: "analytics", label: "Analytics" },
@@ -578,7 +554,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
             <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1">⚡ Panel de Administración</h1>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-px bg-sk-bg-0 rounded-md p-0.5 border border-sk-border-2 mb-6 overflow-x-auto">
             {TABS.map((t) => (
               <button
@@ -613,7 +588,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
                 <StatCard label="Ligas" value={formatNumber(stats?.leagues ?? 0)} />
               </div>
 
-              {/* 👇 NUEVA SECCIÓN: HERRAMIENTAS DE SISTEMA */}
               <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6">
                 <div className="flex items-center gap-2 mb-2">
                   <Settings size={16} className="text-sk-accent" />
@@ -653,7 +627,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
                 <div className="border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-x-auto">
                   <table className="w-full border-collapse text-sk-sm">
                     <thead>
-                      {/* Agregamos el título "Acciones" */}
                       <tr>{["Club","País","Estado","Acciones"].map((h,i) => <th key={i} className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left whitespace-nowrap">{h}</th>)}</tr>
                     </thead>
                     <tbody>
@@ -661,13 +634,9 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
                         <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-3 px-4 border-b border-sk-border-2"><div className="flex items-center gap-2"><span className="font-semibold text-sk-text-1">{c.name}</span>{c.is_demo && <Badge variant="muted">Demo</Badge>}</div></td>
                           <td className="py-3 px-4 border-b border-sk-border-2"><span className="inline-flex items-center gap-1.5"><FlagIcon countryCode={c.country_code} /> {c.country_code ?? "—"}</span></td>
-                          
-                          {/* Badge de Estado Actualizado */}
                           <td className="py-3 px-4 border-b border-sk-border-2">
                             <Badge variant={c.is_approved ? "green" : "muted"}>{c.is_approved ? "Activo" : "Inactivo"}</Badge>
                           </td>
-                          
-                          {/* Botón de Toggle y Gestionar */}
                           <td className="py-3 px-4 border-b border-sk-border-2">
                             <div className="flex items-center gap-3">
                               <button
@@ -697,9 +666,11 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
               </div>
             </div>
           )}
-{tab === "analytics" && (
-  <AnalyticsTab />
-)}
+
+          {tab === "analytics" && (
+            <AnalyticsTab />
+          )}
+
           {/* ══ USUARIOS ══ */}
           {tab === "users" && (
             <div className="flex gap-6 min-h-[600px]">
@@ -865,7 +836,7 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
             </div>
           )}
 
-          {/* 👇 ══ MISIONES (NUEVA PESTAÑA) ══ */}
+          {/* ══ MISIONES ══ */}
           {tab === "missions" && (
             <div>
               <div className="flex justify-between items-center mb-4">
@@ -940,7 +911,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
           {/* ══ BANNERS ══ */}
           {tab === "banners" && (
             <div className="space-y-6">
-              {/* Header */}
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <h2 className="text-sk-md font-bold text-sk-text-1 mb-1">Gestión de Banners</h2>
@@ -973,7 +943,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
 
               {!bannersLoading && bannersConfig && (
                 <>
-                  {/* Código de bono */}
                   <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-3">
                       <span className="text-lg">🎁</span>
@@ -995,7 +964,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
                     </div>
                   </div>
 
-                  {/* Slots mid y final */}
                   {(Object.keys(SLOT_INFO) as SlotKey[]).map((slotKey) => (
                     <BannerSlotEditor
                       key={slotKey}
@@ -1008,7 +976,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
                     />
                   ))}
 
-                  {/* ── FloatingCTA editor ── */}
                   <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 border-b border-sk-border-2 bg-sk-bg-3">
                       <div className="flex items-center gap-2 mb-1">
@@ -1020,7 +987,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
                       </p>
                     </div>
                     <div className="p-5 space-y-4">
-                      {/* Toggle activo */}
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => setBannersConfig({
@@ -1042,7 +1008,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
                         </span>
                       </div>
 
-                      {/* Campos Globales */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {[
                           { key: "title", label: "Título (texto pequeño)", placeholder: "$10,000 gratis en WPT" },
@@ -1065,7 +1030,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
                         ))}
                       </div>
 
-                      {/* Campos 🇺🇸 USA */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-sk-border-2 bg-sk-bg-0/30 p-4 rounded-lg">
                         <div className="col-span-full flex items-center gap-2 mb-2">
                           <span className="text-xl">🇺🇸</span>
@@ -1131,7 +1095,6 @@ const [isSyncingElo, setIsSyncingElo] = useState(false);
                     </div>
                   </div>
 
-                  {/* Botón guardar al fondo */}
                   <div className="flex justify-end pt-4 border-t border-sk-border-2">
                     <Button
                       variant={bannersSaved ? "secondary" : "accent"}

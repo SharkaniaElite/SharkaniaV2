@@ -6,6 +6,8 @@ import { Footer } from "./footer";
 import { AdminAccessBanner } from "./admin-access-banner";
 import { getLatestChampion, type LeagueChampionNews } from "../../lib/api/champions";
 import { Crown, X } from "lucide-react";
+import { useBanners } from "../../hooks/use-banners"; // 👈 Importamos los banners
+import { cn } from "../../lib/cn";
 
 interface PageShellProps {
   children: ReactNode;
@@ -15,8 +17,14 @@ export function PageShell({ children }: PageShellProps) {
   const [champion, setChampion] = useState<LeagueChampionNews | null>(null);
   const [dismissed, setDismissed] = useState(true);
   
-  // 👇 INICIALIZACIÓN LAZY: Leemos el estado directamente al inicializar.
-  // Esto elimina la advertencia de ESLint y evita un re-render innecesario.
+  // 🎯 Obtenemos el banner super desde la configuración general
+  const banners = useBanners();
+  const superBanner = banners?.slots?.super;
+  
+  const hasSuperDesktop = !!(superBanner?.desktop?.src || superBanner?.desktop?.href);
+  const hasSuperMobile = !!(superBanner?.mobile?.src || superBanner?.mobile?.href);
+  const hasSuperBanner = hasSuperDesktop || hasSuperMobile;
+
   const [showWhatsapp, setShowWhatsapp] = useState(() => {
     if (typeof window !== "undefined") {
       return !sessionStorage.getItem("hide_whatsapp");
@@ -36,7 +44,6 @@ export function PageShell({ children }: PageShellProps) {
       }
     }
     fetchChampion();
-    // Ya no leemos el sessionStorage del WhatsApp aquí.
   }, []);
 
   const handleDismiss = () => {
@@ -55,8 +62,61 @@ export function PageShell({ children }: PageShellProps) {
     <div className="min-h-screen bg-sk-bg-1 flex flex-col relative">
       <Navbar />
 
-      {/* Spacer para compensar navbar (56px) */}
+      {/* Spacer para compensar el navbar (56px) */}
       <div style={{ height: "56px", flexShrink: 0 }} />
+
+      {/* 🚀 NUEVO: SUPER BANNER GLOBAL FIJO */}
+      {hasSuperBanner && (
+        <>
+          <div className="fixed top-[56px] left-0 right-0 z-[90] bg-sk-bg-0 border-b border-sk-border-2 overflow-hidden shadow-md flex justify-center items-center">
+            {/* 💻 Banner Desktop */}
+            {hasSuperDesktop && (
+              <a
+                href={superBanner.desktop?.href || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "w-full h-[70px] md:h-[100px] flex justify-center bg-sk-bg-1",
+                  hasSuperMobile ? "hidden md:flex" : "flex"
+                )}
+              >
+                <img
+                  src={superBanner.desktop?.src}
+                  alt="Promoción Especial"
+                  className="w-full h-full object-contain md:object-cover max-w-[1780px]"
+                />
+              </a>
+            )}
+            
+            {/* 📱 Banner Mobile */}
+            {hasSuperMobile && (
+              <a
+                href={superBanner.mobile?.href || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "w-full h-[70px] flex justify-center bg-sk-bg-1",
+                  hasSuperDesktop ? "md:hidden" : "flex"
+                )}
+              >
+                <img
+                  src={superBanner.mobile?.src}
+                  alt="Promoción Especial"
+                  className="w-full h-full object-cover max-w-[870px]"
+                />
+              </a>
+            )}
+          </div>
+          
+          {/* Spacer dinámico para empujar el contenido debajo del Super Banner */}
+          <div className={cn(
+            "shrink-0 w-full",
+            hasSuperDesktop && hasSuperMobile ? "h-[70px] md:h-[100px]" : "",
+            hasSuperDesktop && !hasSuperMobile ? "hidden md:block h-[100px]" : "",
+            !hasSuperDesktop && hasSuperMobile ? "h-[70px] md:hidden block" : ""
+          )} />
+        </>
+      )}
 
       {/* 👑 CINTILLO GLOBAL DE CAMPEÓN */}
       {!dismissed && champion && (
@@ -103,10 +163,8 @@ export function PageShell({ children }: PageShellProps) {
 
       <AdminAccessBanner />
 
-      {/* 👇 NUEVO WIDGET WHATSAPP MINIMALISTA CON BOTÓN DE CERRAR */}
       {showWhatsapp && (
         <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Botón de cerrar (X) */}
           <button
             onClick={handleDismissWhatsapp}
             className="w-5 h-5 rounded-full bg-sk-bg-3 border border-sk-border-2 flex items-center justify-center text-sk-text-3 hover:text-white hover:bg-sk-bg-4 transition-colors shadow-sm"
@@ -116,7 +174,6 @@ export function PageShell({ children }: PageShellProps) {
             <X size={12} strokeWidth={3} />
           </button>
           
-          {/* Botón de WhatsApp Circular */}
           <a
             href="https://wa.me/56977910256?text=Hola!%20Necesito%20ayuda%20con%20Sharkania"
             target="_blank"
