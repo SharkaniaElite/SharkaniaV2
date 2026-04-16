@@ -150,6 +150,7 @@ export async function searchPlayers(
     .from("players")
     .select(BASE_PLAYER_SELECT)
     .ilike("nickname", `%${query}%`)
+    .gt("total_tournaments", 0)
     .limit(limit);
 
   if (error) throw error;

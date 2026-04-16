@@ -1,5 +1,5 @@
 // src/components/admin/results-editor.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Modal } from "../ui/modal";
@@ -13,7 +13,6 @@ import { AlertTriangle, Trash2, Plus, RotateCcw, Upload } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
 import { parseCSVSmart } from "../../lib/csv-parser";
 import { forceRecalculateStandings } from "../../lib/api/leagues";
-import { useRef } from "react";
 
 interface EditableRow {
   id: string;
@@ -83,6 +82,39 @@ export function ResultsEditor({
   const [hasChanges, setHasChanges] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Carga inicial de datos
+  useEffect(() => {
+    if (!isOpen) return;
+    setLoading(true);
+    setMessage(null);
+    setHasChanges(false);
+
+    getTournamentResults(tournament.id)
+      .then((results) => {
+        const mapped: EditableRow[] = results.map((r: any) => ({
+          id: r.id,
+          position: r.position,
+          nickname: r.players?.nickname ?? "",
+          playerId: r.player_id,
+          prizeWon: Number(r.prize_won) || 0,
+          leaguePoints: Number(r.league_points_earned ?? 0),
+          eloChange: r.elo_change ? Number(r.elo_change) : null,
+          countryCode: r.players?.country_code ?? null,
+          isNew: false,
+          isDirty: false,
+          originalNickname: r.players?.nickname ?? "",
+          originalPrize: Number(r.prize_won) || 0,
+          originalPoints: Number(r.league_points_earned) || 0,
+        }));
+        setRows(mapped.sort((a, b) => a.position - b.position));
+        setLoading(false);
+      })
+      .catch((err) => {
+        setMessage({ text: `Error cargando resultados: ${err.message}`, type: "error" });
+        setLoading(false);
+      });
+  }, [isOpen, tournament.id]);
+
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -96,7 +128,6 @@ export function ResultsEditor({
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string;
-      // Usamos el motor inteligente desde la librería central
       const { rows: parsed, errors } = parseCSVSmart(text);
 
       if (errors.filter((err) => err.row === 0).length > 0) {
@@ -109,7 +140,6 @@ export function ResultsEditor({
         return;
       }
 
-      // Transformamos los datos al formato del Editor marcándolos como "Nuevos y Sucios"
       const newRows: EditableRow[] = parsed.map((p, i) => ({
         id: `csv-${Date.now()}-${i}`,
         position: p.position ?? i + 1,
@@ -126,46 +156,16 @@ export function ResultsEditor({
         originalPoints: 0,
       }));
 
-      setRows(newRows);
+      setRows(newRows.sort((a, b) => a.position - b.position));
       setHasChanges(true);
       setMessage({
-        text: `✅ CSV cargado con ${parsed.length} jugadores en memoria. Revisa los datos y haz click en "Guardar Cambios" para sobreescribir la base de datos de forma segura.`,
+        text: `✅ CSV cargado. Revisa los datos y haz click en "Guardar Cambios" para sobreescribir la base de datos.`,
         type: "info",
       });
     };
     reader.readAsText(file);
     e.target.value = "";
   };
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setLoading(true);
-    setMessage(null);
-    setHasChanges(false);
-
-    getTournamentResults(tournament.id).then((results) => {
-      const mapped: EditableRow[] = results.map((r: any) => ({
-        id: r.id,
-        position: r.position,
-        nickname: r.players?.nickname ?? "",
-        playerId: r.player_id,
-        prizeWon: Number(r.prize_won) || 0,
-        leaguePoints: Number(r.league_points_earned ?? 0),
-        eloChange: r.elo_change ? Number(r.elo_change) : null,
-        countryCode: r.players?.country_code ?? null,
-        isNew: false,
-        isDirty: false,
-        originalNickname: r.players?.nickname ?? "",
-        originalPrize: Number(r.prize_won) || 0,
-        originalPoints: Number(r.league_points_earned) || 0,
-      }));
-      setRows(mapped.sort((a, b) => a.position - b.position));
-      setLoading(false);
-    }).catch((err) => {
-      setMessage({ text: `Error cargando resultados: ${err.message}`, type: "error" });
-      setLoading(false);
-    });
-  }, [isOpen, tournament.id]);
 
   const updateRow = (index: number, field: string, value: string | number | null) => {
     const newRows = [...rows];
@@ -222,9 +222,11 @@ export function ResultsEditor({
     setHasChanges(true);
   };
 
+  // 🔥 EL CEREBRO DE LA OPERACIÓN (BORRÓN Y CUENTA NUEVA)
   const handleSave = async () => {
     const errors: string[] = [];
 
+    // Validaciones básicas
     const emptyNicks = rows.filter((r) => !r.nickname.trim());
     if (emptyNicks.length > 0) {
       errors.push(`${emptyNicks.length} jugador(es) sin nickname`);
@@ -236,7 +238,7 @@ export function ResultsEditor({
         arr.findIndex((a) => a.nickname.toLowerCase().trim() === r.nickname.toLowerCase().trim()) !== i
     );
     if (dupeNicks.length > 0) {
-      errors.push(`Nicknames duplicados: ${[...new Set(dupeNicks.map((r) => r.nickname))].join(", ")}`);
+      errors.push(`Nicknames duplicados detectados.`);
     }
 
     if (errors.length > 0) {
@@ -244,18 +246,18 @@ export function ResultsEditor({
       return;
     }
 
-    const normalizedRows = rows.map((r) => ({
-      ...r,
-      leaguePoints: r.leaguePoints ?? 0,
-    }));
-
     setSaving(true);
-    setMessage({ text: "Paso 1/4: Reseteando impacto en estadísticas de jugadores...", type: "info" });
+    setMessage({ text: "Paso 1/5: Revirtiendo impacto del torneo...", type: "info" });
 
     try {
-      await prepareTournamentForReedit(tournament.id);
+      // 1. Limpiar historial de ELO y Ligas previo (Fundamental para no duplicar ni generar fantasmas)
+      if (tournament.results_uploaded) {
+         await prepareTournamentForReedit(tournament.id);
+      }
 
-      setMessage({ text: "Paso 2/4: Limpiando resultados anteriores...", type: "info" });
+      setMessage({ text: "Paso 2/5: Borrando resultados obsoletos...", type: "info" });
+      
+      // 2. Borrar resultados de la tabla explícitamente (Borron y cuenta nueva)
       const { error: deleteErr } = await supabase
         .from("tournament_results")
         .delete()
@@ -263,21 +265,22 @@ export function ResultsEditor({
 
       if (deleteErr) throw deleteErr;
 
-      setMessage({ text: "Paso 3/4: Resolviendo jugadores e insertando resultados...", type: "info" });
+      setMessage({ text: "Paso 3/5: Registrando nuevos jugadores e insertando resultados...", type: "info" });
 
+      // 3. Resolver/crear jugadores e insertar el nuevo set de datos
       const insertData = await Promise.all(
-        normalizedRows.map(async (row) => {
+        rows.map(async (row) => {
           let playerId = row.playerId;
-          if (row.isNew || !playerId) {
-            const resolved = await resolvePlayer(row.nickname, tournament.room_id, row.countryCode);
-            playerId = resolved.id;
+          if (row.isNew || !playerId || row.nickname !== row.originalNickname) {
+             const resolved = await resolvePlayer(row.nickname, tournament.room_id, row.countryCode || tournament.clubs?.country_code || null);
+             playerId = resolved.id;
           }
           return {
             tournament_id: tournament.id,
             player_id: playerId,
             position: row.position,
-            prize_won: row.prizeWon,
-            league_points_earned: row.leaguePoints,
+            prize_won: row.prizeWon || 0,
+            league_points_earned: row.leaguePoints || 0,
             bounties_won: 0,
           };
         })
@@ -289,22 +292,25 @@ export function ResultsEditor({
 
       if (insertErr) throw insertErr;
 
-      setMessage({ text: "Paso 4/4: Recalculando ELO y estadísticas...", type: "info" });
+      // 4. Recalcular ELO desde cero
+      setMessage({ text: "Paso 4/5: Recalculando sistema ELO...", type: "info" });
       const calcResult = await calculateElo(tournament.id);
       
       if (!calcResult.success) {
         throw new Error(calcResult.message);
       }
 
+      // 5. Reaplicar puntos de liga (si corresponde)
       if (tournament.league_id) {
-        setMessage({ text: "Paso 5: Actualizando tabla de posiciones de la Liga...", type: "info" });
+        setMessage({ text: "Paso 5/5: Actualizando posiciones de la Liga...", type: "info" });
         await applyLeaguePoints(tournament.id, tournament.league_id);
-        await forceRecalculateStandings(tournament.league_id); // 🔥 VITAL: Fuerce recálculo de las mejores 7 fechas
+        await forceRecalculateStandings(tournament.league_id); 
       }
 
-      setMessage({ text: `✅ Resultados actualizados con éxito.`, type: "success" });
+      setMessage({ text: `✅ Torneo editado y recalculado exitosamente.`, type: "success" });
       setHasChanges(false);
 
+      // Refrescar el modal con los datos más recientes de Supabase
       const fresh = await getTournamentResults(tournament.id);
       const refreshed: EditableRow[] = fresh.map((r: any) => ({
         id: r.id,
@@ -322,9 +328,12 @@ export function ResultsEditor({
         originalPoints: Number(r.league_points_earned) || 0,
       }));
       setRows(refreshed.sort((a, b) => a.position - b.position));
-      onComplete();
-    } catch (err) {
-      setMessage({ text: `Error: ${err instanceof Error ? err.message : "Error inesperado"}`, type: "error" });
+      
+      onComplete(); // Trigger refresh en la UI externa
+
+    } catch (err: any) {
+      const errorMsg = err?.message || err?.details || JSON.stringify(err);
+      setMessage({ text: `Error: ${errorMsg}`, type: "error" });
     } finally {
       setSaving(false);
     }
@@ -363,9 +372,7 @@ export function ResultsEditor({
                   <tr>
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-12">Pos</th>
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left">Nickname</th>
-                    {/* 🔥 AJUSTE: Ancho incrementado a w-32 para soportar 9 cifras cómodamente */}
-                    {/* 🔥 CAMBIO AQUÍ: min-w-[160px] asegura espacio para 9 cifras sin encogerse */}
-    <th className="py-2 px-2 w-40 min-w-[160px]">Premio</th>
+                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-40 min-w-[160px]">Premio</th>
                     {hasLeague && (
                       <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-purple py-2 px-2 text-left w-20">
                         Puntos
@@ -477,7 +484,6 @@ export function ResultsEditor({
               <Button variant="ghost" size="sm" onClick={addRow}>
                 <Plus size={14} /> Agregar jugador
               </Button>
-              {/* Botón Mágico Reemplazar CSV */}
               <input ref={fileRef} type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />
               <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()} className="text-sk-accent hover:bg-sk-accent-dim/30">
                 <Upload size={14} /> Reemplazar con CSV
@@ -488,7 +494,7 @@ export function ResultsEditor({
               <div className="flex items-start gap-2 px-3 py-2.5 bg-sk-accent-dim border border-sk-accent/20 rounded-md">
                 <AlertTriangle size={14} className="text-sk-accent mt-0.5 shrink-0" />
                 <div className="text-sk-xs text-sk-accent-text">
-                  <strong>Actualización de Seguridad:</strong> Se reseteará el rastro del torneo anterior para garantizar que no existan duplicados en las estadísticas de los jugadores antes de recalcular el nuevo ELO.
+                  <strong>Atención:</strong> Guardar cambios reseteará completamente el impacto previo de este torneo y lo recalculará desde cero con los datos en pantalla para garantizar integridad en el ELO.
                 </div>
               </div>
             )}

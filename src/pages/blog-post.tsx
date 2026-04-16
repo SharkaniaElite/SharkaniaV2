@@ -2,7 +2,7 @@
 import { useArticleSchema, useBreadcrumbSchema } from "../components/seo/structured-data";
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, Share2, ChevronRight, Lock } from "lucide-react";
+import { ArrowLeft, Clock, Share2, ChevronRight, Lock, Check } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { getBlogPost, formatBlogDate, type BlogPost, type BlogBlock } from "../lib/api/blog";
 import { SEOHead } from "../components/seo/seo-head";
@@ -119,6 +119,7 @@ export default function BlogPostPage() {
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [claimed, setClaimed] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useArticleSchema({
     title: post?.title ?? '',
@@ -209,9 +210,30 @@ export default function BlogPostPage() {
     }
   };
 
-  const handleShare = async () => {
-    try { await navigator.clipboard.writeText(window.location.href); }
-    catch { /* silencioso */ }
+  const handleCopyLink = async () => {
+    try { 
+      await navigator.clipboard.writeText(window.location.href); 
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); 
+    }
+    catch (err) { console.error("Error copiando", err); }
+  };
+
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post?.title || "Sharkania",
+          text: post?.excerpt || "Lee este excelente artículo en Sharkania",
+          url: window.location.href,
+        });
+      } catch (err) {
+        // Ignoramos el error si el usuario simplemente cierra el menú de compartir
+      }
+    } else {
+      // Fallback: Si el navegador no soporta el menú nativo (PCs antiguos), copiamos el enlace
+      handleCopyLink();
+    }
   };
 
   return (
@@ -246,8 +268,12 @@ export default function BlogPostPage() {
               </span>
             </div>
 
-            <button onClick={handleShare} className="flex items-center gap-1.5 text-sk-sm text-sk-text-2 hover:text-sk-accent transition-colors">
-              <Share2 size={13} /> Compartir
+            <button onClick={handleNativeShare} className="flex items-center gap-1.5 text-sk-sm text-sk-text-2 hover:text-sk-accent transition-colors min-w-[85px] justify-end">
+              {copied ? (
+                <><Check size={13} className="text-sk-green" /> <span className="text-sk-green">Copiado</span></>
+              ) : (
+                <><Share2 size={13} /> Compartir</>
+              )}
             </button>
           </div>
         </div>
@@ -414,8 +440,12 @@ export default function BlogPostPage() {
                     <a href={`https://wa.me/?text=${encodeURIComponent(post.title + " — " + window.location.href)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-sk-border-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:border-sk-border-3 transition-colors">
                       WhatsApp
                     </a>
-                    <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-sk-border-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:border-sk-border-3 transition-colors">
-                      <Share2 size={13} /> Copiar enlace
+                    <button onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-sk-border-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 hover:border-sk-border-3 transition-colors min-w-[145px] justify-center">
+                      {copied ? (
+                        <><Check size={13} className="text-sk-green" /> <span className="text-sk-green">¡Enlace copiado!</span></>
+                      ) : (
+                        <><Share2 size={13} /> Copiar enlace</>
+                      )}
                     </button>
                   </div>
                 </div>
