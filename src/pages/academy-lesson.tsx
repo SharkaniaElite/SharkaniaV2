@@ -173,16 +173,19 @@ export function AcademyLessonPage() {
           {lesson.quiz.length > 0 && (
             <div className="mt-10 pt-8 border-t border-sk-border-2">
               {!user ? (
-                <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 text-center">
-                  <BookOpen size={32} className="text-sk-accent mx-auto mb-3" />
-                  <h3 className="text-sk-md font-bold text-sk-text-1 mb-2">
-                    Inicia sesión para hacer el quiz
+                <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-8 text-center shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-sk-accent/10 blur-3xl rounded-full pointer-events-none" />
+                  <BookOpen size={36} className="text-sk-accent mx-auto mb-4 drop-shadow-[0_0_15px_rgba(34,211,238,0.3)]" />
+                  <h3 className="text-lg md:text-xl font-black text-sk-text-1 mb-2 tracking-tight">
+                    Demuestra lo aprendido y gana Shark Coins
                   </h3>
-                  <p className="text-sk-xs text-sk-text-2 mb-4">
-                    Necesitas una cuenta para guardar tu progreso y ganar XP.
+                  <p className="text-sk-sm text-sk-text-2 mb-6 max-w-md mx-auto leading-relaxed">
+                    Aprobar este test táctico te otorgará <strong className="text-sk-gold font-mono">{lesson.coins_reward} SC</strong> y <strong className="text-purple-400 font-mono">{lesson.xp_reward} XP</strong>. Usa tus monedas para desbloquear calculadoras y herramientas premium en La Bóveda.
                   </p>
-                  <Link to="/register">
-                    <Button variant="accent" size="md">Crear cuenta gratis</Button>
+                  <Link to={`/register?redirect=/academia/${moduleSlug}/${lessonSlug}`}>
+                    <Button variant="accent" size="lg" className="shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:shadow-[0_0_30px_rgba(34,211,238,0.4)]">
+                      Crear cuenta gratis para participar
+                    </Button>
                   </Link>
                 </div>
               ) : (

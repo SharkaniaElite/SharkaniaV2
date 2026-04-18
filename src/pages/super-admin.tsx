@@ -15,7 +15,7 @@ import { FlagIcon } from "../components/ui/flag-icon";
 import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
-  Image, Save, Eye, RefreshCw, Power
+  Image, Save, Eye, RefreshCw, Power, Gift
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -353,6 +353,19 @@ export function SuperAdminPage() {
     enabled: tab === "requests",
   });
 
+  const { data: wptValidations, refetch: refetchWpt } = useQuery({
+    queryKey: ["admin-wpt-validations"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, display_name, email, whatsapp, wpt_nickname")
+        .eq("wpt_status", "pending")
+        .order("updated_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: tab === "requests",
+  });
+
   const { data: rooms } = useQuery({
     queryKey: ["admin-rooms"],
     queryFn: async () => {
@@ -529,7 +542,7 @@ export function SuperAdminPage() {
     { key: "is_active", label: "Activo", type: "checkbox" as const },
   ];
 
-  const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0);
+  const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0) + (wptValidations?.length ?? 0);
 
   const TABS: { key: AdminTab; label: string; badge?: number }[] = [
     { key: "overview",  label: "General" },
@@ -832,6 +845,37 @@ export function SuperAdminPage() {
                     ))}
                   </div>
                 )}
+                <div className="mt-8">
+                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4 border-t border-sk-border-2 pt-8 flex items-center gap-2">
+                  <Gift className="text-sk-accent" size={18}/> Validaciones VIP WPT Global ({wptValidations?.length || 0})
+                </h2>
+                {(wptValidations ?? []).length === 0 ? <EmptyState icon="🎁" title="Sin validaciones VIP pendientes" /> : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {wptValidations?.map((val: any) => (
+                      <div key={val.id} className="bg-sk-bg-2 border border-sk-accent/20 rounded-lg p-5">
+                        <div className="mb-3">
+                          <p className="text-sk-sm font-bold text-sk-text-1 mb-1">Usuario: <span className="text-sk-accent">{val.display_name ?? val.email}</span></p>
+                          <p className="text-sk-sm font-bold text-sk-text-1">Nick reclamado WPT: <span className="font-mono text-sk-gold">{val.wpt_nickname}</span></p>
+                          <div className="mt-3 bg-sk-bg-3 p-3 rounded border border-sk-border-2 text-[11px] text-sk-text-3 space-y-1">
+                            <p><span className="font-bold text-sk-text-2">Email:</span> {val.email}</p>
+                            {val.whatsapp && <p><span className="font-bold text-sk-text-2">WhatsApp:</span> +{val.whatsapp}</p>}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 pt-3 border-t border-sk-border-2 mt-2">
+                          <Button variant="accent" size="sm" className="flex-1 shadow-[0_0_15px_rgba(34,211,238,0.15)]" onClick={async () => {
+                            await supabase.from("profiles").update({ wpt_status: "verified", wpt_verified_at: new Date().toISOString() }).eq("id", val.id);
+                            refetchWpt();
+                          }}><Check size={13} /> Aprobar VIP</Button>
+                          <Button variant="danger" size="sm" onClick={async () => {
+                            await supabase.from("profiles").update({ wpt_status: "rejected" }).eq("id", val.id);
+                            refetchWpt();
+                          }}><XIcon size={13} /> Rechazar</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               </div>
             </div>
           )}

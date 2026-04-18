@@ -32,6 +32,8 @@ export function PlayerDashboardPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [claimOpen, setClaimOpen] = useState(false);
+  const [wptInput, setWptInput] = useState("");
+  const [isSubmittingWpt, setIsSubmittingWpt] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const avatarFileRef = useRef<HTMLInputElement>(null);
@@ -284,30 +286,88 @@ export function PlayerDashboardPage() {
             {message && <div className={`mt-4 rounded-md p-3 text-sk-sm ${message.includes("Error") ? "bg-sk-red-dim text-sk-red" : "bg-sk-green-dim text-sk-green"}`}>{message}</div>}
           </div>
 
+          {/* 🎁 ZONA VIP WPT GLOBAL (A NIVEL DE PERFIL) */}
+          <div className="bg-gradient-to-r from-sk-bg-0 to-sk-bg-1 border border-sk-accent/30 rounded-lg p-6 mb-6 shadow-[0_0_20px_rgba(34,211,238,0.05)]">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2 mb-1">
+                  🎁 Beneficios VIP WPT Global
+                </h2>
+                <p className="text-sk-sm text-sk-text-3">
+                  Vincula tu cuenta WPT creada con código <strong className="text-sk-accent">FPHL</strong> para desbloquear toda la Bóveda gratis.
+                </p>
+              </div>
+
+              {profile.wpt_status === "verified" ? (
+                <Badge variant="green">¡Verificado VIP!</Badge>
+              ) : profile.wpt_status === "pending" ? (
+                <Badge variant="orange">En Revisión...</Badge>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                  <input 
+                    type="text" 
+                    placeholder="Tu Nick en WPT..." 
+                    value={wptInput}
+                    onChange={(e) => setWptInput(e.target.value)}
+                    className="w-full sm:w-40 bg-sk-bg-2 border border-sk-border-2 rounded-md py-1.5 px-3 text-sk-sm text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent"
+                  />
+                  <Button 
+                    variant="accent" 
+                    size="sm" 
+                    className="w-full sm:w-auto whitespace-nowrap"
+                    onClick={async () => {
+                      if (!wptInput.trim()) return;
+                      setIsSubmittingWpt(true);
+                      try {
+                        await supabase.from("profiles").update({ 
+                          wpt_nickname: wptInput.trim(), 
+                          wpt_status: "pending" 
+                        }).eq("id", user.id);
+                        alert("Validación WPT enviada al administrador.");
+                        setTimeout(() => window.location.reload(), 1500);
+                      } catch (e) {
+                        console.error(e);
+                      }
+                      setIsSubmittingWpt(false);
+                    }} 
+                    isLoading={isSubmittingWpt}
+                  >
+                    Enviar a revisión
+                  </Button>
+                </div>
+              )}
+            </div>
+            {profile.wpt_status === "rejected" && (
+              <p className="text-sk-sm text-sk-red mt-3 bg-sk-red-dim border border-sk-red/20 p-2 rounded">
+                Tu validación fue rechazada. Asegúrate de haber usado nuestro enlace o contáctanos.
+              </p>
+            )}
+          </div>
+
           {/* Linked Nicknames */}
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2"><LinkIcon size={18} /> Mis Nicknames</h2>
+              <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2"><LinkIcon size={18} /> Mis Nicknames & Validaciones</h2>
               <Button variant="accent" size="sm" onClick={() => setClaimOpen(true)}>Reclamar Nickname</Button>
             </div>
 
             {(linkedPlayers ?? []).length > 0 ? (
               <div className="space-y-2">
                 {(linkedPlayers ?? []).map((p) => (
-                  <div key={p.id} className="flex items-center justify-between bg-sk-bg-3 rounded-md px-4 py-3">
+                  <div key={p.id} className="flex items-center justify-between bg-sk-bg-3 rounded-md px-4 py-2.5 border border-sk-border-2">
                     <div>
-                      <span className="font-semibold text-sk-text-1 font-mono">{p.nickname}</span>
-                      <span className="text-sk-xs text-sk-text-2 ml-2">({(p as any).poker_rooms?.name})</span>
+                      <span className="font-semibold text-sk-text-1 font-mono text-sk-sm">{p.nickname}</span>
+                      <span className="text-[11px] text-sk-text-3 ml-2">({(p as any).poker_rooms?.name})</span>
                     </div>
-                    <span className="font-mono font-bold text-sk-accent">{Math.round(p.elo_rating)}</span>
+                    <span className="font-mono font-bold text-sk-accent text-sk-sm">{Math.round(p.elo_rating)}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sk-sm text-sk-text-2">No tienes nicknames vinculados. Reclama uno para ver tus stats.</p>
+              <p className="text-sk-sm text-sk-text-2">No tienes nicknames vinculados. Reclama uno para ver tus stats y opciones VIP.</p>
             )}
 
-            {/* Pending claims */}
+            {/* Pending claims (Screenshot) */}
             {(myClaims ?? []).filter((c) => c.status === "pending").length > 0 && (
               <div className="mt-4">
                 <p className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-2">Solicitudes Pendientes</p>

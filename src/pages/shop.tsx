@@ -5,11 +5,13 @@ import { Button } from "../components/ui/button";
 import { SEOHead } from "../components/seo/seo-head";
 import { useShopProducts, useUserPurchases, usePurchaseProduct, useSharkCoinsBalance } from "../hooks/use-shop";
 import { useAuthStore } from "../stores/auth-store";
-import { Lock, Sparkles, CheckCircle2, FlaskConical, Zap, Hammer, ExternalLink, Gift } from "lucide-react";
+import { Lock, Sparkles, CheckCircle2, FlaskConical, Zap, Hammer, ExternalLink, Gift, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "../lib/cn";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import type { ShopProduct } from "../types";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "../lib/supabase";
 
 // ─── LISTA BLANCA: SOLO LO QUE ESTÁ PROGRAMADO Y FUNCIONANDO ───
 const IMPLEMENTED_FEATURES = [
@@ -110,6 +112,25 @@ function ProductCardGroup({
   const canAfford = balance >= currentPrice;
   const config = TOOL_CONFIG[group.feature_key];
 
+  // Consultar estado WPT
+  const { data: wptStatus } = useQuery({
+    queryKey: ["wpt-status", activePurchase?.user_id], 
+    queryFn: async () => {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session?.user.id) return "none";
+      const { data } = await supabase
+        .from("players")
+        .select("wpt_status")
+        .eq("profile_id", session.data.session.user.id)
+        .limit(1)
+        .single();
+      return data?.wpt_status || "none";
+    },
+    enabled: isAuthenticated,
+  });
+
+  const hasAccess = activePurchase || wptStatus === "verified";
+
   // Extraemos la descripción dinámica según el botón seleccionado
   const currentDescription = (selectedOption as any)?.premium_description || selectedOption?.description || group.description;
 
@@ -154,7 +175,7 @@ function ProductCardGroup({
           {currentDescription}
         </p>
 
-        {!activePurchase && group.options.length > 1 && (
+        {!hasAccess && group.options.length > 1 && (
           <div className="flex bg-sk-bg-0/80 backdrop-blur-sm p-1 rounded-lg border border-sk-border-2 mb-5">
             {group.options.map((opt, idx) => (
               <button
@@ -173,7 +194,51 @@ function ProductCardGroup({
           </div>
         )}
 
-        {activePurchase ? (
+        {/* 🔥 WPT UNLOCK BADGE DINÁMICO */}
+        {!hasAccess && (
+          <div className="mb-4 bg-sk-bg-3/50 border border-sk-border-2 rounded-lg p-3 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-sk-accent" />
+            
+            {wptStatus === "none" || !isAuthenticated ? (
+              <>
+                <p className="text-[11px] font-bold text-sk-text-1 flex items-center gap-1.5 mb-1.5">
+                  <Gift size={12} className="text-sk-accent" /> Desbloqueo VIP Gratuito
+                </p>
+                <p className="text-[10px] text-sk-text-3 leading-snug mb-2">
+                  1. Regístrate en WPT Global con el link a continuación y usa el código <strong className="text-sk-accent font-mono bg-sk-accent/10 px-1 py-0.5 rounded">FPHL</strong>.<br/>
+                  2. Ingresa tu nickname en tu Panel de Jugador.
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  <a href="https://tracking.wptpartners.com/visit/?bta=35660&brand=wptglobal" target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" size="sm" className="w-full text-[10px] h-7 border border-sk-accent/30 text-sk-accent hover:bg-sk-accent-dim">
+                      Paso 1: Crear cuenta WPT <ExternalLink size={10} className="ml-1" />
+                    </Button>
+                  </a>
+                  <Button variant="secondary" size="sm" className="w-full text-[10px] h-7" onClick={() => navigate(isAuthenticated ? "/dashboard" : "/login")}>
+                    Paso 2: Vincular en mi Panel
+                  </Button>
+                </div>
+              </>
+            ) : wptStatus === "pending" ? (
+              <div className="text-center py-2">
+                <Clock size={20} className="text-sk-orange mx-auto mb-1.5 animate-pulse" />
+                <p className="text-[11px] font-bold text-sk-orange">Verificación en progreso...</p>
+                <p className="text-[9px] text-sk-text-3 mt-1">El admin está validando tu registro en WPT. Esto puede demorar hasta 24h.</p>
+              </div>
+            ) : wptStatus === "rejected" ? (
+              <div className="text-center py-2">
+                <AlertTriangle size={20} className="text-sk-red mx-auto mb-1.5" />
+                <p className="text-[11px] font-bold text-sk-red">Verificación denegada</p>
+                <p className="text-[9px] text-sk-text-3 mt-1">El registro no se realizó con nuestro enlace o código. Revisa tu panel.</p>
+                <Button variant="secondary" size="sm" className="w-full text-[10px] h-7 mt-2" onClick={() => navigate("/dashboard")}>
+                  Revisar en mi Panel
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {hasAccess ? (
           <div className="mt-auto pt-4 border-t border-sk-border-2 bg-sk-bg-0/50 backdrop-blur-sm -mx-6 -mb-6 px-6 pb-6">
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -182,16 +247,16 @@ function ProductCardGroup({
                   Acceso Activado
                 </p>
                 <p className="text-[10px] text-sk-text-3 font-mono mt-0.5">
-                  - {currentPrice} SC descontados
+                  {wptStatus === "verified" ? "— Beneficio WPT VIP" : `- ${currentPrice} SC descontados`}
                 </p>
               </div>
               <div className="text-right">
-                {activePurchase.expires_at ? (
+                {wptStatus === "verified" || !activePurchase?.expires_at ? (
+                  <p className="text-[11px] text-sk-green font-mono uppercase tracking-widest">Ilimitado</p>
+                ) : (
                   <p className="text-[11px] text-sk-text-3 font-mono">
                     Expira: {format(new Date(activePurchase.expires_at), "dd MMM")}
                   </p>
-                ) : (
-                  <p className="text-[11px] text-sk-text-3 font-mono">Ilimitado</p>
                 )}
               </div>
             </div>
@@ -203,7 +268,7 @@ function ProductCardGroup({
             )}
           </div>
         ) : (
-          <div className="mt-auto pt-5 border-t border-sk-border-2 flex flex-col gap-4">
+          <div className="mt-auto pt-5 border-t border-sk-border-2 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-1.5 text-sk-accent font-mono font-black text-xl bg-sk-bg-0/50 px-2 py-1 rounded-md">
                 {currentPrice}

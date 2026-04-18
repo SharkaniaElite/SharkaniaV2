@@ -49,6 +49,10 @@ export interface Profile {
   shark_coins_balance: number;
   created_at: string;
   updated_at: string;
+  // 🔥 Campos añadidos para el VIP de WPT Global
+  wpt_nickname?: string | null;
+  wpt_status?: "none" | "pending" | "verified" | "rejected";
+  wpt_verified_at?: string | null;
 }
 
 export interface CreditTransaction {
