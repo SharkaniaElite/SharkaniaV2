@@ -16,6 +16,8 @@ import { RoomProfilerPage } from "./pages/room-profiler";
 import { TutorialClubGGPage } from "./pages/tutorial-clubgg";
 import { PromotionsPage } from "./pages/promotions";
 import { PromoFreerollPage } from "./pages/promo-freeroll";
+import { SharkTvPage } from "./pages/shark-tv";
+import { HandReviewPage } from "./pages/hand-review";
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
@@ -125,7 +127,9 @@ export function App() {
               <Route path="/como-jugar-en-clubgg" element={<TutorialClubGGPage />} />
               <Route path="/promociones" element={<PromotionsPage />} />
               <Route path="/promociones/freeroll-diario" element={<PromoFreerollPage />} />
-
+              {/* SharkTV */}
+              <Route path="/tv" element={<SharkTvPage />} />
+              <Route path="/tv/plo6-bombpot" element={<HandReviewPage />} />
 
               {/* Legal */}
               <Route path="/terms" element={<TermsPage />} />
