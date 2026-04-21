@@ -13,6 +13,7 @@ import { AgeVerificationModal } from "./components/layout/age-verification-modal
 import { EloSystemPage } from "./pages/elo-system";
 import { TutorialCsvPage } from "./pages/tutorial-csv";
 import { RoomProfilerPage } from "./pages/room-profiler";
+import { TutorialClubGGPage } from "./pages/tutorial-clubgg";
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
@@ -119,6 +120,7 @@ export function App() {
               <Route path="/academia" element={<AcademyPage />} />
               <Route path="/academia/:moduleSlug" element={<AcademyModulePage />} />
               <Route path="/academia/:moduleSlug/:lessonSlug" element={<AcademyLessonPage />} />
+              <Route path="/como-jugar-en-clubgg" element={<TutorialClubGGPage />} />
               {/* Legal */}
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
