@@ -280,7 +280,7 @@ export function TutorialClubGGPage() {
               </ul>
 
               <div className="bg-sk-bg-0 border border-sk-border-2 rounded-xl p-5 shadow-inner">
-                <p className="text-sk-sm font-bold text-sk-text-1 mb-2">Paso Final: Envíame este protocolo para activar tu cuenta</p>
+                <p className="text-sk-sm font-bold text-sk-text-1 mb-2">Paso Final: Envíame estos datos para activar tu cuenta</p>
                 <div className="text-[11px] md:text-xs text-sk-accent font-mono mb-4 bg-sk-accent/10 p-3 rounded-lg border border-sk-accent/20 inline-block font-bold">
                   Nombre y Apellido — Email — Teléfono
                 </div>

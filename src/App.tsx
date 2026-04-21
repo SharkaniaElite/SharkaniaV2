@@ -14,6 +14,8 @@ import { EloSystemPage } from "./pages/elo-system";
 import { TutorialCsvPage } from "./pages/tutorial-csv";
 import { RoomProfilerPage } from "./pages/room-profiler";
 import { TutorialClubGGPage } from "./pages/tutorial-clubgg";
+import { PromotionsPage } from "./pages/promotions";
+import { PromoFreerollPage } from "./pages/promo-freeroll";
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
@@ -121,6 +123,10 @@ export function App() {
               <Route path="/academia/:moduleSlug" element={<AcademyModulePage />} />
               <Route path="/academia/:moduleSlug/:lessonSlug" element={<AcademyLessonPage />} />
               <Route path="/como-jugar-en-clubgg" element={<TutorialClubGGPage />} />
+              <Route path="/promociones" element={<PromotionsPage />} />
+              <Route path="/promociones/freeroll-diario" element={<PromoFreerollPage />} />
+
+
               {/* Legal */}
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
