@@ -15,7 +15,7 @@ import { FlagIcon } from "../components/ui/flag-icon";
 import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
-  Image, Save, Eye, RefreshCw, Power, Gift
+  Image, Save, Eye, RefreshCw, Power, Gift, MessageCircle
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -36,7 +36,6 @@ type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scor
 // ── Descripción de cada slot de banner ───────────────────
 
 const SLOT_INFO = {
-  // 👇 NUEVO: Configuración visual del form para el Super Banner
   super: {
     title: "Super Banner Global",
     description: "Aparece FIJO en la parte superior de TODAS las páginas, justo debajo del menú.",
@@ -366,6 +365,19 @@ export function SuperAdminPage() {
     enabled: tab === "requests",
   });
 
+  const { data: latinValidations, refetch: refetchLatin } = useQuery({
+    queryKey: ["admin-latin-validations"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, display_name, email, whatsapp, latin_nickname")
+        .eq("latin_status", "pending")
+        .order("updated_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: tab === "requests",
+  });
+
   const { data: rooms } = useQuery({
     queryKey: ["admin-rooms"],
     queryFn: async () => {
@@ -542,7 +554,7 @@ export function SuperAdminPage() {
     { key: "is_active", label: "Activo", type: "checkbox" as const },
   ];
 
-  const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0) + (wptValidations?.length ?? 0);
+  const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0) + (wptValidations?.length ?? 0) + (latinValidations?.length ?? 0);
 
   const TABS: { key: AdminTab; label: string; badge?: number }[] = [
     { key: "overview",  label: "General" },
@@ -803,6 +815,7 @@ export function SuperAdminPage() {
                   </div>
                 )}
               </div>
+              
               <div>
                 <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Claims de Nickname ({nicknameClaims?.length || 0})</h2>
                 {(nicknameClaims ?? []).length === 0 ? <EmptyState icon="🏷️" title="Sin claims pendientes" /> : (
@@ -845,7 +858,10 @@ export function SuperAdminPage() {
                     ))}
                   </div>
                 )}
-                <div className="mt-8">
+              </div>
+
+              {/* WPT Validations */}
+              <div className="mt-8">
                 <h2 className="text-sk-md font-bold text-sk-text-1 mb-4 border-t border-sk-border-2 pt-8 flex items-center gap-2">
                   <Gift className="text-sk-accent" size={18}/> Validaciones VIP WPT Global ({wptValidations?.length || 0})
                 </h2>
@@ -876,6 +892,48 @@ export function SuperAdminPage() {
                   </div>
                 )}
               </div>
+
+              {/* LatinAllinPoker Validations */}
+              <div className="mt-8">
+                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4 border-t border-sk-border-2 pt-8 flex items-center gap-2">
+                  <span className="text-xl">📞</span> Onboarding LatinAllinPoker ({latinValidations?.length || 0})
+                </h2>
+                <p className="text-sk-xs text-sk-text-3 mb-4">Jugadores listos para que los contactes por WhatsApp y les actives depósitos/retiros.</p>
+                
+                {(latinValidations ?? []).length === 0 ? <EmptyState icon="📱" title="Sin jugadores pendientes" /> : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {latinValidations?.map((val: any) => (
+                      <div key={val.id} className="bg-sk-bg-2 border border-sk-accent/30 rounded-lg p-5 shadow-[0_0_15px_rgba(34,211,238,0.05)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-sk-accent/5 rounded-bl-full pointer-events-none" />
+                        <div className="mb-4 relative z-10">
+                          <p className="text-sk-sm font-bold text-sk-text-1 mb-1">Nombre: <span className="text-sk-accent">{val.display_name ?? "—"}</span></p>
+                          <p className="text-sk-md font-black text-sk-text-1">Nick ClubGG: <span className="font-mono text-sk-green">{val.latin_nickname}</span></p>
+                          
+                          <div className="mt-4 bg-sk-bg-0 p-3 rounded-xl border border-sk-border-2 text-sk-sm text-sk-text-2 space-y-2">
+                            <p className="flex items-center justify-between"><span className="font-bold text-sk-text-3 text-[11px] uppercase">Email</span> {val.email}</p>
+                            <div className="flex items-center justify-between border-t border-sk-border-2 pt-2">
+                              <span className="font-bold text-sk-text-3 text-[11px] uppercase">Teléfono</span>
+                              {val.whatsapp ? (
+                                <a href={`https://wa.me/${val.whatsapp.replace(/\D/g,"")}?text=Hola%20${val.display_name}!%20Soy%20el%20administrador%20de%20LatinAllinPoker.%20Recibí%20tu%20solicitud%20de%20ingreso%20para%20el%20nickname:%20${val.latin_nickname}`} target="_blank" rel="noreferrer" className="text-sk-green hover:underline font-bold flex items-center gap-1">
+                                  <MessageCircle size={14} /> +{val.whatsapp}
+                                </a>
+                              ) : <span className="text-sk-red italic text-xs">Sin teléfono</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 pt-3 border-t border-sk-border-2 mt-2 relative z-10">
+                          <Button variant="accent" size="sm" className="flex-1" onClick={async () => {
+                            if (!confirm("¿Ya lo contactaste y lo aceptaste en el club de ClubGG?")) return;
+                            await supabase.from("profiles").update({ latin_status: "contacted" }).eq("id", val.id);
+                            refetchLatin();
+                          }}>
+                            <Check size={14} /> Contactado e Ingresado
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

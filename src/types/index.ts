@@ -53,6 +53,9 @@ export interface Profile {
   wpt_nickname?: string | null;
   wpt_status?: "none" | "pending" | "verified" | "rejected";
   wpt_verified_at?: string | null;
+  // Beneficios LatinAllinPoker (ClubGG)
+  latin_nickname?: string | null;
+  latin_status?: "none" | "pending" | "contacted" | "rejected";
 }
 
 export interface CreditTransaction {
