@@ -15,7 +15,7 @@ import { FlagIcon } from "../components/ui/flag-icon";
 import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
-  Image, Save, Eye, RefreshCw, Power, Gift, MessageCircle
+  Image, Save, Eye, RefreshCw, Power, MessageCircle
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -259,6 +259,8 @@ function BannerSlotEditor({
 
 export function SuperAdminPage() {
   const [tab, setTab] = useState<AdminTab>("overview");
+  const [reqCategory, setReqCategory] = useState<"clubs" | "claims" | "wpt" | "latin">("clubs");
+  const [reqView, setReqView] = useState<"pending" | "history">("pending");
   const [entityForm, setEntityForm] = useState<{
     table: string;
     title: string;
@@ -357,8 +359,8 @@ export function SuperAdminPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, display_name, email, whatsapp, wpt_nickname")
-        .eq("wpt_status", "pending")
+        .select("id, display_name, email, whatsapp, wpt_nickname, wpt_status")
+        .not("wpt_status", "is", null) // Trae pendientes, verificados y rechazados
         .order("updated_at", { ascending: false });
       return data ?? [];
     },
@@ -370,8 +372,8 @@ export function SuperAdminPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, display_name, email, whatsapp, latin_nickname")
-        .eq("latin_status", "pending")
+        .select("id, display_name, email, whatsapp, latin_nickname, latin_status")
+        .not("latin_status", "is", null) // Trae pendientes, contactados, etc.
         .order("updated_at", { ascending: false });
       return data ?? [];
     },
@@ -554,7 +556,10 @@ export function SuperAdminPage() {
     { key: "is_active", label: "Activo", type: "checkbox" as const },
   ];
 
-  const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0) + (wptValidations?.length ?? 0) + (latinValidations?.length ?? 0);
+  const pendingWpt = wptValidations?.filter((w: any) => w.wpt_status === "pending").length ?? 0;
+  const pendingLatin = latinValidations?.filter((l: any) => l.latin_status === "pending").length ?? 0;
+  
+  const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0) + pendingWpt + pendingLatin;
 
   const TABS: { key: AdminTab; label: string; badge?: number }[] = [
     { key: "overview",  label: "General" },
@@ -785,155 +790,249 @@ export function SuperAdminPage() {
             </div>
           )}
 
-          {/* ══ SOLICITUDES ══ */}
+          {/* ══ SOLICITUDES (NUEVO DISEÑO CON SUB-TABS Y MODO HISTORIAL) ══ */}
           {tab === "requests" && (
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Solicitudes de Club ({clubRequests?.length || 0})</h2>
-                {(clubRequests ?? []).length === 0 ? <EmptyState icon="📋" title="Sin solicitudes de club" /> : (
-                  <div className="space-y-3">
-                    {clubRequests?.map((req) => (
-                      <div key={req.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <p className="text-sk-md font-bold text-sk-text-1">{req.club_name}</p>
-                            <p className="text-sk-xs text-sk-text-3">Solicitante: {req.profiles?.display_name}{req.profiles?.email && <span className="ml-2 text-sk-text-4">({req.profiles.email})</span>}</p>
-                            {req.profiles?.whatsapp && <a href={`https://wa.me/${req.profiles.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" className="text-sk-xs text-sk-green hover:underline">WhatsApp: +{req.profiles.whatsapp}</a>}
-                            {req.description && <p className="text-sk-xs text-sk-text-2 mt-1">{req.description}</p>}
-                            {req.country_code && <span className="inline-flex items-center gap-1 mt-1 text-sk-xs text-sk-text-3"><FlagIcon countryCode={req.country_code} /> {req.country_code}</span>}
+            <div className="flex flex-col md:flex-row gap-6 min-h-[600px]">
+              
+              {/* Menú Lateral de Categorías */}
+              <div className="w-full md:w-64 shrink-0 flex flex-col gap-2">
+                <h2 className="text-sk-md font-bold text-sk-text-1 mb-2 px-2">Categorías</h2>
+                {[
+                  { id: "clubs", label: "Clubes", count: clubRequests?.filter(r => r.status === "pending").length || 0 },
+                  { id: "claims", label: "Nickname Claims", count: nicknameClaims?.filter(c => c.status === "pending").length || 0 },
+                  { id: "wpt", label: "Validaciones WPT", count: wptValidations?.filter(w => w.wpt_status === "pending").length || 0 },
+                  { id: "latin", label: "LatinAllin Onboarding", count: latinValidations?.filter(l => l.latin_status === "pending").length || 0 },
+                ].map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => { setReqCategory(cat.id as any); setReqView("pending"); }}
+                    className={cn(
+                      "flex items-center justify-between p-3 rounded-lg border transition-all text-left",
+                      reqCategory === cat.id 
+                        ? "bg-sk-bg-3 border-sk-border-2 shadow-sk-xs" 
+                        : "bg-transparent border-transparent hover:bg-sk-bg-2"
+                    )}
+                  >
+                    <span className={cn("text-sk-sm font-semibold", reqCategory === cat.id ? "text-sk-text-1" : "text-sk-text-3")}>
+                      {cat.label}
+                    </span>
+                    {cat.count > 0 && (
+                      <span className="bg-sk-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {cat.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Contenido Principal de Solicitudes */}
+              <div className="flex-1 bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 overflow-hidden flex flex-col">
+                
+                {/* Control de vista: Pendientes vs Historial */}
+                <div className="flex items-center justify-between border-b border-sk-border-2 pb-4 mb-6 shrink-0">
+                  <h3 className="text-sk-lg font-bold text-sk-text-1">
+                    {reqCategory === "clubs" && "Solicitudes de Clubes"}
+                    {reqCategory === "claims" && "Validación de Nicknames"}
+                    {reqCategory === "wpt" && "VIP WPT Global"}
+                    {reqCategory === "latin" && "Onboarding LatinAllin"}
+                  </h3>
+                  <div className="flex gap-1 bg-sk-bg-0 border border-sk-border-2 rounded-md p-0.5">
+                    <button
+                      onClick={() => setReqView("pending")}
+                      className={cn("px-4 py-1.5 rounded-sm text-sk-sm font-medium transition-all", reqView === "pending" ? "bg-sk-bg-3 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3 hover:text-sk-text-1")}
+                    >
+                      Pendientes
+                    </button>
+                    <button
+                      onClick={() => setReqView("history")}
+                      className={cn("px-4 py-1.5 rounded-sm text-sk-sm font-medium transition-all", reqView === "history" ? "bg-sk-bg-3 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3 hover:text-sk-text-1")}
+                    >
+                      Historial
+                    </button>
+                  </div>
+                </div>
+
+                {/* Área Scrollable para Tarjetas / Tablas */}
+                <div className="flex-1 overflow-y-auto pr-2">
+                  
+                  {/* --- CATEGORÍA: CLUBES --- */}
+                  {reqCategory === "clubs" && reqView === "pending" && (
+                    <div className="space-y-3">
+                      {clubRequests?.filter(r => r.status === "pending").map((req) => (
+                        <div key={req.id} className="bg-sk-bg-0 border border-sk-border-2 rounded-lg p-5">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <p className="text-sk-md font-bold text-sk-text-1">{req.club_name}</p>
+                              <p className="text-sk-xs text-sk-text-3">Solicitante: {req.profiles?.display_name}{req.profiles?.email && <span className="ml-2 text-sk-text-4">({req.profiles.email})</span>}</p>
+                              {req.profiles?.whatsapp && <a href={`https://wa.me/${req.profiles.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" className="text-sk-xs text-sk-green hover:underline">WhatsApp: +{req.profiles.whatsapp}</a>}
+                              {req.description && <p className="text-sk-xs text-sk-text-2 mt-1">{req.description}</p>}
+                              {req.country_code && <span className="inline-flex items-center gap-1 mt-1 text-sk-xs text-sk-text-3"><FlagIcon countryCode={req.country_code} /> {req.country_code}</span>}
+                            </div>
+                            <Badge variant="orange">Pendiente</Badge>
                           </div>
-                          <Badge variant={req.status === "pending" ? "orange" : req.status === "approved" ? "green" : "muted"}>{req.status}</Badge>
-                        </div>
-                        {req.status === "pending" && (
                           <div className="flex gap-2 pt-3 border-t border-sk-border-2">
                             <Button variant="accent" size="sm" onClick={() => handleApproveClub(req)}><Check size={13} /> Aprobar Club</Button>
                             <Button variant="danger" size="sm" onClick={() => handleRejectRequest(req.id, "club_registration_requests")}><XIcon size={13} /> Rechazar</Button>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              <div>
-                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">Claims de Nickname ({nicknameClaims?.length || 0})</h2>
-                {(nicknameClaims ?? []).length === 0 ? <EmptyState icon="🏷️" title="Sin claims pendientes" /> : (
-                  <div className="grid grid-cols-1 gap-4">
-                    {nicknameClaims?.map((claim) => (
-                      <div key={claim.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
-                        <div className="flex flex-col md:flex-row gap-5">
+                        </div>
+                      ))}
+                      {clubRequests?.filter(r => r.status === "pending").length === 0 && <EmptyState icon="📋" title="Todo al día" description="No hay clubes pendientes de aprobación." />}
+                    </div>
+                  )}
+
+                  {reqCategory === "clubs" && reqView === "history" && (
+                    <table className="w-full text-left text-sk-sm">
+                      <thead className="bg-sk-bg-3 font-mono text-[11px] uppercase text-sk-text-3">
+                        <tr><th className="p-3 rounded-tl-lg">Club</th><th className="p-3">Solicitante</th><th className="p-3 rounded-tr-lg">Estado</th></tr>
+                      </thead>
+                      <tbody className="divide-y divide-sk-border-2">
+                        {clubRequests?.filter(r => r.status !== "pending").map(req => (
+                          <tr key={req.id} className="hover:bg-white/[0.02]">
+                            <td className="p-3 font-semibold text-sk-text-1">{req.club_name}</td>
+                            <td className="p-3 text-sk-text-2">{req.profiles?.display_name ?? "—"}</td>
+                            <td className="p-3"><Badge variant={req.status === "approved" ? "green" : "muted"}>{req.status}</Badge></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {/* --- CATEGORÍA: CLAIMS --- */}
+                  {reqCategory === "claims" && reqView === "pending" && (
+                    <div className="grid grid-cols-1 gap-4">
+                      {nicknameClaims?.filter(c => c.status === "pending").map((claim) => (
+                        <div key={claim.id} className="bg-sk-bg-0 border border-sk-border-2 rounded-lg p-5 flex flex-col md:flex-row gap-5">
                           <div className="shrink-0">
-                            <p className="text-[10px] font-mono uppercase text-sk-text-3 mb-2">Prueba (Screenshot)</p>
-                            <a href={claim.screenshot_url} target="_blank" rel="noreferrer" className="block group relative w-32 h-32 md:w-40 md:h-40 bg-sk-bg-3 border border-sk-border-2 rounded-md overflow-hidden">
-                              {claim.screenshot_url ? (<><img src={claim.screenshot_url} alt="Validación" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" /><div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><span className="text-white text-xs font-bold">Ver en grande</span></div></>) : (<div className="flex items-center justify-center h-full text-sk-text-3 italic text-xs">Sin imagen</div>)}
+                            <p className="text-[10px] font-mono uppercase text-sk-text-3 mb-2">Prueba</p>
+                            <a href={claim.screenshot_url} target="_blank" rel="noreferrer" className="block relative w-24 h-24 bg-sk-bg-3 border border-sk-border-2 rounded-md overflow-hidden group">
+                              {claim.screenshot_url ? <img src={claim.screenshot_url} alt="Prueba" className="w-full h-full object-cover group-hover:scale-110 transition-transform" /> : <div className="flex h-full items-center justify-center text-xs text-sk-text-4">Sin img</div>}
                             </a>
                           </div>
-                          <div className="flex-1 flex flex-col justify-between">
-                            <div>
-                              <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-sk-lg font-bold text-sk-text-1">{claim.players?.nickname}</h3>
-                                <Badge variant={claim.status === "pending" ? "orange" : claim.status === "approved" ? "green" : "muted"}>{claim.status}</Badge>
-                              </div>
-                              <div className="space-y-1.5">
-                                <p className="text-sk-sm text-sk-text-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">Usuario:</span> {claim.profiles?.display_name}</p>
-                                <p className="text-sk-sm text-sk-text-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">Email:</span> {claim.profiles?.email}</p>
-                                <p className="text-sk-sm text-sk-text-2 flex items-center gap-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">WhatsApp:</span>{claim.profiles?.whatsapp ? <a href={`https://wa.me/${claim.profiles.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" className="text-sk-green hover:underline">+{claim.profiles.whatsapp}</a> : <span className="text-sk-text-3 italic">No registrado</span>}</p>
-                              </div>
+                          <div className="flex-1">
+                            <h3 className="text-sk-lg font-bold text-sk-text-1">{claim.players?.nickname}</h3>
+                            <p className="text-sk-sm text-sk-text-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">Usuario:</span> {claim.profiles?.display_name}</p>
+                            <p className="text-sk-sm text-sk-text-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">Email:</span> {claim.profiles?.email}</p>
+                            <div className="flex gap-2 mt-4">
+                              <Button variant="accent" size="sm" onClick={async () => {
+                                const { error: linkError } = await supabase.from("players").update({ profile_id: claim.user_id }).eq("id", claim.player_id);
+                                if (linkError) return alert("Error vinculando: " + linkError.message);
+                                await supabase.from("nickname_claims").update({ status: "approved", resolved_at: new Date().toISOString() }).eq("id", claim.id);
+                                refresh();
+                              }}><Check size={14} /> Vincular</Button>
+                              <Button variant="danger" size="sm" onClick={() => handleRejectRequest(claim.id, "nickname_claims")}><XIcon size={14} /> Rechazar</Button>
                             </div>
-                            {claim.status === "pending" && (
-                              <div className="flex gap-2 mt-4">
-                                <Button variant="accent" className="flex-1" onClick={async () => {
-                                  const { error: linkError } = await supabase.from("players").update({ profile_id: claim.user_id }).eq("id", claim.player_id);
-                                  if (linkError) return alert("Error vinculando: " + linkError.message);
-                                  await supabase.from("nickname_claims").update({ status: "approved", resolved_at: new Date().toISOString() }).eq("id", claim.id);
-                                  refresh();
-                                }}><Check size={14} /> Aprobar y Vincular</Button>
-                                <Button variant="danger" onClick={() => handleRejectRequest(claim.id, "nickname_claims")}><XIcon size={14} /></Button>
-                              </div>
-                            )}
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      ))}
+                      {nicknameClaims?.filter(c => c.status === "pending").length === 0 && <EmptyState icon="🏷️" title="Sin claims" />}
+                    </div>
+                  )}
 
-              {/* WPT Validations */}
-              <div className="mt-8">
-                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4 border-t border-sk-border-2 pt-8 flex items-center gap-2">
-                  <Gift className="text-sk-accent" size={18}/> Validaciones VIP WPT Global ({wptValidations?.length || 0})
-                </h2>
-                {(wptValidations ?? []).length === 0 ? <EmptyState icon="🎁" title="Sin validaciones VIP pendientes" /> : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {wptValidations?.map((val: any) => (
-                      <div key={val.id} className="bg-sk-bg-2 border border-sk-accent/20 rounded-lg p-5">
-                        <div className="mb-3">
+                  {reqCategory === "claims" && reqView === "history" && (
+                    <table className="w-full text-left text-sk-sm">
+                      <thead className="bg-sk-bg-3 font-mono text-[11px] uppercase text-sk-text-3">
+                        <tr><th className="p-3">Nickname</th><th className="p-3">Usuario</th><th className="p-3">Prueba</th><th className="p-3">Estado</th></tr>
+                      </thead>
+                      <tbody className="divide-y divide-sk-border-2">
+                        {nicknameClaims?.filter(c => c.status !== "pending").map(c => (
+                          <tr key={c.id} className="hover:bg-white/[0.02]">
+                            <td className="p-3 font-mono font-bold text-sk-text-1">{c.players?.nickname}</td>
+                            <td className="p-3 text-sk-text-2">{c.profiles?.display_name ?? "—"}</td>
+                            <td className="p-3 text-[11px]">
+                              {c.screenshot_url ? <a href={c.screenshot_url} target="_blank" rel="noreferrer" className="text-sk-accent hover:underline inline-flex items-center gap-1"><ExternalLink size={10}/> Ver Imagen</a> : "—"}
+                            </td>
+                            <td className="p-3"><Badge variant={c.status === "approved" ? "green" : "muted"}>{c.status}</Badge></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {/* --- CATEGORÍA: WPT --- */}
+                  {reqCategory === "wpt" && reqView === "pending" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {wptValidations?.filter(w => w.wpt_status === "pending").map((val: any) => (
+                        <div key={val.id} className="bg-sk-bg-0 border border-sk-accent/20 rounded-lg p-5">
                           <p className="text-sk-sm font-bold text-sk-text-1 mb-1">Usuario: <span className="text-sk-accent">{val.display_name ?? val.email}</span></p>
-                          <p className="text-sk-sm font-bold text-sk-text-1">Nick reclamado WPT: <span className="font-mono text-sk-gold">{val.wpt_nickname}</span></p>
-                          <div className="mt-3 bg-sk-bg-3 p-3 rounded border border-sk-border-2 text-[11px] text-sk-text-3 space-y-1">
-                            <p><span className="font-bold text-sk-text-2">Email:</span> {val.email}</p>
-                            {val.whatsapp && <p><span className="font-bold text-sk-text-2">WhatsApp:</span> +{val.whatsapp}</p>}
+                          <p className="text-sk-sm font-bold text-sk-text-1">Nick reclamado: <span className="font-mono text-sk-gold">{val.wpt_nickname}</span></p>
+                          <div className="flex gap-2 pt-3 border-t border-sk-border-2 mt-3">
+                            <Button variant="accent" size="sm" className="flex-1" onClick={async () => {
+                              await supabase.from("profiles").update({ wpt_status: "verified", wpt_verified_at: new Date().toISOString() }).eq("id", val.id);
+                              refetchWpt();
+                            }}><Check size={13} /> Aprobar</Button>
+                            <Button variant="danger" size="sm" onClick={async () => {
+                              await supabase.from("profiles").update({ wpt_status: "rejected" }).eq("id", val.id);
+                              refetchWpt();
+                            }}><XIcon size={13} /></Button>
                           </div>
                         </div>
-                        <div className="flex gap-2 pt-3 border-t border-sk-border-2 mt-2">
-                          <Button variant="accent" size="sm" className="flex-1 shadow-[0_0_15px_rgba(34,211,238,0.15)]" onClick={async () => {
-                            await supabase.from("profiles").update({ wpt_status: "verified", wpt_verified_at: new Date().toISOString() }).eq("id", val.id);
-                            refetchWpt();
-                          }}><Check size={13} /> Aprobar VIP</Button>
-                          <Button variant="danger" size="sm" onClick={async () => {
-                            await supabase.from("profiles").update({ wpt_status: "rejected" }).eq("id", val.id);
-                            refetchWpt();
-                          }}><XIcon size={13} /> Rechazar</Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      ))}
+                      {wptValidations?.filter(w => w.wpt_status === "pending").length === 0 && <EmptyState icon="🎁" title="Todo validado" />}
+                    </div>
+                  )}
 
-              {/* LatinAllinPoker Validations */}
-              <div className="mt-8">
-                <h2 className="text-sk-md font-bold text-sk-text-1 mb-4 border-t border-sk-border-2 pt-8 flex items-center gap-2">
-                  <span className="text-xl">📞</span> Onboarding LatinAllinPoker ({latinValidations?.length || 0})
-                </h2>
-                <p className="text-sk-xs text-sk-text-3 mb-4">Jugadores listos para que los contactes por WhatsApp y les actives depósitos/retiros.</p>
-                
-                {(latinValidations ?? []).length === 0 ? <EmptyState icon="📱" title="Sin jugadores pendientes" /> : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {latinValidations?.map((val: any) => (
-                      <div key={val.id} className="bg-sk-bg-2 border border-sk-accent/30 rounded-lg p-5 shadow-[0_0_15px_rgba(34,211,238,0.05)] relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-sk-accent/5 rounded-bl-full pointer-events-none" />
-                        <div className="mb-4 relative z-10">
+                  {reqCategory === "wpt" && reqView === "history" && (
+                    <table className="w-full text-left text-sk-sm">
+                      <thead className="bg-sk-bg-3 font-mono text-[11px] uppercase text-sk-text-3">
+                        <tr><th className="p-3">WPT Nickname</th><th className="p-3">Usuario</th><th className="p-3">Estado</th></tr>
+                      </thead>
+                      <tbody className="divide-y divide-sk-border-2">
+                        {wptValidations?.filter(w => w.wpt_status !== "pending").map((w:any) => (
+                          <tr key={w.id} className="hover:bg-white/[0.02]">
+                            <td className="p-3 font-mono font-bold text-sk-gold">{w.wpt_nickname}</td>
+                            <td className="p-3 text-sk-text-2">{w.display_name ?? w.email}</td>
+                            <td className="p-3"><Badge variant={w.wpt_status === "verified" ? "green" : "muted"}>{w.wpt_status}</Badge></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {/* --- CATEGORÍA: LATINALLIN --- */}
+                  {reqCategory === "latin" && reqView === "pending" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {latinValidations?.filter(l => l.latin_status === "pending").map((val: any) => (
+                        <div key={val.id} className="bg-sk-bg-0 border border-sk-accent/30 rounded-lg p-5">
                           <p className="text-sk-sm font-bold text-sk-text-1 mb-1">Nombre: <span className="text-sk-accent">{val.display_name ?? "—"}</span></p>
-                          <p className="text-sk-md font-black text-sk-text-1">Nick ClubGG: <span className="font-mono text-sk-green">{val.latin_nickname}</span></p>
-                          
-                          <div className="mt-4 bg-sk-bg-0 p-3 rounded-xl border border-sk-border-2 text-sk-sm text-sk-text-2 space-y-2">
-                            <p className="flex items-center justify-between"><span className="font-bold text-sk-text-3 text-[11px] uppercase">Email</span> {val.email}</p>
-                            <div className="flex items-center justify-between border-t border-sk-border-2 pt-2">
-                              <span className="font-bold text-sk-text-3 text-[11px] uppercase">Teléfono</span>
-                              {val.whatsapp ? (
-                                <a href={`https://wa.me/${val.whatsapp.replace(/\D/g,"")}?text=Hola%20${val.display_name}!%20Soy%20el%20administrador%20de%20LatinAllinPoker.%20Recibí%20tu%20solicitud%20de%20ingreso%20para%20el%20nickname:%20${val.latin_nickname}`} target="_blank" rel="noreferrer" className="text-sk-green hover:underline font-bold flex items-center gap-1">
-                                  <MessageCircle size={14} /> +{val.whatsapp}
-                                </a>
-                              ) : <span className="text-sk-red italic text-xs">Sin teléfono</span>}
-                            </div>
+                          <p className="text-sk-md font-black text-sk-text-1 mb-3">Nick ClubGG: <span className="font-mono text-sk-green">{val.latin_nickname}</span></p>
+                          {val.whatsapp && (
+                            <a href={`https://wa.me/${val.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" className="text-sk-sm text-sk-green hover:underline font-bold flex items-center gap-1 mb-3">
+                              <MessageCircle size={14} /> WhatsApp: +{val.whatsapp}
+                            </a>
+                          )}
+                          <div className="flex pt-3 border-t border-sk-border-2 mt-2">
+                            <Button variant="accent" size="sm" className="w-full" onClick={async () => {
+                              if (!confirm("¿Ya lo contactaste y lo aceptaste en ClubGG?")) return;
+                              await supabase.from("profiles").update({ latin_status: "contacted" }).eq("id", val.id);
+                              refetchLatin();
+                            }}>
+                              <Check size={14} /> Marcar Contactado
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex gap-2 pt-3 border-t border-sk-border-2 mt-2 relative z-10">
-                          <Button variant="accent" size="sm" className="flex-1" onClick={async () => {
-                            if (!confirm("¿Ya lo contactaste y lo aceptaste en el club de ClubGG?")) return;
-                            await supabase.from("profiles").update({ latin_status: "contacted" }).eq("id", val.id);
-                            refetchLatin();
-                          }}>
-                            <Check size={14} /> Contactado e Ingresado
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                      {latinValidations?.filter(l => l.latin_status === "pending").length === 0 && <EmptyState icon="📱" title="Bandeja limpia" />}
+                    </div>
+                  )}
+
+                  {reqCategory === "latin" && reqView === "history" && (
+                    <table className="w-full text-left text-sk-sm">
+                      <thead className="bg-sk-bg-3 font-mono text-[11px] uppercase text-sk-text-3">
+                        <tr><th className="p-3">Nick ClubGG</th><th className="p-3">Usuario</th><th className="p-3">Estado</th></tr>
+                      </thead>
+                      <tbody className="divide-y divide-sk-border-2">
+                        {latinValidations?.filter(l => l.latin_status !== "pending").map((l:any) => (
+                          <tr key={l.id} className="hover:bg-white/[0.02]">
+                            <td className="p-3 font-mono font-bold text-sk-green">{l.latin_nickname}</td>
+                            <td className="p-3 text-sk-text-2">{l.display_name ?? l.email}</td>
+                            <td className="p-3"><Badge variant="green">Contactado</Badge></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                </div>
               </div>
             </div>
           )}
