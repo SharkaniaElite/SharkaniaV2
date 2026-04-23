@@ -164,9 +164,9 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
           <div className="text-[11px] text-sk-accent font-medium group-hover:text-sk-accent-hover transition-colors flex items-center gap-1">
             <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {cleanName(t.clubs?.name ?? "")}
           </div>
-          <div className="flex items-center gap-1 text-[9px] text-sk-text-4 group-hover:text-sk-text-2 transition-colors uppercase tracking-widest font-mono">
-            <MousePointerClick size={10} className="text-sk-accent animate-bounce" />
-            <span>Cómo jugar aquí</span>
+          <div className="flex items-center gap-1 text-[10px] text-sk-accent font-bold group-hover:brightness-125 transition-all uppercase tracking-widest font-mono mt-0.5">
+            <MousePointerClick size={12} className="animate-bounce" />
+            <span>CÓMO JUGAR AQUÍ</span>
           </div>
         </Link>
         {t.leagues ? (
