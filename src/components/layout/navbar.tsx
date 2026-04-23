@@ -1,25 +1,30 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "../../lib/cn";
-import { Menu, X, Search, LogOut, User, Settings, Mail } from "lucide-react";
+import { Menu, X, Search, LogOut, User, Settings, Mail, ChevronDown } from "lucide-react";
 import { Button } from "../ui/button";
 import { GlobalSearch } from "../search/global-search";
 import { useAuthStore } from "../../stores/auth-store";
 import { SharkCoin } from "../ui/shark-coin";
 
-const NAV_LINKS = [
+const MAIN_LINKS = [
   { label: "Ranking", href: "/ranking" },
   { label: "Calendario", href: "/calendar" },
   { label: "Clubes", href: "/clubs" },
   { label: "Ligas", href: "/leagues" },
-  { label: "Comparador", href: "/compare" },
-  { label: "Promociones", href: "/promociones" },
+  { label: "Academia", href: "/academia" },
+];
+
+const MORE_LINKS = [
   { label: "SharkTV", href: "/tv" },
   { label: "Herramientas", href: "/tools" },
-  { label: "Academia", href: "/academia" },
+  { label: "Comparador", href: "/compare" },
+  { label: "Promociones", href: "/promociones" },
   { label: "Tienda", href: "/shop" },
   { label: "Blog", href: "/blog" },
 ];
+
+const ALL_LINKS = [...MAIN_LINKS, ...MORE_LINKS];
 
 const MENU_BG: React.CSSProperties = {
   background: "rgb(12, 13, 16)",
@@ -102,7 +107,8 @@ export function Navbar() {
 
         {/* Desktop links */}
         <div className="hidden lg:flex items-center gap-0.5">
-          {NAV_LINKS.map((link) => (
+          {/* 1. Enlaces Principales */}
+          {MAIN_LINKS.map((link) => (
             <Link
               key={link.href}
               to={link.href}
@@ -116,6 +122,33 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+
+          {/* 2. Menú Desplegable "Explorar" */}
+          <div className="relative group">
+            <button className="flex items-center gap-1 text-sk-sm font-medium px-3 py-1.5 rounded-sm transition-colors duration-100 text-sk-text-2 hover:text-sk-text-1 hover:bg-white/[0.04]">
+              Explorar <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-200" />
+            </button>
+            
+            {/* El div "puente" para que el mouse no pierda el hover al bajar */}
+            <div className="absolute top-full left-0 pt-3 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[200]">
+              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg shadow-sk-xl overflow-hidden py-1">
+                {MORE_LINKS.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    className={cn(
+                      "block px-4 py-2 text-sk-sm transition-colors",
+                      isActive(link.href)
+                        ? "text-sk-accent bg-white/[0.04] font-semibold"
+                        : "text-sk-text-2 hover:text-sk-text-1 hover:bg-white/[0.04]"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Actions */}
@@ -270,7 +303,7 @@ export function Navbar() {
           )}
 
           {/* Nav links */}
-          {NAV_LINKS.map((link) => (
+          {ALL_LINKS.map((link) => (
             <Link
               key={link.href}
               to={link.href}
