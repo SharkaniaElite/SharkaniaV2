@@ -76,14 +76,14 @@ export function PageShell({ children }: PageShellProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  "w-full h-[70px] md:h-[100px] flex justify-center bg-sk-bg-1",
+                  "w-full h-[70px] md:h-[148px] flex justify-center bg-sk-bg-1",
                   hasSuperMobile ? "hidden md:flex" : "flex"
                 )}
               >
                 <img
                   src={superBanner.desktop?.src}
                   alt="Promoción Especial"
-                  className="w-full h-full object-contain md:object-cover max-w-[1780px]"
+                  className="w-full h-full object-contain md:object-cover max-w-[1023px]"
                 />
               </a>
             )}
@@ -111,8 +111,8 @@ export function PageShell({ children }: PageShellProps) {
           {/* Spacer dinámico para empujar el contenido debajo del Super Banner */}
           <div className={cn(
             "shrink-0 w-full",
-            hasSuperDesktop && hasSuperMobile ? "h-[70px] md:h-[100px]" : "",
-            hasSuperDesktop && !hasSuperMobile ? "hidden md:block h-[100px]" : "",
+            hasSuperDesktop && hasSuperMobile ? "h-[70px] md:h-[148px]" : "",
+            hasSuperDesktop && !hasSuperMobile ? "hidden md:block h-[148px]" : "",
             !hasSuperDesktop && hasSuperMobile ? "h-[70px] md:hidden block" : ""
           )} />
         </>

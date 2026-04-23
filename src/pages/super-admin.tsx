@@ -39,7 +39,7 @@ const SLOT_INFO = {
   super: {
     title: "Super Banner Global",
     description: "Aparece FIJO en la parte superior de TODAS las páginas, justo debajo del menú.",
-    desktop: { size: "1780×121 px", label: "Top Super Banner", hint: "Formato ultra ancho. Alta visibilidad y persistente al hacer scroll." },
+    desktop: { size: "1023×148 px", label: "Top Super Banner", hint: "Formato billboard premium. Alta visibilidad vertical y persistente al hacer scroll." },
     mobile:  { size: "870×200 px", label: "Wide banner", hint: "Se ajusta al ancho del dispositivo móvil." },
   },
   mid: {
