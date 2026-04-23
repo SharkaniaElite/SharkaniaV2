@@ -17,7 +17,7 @@ import type { TournamentWithDetails } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
 import { useAuthStore } from "../stores/auth-store";
 import { useSharkCoinsBalance } from "../hooks/use-shop";
-import { Building2, Swords, CalendarOff, History, Sparkles, CalendarDays } from "lucide-react"; // 👈 Nuevos iconos
+import { Building2, Swords, CalendarOff, History, Sparkles, CalendarDays, MousePointerClick } from "lucide-react"; // 👈 Nuevos iconos
 
 
 type TabKey = "upcoming" | "history";
@@ -417,6 +417,8 @@ export function CalendarPage() {
                               <td className="py-3 px-4 border-b border-sk-border-2 font-mono text-sk-text-2 text-sk-xs whitespace-nowrap">
                                 {format(new Date(t.start_datetime), "dd/MM/yy")}
                               </td>
+                              
+                              {/* 1. Nombre del Torneo */}
                               <td className="py-3 px-4 border-b border-sk-border-2">
                                 <Link
                                   to={`/tournament/${t.slug || t.id}`}
@@ -430,48 +432,66 @@ export function CalendarPage() {
                                   </span>
                                 )}
                               </td>
+
+                              {/* 2. Nombre del Club + Micro-copy animado */}
                               <td className="py-3 px-4 border-b border-sk-border-2">
                                 {clubData?.id ? (
                                   <Link
                                     to={`/clubs/${clubData.slug ?? clubData.id}`}
-                                    className="text-sk-accent text-sk-xs hover:opacity-80 transition-opacity flex items-center gap-1.5"
+                                    className="group flex flex-col items-start gap-1"
                                   >
-                                    <FlagIcon countryCode={clubData.country_code ?? null} />
-                                    {cleanName(clubData.name ?? "")}
+                                    <div className="text-sk-accent text-sk-sm font-bold group-hover:text-sk-accent-hover transition-colors flex items-center gap-1.5">
+                                      <FlagIcon countryCode={clubData.country_code ?? null} />
+                                      {cleanName(clubData.name ?? "")}
+                                    </div>
+                                    <div className="flex items-center gap-1 text-[9px] text-sk-text-4 group-hover:text-sk-text-2 transition-colors uppercase tracking-widest font-mono">
+                                      <MousePointerClick size={10} className="text-sk-accent animate-bounce" />
+                                      <span>Cómo jugar aquí</span>
+                                    </div>
                                   </Link>
                                 ) : (
                                   <span className="text-sk-text-3 text-sk-xs">—</span>
                                 )}
                               </td>
+
+                              {/* 3. Buy-in + Moneda */}
                               <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono text-sk-text-2">
                                 {Number(t.buy_in) === 0 ? (
                                   <span className="text-sk-green font-semibold">FREE</span>
                                 ) : (
-                                  `$${Number(t.buy_in).toLocaleString("es")}`
+                                  <span className="whitespace-nowrap">
+                                    ${Number(t.buy_in).toLocaleString("es")} <span className="text-[10px] text-sk-text-4 ml-0.5">{t.currency || 'USD'}</span>
+                                  </span>
                                 )}
                               </td>
+
+                              {/* 4. GTD + Moneda */}
                               <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono font-bold text-sk-gold">
                                 {t.guaranteed_prize
-                                  ? `$${Number(t.guaranteed_prize).toLocaleString("es")}`
+                                  ? <span className="whitespace-nowrap">${Number(t.guaranteed_prize).toLocaleString("es")} <span className="text-[10px] opacity-70 ml-0.5">{t.currency || 'USD'}</span></span>
                                   : "—"}
                               </td>
+
+                              {/* 5. Prize Pool + Moneda */}
                               <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono font-semibold text-sk-text-1">
                                 {t.actual_prize_pool
-                                  ? `$${Number(t.actual_prize_pool).toLocaleString("es")}`
+                                  ? <span className="whitespace-nowrap">${Number(t.actual_prize_pool).toLocaleString("es")} <span className="text-[10px] text-sk-text-4 ml-0.5">{t.currency || 'USD'}</span></span>
                                   : "—"}
                               </td>
+
                               <td className="py-3 px-4 border-b border-sk-border-2">
                                 <span className="font-mono text-[11px] text-sk-text-3">
                                   {t.tournament_type} · {t.game_type}
                                 </span>
                               </td>
+                              
                               <td className="py-3 px-4 border-b border-sk-border-2">
                                 {t.results_uploaded ? (
                                   <Link
                                     to={`/tournament/${t.slug || t.id}`}
                                     className="text-sk-accent text-[11px] font-semibold hover:opacity-80 transition-opacity whitespace-nowrap"
                                   >
-                                    Ver resultados →
+                                    Resultados →
                                   </Link>
                                 ) : (
                                   <span className="text-sk-text-4 text-[11px]">Sin resultados</span>

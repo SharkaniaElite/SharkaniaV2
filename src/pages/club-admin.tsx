@@ -72,10 +72,10 @@ export function ClubAdminPage() {
   // 👇 Definimos la interfaz para que banner_url sea siempre string
   const [infoForm, setInfoForm] = useState<{
     description: string; email: string; whatsapp: string; website_url: string;
-    discord_url: string; telegram_url: string; instagram_url: string; banner_url: string;
+    discord_url: string; telegram_url: string; instagram_url: string; banner_url: string; tutorial_url: string;
   }>({
     description: "", email: "", whatsapp: "", website_url: "",
-    discord_url: "", telegram_url: "", instagram_url: "", banner_url: "",
+    discord_url: "", telegram_url: "", instagram_url: "", banner_url: "", tutorial_url: "",
   });
   const [savingInfo, setSavingInfo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -88,7 +88,7 @@ export function ClubAdminPage() {
       if (isSuperAdmin) {
         const { data, error } = await supabase
           .from("clubs")
-          .select("id, name, country_code, description, is_approved, email, whatsapp, website_url, discord_url, telegram_url, instagram_url, banner_url")
+          .select("id, name, country_code, description, is_approved, email, whatsapp, website_url, discord_url, telegram_url, instagram_url, banner_url, tutorial_url")
           .order("name");
         if (error) throw error;
         return (data ?? []).map((club) => ({
@@ -206,7 +206,7 @@ export function ClubAdminPage() {
   const getBgPos = (url?: string | null) => {
     if (!url) return 50;
     const match = url.match(/#pos=(\d+)/);
-    return match ? parseInt(match[1], 10) : 50;
+    return (match && match[1]) ? parseInt(match[1], 10) : 50;
   };
 
   const setBgPos = (url: string, pos: number) => {
@@ -241,8 +241,8 @@ export function ClubAdminPage() {
 
   const handleUploadBanner = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // 👇 IMPORTANTE: Añadimos verificación de firstClubId para quitar los errores L219/L226
-    if (!file || !firstClubId) return; 
+    const clubId = firstClubId as string; // 👈 Forzamos a TypeScript a saber que es un string
+    if (!file || !clubId) return; 
 
     if (file.size > 1024 * 1024) {
       setSharkyAlert(true);
@@ -251,13 +251,11 @@ export function ClubAdminPage() {
     setSharkyAlert(false);
     setUploadingBanner(true);
     try {
-      // 👇 Añadimos "|| 'jpg'" para que fileExt nunca sea undefined
       const fileExt = file.name.split('.').pop() || 'jpg';
-      const fileName = `banner-${firstClubId}-${Date.now()}.${fileExt}`;
+      const fileName = `banner-${clubId}-${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('img_clubs').upload(fileName, file, { upsert: true });
       if (uploadError) throw uploadError;
       const { data: publicUrlData } = supabase.storage.from('img_clubs').getPublicUrl(fileName);
-      // Inyectamos posición 50 por defecto al subir
       setInfoForm({ ...infoForm, banner_url: `${publicUrlData.publicUrl}#pos=50` });
     } catch (err: any) {
       alert("Error al subir imagen: " + err.message);
@@ -267,7 +265,8 @@ export function ClubAdminPage() {
   };
 
   const handleSaveInfo = async () => {
-    if (!firstClubId) return;
+    const clubId = firstClubId as string; // 👈 Forzamos a TypeScript a saber que es un string
+    if (!clubId) return;
     setSavingInfo(true);
     await supabase.from("clubs").update({
       description: infoForm.description || null,
@@ -278,7 +277,8 @@ export function ClubAdminPage() {
       telegram_url: infoForm.telegram_url || null,
       instagram_url: infoForm.instagram_url || null,
       banner_url: infoForm.banner_url || null,
-    }).eq("id", firstClubId);
+      tutorial_url: infoForm.tutorial_url || null,
+    }).eq("id", clubId);
     queryClient.invalidateQueries({ queryKey: ["my-admin-clubs"] });
     setSavingInfo(false);
     setEditingInfo(false);
@@ -296,6 +296,7 @@ export function ClubAdminPage() {
       telegram_url: club?.telegram_url ?? "",
       instagram_url: club?.instagram_url ?? "",
       banner_url: club?.banner_url ?? "",
+      tutorial_url: club?.tutorial_url ?? "",
     });
   };
 
@@ -648,6 +649,18 @@ export function ClubAdminPage() {
                     </div>
                   </div>
                   <div>
+                    <div className="mb-6 bg-sk-bg-3 border border-sk-border-2 p-4 rounded-lg">
+                    <p className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-accent mb-3">🎮 Onboarding (Nuevos Jugadores)</p>
+                    <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">Link del Tutorial "¿Cómo Jugar?"</label>
+                    <input 
+                      type="url" 
+                      value={infoForm.tutorial_url} 
+                      onChange={(e) => setInfoForm({ ...infoForm, tutorial_url: e.target.value })} 
+                      placeholder="https://sharkania.com/tutorial-clubgg..." 
+                      className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-1 placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent" 
+                    />
+                    <p className="text-[10px] text-sk-text-4 mt-2">Esto creará un botón gigante en el perfil de tu club guiando a los jugadores para instalar la app y registrarse.</p>
+                  </div>
                     <p className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-accent mb-3">Redes y enlaces</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>

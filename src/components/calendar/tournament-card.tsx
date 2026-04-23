@@ -5,7 +5,7 @@ import { cn } from "../../lib/cn";
 import { Badge } from "../ui/badge";
 import { FlagIcon } from "../ui/flag-icon";
 import { formatCurrency } from "../../lib/format";
-import { Info, BarChart3 } from "lucide-react";
+import { Info, BarChart3, MousePointerClick } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { TournamentWithDetails } from "../../types";
 
@@ -138,14 +138,14 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
           <span>
             Buy-in:{" "}
             <span className={cn("font-mono font-semibold", t.buy_in === 0 ? "text-sk-green" : "text-sk-text-1")}>
-              {t.buy_in === 0 ? "FREE" : formatCurrency(t.buy_in)}
+              {t.buy_in === 0 ? "FREE" : <>{formatCurrency(t.buy_in)} <span className="text-[9px] text-sk-text-4 ml-0.5">{t.currency || 'USD'}</span></>}
             </span>
           </span>
           {t.guaranteed_prize && (
             <span>
               GTD:{" "}
               <span className="font-mono font-bold text-sk-gold">
-                {formatCurrency(t.guaranteed_prize)}
+                {formatCurrency(t.guaranteed_prize)} <span className="text-[9px] text-sk-text-4 ml-0.5">{t.currency || 'USD'}</span>
               </span>
             </span>
           )}
@@ -156,23 +156,29 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
       </div>
 
       {/* Row 3: Club + League */}
-      <div className="mt-1 flex justify-between items-center">
+      <div className="mt-1 flex justify-between items-start">
         <Link
           to={`/clubs/${t.clubs?.slug ?? t.club_id}`}
-          className="text-[11px] text-sk-accent font-medium hover:opacity-80 transition-opacity flex items-center gap-1"
+          className="group flex flex-col items-start gap-1"
         >
-          <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {cleanName(t.clubs?.name ?? "")}
+          <div className="text-[11px] text-sk-accent font-medium group-hover:text-sk-accent-hover transition-colors flex items-center gap-1">
+            <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {cleanName(t.clubs?.name ?? "")}
+          </div>
+          <div className="flex items-center gap-1 text-[9px] text-sk-text-4 group-hover:text-sk-text-2 transition-colors uppercase tracking-widest font-mono">
+            <MousePointerClick size={10} className="text-sk-accent animate-bounce" />
+            <span>Cómo jugar aquí</span>
+          </div>
         </Link>
         {t.leagues ? (
           <Link
             to={`/leagues/${t.leagues?.slug ?? t.league_id}`}
-            className="text-[10px] text-sk-text-2 font-mono hover:text-sk-accent transition-colors"
+            className="text-[10px] text-sk-text-2 font-mono hover:text-sk-accent transition-colors mt-0.5"
           >
             Liga: {cleanName(t.leagues.name)}
           </Link>
         ) : t.actual_prize_pool ? (
-          <span className="text-[10px] text-sk-text-2 font-mono">
-            Prize: {formatCurrency(t.actual_prize_pool)}
+          <span className="text-[10px] text-sk-text-2 font-mono mt-0.5">
+            Prize: {formatCurrency(t.actual_prize_pool)} <span className="text-[9px] text-sk-text-4 ml-0.5">{t.currency || 'USD'}</span>
           </span>
         ) : null}
       </div>
