@@ -86,6 +86,18 @@ export function TournamentDetailModal({
           </p>
         </div>
 
+        {/* 📝 Description (Añadido) */}
+        {t.description && (
+          <div className="bg-sk-bg-3 rounded-md p-3 relative z-20">
+            <p className="font-mono text-[11px] font-semibold text-sk-text-2 uppercase tracking-wide mb-1">
+              Descripción
+            </p>
+            <p className="text-sk-sm text-sk-text-1 whitespace-pre-wrap leading-relaxed">
+              {t.description}
+            </p>
+          </div>
+        )}
+
         {/* Club & League */}
         <div className="bg-sk-bg-3 rounded-md p-3 relative z-20">
           <p className="font-mono text-[11px] font-semibold text-sk-text-2 uppercase tracking-wide mb-1">
