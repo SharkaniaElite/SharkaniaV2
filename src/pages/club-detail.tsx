@@ -89,11 +89,14 @@ export function ClubDetailPage() {
 
   const now = new Date();
 
-  const upcoming = (tournaments ?? []).filter((t) => {
-    if (["completed", "cancelled"].includes(t.status)) return false;
-    if (t.status === "late_registration" && t.late_reg_end && new Date(t.late_reg_end) <= now) return false;
-    return true;
-  });
+  const upcoming = (tournaments ?? [])
+    .filter((t) => {
+      if (["completed", "cancelled"].includes(t.status)) return false;
+      if (t.status === "late_registration" && t.late_reg_end && new Date(t.late_reg_end) <= now) return false;
+      return true;
+    })
+    // 👇 Agregamos el método .sort() para ordenar por fecha de inicio (ascendente)
+    .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
 
   const completed = (tournaments ?? []).filter((t) => {
     if (t.status === "completed") return true;
