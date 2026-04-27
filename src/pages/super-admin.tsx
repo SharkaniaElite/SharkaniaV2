@@ -31,7 +31,7 @@ import { AnalyticsTab } from "../components/admin/analytics-tab";
 
 // ── Tipos ─────────────────────────────────────────────────
 
-type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners" | "glossary" | "analytics";
+type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners" | "glossary" | "analytics" | "shark_tv";
 
 // ── Descripción de cada slot de banner ───────────────────
 
@@ -289,6 +289,28 @@ export function SuperAdminPage() {
 
   const [isSyncingElo, setIsSyncingElo] = useState(false);
   
+  // Estados para Shark TV
+  const [sharkTvJson, setSharkTvJson] = useState("");
+  const [savingSharkTv, setSavingSharkTv] = useState(false);
+
+  const handleSaveSharkTv = async () => {
+    try {
+      if (!sharkTvJson.trim()) return alert("El JSON está vacío");
+      setSavingSharkTv(true);
+      const payload = JSON.parse(sharkTvJson);
+      
+      const { error } = await supabase.from("shark_tv_videos").insert([payload]);
+      if (error) throw error;
+      
+      alert("✅ Video de SharkTV publicado exitosamente!");
+      setSharkTvJson(""); // Limpiar el input
+    } catch (e: any) {
+      alert("❌ Error: Verifica que el formato JSON sea válido. Detalles: " + e.message);
+    } finally {
+      setSavingSharkTv(false);
+    }
+  };
+
   const handleSyncElo = async () => {
     if (!confirm("¿Estás seguro de sincronizar los ELOs de toda la base de datos? Esto materializará el 'unified_elo' para que el ranking sea preciso.")) return;
     setIsSyncingElo(true);
@@ -571,6 +593,7 @@ export function SuperAdminPage() {
     { key: "scoring",   label: "Scoring" },
     { key: "banners",   label: "Banners" },
     { key: "glossary",  label: "Glosario", badge: glossaryTerms?.length },
+    { key: "shark_tv",  label: "SharkTV" },
   ];
 
   return (
@@ -1106,6 +1129,43 @@ export function SuperAdminPage() {
                   onDelete: () => handleDeleteEntity("glossary_terms", t.id as string, t.term as string),
                 }))}
               />
+            </div>
+          )}
+
+          {/* ══ SHARK TV ══ */}
+          {tab === "shark_tv" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-sk-md font-bold text-sk-text-1">SharkTV: Carga Rápida</h2>
+                  <p className="text-sk-xs text-sk-text-3">Pega aquí el JSON generado por Gemini para publicar un nuevo análisis de mano automáticamente.</p>
+                </div>
+              </div>
+              
+              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6">
+                <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-2 flex items-center gap-2">
+                  <span className="text-lg">🤖</span> Input JSON (Generado por IA)
+                </label>
+                <textarea
+                  value={sharkTvJson}
+                  onChange={(e) => setSharkTvJson(e.target.value)}
+                  placeholder='{\n  "title": "...",\n  "video_url": "...",\n  "thumbnail_url": "...",\n  "duration": "...",\n  "tags": ["..."],\n  "level": "...",\n  "table_context": {...}\n}'
+                  className="w-full h-96 bg-sk-bg-0 border border-sk-border-2 rounded-md py-3 px-4 text-sk-sm text-sk-accent font-mono focus:outline-none focus:border-sk-accent resize-y shadow-inner"
+                  spellCheck={false}
+                />
+                <div className="flex justify-end mt-4">
+                  <Button 
+                    variant="accent" 
+                    size="md" 
+                    onClick={handleSaveSharkTv} 
+                    isLoading={savingSharkTv}
+                    disabled={savingSharkTv || !sharkTvJson.trim()}
+                  >
+                    <Save size={14} className="mr-2" />
+                    Publicar Video
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 

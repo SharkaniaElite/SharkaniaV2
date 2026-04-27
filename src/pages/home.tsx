@@ -124,16 +124,22 @@ export function HomePage() {
   const [loadingBlog,    setLoadingBlog]    = useState(true);
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
-  // Data Mock SharkTV (Reemplazar cuando lo pases a DB)
-  const featuredVideo = {
-    id: "plo6-ases",
-    title: "PLO6: Par de Ases y Doble Flush Draw Deepstack",
-    instructor: "Nicolás Fuentes",
-    duration: "01:21",
-    level: "Avanzado",
-    image: "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/SharkTv/plo6-2.webp",
-    link: "/tv/plo6-ases"
-  };
+// Ahora el video viene de la Base de Datos
+  const [featuredVideo, setFeaturedVideo] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadFeatured() {
+      const { data } = await supabase
+        .from('shark_tv_videos')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (data) setFeaturedVideo(data);
+    }
+    loadFeatured();
+  }, []);
 
   useEffect(() => {
     // Top 5 Jugadores
@@ -451,41 +457,48 @@ export function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             {/* Lado Izquierdo: SharkTV Destacado (Ocupa 2 columnas en Desktop) */}
+            {/* Lado Izquierdo: SharkTV Destacado (Ocupa 2 columnas en Desktop) */}
             <div className="lg:col-span-2">
-              <Link to={featuredVideo.link} className="group relative block w-full h-[400px] rounded-2xl overflow-hidden border border-sk-border-2 shadow-sk-xl">
-                {/* Imagen de Fondo */}
-                <img src={featuredVideo.image} alt={featuredVideo.title} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-1 via-sk-bg-1/40 to-transparent" />
-                
-                {/* Badge Superior */}
-                <div className="absolute top-6 left-6 z-10 flex gap-2">
-                  <Badge variant="accent" className="bg-sk-bg-0/80 backdrop-blur-md px-3 py-1 flex items-center gap-1.5 shadow-lg">
-                    <MonitorPlay size={12} /> SharkTV Destacado
-                  </Badge>
-                  <Badge variant="muted" className="bg-black/80">{featuredVideo.level}</Badge>
+              {!featuredVideo ? (
+                <div className="w-full h-[400px] rounded-2xl bg-sk-bg-2 border border-sk-border-2 flex items-center justify-center animate-pulse">
+                  <MonitorPlay className="text-sk-text-4 opacity-50" size={48} />
                 </div>
-                
-                {/* Botón Central Play */}
-                <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="w-20 h-20 rounded-full bg-sk-accent/20 flex items-center justify-center border border-sk-accent/50 group-hover:scale-110 group-hover:bg-sk-accent/30 backdrop-blur-sm transition-all duration-300 shadow-[0_0_30px_rgba(34,211,238,0.3)]">
-                    <Play className="text-sk-accent fill-sk-accent ml-2" size={32} />
+              ) : (
+                <Link to={`/tv/${featuredVideo.id}`} className="group relative block w-full h-[400px] rounded-2xl overflow-hidden border border-sk-border-2 shadow-sk-xl">
+                  {/* Imagen de Fondo */}
+                  <img src={featuredVideo.thumbnail_url} alt={featuredVideo.title} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-700 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-1 via-sk-bg-1/40 to-transparent" />
+                  
+                  {/* Badge Superior */}
+                  <div className="absolute top-6 left-6 z-10 flex gap-2">
+                    <Badge variant="accent" className="bg-sk-bg-0/80 backdrop-blur-md px-3 py-1 flex items-center gap-1.5 shadow-lg">
+                      <MonitorPlay size={12} /> SharkTV Destacado
+                    </Badge>
+                    <Badge variant="muted" className="bg-black/80">{featuredVideo.level || "Avanzado"}</Badge>
                   </div>
-                </div>
+                  
+                  {/* Botón Central Play */}
+                  <div className="absolute inset-0 flex items-center justify-center z-10">
+                    <div className="w-20 h-20 rounded-full bg-sk-accent/20 flex items-center justify-center border border-sk-accent/50 group-hover:scale-110 group-hover:bg-sk-accent/30 backdrop-blur-sm transition-all duration-300 shadow-[0_0_30px_rgba(34,211,238,0.3)]">
+                      <Play className="text-sk-accent fill-sk-accent ml-2" size={32} />
+                    </div>
+                  </div>
 
-                {/* Info Inferior */}
-                <div className="absolute bottom-0 left-0 right-0 p-8 z-10">
-                  <h3 className="text-2xl md:text-3xl font-black text-white mb-3 tracking-tight drop-shadow-md group-hover:text-sk-accent transition-colors">{featuredVideo.title}</h3>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-sk-bg-4 overflow-hidden border border-sk-border-2">
-                      <img src="https://ui-avatars.com/api/?name=Nicolas+Fuentes&background=14151a&color=22d3ee" alt="Nico" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-white drop-shadow-md">{featuredVideo.instructor}</p>
-                      <p className="text-[11px] text-sk-text-2 font-mono">Duración: {featuredVideo.duration}</p>
+                  {/* Info Inferior */}
+                  <div className="absolute bottom-0 left-0 right-0 p-8 z-10">
+                    <h3 className="text-2xl md:text-3xl font-black text-white mb-3 tracking-tight drop-shadow-md group-hover:text-sk-accent transition-colors">{featuredVideo.title}</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-sk-bg-4 overflow-hidden border border-sk-border-2">
+                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(featuredVideo.instructor_name || "Nicolas Fuentes")}&background=14151a&color=22d3ee`} alt="Instructor" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white drop-shadow-md">{featuredVideo.instructor_name}</p>
+                        <p className="text-[11px] text-sk-text-2 font-mono">Duración: {featuredVideo.duration || "00:00"}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              )}
             </div>
 
             {/* Lado Derecho: Últimos Posts del Blog */}

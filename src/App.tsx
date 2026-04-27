@@ -18,7 +18,6 @@ import { PromotionsPage } from "./pages/promotions";
 import { PromoFreerollPage } from "./pages/promo-freeroll";
 import { SharkTvPage } from "./pages/shark-tv";
 import { HandReviewPage } from "./pages/hand-review";
-import { HandReviewAsesPage } from "./pages/hand-review-ases"; // 👈 AQUÍ IMPORTAMOS LA NUEVA PÁGINA
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
@@ -130,8 +129,7 @@ export function App() {
               <Route path="/promociones/freeroll-diario" element={<PromoFreerollPage />} />
               {/* SharkTV */}
               <Route path="/tv" element={<SharkTvPage />} />
-              <Route path="/tv/plo6-bombpot" element={<HandReviewPage />} />
-              <Route path="/tv/plo6-ases" element={<HandReviewAsesPage />} />
+              <Route path="/tv/:id" element={<HandReviewPage />} />
               {/* Legal */}
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
