@@ -15,7 +15,8 @@ import { FlagIcon } from "../components/ui/flag-icon";
 import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
-  Image, Save, Eye, RefreshCw, Power, MessageCircle
+  Image, Save, Eye, RefreshCw, Power, MessageCircle,
+  Zap
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -293,19 +294,62 @@ export function SuperAdminPage() {
   const [sharkTvJson, setSharkTvJson] = useState("");
   const [savingSharkTv, setSavingSharkTv] = useState(false);
 
+  // Estado para Formulario Manual
+  const [manualSharkTv, setManualSharkTv] = useState({
+    title: "",
+    video_url: "",
+    thumbnail_url: "",
+    duration: "",
+    level: "Avanzado",
+    instructor_name: "Nicolás Fuentes",
+    tags: "",
+    hero_position: "BB",
+    hero_cards: "",
+    board: "",
+    analysis_verdict: ""
+  });
+
   const handleSaveSharkTv = async () => {
     try {
       if (!sharkTvJson.trim()) return alert("El JSON está vacío");
       setSavingSharkTv(true);
       const payload = JSON.parse(sharkTvJson);
-      
       const { error } = await supabase.from("shark_tv_videos").insert([payload]);
       if (error) throw error;
-      
       alert("✅ Video de SharkTV publicado exitosamente!");
-      setSharkTvJson(""); // Limpiar el input
+      setSharkTvJson("");
     } catch (e: any) {
       alert("❌ Error: Verifica que el formato JSON sea válido. Detalles: " + e.message);
+    } finally {
+      setSavingSharkTv(false);
+    }
+  };
+
+  const handleSaveManualSharkTv = async () => {
+    try {
+      setSavingSharkTv(true);
+      const payload = {
+        title: manualSharkTv.title,
+        video_url: manualSharkTv.video_url,
+        thumbnail_url: manualSharkTv.thumbnail_url,
+        duration: manualSharkTv.duration,
+        level: manualSharkTv.level,
+        instructor_name: manualSharkTv.instructor_name,
+        tags: manualSharkTv.tags.split(",").map(t => t.trim()).filter(t => t),
+        table_context: {
+          hero_position: manualSharkTv.hero_position,
+          hero_cards: manualSharkTv.hero_cards.split(",").map(c => c.trim()).filter(c => c),
+          board: manualSharkTv.board.split(",").map(c => c.trim()).filter(c => c),
+          analysis_verdict: manualSharkTv.analysis_verdict,
+          action_history: []
+        }
+      };
+      const { error } = await supabase.from("shark_tv_videos").insert([payload]);
+      if (error) throw error;
+      alert("✅ Video publicado exitosamente (Modo Manual)");
+      setManualSharkTv({...manualSharkTv, title: "", video_url: "", thumbnail_url: "", tags: "", hero_cards: "", board: "", analysis_verdict: ""});
+    } catch (e: any) {
+      alert("❌ Error: " + e.message);
     } finally {
       setSavingSharkTv(false);
     }
@@ -1137,33 +1181,69 @@ export function SuperAdminPage() {
             <div className="space-y-6">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h2 className="text-sk-md font-bold text-sk-text-1">SharkTV: Carga Rápida</h2>
-                  <p className="text-sk-xs text-sk-text-3">Pega aquí el JSON generado por Gemini para publicar un nuevo análisis de mano automáticamente.</p>
+                  <h2 className="text-sk-md font-bold text-sk-text-1">Gestión de SharkTV</h2>
+                  <p className="text-sk-xs text-sk-text-3">Elige entre ingreso manual detallado o carga rápida por IA.</p>
                 </div>
               </div>
               
-              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6">
-                <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-2 flex items-center gap-2">
-                  <span className="text-lg">🤖</span> Input JSON (Generado por IA)
-                </label>
-                <textarea
-                  value={sharkTvJson}
-                  onChange={(e) => setSharkTvJson(e.target.value)}
-                  placeholder='{\n  "title": "...",\n  "video_url": "...",\n  "thumbnail_url": "...",\n  "duration": "...",\n  "tags": ["..."],\n  "level": "...",\n  "table_context": {...}\n}'
-                  className="w-full h-96 bg-sk-bg-0 border border-sk-border-2 rounded-md py-3 px-4 text-sk-sm text-sk-accent font-mono focus:outline-none focus:border-sk-accent resize-y shadow-inner"
-                  spellCheck={false}
-                />
-                <div className="flex justify-end mt-4">
-                  <Button 
-                    variant="accent" 
-                    size="md" 
-                    onClick={handleSaveSharkTv} 
-                    isLoading={savingSharkTv}
-                    disabled={savingSharkTv || !sharkTvJson.trim()}
-                  >
-                    <Save size={14} className="mr-2" />
-                    Publicar Video
-                  </Button>
+              <div className="grid lg:grid-cols-2 gap-8">
+                {/* COLUMNA 1: FORMULARIO MANUAL */}
+                <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 space-y-4">
+                  <h3 className="text-sk-sm font-bold text-sk-accent flex items-center gap-2 mb-4">
+                    <Pencil size={16} /> Ingreso Manual
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Título del Video</label>
+                      <input type="text" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" value={manualSharkTv.title} onChange={e => setManualSharkTv({...manualSharkTv, title: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Video URL (Rumble)</label>
+                      <input type="text" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" value={manualSharkTv.video_url} onChange={e => setManualSharkTv({...manualSharkTv, video_url: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Thumbnail URL</label>
+                      <input type="text" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" value={manualSharkTv.thumbnail_url} onChange={e => setManualSharkTv({...manualSharkTv, thumbnail_url: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Tags (separados por coma)</label>
+                      <input type="text" placeholder="PLO6, Deepstack" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" value={manualSharkTv.tags} onChange={e => setManualSharkTv({...manualSharkTv, tags: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Hero Position</label>
+                      <select className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" value={manualSharkTv.hero_position} onChange={e => setManualSharkTv({...manualSharkTv, hero_position: e.target.value})}>
+                        <option value="SB">SB</option><option value="BB">BB</option><option value="BTN">BTN</option><option value="CO">CO</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Cartas Hero (Ej: As,Ac,6d,6h,3s,3c)</label>
+                      <input type="text" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-accent font-mono" value={manualSharkTv.hero_cards} onChange={e => setManualSharkTv({...manualSharkTv, hero_cards: e.target.value})} />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Board (Ej: 9d,Kh,2d,8c,Qc)</label>
+                      <input type="text" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 font-mono" value={manualSharkTv.board} onChange={e => setManualSharkTv({...manualSharkTv, board: e.target.value})} />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Veredicto del Analista</label>
+                      <textarea className="w-full h-24 bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 resize-none" value={manualSharkTv.analysis_verdict} onChange={e => setManualSharkTv({...manualSharkTv, analysis_verdict: e.target.value})} />
+                    </div>
+                  </div>
+                  <Button variant="accent" size="md" className="w-full" onClick={handleSaveManualSharkTv} isLoading={savingSharkTv}><Save size={14} className="mr-2" /> Publicar (Manual)</Button>
+                </div>
+
+                {/* COLUMNA 2: CARGA RÁPIDA IA */}
+                <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 flex flex-col">
+                  <h3 className="text-sk-sm font-bold text-sk-text-1 flex items-center gap-2 mb-4">
+                    <Zap size={16} className="text-sk-gold" /> Carga Rápida (IA)
+                  </h3>
+                  <textarea
+                    value={sharkTvJson}
+                    onChange={(e) => setSharkTvJson(e.target.value)}
+                    placeholder='Pega aquí el JSON de Gemini...'
+                    className="flex-1 w-full min-h-[300px] bg-sk-bg-0 border border-sk-border-2 rounded-md py-3 px-4 text-sk-xs text-sk-accent font-mono focus:outline-none focus:border-sk-accent resize-none shadow-inner"
+                    spellCheck={false}
+                  />
+                  <Button variant="secondary" size="md" className="mt-4 border-sk-border-3" onClick={handleSaveSharkTv} isLoading={savingSharkTv}><Save size={14} className="mr-2" /> Publicar JSON</Button>
                 </div>
               </div>
             </div>
