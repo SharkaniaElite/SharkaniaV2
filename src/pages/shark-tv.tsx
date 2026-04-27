@@ -7,6 +7,19 @@ import { Badge } from "../components/ui/badge";
 export function SharkTvPage() {
   const videos = [
     {
+      id: "plo6-ases",
+      title: "PLO6: Par de Ases y Doble Flush Draw Deepstack",
+      instructor: "Nicolás Fuentes",
+      role: "Fundador LatinAllinPoker",
+      date: "Hoy",
+      duration: "01:21",
+      views: "Nuevo",
+      level: "Avanzado",
+      tags: ["PLO6", "Deepstack", "Fold Equity"],
+      image: "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/SharkTv/plo6-2.webp",
+      link: "/tv/plo6-ases"
+    },
+    {
       id: "plo6-bombpot",
       title: "Análisis PLO6: Top Two Pair en Bombpot Multiway",
       instructor: "Nicolás Fuentes",
