@@ -184,9 +184,14 @@ export function TutorialClubGGPage() {
                   <span><strong className="text-sk-text-1">Welcome Bono:</strong> 100% hasta 500k garantizados en tu primer depósito.</span>
                 </li>
                 <li className="flex items-start gap-3 text-sk-sm text-sk-text-2">
-                  <CheckCircle2 className="text-sk-green shrink-0 mt-0.5" size={18} /> 
-                  <span><strong className="text-sk-text-1">Liga Mensual 0% Rake (Abril y Mayo):</strong> Juega todas las fechas de la liga completamente libres de comisiones (2 veces por semana). ¡Ahorra un mínimo de 16.000 en rake! <em>(El reembolso se abona a tu cuenta 24 horas después de cada fecha)</em>.</span>
-                </li>
+  <CheckCircle2 className="text-sk-green shrink-0 mt-0.5" size={18} /> 
+  <span>
+    <strong className="text-sk-text-1">Liga Mensual libre de cargos (Abril y Mayo):</strong> 
+    Juega todas las fechas de la liga (2 veces por semana) y Obtén $2.000 de descuento en cada entrada. 
+    ¡Ahorra un mínimo de **$16.000 CLP al mes**! 
+    <em>(Los reembolsos de cargos se abonan a tu cuenta 24 horas después de cada fecha)</em>.
+  </span>
+</li>
                 <li className="flex items-start gap-3 text-sk-sm text-sk-text-2">
                   <CheckCircle2 className="text-sk-green shrink-0 mt-0.5" size={18} /> 
                   <span><strong className="text-sk-text-1">Liquidez Inmediata:</strong> Cargas y retiros procesados en tiempo récord de forma segura con nuestro administrador.</span>
