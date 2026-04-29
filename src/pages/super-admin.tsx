@@ -16,7 +16,7 @@ import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
   Image, Save, Eye, RefreshCw, Power, MessageCircle,
-  Zap
+  Zap, Star
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -308,6 +308,32 @@ export function SuperAdminPage() {
     board: "",
     analysis_verdict: ""
   });
+
+  // Estados para Encuestas en Vivo (Live Stream)
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptionsCSV, setPollOptionsCSV] = useState("");
+  const [savingPoll, setSavingPoll] = useState(false);
+
+  const handleSavePoll = async () => {
+    if (!pollQuestion.trim() || !pollOptionsCSV.trim()) return alert("Faltan datos para la encuesta");
+    setSavingPoll(true);
+    try {
+      const options = pollOptionsCSV.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (options.length < 2) return alert("Ingresa al menos 2 opciones (una por línea)");
+      
+      await supabase.from("live_polls").update({ is_active: false }).eq("is_active", true);
+      const { error } = await supabase.from("live_polls").insert([{ question: pollQuestion, options, is_active: true }]);
+      if (error) throw error;
+      
+      alert("✅ ¡Encuesta lanzada al en vivo!");
+      setPollQuestion(""); setPollOptionsCSV("");
+    } catch (e: any) { alert("❌ Error: " + e.message); } finally { setSavingPoll(false); }
+  };
+
+  const handleClosePoll = async () => {
+    await supabase.from("live_polls").update({ is_active: false }).eq("is_active", true);
+    alert("🛑 Encuesta cerrada y retirada del stream.");
+  };
 
   const handleSaveSharkTv = async () => {
     try {
@@ -1246,6 +1272,49 @@ export function SuperAdminPage() {
                   <Button variant="secondary" size="md" className="mt-4 border-sk-border-3" onClick={handleSaveSharkTv} isLoading={savingSharkTv}><Save size={14} className="mr-2" /> Publicar JSON</Button>
                 </div>
               </div>
+
+              {/* NUEVO PANEL: CONTROL DE ENCUESTAS EN VIVO */}
+              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 mt-4">
+                <div className="flex justify-between items-center mb-4 border-b border-sk-border-2 pb-4">
+                  <div>
+                    <h3 className="text-sk-sm font-bold text-sk-accent flex items-center gap-2">
+                      <Star size={16} /> Encuestas en Vivo (Live Stream)
+                    </h3>
+                    <p className="text-[10px] text-sk-text-3 mt-1">Lanza preguntas interactivas en tiempo real a los espectadores.</p>
+                  </div>
+                  <Button variant="danger" size="sm" onClick={handleClosePoll}>
+                    <XIcon size={14} className="mr-1"/> Cerrar encuesta activa
+                  </Button>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Pregunta de la Encuesta</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ej: ¿Quién crees que gane la Fecha 1?" 
+                      className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 mb-4" 
+                      value={pollQuestion} 
+                      onChange={e => setPollQuestion(e.target.value)} 
+                    />
+                    <Button variant="accent" size="md" className="w-full" onClick={handleSavePoll} isLoading={savingPoll}>
+                      <Zap size={14} className="mr-2" /> Lanzar Encuesta en Pantalla
+                    </Button>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">
+                      Opciones (Pega tu listado, una opción por línea)
+                    </label>
+                    <textarea 
+                      placeholder="Jugador 1&#10;Jugador 2&#10;Jugador 3" 
+                      className="w-full h-32 bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 resize-none font-mono" 
+                      value={pollOptionsCSV} 
+                      onChange={e => setPollOptionsCSV(e.target.value)} 
+                    />
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
 

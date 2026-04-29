@@ -55,6 +55,8 @@ const PrivacyPage = lazy(() => import("./pages/privacy").then(m => ({ default: m
 const ForgotPasswordPage = lazy(() => import("./pages/forgot-password").then(m => ({ default: m.ForgotPasswordPage })));
 const UpdatePasswordPage = lazy(() => import("./pages/update-password").then(m => ({ default: m.UpdatePasswordPage })));
 const WelcomePage = lazy(() => import("./pages/welcome"));
+const LiveStreamPage = lazy(() => import("./pages/live-stream").then(m => ({ default: m.LiveStreamPage }))); // 🔴 NUEVO: Streaming en Vivo
+const RulesAustralPage = lazy(() => import("./pages/rules-poker-austral").then(m => ({ default: m.RulesAustralPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -130,6 +132,9 @@ export function App() {
               {/* SharkTV */}
               <Route path="/tv" element={<SharkTvPage />} />
               <Route path="/tv/:id" element={<HandReviewPage />} />
+              <Route path="/live" element={<LiveStreamPage />} />
+              <Route path="/liga-austral-bases" element={<RulesAustralPage />} />
+              
               {/* Legal */}
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
