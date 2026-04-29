@@ -177,6 +177,21 @@ export function Navbar() {
             <Mail size={18} />
           </a>
 
+          {/* 🔥 Botón de Cobertura EN VIVO (Visible en Desktop y Mobile) */}
+          <Link 
+            to="/live" 
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all group"
+            title="Ir al Stream en Vivo"
+          >
+            <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
+            </span>
+            <span className="text-[10px] sm:text-[11px] font-black tracking-widest uppercase drop-shadow-sm group-hover:text-red-400 mt-px">
+              En Vivo
+            </span>
+          </Link>
+
           {/* Admin Button */}
           {!isLoading && isAuthenticated && isAdmin && (
             <Link
