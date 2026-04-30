@@ -20,19 +20,15 @@ export function GlobalChampionsTicker() {
     async function fetchRecentChampions() {
       try {
         const now = new Date();
-        // Hace 24 hrs en formato ISO exacto (para TIMESTAMP)
         const past24hIso = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+        const past72hIso = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString();
         
-        // Hace 72 hrs en formato YYYY-MM-DD (para coincidir con el DATE de PostgreSQL)
-        const past72hDate = new Date(now.getTime() - 72 * 60 * 60 * 1000);
-        const past72hString = past72hDate.toISOString().split('T')[0];
-        
-        // HOY en formato YYYY-MM-DD (nuestro límite superior temporal)
+        // HOY en formato YYYY-MM-DD para comparar con el end_date de la liga
         const todayString = now.toISOString().split('T')[0];
 
         const fetchedChampions: Champion[] = [];
 
-        // 1. Torneos (Últimas 24h: Jugadores en position = 1)
+        // 1. Torneos (Últimas 24h: Jugadores en position = 1 de torneos completados)
         const { data: tourneyData } = await supabase
           .from("tournament_results")
           .select("id, tournaments!inner(id, name, start_datetime, clubs(name)), players!inner(nickname)")
@@ -56,14 +52,17 @@ export function GlobalChampionsTicker() {
           });
         }
 
-        // 2. Ligas (Últimas 72h: DOBLE CANDADO TEMPORAL)
+        // 2. Ligas (Últimas 72h: LA LÓGICA PERFECTA)
+        // Ignoramos el 'status'. Solo pedimos:
+        // A) Que sea el rango 1.
+        // B) Que el ranking se haya actualizado en las últimas 72 hrs (Acabas de subir el CSV).
+        // C) Que la liga ya haya alcanzado su fecha final oficial (Evita coronar en ligas a medias).
         const { data: leaguesData } = await supabase
           .from("league_standings")
-          .select("league_id, rank_position, leagues!inner(id, name, end_date, status), players!inner(nickname)")
+          .select("league_id, rank_position, updated_at, leagues!inner(id, name, end_date), players!inner(nickname)")
           .eq("rank_position", 1)
-          .gte("leagues.end_date", past72hString)
-          .lte("leagues.end_date", todayString) // 👈 Candado 1: No toma ligas que terminan en el futuro
-          .neq("leagues.status", "active");     // 👈 Candado 2: La liga no debe estar activa
+          .gte("updated_at", past72hIso)         // 👈 Se subió el CSV recientemente
+          .lte("leagues.end_date", todayString); // 👈 La fecha oficial de la liga ya pasó
 
         if (leaguesData) {
           leaguesData.forEach((row: any) => {
@@ -72,7 +71,7 @@ export function GlobalChampionsTicker() {
               type: "league",
               playerName: row.players?.nickname || "Desconocido",
               eventName: row.leagues?.name || "Liga",
-              dateStr: row.leagues?.end_date
+              dateStr: row.updated_at // Usamos el updated_at para que salga fresquito
             });
           });
         }
