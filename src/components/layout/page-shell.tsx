@@ -8,6 +8,7 @@ import { getLatestChampion, type LeagueChampionNews } from "../../lib/api/champi
 import { Crown, X } from "lucide-react";
 import { useBanners } from "../../hooks/use-banners"; // 👈 Importamos los banners
 import { cn } from "../../lib/cn";
+import { GlobalChampionsTicker } from "./global-champions-ticker";
 
 interface PageShellProps {
   children: ReactNode;
@@ -65,10 +66,15 @@ export function PageShell({ children }: PageShellProps) {
       {/* Spacer para compensar el navbar (56px) */}
       <div style={{ height: "56px", flexShrink: 0 }} />
 
-      {/* 🚀 NUEVO: SUPER BANNER GLOBAL FIJO */}
-      {hasSuperBanner && (
-        <>
-          <div className="fixed top-[56px] left-0 right-0 z-[90] bg-sk-bg-0 border-b border-sk-border-2 overflow-hidden shadow-md flex justify-center items-center">
+      {/* 🚀 ZONA PEGADA AL NAVBAR (Ticker + Super Banner) */}
+      <div className="sticky top-[56px] left-0 right-0 w-full z-[90] flex flex-col">
+        
+        {/* 🏆 1ro: TICKER DE CAMPEONES */}
+        <GlobalChampionsTicker />
+
+        {/* 🌟 2do: SUPER BANNER GLOBAL */}
+        {hasSuperBanner && (
+          <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 overflow-hidden shadow-md flex justify-center items-center relative z-40">
             {/* 💻 Banner Desktop */}
             {hasSuperDesktop && (
               <a
@@ -107,16 +113,8 @@ export function PageShell({ children }: PageShellProps) {
               </a>
             )}
           </div>
-          
-          {/* Spacer dinámico para empujar el contenido debajo del Super Banner */}
-          <div className={cn(
-            "shrink-0 w-full",
-            hasSuperDesktop && hasSuperMobile ? "h-[70px] md:h-[148px]" : "",
-            hasSuperDesktop && !hasSuperMobile ? "hidden md:block h-[148px]" : "",
-            !hasSuperDesktop && hasSuperMobile ? "h-[70px] md:hidden block" : ""
-          )} />
-        </>
-      )}
+        )}
+      </div>
 
       {/* 👑 CINTILLO GLOBAL DE CAMPEÓN */}
       {!dismissed && champion && (

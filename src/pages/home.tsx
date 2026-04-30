@@ -113,7 +113,6 @@ export function HomePage() {
   const [tournaments, setTournaments] = useState<TournamentWithDetails[]>([]);
   const [leagues,     setLeagues]     = useState<any[]>([]);
   const [blogPosts,   setBlogPosts]   = useState<BlogPost[]>([]);
-  const [tickerItems, setTickerItems] = useState<any[]>([]); // 👈 Reemplazamos champions
   const [stats,       setStats]       = useState({ players:0, tournaments:0, clubs:0, leagues:0, live:0 });
   const [compA,       setCompA]       = useState<PlayerWithRoom|null>(null);
   const [compB,       setCompB]       = useState<PlayerWithRoom|null>(null);
@@ -175,63 +174,6 @@ export function HomePage() {
     // Últimos Posts del Blog
     getBlogPosts().then(posts => setBlogPosts(posts.slice(0,3))).finally(() => setLoadingBlog(false));
 
-    // Campeones para el Ticker (Ligas 72h, Torneos 24h)
-    const fetchTickerData = async () => {
-      const items: any[] = [];
-      const now = Date.now();
-      const limit72h = new Date(now - 72 * 60 * 60 * 1000).toISOString();
-      const limit24h = new Date(now - 24 * 60 * 60 * 1000).toISOString();
-
-      // 1. Ligas (Últimas 72h)
-      const { data: leaguesData } = await supabase
-        .from("current_league_champion")
-        .select("*")
-        .gte("created_at", limit72h);
-      
-      if (leaguesData) {
-        leaguesData.forEach((l: any) => {
-          items.push({
-            id: `l-${l.id}`,
-            type: 'league',
-            playerName: l.player_nickname,
-            playerSlug: l.player_slug,
-            eventName: l.league_name,
-            eventLink: `/leagues/${l.league_slug}`,
-            date: new Date(l.created_at)
-          });
-        });
-      }
-
-      // 2. Torneos (Últimas 24h: Extrae a los jugadores en posición 1)
-      const { data: tourneyData } = await supabase
-        .from("tournament_results")
-        .select("id, tournaments!inner(id, name, slug, start_datetime, status), players!inner(nickname, slug)")
-        .eq("position", 1)
-        .eq("tournaments.status", "completed")
-        .gte("tournaments.start_datetime", limit24h);
-
-      if (tourneyData) {
-        tourneyData.forEach((r: any) => {
-          items.push({
-            id: `t-${r.id}`,
-            type: 'tournament',
-            playerName: r.players?.nickname || 'Desconocido',
-            playerSlug: r.players?.slug,
-            eventName: r.tournaments?.name || 'Torneo',
-            eventLink: `/tournament/${r.tournaments?.slug || r.tournaments?.id}`,
-            date: new Date(r.tournaments?.start_datetime)
-          });
-        });
-      }
-
-      // Remover posibles duplicados y ordenar por fecha más reciente
-      const uniqueItems = Array.from(new Map(items.map(item => [item.eventName, item])).values());
-      uniqueItems.sort((a, b) => b.date.getTime() - a.date.getTime());
-      
-      setTickerItems(uniqueItems.slice(0, 10)); // Máximo 10 resultados flotando
-    };
-    fetchTickerData();
-
     // Estadísticas
     Promise.all([
       supabase.from("players").select("id", { count:"exact", head:true }),
@@ -249,20 +191,7 @@ export function HomePage() {
     <PageShell>
       <SEOHead title="Inicio" description="Plataforma global de poker competitivo. Rankings ELO, torneos online, análisis de manos y herramientas tácticas para tu club." path="/" />
 
-      <style>{`
-        @keyframes ticker {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-ticker {
-          display: flex;
-          width: max-content;
-          animation: ticker 30s linear infinite;
-        }
-        .animate-ticker:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
+      
 
       {/* ══ HERO & TICKER ══ */}
       <section className="relative min-h-[85vh] flex flex-col items-center justify-center text-center px-6 pt-24 pb-12 overflow-hidden">
@@ -297,24 +226,6 @@ export function HomePage() {
             </Link>
           </div>
         </div>
-
-        {/* 🏆 TICKER DE ÚLTIMA HORA (Breaking News) */}
-        {tickerItems.length > 0 && (
-          <div className="w-full bg-sk-bg-2/80 backdrop-blur-md border-y border-sk-gold/20 overflow-hidden relative flex items-center py-2 animate-sk-fade-up sk-delay-3">
-            <div className="absolute left-0 z-10 bg-sk-bg-2 px-4 py-1 text-sk-gold font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 border-r border-sk-gold/20 shadow-[10px_0_15px_rgba(12,13,16,1)]">
-              <span className="w-2 h-2 rounded-full bg-sk-gold animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.8)]"/>
-              Sala de Trofeos
-            </div>
-            <div className="animate-ticker pl-[150px]">
-              {[...tickerItems, ...tickerItems].map((item, i) => (
-                <span key={i} className="text-sk-sm text-sk-text-2 mx-6 flex items-center gap-2 whitespace-nowrap">
-                  🏆 <Link to={`/ranking/${item.playerSlug}`} className="font-bold text-sk-text-1 hover:text-sk-gold transition-colors">{item.playerName}</Link> 
-                  conquistó {item.type === 'league' ? 'la liga' : 'el torneo'} <Link to={item.eventLink} className="font-medium text-sk-text-1 hover:text-sk-gold transition-colors">{item.eventName}</Link>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* ══ STATS BAR ══ */}
