@@ -26,6 +26,9 @@ export function GlobalChampionsTicker() {
         // Hace 72 hrs en formato YYYY-MM-DD (para coincidir con el DATE de PostgreSQL)
         const past72hDate = new Date(now.getTime() - 72 * 60 * 60 * 1000);
         const past72hString = past72hDate.toISOString().split('T')[0];
+        
+        // HOY en formato YYYY-MM-DD (nuestro límite superior temporal)
+        const todayString = now.toISOString().split('T')[0];
 
         const fetchedChampions: Champion[] = [];
 
@@ -53,12 +56,14 @@ export function GlobalChampionsTicker() {
           });
         }
 
-        // 2. Ligas (Últimas 72h: Consulta CRUDA e INFALIBLE a las tablas base)
+        // 2. Ligas (Últimas 72h: DOBLE CANDADO TEMPORAL)
         const { data: leaguesData } = await supabase
           .from("league_standings")
-          .select("league_id, rank_position, leagues!inner(id, name, end_date), players!inner(nickname)")
+          .select("league_id, rank_position, leagues!inner(id, name, end_date, status), players!inner(nickname)")
           .eq("rank_position", 1)
-          .gte("leagues.end_date", past72hString);
+          .gte("leagues.end_date", past72hString)
+          .lte("leagues.end_date", todayString) // 👈 Candado 1: No toma ligas que terminan en el futuro
+          .neq("leagues.status", "active");     // 👈 Candado 2: La liga no debe estar activa
 
         if (leaguesData) {
           leaguesData.forEach((row: any) => {
