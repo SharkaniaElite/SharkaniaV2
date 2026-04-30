@@ -17,7 +17,7 @@ import { useAuthStore } from "../stores/auth-store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { deleteTournamentSafe } from "../lib/api/tournaments";
-import { duplicateLeague } from "../lib/api/leagues"; // 👈 Añadimos nuestra nueva función
+import { duplicateLeague } from "../lib/api/leagues";
 import { formatCurrency } from "../lib/format";
 import { cn } from "../lib/cn";
 import { Plus, Trash2, Pencil, Save, ChevronDown, Copy } from "lucide-react";
@@ -40,25 +40,21 @@ export function ClubAdminPage() {
   const [editTournament, setEditTournament] = useState<Tournament | null | undefined>(undefined);
   const [editLeague, setEditLeague] = useState<League | null | undefined>(undefined);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [duplicatingLeague, setDuplicatingLeague] = useState<string | null>(null); // 👈 Nuevo estado
+  const [duplicatingLeague, setDuplicatingLeague] = useState<string | null>(null);
   const [selectedTournamentIds, setSelectedTournamentIds] = useState<string[]>([]);
 
-  // Función para manejar el clic en clonar liga
   const handleDuplicateLeague = async (l: League) => {
-    // 1. Pedimos el nombre limpio antes de hacer nada
     const newName = window.prompt(
       "🏆 Ingresa el nombre exacto para la nueva liga:\n(Ej: Mega Liga Luxowin Abril)", 
       `${l.name} (Copia)`
     );
 
-    // 2. Si el usuario cancela o deja en blanco, abortamos
     if (!newName || newName.trim() === "") return;
 
     setDuplicatingLeague(l.id);
     try {
-      // 3. Enviamos el ID y el nombre al backend blindado
       await duplicateLeague(l.id, newName.trim());
-      refresh(); // Refresca la tabla automáticamente
+      refresh();
     } catch (err) {
       console.error(err);
       alert("Error al duplicar la liga. Revisa la consola.");
@@ -67,9 +63,7 @@ export function ClubAdminPage() {
     }
   };
 
-  // Club info editing
   const [editingInfo, setEditingInfo] = useState(false);
-  // 👇 Definimos la interfaz para que banner_url sea siempre string
   const [infoForm, setInfoForm] = useState<{
     description: string; email: string; whatsapp: string; website_url: string;
     discord_url: string; telegram_url: string; instagram_url: string; banner_url: string; tutorial_url: string;
@@ -81,7 +75,6 @@ export function ClubAdminPage() {
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [sharkyAlert, setSharkyAlert] = useState(false);
 
-  // ── Query: clubs the user can manage ──
   const { data: adminClubs, isLoading } = useQuery({
     queryKey: ["my-admin-clubs", user?.id, isSuperAdmin],
     queryFn: async () => {
@@ -161,7 +154,6 @@ export function ClubAdminPage() {
   const selectAllScheduled = () => setSelectedTournamentIds(scheduledTournaments.map((t) => t.id));
   const deselectAllTournaments = () => setSelectedTournamentIds([]);
 
-  // ── Handlers ──
   const handleDeleteTournament = async (t: TournamentWithDetails) => {
     const warning = t.results_uploaded
       ? "⚠️ Esto revertirá ELO y puntos de liga. Esta acción no se puede deshacer."
@@ -182,9 +174,7 @@ export function ClubAdminPage() {
     }
   };
 
-  // 🔥 NUEVA FUNCIÓN: Duplicar torneo y abrir modal
   const handleDuplicateTournament = (t: TournamentWithDetails) => {
-    // 🔥 Corrección 2: Eliminamos "fts" de la desestructuración
     const { id, created_at, updated_at, actual_prize_pool, results_uploaded, ...rest } = t;
     
     const duplicated: Partial<Tournament> = {
@@ -202,7 +192,6 @@ export function ClubAdminPage() {
     refresh();
   };
 
-  // 🧠 Motor de arrastre y cálculo de posición
   const getBgPos = (url?: string | null) => {
     if (!url) return 50;
     const match = url.match(/#pos=(\d+)/);
@@ -220,7 +209,6 @@ export function ClubAdminPage() {
 
   const handleDragStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     setIsDraggingBg(true);
-    // 👇 Añadimos el "?" después de touches[0] para evitar el error de "Object is possibly undefined"
     const clientY = 'touches' in e ? (e.touches[0]?.clientY || 0) : e.clientY;
     setDragStartY(clientY);
     setDragStartPos(getBgPos(infoForm.banner_url || "")); 
@@ -230,7 +218,6 @@ export function ClubAdminPage() {
     const currentUrl = infoForm.banner_url;
     if (!isDraggingBg || !currentUrl) return;
 
-    // 👇 Añadimos el "?" aquí también
     const clientY = 'touches' in e ? (e.touches[0]?.clientY || 0) : e.clientY;
     const deltaY = clientY - dragStartY;
     const newPos = Math.max(0, Math.min(100, dragStartPos - (deltaY / 2)));
@@ -241,7 +228,7 @@ export function ClubAdminPage() {
 
   const handleUploadBanner = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    const clubId = firstClubId as string; // 👈 Forzamos a TypeScript a saber que es un string
+    const clubId = firstClubId as string; 
     if (!file || !clubId) return; 
 
     if (file.size > 1024 * 1024) {
@@ -265,7 +252,7 @@ export function ClubAdminPage() {
   };
 
   const handleSaveInfo = async () => {
-    const clubId = firstClubId as string; // 👈 Forzamos a TypeScript a saber que es un string
+    const clubId = firstClubId as string; 
     if (!clubId) return;
     setSavingInfo(true);
     await supabase.from("clubs").update({
@@ -337,7 +324,6 @@ export function ClubAdminPage() {
     <PageShell>
       <SEOHead title="Admin Club" path="/admin/club" noIndex={true} />
       
-      {/* 🔥 OVERLAY DE CARGA PARA ELIMINACIÓN DE TORNEO */}
       {deleting && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#09090b]/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-sk-bg-2 border border-sk-border-2 p-8 rounded-xl shadow-2xl flex flex-col items-center max-w-sm text-center">
@@ -350,7 +336,6 @@ export function ClubAdminPage() {
 
       <div className="pt-20 pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
-          {/* Header */}
           <div className="mb-8">
             <p className="font-mono text-[11px] font-bold tracking-[0.08em] uppercase text-sk-accent mb-3">
               Panel de Administración
@@ -394,19 +379,16 @@ export function ClubAdminPage() {
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-px bg-sk-bg-0 rounded-md p-0.5 border border-sk-border-2 mb-6 overflow-x-auto">
             {TABS.map((t) => (
               <button key={t.key} onClick={() => setActiveTab(t.key)} className={cn("text-sk-sm font-medium px-4 py-2 rounded-sm whitespace-nowrap transition-all duration-100", activeTab === t.key ? "bg-sk-bg-3 text-sk-text-1 shadow-sk-xs" : "text-sk-text-2 hover:text-sk-text-1")}>{t.label}</button>
             ))}
           </div>
 
-          {/* ══════ TAB: Templates ══════ */}
           {activeTab === "templates" && firstClubId && (
             <TemplatesTab clubId={firstClubId} leagueOptions={leagueOptions} onTournamentsChanged={refresh} />
           )}
 
-          {/* ══════ TAB: Stats ══════ */}
           {activeTab === "stats" && (
             <div>
               <div className="flex items-center gap-2 mb-4">
@@ -422,7 +404,6 @@ export function ClubAdminPage() {
             </div>
           )}
 
-          {/* ══════ TAB: Tournaments ══════ */}
           {activeTab === "tournaments" && (
             <div>
               <div className="flex justify-between items-center mb-4">
@@ -480,7 +461,6 @@ export function ClubAdminPage() {
                             <td className="py-3 px-4 border-b border-sk-border-2">{t.results_uploaded ? <Button variant="secondary" size="xs" onClick={() => setEditResultsTournament(t)}>Ver / Editar</Button> : <Button variant="accent" size="xs" onClick={() => setUploadTournament(t)}>Subir</Button>}</td>
                             <td className="py-3 px-4 border-b border-sk-border-2">
                               <div className="flex gap-1 justify-end">
-                                {/* 🔥 NUEVO BOTÓN DUPLICAR */}
                                 <button onClick={() => handleDuplicateTournament(t)} className="text-sk-text-2 hover:text-sk-text-1 p-1 transition-colors" title="Duplicar Torneo">
                                   <Copy size={13} />
                                 </button>
@@ -498,12 +478,10 @@ export function ClubAdminPage() {
             </div>
           )}
 
-          {/* ══════ TAB: Players ══════ */}
           {activeTab === "players" && firstClubId && (
             <ClubPlayersTab clubId={firstClubId} />
           )}
 
-          {/* ══════ TAB: Leagues ══════ */}
           {activeTab === "leagues" && (
             <div>
               <div className="flex justify-between items-center mb-4">
@@ -517,35 +495,46 @@ export function ClubAdminPage() {
                 <EmptyState icon="🏆" title="Sin ligas" action={<Button variant="accent" size="sm" onClick={() => setEditLeague(null)}>Crear Liga</Button>} />
               ) : (
                 <div className="space-y-3">
-                  {(leagues ?? []).map((l) => (
-                    <div key={l.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-4 flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-sk-text-1">{l.name}</p>
-                        <p className="text-sk-xs text-sk-text-2">
-                          {l.start_date && l.end_date ? `${l.start_date} — ${l.end_date}` : "Fechas por definir"} · <Badge variant={l.status === "active" ? "green" : l.status === "finished" ? "muted" : "accent"}>{l.status}</Badge>
-                        </p>
+                  {(leagues ?? []).map((l) => {
+                    const now = new Date();
+                    const isPastEndDate = l.end_date && now > new Date(`${l.end_date}T23:59:59`);
+                    const isStarted = l.start_date && now >= new Date(`${l.start_date}T00:00:00`);
+                    
+                    let displayStatus = l.status;
+                    if (l.status === "finished" || isPastEndDate) {
+                      displayStatus = "finished";
+                    } else if (isStarted) {
+                      displayStatus = "active";
+                    }
+
+                    return (
+                      <div key={l.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-4 flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-sk-text-1">{l.name}</p>
+                          <p className="text-sk-xs text-sk-text-2">
+                            {l.start_date && l.end_date ? `${l.start_date} — ${l.end_date}` : "Fechas por definir"} · <Badge variant={displayStatus === "active" ? "green" : displayStatus === "finished" ? "muted" : "accent"}>{displayStatus}</Badge>
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={() => handleDuplicateLeague(l)} 
+                            disabled={duplicatingLeague === l.id} 
+                            className="text-sk-text-2 hover:text-sk-text-1 p-1 transition-colors disabled:opacity-50" 
+                            title="Duplicar Liga"
+                          >
+                            <Copy size={13} />
+                          </button>
+                          <button onClick={() => setEditLeague(l)} className="text-sk-text-2 hover:text-sk-accent p-1 transition-colors" title="Editar Liga"><Pencil size={13} /></button>
+                          <button onClick={() => handleDeleteLeague(l)} className="text-sk-text-2 hover:text-sk-red p-1 transition-colors" title="Eliminar Liga"><Trash2 size={13} /></button>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        {/* 👯‍♂️ Botón de Clonación */}
-                        <button 
-                          onClick={() => handleDuplicateLeague(l)} 
-                          disabled={duplicatingLeague === l.id} 
-                          className="text-sk-text-2 hover:text-sk-text-1 p-1 transition-colors disabled:opacity-50" 
-                          title="Duplicar Liga"
-                        >
-                          <Copy size={13} />
-                        </button>
-                        <button onClick={() => setEditLeague(l)} className="text-sk-text-2 hover:text-sk-accent p-1 transition-colors" title="Editar Liga"><Pencil size={13} /></button>
-                        <button onClick={() => handleDeleteLeague(l)} className="text-sk-text-2 hover:text-sk-red p-1 transition-colors" title="Eliminar Liga"><Trash2 size={13} /></button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           )}
 
-          {/* ══════ TAB: Info ══════ */}
           {activeTab === "info" && (
             <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6">
               <div className="flex items-center justify-between mb-6">
@@ -572,7 +561,6 @@ export function ClubAdminPage() {
                       <div className="bg-sk-bg-3 border border-sk-border-2 rounded-md py-2.5 px-3.5 text-sk-sm text-sk-text-2">{club?.country_code ?? "—"}</div>
                     </div>
                   </div>
-                  {/* Banner Upload Box */}
                   <div className="bg-sk-bg-3 border border-sk-border-2 rounded-lg p-4">
                     <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-3 block">
                       📸 Banner del Club (Fondo Personalizado)
@@ -602,7 +590,6 @@ export function ClubAdminPage() {
                             type="range" min="0" max="100"
                             value={getBgPos(infoForm.banner_url)}
                             onChange={(e) => {
-                              // 👇 Solo actuamos si hay una imagen que mover
                               if (infoForm.banner_url) {
                                 setInfoForm({ ...infoForm, banner_url: setBgPos(infoForm.banner_url, Number(e.target.value)) });
                               }
