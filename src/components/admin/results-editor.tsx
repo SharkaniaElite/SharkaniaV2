@@ -23,6 +23,8 @@ interface EditableRow {
   leaguePoints: number | null;
   eloChange: number | null;
   countryCode: string | null;
+  ccpClub: string | null;     // 🔥 NUEVO
+  buyInsCount: number;        // 🔥 NUEVO
   isNew: boolean;
   isDirty: boolean;
   originalNickname: string;
@@ -100,6 +102,8 @@ export function ResultsEditor({
           leaguePoints: Number(r.league_points_earned ?? 0),
           eloChange: r.elo_change ? Number(r.elo_change) : null,
           countryCode: r.players?.country_code ?? null,
+          ccpClub: r.ccp_club ?? null,           // 🔥 CARGAMOS DATO REAL
+          buyInsCount: Number(r.buy_ins_count) || 1, // 🔥 CARGAMOS DATO REAL
           isNew: false,
           isDirty: false,
           originalNickname: r.players?.nickname ?? "",
@@ -149,6 +153,8 @@ export function ResultsEditor({
         leaguePoints: p.points,
         eloChange: null,
         countryCode: null,
+        ccpClub: p.ccp_club ?? null,     // 🔥 MAPEAMOS EL NUEVO CSV
+        buyInsCount: p.buy_ins_count,    // 🔥 MAPEAMOS EL NUEVO CSV
         isNew: true,
         isDirty: true,
         originalNickname: "",
@@ -167,18 +173,22 @@ export function ResultsEditor({
     e.target.value = "";
   };
 
-  const updateRow = (index: number, field: string, value: string | number | null) => {
+  const updateRow = (index: number, field: keyof EditableRow, value: string | number | null) => {
     const newRows = [...rows];
     const row = newRows[index];
     if (!row) return;
 
-    const updated = { ...row, [field]: value };
+    // TypeScript seguro
+    const updated = { ...row, [field]: value } as EditableRow;
 
     if (!row.isNew) {
+      // Evaluamos "isDirty"
       updated.isDirty =
         updated.nickname !== row.originalNickname ||
         updated.prizeWon !== row.originalPrize ||
-        updated.leaguePoints !== row.originalPoints;
+        updated.leaguePoints !== row.originalPoints ||
+        field === "ccpClub" || // Si toca estos campos, asumimos que hubo cambio
+        field === "buyInsCount";
     } else {
       updated.isDirty = true;
     }
@@ -207,6 +217,8 @@ export function ResultsEditor({
       leaguePoints: null,
       eloChange: null,
       countryCode: null,
+      ccpClub: null,
+      buyInsCount: 1,
       isNew: true,
       isDirty: true,
       originalNickname: "",
@@ -281,6 +293,8 @@ export function ResultsEditor({
             position: row.position,
             prize_won: row.prizeWon || 0,
             league_points_earned: row.leaguePoints || 0,
+            ccp_club: row.ccpClub || null,       // 🔥 GUARDAMOS EN DB
+            buy_ins_count: row.buyInsCount || 1, // 🔥 GUARDAMOS EN DB
             bounties_won: 0,
           };
         })
@@ -321,6 +335,8 @@ export function ResultsEditor({
         leaguePoints: Number(r.league_points_earned ?? 0),
         eloChange: r.elo_change ? Number(r.elo_change) : null,
         countryCode: r.players?.country_code ?? null,
+        ccpClub: r.ccp_club ?? null,
+        buyInsCount: Number(r.buy_ins_count) || 1,
         isNew: false,
         isDirty: false,
         originalNickname: r.players?.nickname ?? "",
@@ -346,7 +362,7 @@ export function ResultsEditor({
       isOpen={isOpen}
       onClose={onClose}
       title={`Editor de Resultados: ${cleanName(tournament.name)}`}
-      className="max-w-3xl"
+      className="!max-w-[1200px] !w-[95vw]" /* 🔥 Modal Expansivo */
     >
       <div className="space-y-4">
         <div className="flex items-center gap-2 flex-wrap text-sk-xs text-sk-text-3">
@@ -367,19 +383,21 @@ export function ResultsEditor({
         ) : (
           <>
             <div className="border border-sk-border-2 rounded-md overflow-x-auto">
-              <table className="w-full text-sk-xs">
+              <table className="w-full text-sk-xs min-w-[1000px]"> {/* 🔥 Ancho Mínimo */}
                 <thead>
                   <tr>
-                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-12">Pos</th>
+                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-10">Pos</th>
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left">Nickname</th>
-                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-40 min-w-[160px]">Premio</th>
+                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-32">Club CCP</th>
+                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-16">Buyins</th>
+                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-24">Premio</th>
                     {hasLeague && (
                       <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-purple py-2 px-2 text-left w-20">
                         Puntos
                         <span className="ml-1 text-sk-text-4 normal-case font-normal">(vacío=0)</span>
                       </th>
                     )}
-                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-right w-20">ΔELO</th>
+                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-right w-16">ΔELO</th>
                     <th className="bg-sk-bg-3 w-8 py-2 px-2"></th>
                   </tr>
                 </thead>
@@ -417,6 +435,25 @@ export function ResultsEditor({
                             <span className="text-sk-gold text-[9px] font-bold">NUEVO</span>
                           )}
                         </div>
+                      </td>
+                      {/* 🔥 NUEVOS CAMPOS FINANCIEROS Y DE CLUB */}
+                      <td className="py-2 px-2">
+                        <input
+                          type="text"
+                          value={row.ccpClub || ""}
+                          onChange={(e) => updateRow(i, "ccpClub", e.target.value)}
+                          placeholder="Club..."
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-1.5 px-2.5 text-sk-xs text-sk-text-1 placeholder:text-sk-text-3 focus:outline-none focus:border-sk-accent"
+                        />
+                      </td>
+                      <td className="py-2 px-2">
+                        <input
+                          type="number"
+                          value={row.buyInsCount || ""}
+                          onChange={(e) => updateRow(i, "buyInsCount", Number(e.target.value))}
+                          placeholder="1" min={1}
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-1.5 px-2 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent"
+                        />
                       </td>
                       <td className="py-2 px-2">
                         <input
