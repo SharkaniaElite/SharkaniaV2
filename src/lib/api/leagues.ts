@@ -222,3 +222,77 @@ export async function duplicateLeague(leagueId: string, newName: string): Promis
 
   return true;
 }
+export interface CCPClubRanking {
+  clubName: string;
+  totalPoints: number;
+  datesScored: number;
+}
+
+export async function getLeagueCCPStandings(leagueId: string): Promise<CCPClubRanking[]> {
+  // 1. Obtener los torneos de la liga
+  const { data: tournaments } = await supabase
+    .from("tournaments")
+    .select("id")
+    .eq("league_id", leagueId);
+
+  if (!tournaments || tournaments.length === 0) return [];
+  const tournamentIds = tournaments.map((t) => t.id);
+
+  // 2. Obtener los resultados que tengan un ccp_club válido
+  const { data: results } = await supabase
+    .from("tournament_results")
+    .select("tournament_id, league_points_earned, ccp_club")
+    .in("tournament_id", tournamentIds)
+    .not("ccp_club", "is", null);
+
+  if (!results || results.length === 0) return [];
+
+  // 3. Agrupar por torneo y luego por club
+  const clubTotals: Record<string, number> = {};
+  const clubDatesScored: Record<string, Set<string>> = {};
+
+  const resultsByTournament = results.reduce((acc, curr) => {
+    const tId = curr.tournament_id;
+    const clubName = curr.ccp_club!.toUpperCase().trim();
+
+    // TS blindado: Si no existe el objeto/array, lo inicializa de inmediato
+    const tournamentData = acc[tId] ?? (acc[tId] = {});
+    const clubData = tournamentData[clubName] ?? (tournamentData[clubName] = []);
+    
+    clubData.push(Number(curr.league_points_earned || 0));
+    return acc;
+  }, {} as Record<string, Record<string, number[]>>);
+
+  // 4. Sumar solo los top 3 puntajes por torneo para cada club
+  for (const tId in resultsByTournament) {
+    const tournamentData = resultsByTournament[tId]!; // El "!" le jura a TS que existe
+    for (const club in tournamentData) {
+      const pointsArray = tournamentData[club]!;
+      
+      // Ordenar de mayor a menor puntaje
+      pointsArray.sort((a, b) => b - a);
+      
+      // Tomar los 3 mejores y sumarlos
+      const top3Sum = pointsArray.slice(0, 3).reduce((sum, p) => sum + p, 0);
+      
+      // TS blindado: Obtenemos el total actual o 0 si es la primera vez
+      const currentTotal = clubTotals[club] ?? 0;
+      clubTotals[club] = currentTotal + top3Sum;
+      
+      // TS blindado: Obtenemos el Set actual o creamos uno nuevo
+      const datesSet = clubDatesScored[club] ?? (clubDatesScored[club] = new Set());
+      if (top3Sum > 0) {
+        datesSet.add(tId);
+      }
+    }
+  }
+
+  // 5. Convertir a array y ordenar al campeón general
+  const rankings: CCPClubRanking[] = Object.keys(clubTotals).map(club => ({
+    clubName: club,
+    totalPoints: clubTotals[club] ?? 0, // Fallback de seguridad
+    datesScored: clubDatesScored[club]?.size ?? 0 // Fallback de seguridad
+  })).sort((a, b) => b.totalPoints - a.totalPoints || a.clubName.localeCompare(b.clubName));
+
+  return rankings;
+}

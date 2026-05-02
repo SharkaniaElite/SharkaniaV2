@@ -121,14 +121,48 @@ export async function deleteTournamentSafe(tournamentId: string) {
 // ── 3. PUNTOS DE LIGA ──
 
 export async function applyLeaguePoints(tournamentId: string, leagueId: string) {
-  const { data: results } = await supabase.from("tournament_results").select("player_id, league_points_earned, position").eq("tournament_id", tournamentId);
+  // 🔥 Solicitamos las nuevas columnas a tournament_results
+  const { data: results } = await supabase
+    .from("tournament_results")
+    .select("player_id, league_points_earned, position, ccp_club, buy_ins_count")
+    .eq("tournament_id", tournamentId);
+
   if (!results || results.length === 0) return;
   const playersMap = new Map();
+
   for (const r of results) {
-    const ex = playersMap.get(r.player_id) || { points: 0, best: r.position };
-    ex.points += Number(r.league_points_earned || 0); ex.best = Math.min(ex.best, r.position);
+    const ex = playersMap.get(r.player_id) || { points: 0, best: r.position, ccp_club: null, buy_ins_count: 0 };
+    ex.points += Number(r.league_points_earned || 0); 
+    ex.best = Math.min(ex.best, r.position);
+    // Si viene un club en este torneo, actualizamos el registro del jugador (prioriza el más reciente)
+    if (r.ccp_club) ex.ccp_club = r.ccp_club; 
+    ex.buy_ins_count += Number(r.buy_ins_count || 1);
+
     playersMap.set(r.player_id, ex);
   }
+  
+  for (const [pid, d] of playersMap.entries()) {
+    const { data: exSt } = await supabase.from("league_standings").select("*").eq("league_id", leagueId).eq("player_id", pid).maybeSingle();
+    if (exSt) {
+      await supabase.from("league_standings").update({ 
+        total_points: Number(exSt.total_points) + d.points, 
+        tournaments_played: exSt.tournaments_played + 1, 
+        best_position: Math.min(exSt.best_position || 999, d.best), 
+        // 🔥 Actualizamos el acumulado de gastos (opcional para el futuro ROI)
+        total_buy_ins_spent: Number(exSt.total_buy_ins_spent || 0) + d.buy_ins_count,
+        ccp_club: d.ccp_club || exSt.ccp_club, // Mantiene el que ya tenía si este torneo no trajo nada
+        updated_at: new Date().toISOString() 
+      }).eq("id", exSt.id);
+    } else {
+      await supabase.from("league_standings").insert({ 
+        league_id: leagueId, player_id: pid, total_points: d.points, 
+        tournaments_played: 1, best_position: d.best, rank_position: 0,
+        ccp_club: d.ccp_club,
+        total_buy_ins_spent: d.buy_ins_count
+      });
+    }
+  }
+  // ... (el resto del archivo se mantiene igual)
   for (const [pid, d] of playersMap.entries()) {
     const { data: exSt } = await supabase.from("league_standings").select("*").eq("league_id", leagueId).eq("player_id", pid).maybeSingle();
     if (exSt) {

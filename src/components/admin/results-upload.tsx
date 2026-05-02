@@ -29,6 +29,8 @@ interface ResultRow {
   playerId: string;
   prizeWon: number;
   leaguePoints: number; 
+  ccpClub: string | null;     // 🔥 NUEVO
+  buyInsCount: number;        // 🔥 NUEVO
   status: "pending" | "found" | "not_found" | "created";
 }
 
@@ -110,7 +112,7 @@ export function ResultsUpload({
   const addRow = () => {
     setRows([...rows, {
       position: rows.length + 1, nickname: "", playerId: "",
-      prizeWon: 0, leaguePoints: 0, status: "pending",
+      prizeWon: 0, leaguePoints: 0, ccpClub: null, buyInsCount: 1, status: "pending",
     }]);
   };
 
@@ -152,6 +154,8 @@ export function ResultsUpload({
           playerId: "",
           prizeWon: p.prize,
           leaguePoints: p.points,
+          ccpClub: p.ccp_club,         // 🔥 NUEVO MAPEO
+          buyInsCount: p.buy_ins_count,// 🔥 NUEVO MAPEO
           status: "pending" as const,
         }))
       );
@@ -272,6 +276,8 @@ export function ResultsUpload({
         prize_won: r.prizeWon,
         bounties_won: 0,
         league_points_earned: r.leaguePoints,
+        ccp_club: r.ccpClub || null,       // 🔥 ENVÍO A DB
+        buy_ins_count: r.buyInsCount || 1, // 🔥 ENVÍO A DB (por defecto 1)
       }));
 
       const { error: insertError } = await supabase
@@ -332,7 +338,7 @@ export function ResultsUpload({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Subir Resultados: ${tournament.name}`} className="max-w-2xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Subir Resultados: ${tournament.name}`} className="!max-w-[1200px] !w-[95vw]">
       <div className="space-y-4">
         {hasLeague && (
           <div className="flex items-center gap-2 px-3 py-2 bg-sk-purple-dim border border-sk-purple/20 rounded-md">
@@ -458,11 +464,13 @@ export function ResultsUpload({
             </p>
 
             <div className="border border-sk-border-2 rounded-md overflow-x-auto">
-              <table className="w-full text-sk-xs">
+              <table className="w-full text-sk-xs min-w-[1000px]">
                 <thead>
                   <tr>
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-10">Pos</th>
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left">Nickname</th>
+                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-32">Club CCP</th>
+                    <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-16">Buyins</th>
                     <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-text-2 py-2 px-2 text-left w-24">Premio</th>
                     {hasLeague && (
                       <th className="bg-sk-bg-3 font-mono text-[10px] font-semibold uppercase text-sk-purple py-2 px-2 text-left w-20">
@@ -489,6 +497,24 @@ export function ResultsUpload({
                           {row.status === "found" && <span className="text-sk-green text-[10px]">✓</span>}
                           {row.status === "created" && <span className="text-sk-gold text-[10px]">NEW</span>}
                         </div>
+                      </td>
+                      <td className="py-2 px-2">
+                        <input
+                          type="text"
+                          value={row.ccpClub || ""}
+                          onChange={(e) => updateRow(i, "ccpClub", e.target.value)}
+                          placeholder="Club..."
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-1.5 px-2.5 text-sk-xs text-sk-text-1 placeholder:text-sk-text-3 focus:outline-none focus:border-sk-accent"
+                        />
+                      </td>
+                      <td className="py-2 px-2">
+                        <input
+                          type="number"
+                          value={row.buyInsCount || ""}
+                          onChange={(e) => updateRow(i, "buyInsCount", Number(e.target.value))}
+                          placeholder="1" min={1}
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-1.5 px-2 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent"
+                        />
                       </td>
                       <td className="py-2 px-2">
                         <input

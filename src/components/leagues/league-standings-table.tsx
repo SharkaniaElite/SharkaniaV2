@@ -12,9 +12,11 @@ interface LeagueStandingsTableProps {
   isLoading: boolean;
 }
 
+// 🔥 Añadimos Club CCP en la posición deseada
 const HEADERS = [
   { label: "#", align: "left" },
   { label: "Jugador", align: "left" },
+  { label: "Club CCP", align: "left" }, // 👈 NUEVA COLUMNA
   { label: "Puntos", align: "right" },
   { 
     label: "Torneos Jugados", 
@@ -80,6 +82,12 @@ export function LeagueStandingsTable({ standings, isLoading }: LeagueStandingsTa
                     {s.players?.nickname ?? "—"}
                   </span>
                 </Link>
+              </td>
+              {/* 🔥 Renderizamos el Club CCP aquí */}
+              <td className="py-3 px-4 border-b border-sk-border-2">
+                <span className="text-sk-text-2 font-mono text-[11px] bg-sk-bg-3 px-2 py-0.5 rounded border border-sk-border-2">
+                  {s.ccp_club || "Sin Club"}
+                </span>
               </td>
               <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono font-bold text-sk-gold">
                 {formatNumber(s.total_points)}

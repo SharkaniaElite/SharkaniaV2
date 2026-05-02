@@ -227,6 +227,8 @@ export interface LeagueStanding {
   tournaments_played: number;
   best_position: number | null;
   rank_position: number | null;
+  ccp_club?: string | null;
+  total_buy_ins_spent?: number;
   updated_at: string;
 }
 

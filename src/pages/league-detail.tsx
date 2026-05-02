@@ -1,8 +1,10 @@
 // src/pages/league-detail.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { LeagueStandingsTable } from "../components/leagues/league-standings-table";
+import { ClubStandingsTable } from "../components/leagues/club-standings-table";
+import { getLeagueCCPStandings, type CCPClubRanking } from "../lib/api/leagues";
 import { TournamentCard } from "../components/calendar/tournament-card";
 import { TournamentDetailModal } from "../components/calendar/tournament-detail-modal";
 import { Badge } from "../components/ui/badge";
@@ -19,7 +21,7 @@ import { cn } from "../lib/cn";
 import { SEOHead } from "../components/seo/seo-head";
 import { formatNumber } from "../lib/format"; // 👈 Importamos formateador de números
 
-type Tab = "standings" | "calendar" | "info";
+type Tab = "standings" | "ccp_standings" | "calendar" | "info";
 
 const statusBadge = {
   upcoming: { label: "Próxima", variant: "accent" as const },
@@ -34,6 +36,26 @@ export function LeagueDetailPage() {
   const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByLeague(league?.id ?? '');
   const [tab, setTab] = useState<Tab>("standings");
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
+
+  // 🔥 NUEVO: Estados para el Ranking de Clubes CCP
+  const [ccpStandings, setCcpStandings] = useState<CCPClubRanking[]>([]);
+  const [ccpLoading, setCcpLoading] = useState(false);
+
+  useEffect(() => {
+    // Solo hacemos el cálculo matemático si entra a la pestaña y aún no hay datos
+    if (league?.id && tab === "ccp_standings" && ccpStandings.length === 0) {
+      // Usar setTimeout envía esto a la cola asíncrona, evitando el error del linter sobre renderizado en cascada
+      const timerId = setTimeout(() => {
+        setCcpLoading(true);
+        getLeagueCCPStandings(league.id)
+          .then(setCcpStandings)
+          .catch(console.error)
+          .finally(() => setCcpLoading(false));
+      }, 0);
+      return () => clearTimeout(timerId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [league?.id, tab]);
 
   if (isLoading) {
     return (
@@ -72,8 +94,15 @@ export function LeagueDetailPage() {
   // 👑 Detectamos al campeón (El primero en la lista de posiciones)
   const champion = standings && standings.length > 0 ? standings[0] : null;
 
+  // 🔥 Evaluamos si la liga pertenece a Latin Allin Poker
+  const isLatinAllin = clubs.some(
+    (lc) => (lc.clubs as any)?.slug === "latin-allin-poker" || lc.clubs?.name.toLowerCase().includes("latin allin")
+  );
+
   const TABS: { key: Tab; label: string }[] = [
     { key: "standings", label: "Tabla de Posiciones" },
+    // Si es de Latin Allin, inyectamos la pestaña justo después de la tabla principal
+    ...(isLatinAllin ? [{ key: "ccp_standings" as Tab, label: "Ranking de Clubes CCP" }] : []), 
     { key: "calendar", label: "Calendario" },
     { key: "info", label: "Información" },
   ];
@@ -193,6 +222,14 @@ export function LeagueDetailPage() {
             <LeagueStandingsTable
               standings={standings ?? []}
               isLoading={standingsLoading}
+            />
+          )}
+
+          {/* 🔥 NUEVO: Renderizado del Ranking de Clubes CCP */}
+          {tab === "ccp_standings" && (
+            <ClubStandingsTable 
+              standings={ccpStandings} 
+              isLoading={ccpLoading} 
             />
           )}
 

@@ -12,6 +12,9 @@ export interface ParsedCSVRow {
   nickname: string;
   prize: number;
   points: number;
+  // 🔥 NUEVOS: Agregados formalmente a la interfaz
+  ccp_club: string | null;
+  buy_ins_count: number;
 }
 
 // ── Header mapping (case-insensitive) ──
@@ -30,6 +33,10 @@ const HEADER_ALIASES: Record<string, string> = {
 
   puntos: "points", points: "points", pts: "points",
   league_points: "points", puntaje: "points", score: "points",
+
+  // 🔥 NUEVOS: Alias para reconocer las nuevas columnas en el CSV
+  ccpclub: "ccp_club", "club_ccp": "ccp_club", club: "ccp_club", ccp: "ccp_club",
+  buyins: "buy_ins_count", entradas: "buy_ins_count", compras: "buy_ins_count",
 };
 
 function normalizeHeader(raw: string): string | null {
@@ -111,6 +118,8 @@ export function parseCSVSmart(text: string): { rows: ParsedCSVRow[]; errors: CSV
     const nickRaw   = getValue("nickname");
     const prizeRaw  = getValue("prize");
     const pointsRaw = getValue("points");
+    const ccpRaw    = getValue("ccp_club");
+    const buyinsRaw = getValue("buy_ins_count");
 
     let position: number | null = null;
     if (posRaw) {
@@ -122,12 +131,15 @@ export function parseCSVSmart(text: string): { rows: ParsedCSVRow[]; errors: CSV
     const nickname = nickRaw.trim();
     const prize    = parseInternationalNumber(prizeRaw);
     const points   = parseInternationalNumber(pointsRaw);
+    const ccp_club = ccpRaw ? ccpRaw.trim() : null;
+    const buy_ins_count = buyinsRaw && !isNaN(Number(buyinsRaw)) ? Math.max(1, Number(buyinsRaw)) : 1; // Mínimo 1
 
     if (!nickname) {
       errors.push({ row: rowNum, field: "nickname", message: `Fila ${rowNum}: falta el "nickname" (obligatorio)` });
     }
 
-    rows.push({ position, nickname, prize, points });
+    // 🔥 Empujamos la fila con TODOS los datos limpios
+    rows.push({ position, nickname, prize, points, ccp_club, buy_ins_count });
   }
 
   if (!("position" in headerMap)) {
