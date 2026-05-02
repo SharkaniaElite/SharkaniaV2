@@ -47,7 +47,7 @@ export function ClubStandingsTable({ standings, isLoading }: ClubStandingsTableP
             <th className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-purple py-3 px-4 border-b border-sk-border-2 text-right">
               <div className="flex items-center justify-end gap-1.5">
                 Puntos de Club
-                <span title="Suma de los 3 mejores puntajes del club en cada fecha." className="cursor-help flex items-center">
+                <span title="Suma del mejor puntaje del club por cada fecha jugada." className="cursor-help flex items-center">
                   <Info size={12} className="text-sk-purple/60 hover:text-sk-purple transition-colors" />
                 </span>
               </div>

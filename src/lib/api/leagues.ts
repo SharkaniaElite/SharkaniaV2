@@ -272,16 +272,16 @@ export async function getLeagueCCPStandings(leagueId: string): Promise<CCPClubRa
       // Ordenar de mayor a menor puntaje
       pointsArray.sort((a, b) => b - a);
       
-      // Tomar los 3 mejores y sumarlos
-      const top3Sum = pointsArray.slice(0, 3).reduce((sum, p) => sum + p, 0);
+      // 🔥 NUEVO: Tomar SOLO el mejor puntaje (TypeScript blindado al 100%)
+      const bestScore = pointsArray[0] ?? 0;
       
       // TS blindado: Obtenemos el total actual o 0 si es la primera vez
       const currentTotal = clubTotals[club] ?? 0;
-      clubTotals[club] = currentTotal + top3Sum;
+      clubTotals[club] = currentTotal + bestScore;
       
       // TS blindado: Obtenemos el Set actual o creamos uno nuevo
       const datesSet = clubDatesScored[club] ?? (clubDatesScored[club] = new Set());
-      if (top3Sum > 0) {
+      if (bestScore > 0) {
         datesSet.add(tId);
       }
     }
