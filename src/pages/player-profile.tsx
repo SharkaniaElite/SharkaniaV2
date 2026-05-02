@@ -80,19 +80,32 @@ export function PlayerProfilePage() {
     ? unifiedResultsLoading
     : individualResultsLoading;
 
+  // 🔥 CÁLCULO DE GASTO REAL (ROI & PROFIT FIX)
+  // Recorremos el historial y multiplicamos el costo del torneo por las reentradas
+  const calculatedBuyInsSpent = tournamentResults.reduce((sum, r: any) => {
+    const cost = Number(r.tournaments?.buy_in || 0);
+    const count = Number(r.buy_ins_count || 1); // Si no hay dato en torneos antiguos, asume 1 entrada
+    return sum + (cost * count);
+  }, 0);
+
+  // Si por alguna razón el historial no trae datos (ej: freerolls), hacemos un fallback al dato de la DB
+  const dbBuyInsSpent = hasAliases && unifiedStats ? unifiedStats.total_buy_ins_spent : player?.total_buy_ins_spent ?? 0;
+  const finalBuyInsSpent = calculatedBuyInsSpent > 0 ? calculatedBuyInsSpent : dbBuyInsSpent;
+
   // Stats del player: unificadas o individuales
-  const displayStats = hasAliases && player
+  const displayStats = player
     ? {
         ...player,
-        elo_rating:
-          eloHistory.length > 0
-            ? eloHistory[eloHistory.length - 1]!.elo_after
-            : player.elo_rating,
-        total_tournaments: unifiedStats.total_tournaments,
-        total_cashes: unifiedStats.total_cashes,
-        total_wins: unifiedStats.total_wins,
-        total_prize_won: unifiedStats.total_prize_won,
-        total_buy_ins_spent: unifiedStats.total_buy_ins_spent,
+        ...(hasAliases && unifiedStats ? {
+          total_tournaments: unifiedStats.total_tournaments,
+          total_cashes: unifiedStats.total_cashes,
+          total_wins: unifiedStats.total_wins,
+          total_prize_won: unifiedStats.total_prize_won,
+        } : {}),
+        elo_rating: hasAliases && eloHistory.length > 0
+          ? eloHistory[eloHistory.length - 1]!.elo_after
+          : player.elo_rating,
+        total_buy_ins_spent: finalBuyInsSpent, // 🔥 Inyectamos el gasto financiero real
       }
     : player;
 

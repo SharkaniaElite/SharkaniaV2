@@ -138,6 +138,37 @@ export async function forceRecalculateStandings(leagueId: string): Promise<boole
     throw error;
   }
   
+  // 🔥 PARCHE: El RPC borra el ccp_club y buyins al recrear la tabla.
+  // Vamos a restaurarlos leyendo directamente desde los torneos de esta liga.
+  const { data: tourneys } = await supabase.from("tournaments").select("id").eq("league_id", leagueId);
+  if (tourneys && tourneys.length > 0) {
+    const tIds = tourneys.map(t => t.id);
+    const { data: results } = await supabase
+      .from("tournament_results")
+      .select("player_id, ccp_club, buy_ins_count")
+      .in("tournament_id", tIds)
+      .not("ccp_club", "is", null);
+
+    if (results && results.length > 0) {
+      const playerMap = new Map();
+      for (const r of results) {
+        const ex = playerMap.get(r.player_id) || { ccp: null, buyins: 0 };
+        if (r.ccp_club) ex.ccp = r.ccp_club; // Mantiene el último club registrado
+        ex.buyins += (Number(r.buy_ins_count) || 1);
+        playerMap.set(r.player_id, ex);
+      }
+
+      // Guardamos los datos de vuelta en la tabla de posiciones
+      for (const [pid, data] of playerMap.entries()) {
+        await supabase
+          .from("league_standings")
+          .update({ ccp_club: data.ccp, total_buy_ins_spent: data.buyins })
+          .eq("league_id", leagueId)
+          .eq("player_id", pid);
+      }
+    }
+  }
+  
   return true;
 }
 

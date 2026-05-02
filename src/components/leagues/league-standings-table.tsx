@@ -90,7 +90,7 @@ export function LeagueStandingsTable({ standings, isLoading }: LeagueStandingsTa
                 </span>
               </td>
               <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono font-bold text-sk-gold">
-                {formatNumber(s.total_points)}
+                {formatNumber(Math.round(s.total_points))}
               </td>
               <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono text-sk-text-1">
                 {s.tournaments_played}
