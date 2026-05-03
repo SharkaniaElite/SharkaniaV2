@@ -9,6 +9,7 @@ interface TournamentHistoryEntry {
   position: number;
   prize_won: number;
   elo_change: number | null;
+  ccp_club?: string | null; // 🔥 NUEVO: Recibimos el club del jugador en esta fecha
   tournaments: {
     id: string;
     name: string;
@@ -94,8 +95,22 @@ export function TournamentHistoryTable({
                     </Link>
                   </td>
                   <td className="py-3 px-4 border-b border-sk-border-2">
-                    {/* 👇 Verificamos si existe el club antes de intentar armar el Link */}
-                    {r.tournaments.clubs ? (
+                    {/* 🔥 NUEVO: Lógica de Prioridad CCP con Enlace Estratégico */}
+                    {r.ccp_club ? (
+                      <div className="flex flex-col">
+                        <span className="font-mono text-sk-text-1 font-bold text-[12px] tracking-wide">
+                          {r.ccp_club}
+                        </span>
+                        {r.tournaments.clubs && (
+                          <Link
+                            to="/como-jugar-en-clubgg"
+                            className="text-[10px] text-sk-accent hover:text-sk-text-1 hover:underline transition-all mt-0.5 font-medium"
+                          >
+                            Vía ClubGG (Unión CCP - {r.tournaments.clubs.name})
+                          </Link>
+                        )}
+                      </div>
+                    ) : r.tournaments.clubs ? (
                       <Link
                         to={`/clubs/${r.tournaments.clubs.slug ?? r.tournaments.clubs.id}`}
                         className="text-sk-accent text-sk-xs hover:opacity-80 transition-opacity"

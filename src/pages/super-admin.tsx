@@ -1,5 +1,5 @@
 // src/pages/super-admin.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { StatCard } from "../components/ui/stat-card";
@@ -16,7 +16,7 @@ import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
   Image, Save, Eye, RefreshCw, Power, MessageCircle,
-  Zap, Star
+  Zap, Star, Tv
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -290,6 +290,26 @@ export function SuperAdminPage() {
 
   const [isSyncingElo, setIsSyncingElo] = useState(false);
   
+  // 🚀 Estados para Stream Dinámico
+  const [streamUrl, setStreamUrl] = useState("");
+  const [loadingStream, setLoadingStream] = useState(false);
+
+  useEffect(() => {
+    if (tab === "shark_tv") {
+      supabase.from("site_configs").select("value").eq("key", "live_stream_url").single()
+        .then(({ data }) => { if (data) setStreamUrl(data.value); });
+    }
+  }, [tab]);
+
+  const handleSaveStreamUrl = async () => {
+    setLoadingStream(true);
+    try {
+      const { error } = await supabase.from("site_configs").upsert({ key: "live_stream_url", value: streamUrl.trim() });
+      if (error) throw error;
+      alert("✅ Link del stream actualizado.");
+    } catch (e: any) { alert("❌ Error: " + e.message); } finally { setLoadingStream(false); }
+  };
+
   // Estados para Shark TV
   const [sharkTvJson, setSharkTvJson] = useState("");
   const [savingSharkTv, setSavingSharkTv] = useState(false);
@@ -1205,6 +1225,26 @@ export function SuperAdminPage() {
           {/* ══ SHARK TV ══ */}
           {tab === "shark_tv" && (
             <div className="space-y-6">
+              {/* 📺 CONTROL DE STREAM */}
+              <div className="bg-sk-bg-2 border border-sk-accent/30 rounded-xl p-6 shadow-sk-lg">
+                <h3 className="text-sk-sm font-bold text-sk-accent flex items-center gap-2 mb-4">
+                  <Tv size={16} /> Configuración de Transmisión (Rumble)
+                </h3>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="https://rumble.com/embed/..." 
+                    className="flex-1 bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 font-mono focus:border-sk-accent focus:outline-none"
+                    value={streamUrl}
+                    onChange={(e) => setStreamUrl(e.target.value)}
+                  />
+                  <Button variant="accent" onClick={handleSaveStreamUrl} isLoading={loadingStream}>
+                    <Save size={14} className="mr-2" /> Guardar Link
+                  </Button>
+                </div>
+                <p className="text-[10px] text-sk-text-4 mt-2 italic">* Pega el link que dice "Incrustar URL IFRAME" en Rumble.</p>
+              </div>
+
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h2 className="text-sk-md font-bold text-sk-text-1">Gestión de SharkTV</h2>

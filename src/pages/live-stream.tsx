@@ -123,6 +123,23 @@ function LivePollPanel() {
 }
 
 export function LiveStreamPage() {
+  const [videoUrl, setVideoUrl] = useState("https://rumble.com/embed/v76yzcg/?pub=4par2u");
+
+  useEffect(() => {
+    const fetchUrl = async () => {
+      const { data } = await supabase.from("site_configs").select("value").eq("key", "live_stream_url").single();
+      if (data?.value) setVideoUrl(data.value);
+    };
+    fetchUrl();
+
+    const channel = supabase.channel('stream_live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_configs', filter: 'key=eq.live_stream_url' }, 
+      (payload: any) => { setVideoUrl(payload.new.value); })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   return (
     <PageShell>
       <SEOHead 
@@ -137,7 +154,7 @@ export function LiveStreamPage() {
         <div className="flex-1 flex flex-col overflow-y-auto scrollbar-thin">
           <div className="w-full bg-black relative aspect-video border-b border-sk-border-2 shadow-2xl">
             <iframe
-              src="https://rumble.com/embed/v76yzcg/?pub=4par2u"
+              src={videoUrl}
               className="absolute inset-0 w-full h-full"
               frameBorder="0"
               allowFullScreen
