@@ -10,7 +10,41 @@ import { LiveChat } from "../components/live/live-chat";
 import { Badge } from "../components/ui/badge";
 import { Trophy, Star, Crown, Tv, MessageCircle, FileText } from "lucide-react";
 
-// Componente inyectado para las encuestas en vivo
+// ── FUNCIÓN DE AYUDA PARA TWITCH ──────────────────────────────────────────
+// Esta función asegura que si el link es de Twitch, se agreguen los parámetros 
+// 'parent' obligatorios para evitar el bloqueo de seguridad, respetando TypeScript.
+const formatStreamUrl = (url: string): string => {
+  if (!url) return "";
+  
+  if (url.includes("twitch.tv")) {
+    let channel = "";
+    
+    // Extraer nombre del canal si es un link directo
+    if (url.includes("channel=")) {
+      const match = url.match(/channel=([^&]+)/);
+      if (match && match[1]) {
+        channel = match[1];
+      }
+    } else {
+      const segments = url.split("/");
+      const lastSegment = segments.pop(); // Extraemos el último fragmento de forma segura
+      
+      if (lastSegment) {
+        // Al acceder al índice [0], le decimos a TS que si es undefined devuelva ""
+        channel = lastSegment.split("?")[0] || ""; 
+      }
+    }
+    
+    if (channel) {
+      // Agregamos localhost para tus pruebas y sharkania.com para producción
+      return `https://player.twitch.tv/?channel=${channel}&parent=localhost&parent=sharkania.com&autoplay=true`;
+    }
+  }
+  
+  return url;
+};
+
+// ── COMPONENTE DE ENCUESTAS (MANTENIDO SIN CAMBIOS) ───────────────────────
 function LivePollPanel() {
   const { user } = useAuthStore();
   const [poll, setPoll] = useState<any>(null);
@@ -122,7 +156,9 @@ function LivePollPanel() {
   );
 }
 
+// ── PÁGINA PRINCIPAL ──────────────────────────────────────────────────────
 export function LiveStreamPage() {
+  // Estado inicial con Rumble por defecto
   const [videoUrl, setVideoUrl] = useState("https://rumble.com/embed/v76yzcg/?pub=4par2u");
 
   useEffect(() => {
@@ -143,7 +179,7 @@ export function LiveStreamPage() {
   return (
     <PageShell>
       <SEOHead 
-        title="🔴 EN VIVO: Liga Poker Austral 14° Edición | Fecha 1" 
+        title="🔴 EN VIVO: Liga Poker Austral 14° Edición | Fecha 2" 
         description="Cobertura oficial de la Liga Poker Austral 2026. Análisis en vivo por Osvaldo Colombo y Andrés Duhau. Participa en nuestra encuesta en vivo."
         path="/live"
       />
@@ -154,7 +190,7 @@ export function LiveStreamPage() {
         <div className="flex-1 flex flex-col overflow-y-auto scrollbar-thin">
           <div className="w-full bg-black relative aspect-video border-b border-sk-border-2 shadow-2xl">
             <iframe
-              src={videoUrl}
+              src={formatStreamUrl(videoUrl)}
               className="absolute inset-0 w-full h-full"
               frameBorder="0"
               allowFullScreen
@@ -173,7 +209,7 @@ export function LiveStreamPage() {
                   </span>
                 </div>
                 <h1 className="text-2xl md:text-[1.7rem] font-black text-sk-text-1 tracking-tight leading-tight mb-3 flex items-center gap-2.5">
-                  Liga Poker Austral 14° Edición | Fecha 1 <Crown size={24} className="text-sk-gold shrink-0" />
+                  Liga Poker Austral 14° Edición | Fecha 2 <Crown size={24} className="text-sk-gold shrink-0" />
                 </h1>
                 <p className="text-sk-sm text-sk-text-3">
                   Cobertura y análisis táctico por <strong className="text-sk-accent">Osvaldo Colombo (Kolonvo)</strong> y <strong className="text-sk-accent">Andrés Duhau (Clerigo)</strong>.
@@ -195,7 +231,6 @@ export function LiveStreamPage() {
                    </div>
                  </div>
 
-                 {/* Contenedor de Botones (WhatsApp + Bases) */}
                  <div className="flex flex-col gap-2">
                    <div className="bg-sk-accent/10 border border-sk-accent/30 rounded-lg p-2.5 hover:bg-sk-accent/15 transition-colors">
                      <a href="https://wa.me/56963333871?text=Hola%20Roberto,%20quiero%20inscribirme%20en%20la%20Liga%20Poker%20Austral." target="_blank" rel="noreferrer" className="flex items-center gap-3 group">
@@ -209,7 +244,6 @@ export function LiveStreamPage() {
                      </a>
                    </div>
                    
-                   {/* NUEVO: Botón sutil hacia las bases */}
                    <Link to="/liga-austral-bases" className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg border border-sk-border-2 bg-sk-bg-0 hover:bg-sk-bg-2 hover:border-sk-text-4 transition-all text-sk-xs text-sk-text-3 hover:text-sk-text-1 group">
                      <FileText size={14} className="group-hover:text-sk-accent transition-colors" />
                      <span className="font-semibold uppercase tracking-wide">Leer Bases Oficiales</span>
@@ -219,7 +253,6 @@ export function LiveStreamPage() {
 
             </div>
 
-            {/* 🔥 Panel de Encuestas en Vivo Dinámico */}
             <LivePollPanel />
             
           </div>
