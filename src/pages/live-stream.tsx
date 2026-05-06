@@ -10,38 +10,29 @@ import { LiveChat } from "../components/live/live-chat";
 import { Badge } from "../components/ui/badge";
 import { Trophy, Star, Crown, Tv, MessageCircle, FileText } from "lucide-react";
 
-// ── FUNCIÓN DE AYUDA PARA TWITCH ──────────────────────────────────────────
-// Esta función asegura que si el link es de Twitch, se agreguen los parámetros 
-// 'parent' obligatorios para evitar el bloqueo de seguridad, respetando TypeScript.
-const formatStreamUrl = (url: string): string => {
-  if (!url) return "";
+// ── FUNCIONES DE AYUDA PARA TWITCH ────────────────────────────────────────
+// Extrae el nombre del canal de Twitch de la URL
+const getTwitchChannel = (url: string): string | null => {
+  if (!url || !url.includes("twitch.tv")) return null;
   
-  if (url.includes("twitch.tv")) {
-    let channel = "";
-    
-    // Extraer nombre del canal si es un link directo
-    if (url.includes("channel=")) {
-      const match = url.match(/channel=([^&]+)/);
-      if (match && match[1]) {
-        channel = match[1];
-      }
-    } else {
-      const segments = url.split("/");
-      const lastSegment = segments.pop(); // Extraemos el último fragmento de forma segura
-      
-      if (lastSegment) {
-        // Al acceder al índice [0], le decimos a TS que si es undefined devuelva ""
-        channel = lastSegment.split("?")[0] || ""; 
-      }
-    }
-    
-    if (channel) {
-      // Agregamos localhost para tus pruebas y sharkania.com para producción
-      return `https://player.twitch.tv/?channel=${channel}&parent=localhost&parent=sharkania.com&autoplay=true`;
-    }
+  if (url.includes("channel=")) {
+    const match = url.match(/channel=([^&]+)/);
+    return match && match[1] ? match[1] : null;
   }
   
-  return url;
+  const segments = url.split("/");
+  const lastSegment = segments.pop();
+  // Agregamos "|| null" para que TypeScript esté 100% seguro de que no devolverá undefined
+  return lastSegment ? (lastSegment.split("?")[0] || null) : null;
+};
+
+// Formatea el reproductor de video de Twitch con los parámetros de seguridad
+const formatStreamUrl = (url: string): string => {
+  const channel = getTwitchChannel(url);
+  if (channel) {
+    return `https://player.twitch.tv/?channel=${channel}&parent=localhost&parent=sharkania.com&autoplay=true`;
+  }
+  return url || "";
 };
 
 // ── COMPONENTE DE ENCUESTAS (MANTENIDO SIN CAMBIOS) ───────────────────────
@@ -259,8 +250,17 @@ export function LiveStreamPage() {
         </div>
 
         {/* 💬 AREA DEL CHAT (Derecha) */}
-        <aside className="w-full lg:w-[350px] xl:w-[400px] h-[500px] lg:h-auto shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-10">
-          <LiveChat />
+        <aside className="relative w-full lg:w-[350px] xl:w-[400px] h-[500px] lg:h-auto shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-10 bg-sk-bg-1 border-l border-sk-border-2">
+          {getTwitchChannel(videoUrl) ? (
+            <iframe
+              src={`https://www.twitch.tv/embed/${getTwitchChannel(videoUrl)}/chat?parent=localhost&parent=sharkania.com&darkpopout`}
+              className="block w-full h-full m-0 p-0 border-none"
+              frameBorder="0"
+              scrolling="no"
+            />
+          ) : (
+            <LiveChat />
+          )}
         </aside>
         
       </div>
