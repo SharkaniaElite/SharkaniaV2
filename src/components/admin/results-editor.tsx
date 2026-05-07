@@ -48,6 +48,7 @@ async function resolvePlayer(
     .from("players")
     .select("id")
     .ilike("nickname", nickname.trim())
+    .eq("room_id", roomId) // 🔥 LA REGLA DE SALA RESTAURADA
     .limit(1);
 
   if (existing && existing.length > 0 && existing[0]) {
