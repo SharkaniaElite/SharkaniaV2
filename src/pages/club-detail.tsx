@@ -1,7 +1,8 @@
 // src/pages/club-detail.tsx
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useState } from "react";
 import { PageShell } from "../components/layout/page-shell";
+import { cn } from "../lib/cn";
 import { ClubHeader } from "../components/clubs/club-header";
 import { TournamentCard } from "../components/calendar/tournament-card";
 import { TournamentDetailModal } from "../components/calendar/tournament-detail-modal";
@@ -19,10 +20,10 @@ import { supabase } from "../lib/supabase";
 
 export function ClubDetailPage() {
   const { clubSlug } = useParams<{ clubSlug: string }>();
-  const navigate = useNavigate();
   const { data: club, isLoading } = useClubBySlug(clubSlug);
   const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByClub(club?.id ?? '');
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
+  const [tournamentTab, setTournamentTab] = useState<"upcoming" | "history">("upcoming"); // 👈 HOOK MOVIDO HACIA ARRIBA
 
   // FETCH DE LIGAS DEL CLUB CON ESTADO DINÁMICO
   const { data: leagues, isLoading: leaguesLoading } = useQuery({
@@ -87,22 +88,15 @@ export function ClubDetailPage() {
   const hasSocials = clubData.website_url || clubData.discord_url || clubData.telegram_url || clubData.instagram_url;
   const hasAnyContact = hasContact || hasSocials;
 
-  const now = new Date();
-
+  // 🕒 Torneos Activos (Orden ASCENDENTE)
   const upcoming = (tournaments ?? [])
-    .filter((t) => {
-      if (["completed", "cancelled"].includes(t.status)) return false;
-      if (t.status === "late_registration" && t.late_reg_end && new Date(t.late_reg_end) <= now) return false;
-      return true;
-    })
-    // 👇 Agregamos el método .sort() para ordenar por fecha de inicio (ascendente)
+    .filter(t => ["scheduled", "live", "late_registration"].includes(t.status))
     .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
 
-  const completed = (tournaments ?? []).filter((t) => {
-    if (t.status === "completed") return true;
-    if (t.status === "late_registration" && t.late_reg_end && new Date(t.late_reg_end) <= now) return true;
-    return false;
-  });
+  // ✅ Torneos Finalizados (Orden DESCENDENTE)
+  const completed = (tournaments ?? [])
+    .filter(t => ["completed", "cancelled"].includes(t.status))
+    .sort((a, b) => new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime());
 
   const activeLeagues = leagues?.filter(l => l.status !== "finished") || [];
   const pastLeagues = leagues?.filter(l => l.status === "finished") || [];
@@ -237,51 +231,51 @@ export function ClubDetailPage() {
             </div>
           )}
 
-          {/* ══ UPCOMING TOURNAMENTS ══ */}
+          {/* ══ TABS DE TORNEOS ══ */}
           <div className="mb-8">
-            <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">
-              📅 Torneos Próximos ({upcoming.length})
-            </h2>
-            {tournamentsLoading ? (
-              <Spinner size="md" />
-            ) : upcoming.length === 0 ? (
-              <EmptyState icon="📅" title="Sin torneos próximos" />
-            ) : (
+            <div className="flex gap-px bg-sk-bg-0 rounded-md p-0.5 border border-sk-border-2 mb-6 w-fit">
+              <button
+                onClick={() => setTournamentTab("upcoming")}
+                className={cn(
+                  "text-sk-sm font-medium px-5 py-2 rounded-sm transition-all duration-100",
+                  tournamentTab === "upcoming" ? "bg-sk-bg-3 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3 hover:text-sk-text-1"
+                )}
+              >
+                Próximos ({upcoming.length})
+              </button>
+              <button
+                onClick={() => setTournamentTab("history")}
+                className={cn(
+                  "text-sk-sm font-medium px-5 py-2 rounded-sm transition-all duration-100",
+                  tournamentTab === "history" ? "bg-sk-bg-3 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3 hover:text-sk-text-1"
+                )}
+              >
+                Historial ({completed.length})
+              </button>
+            </div>
+
+            {/* CONTENIDO DE TABS */}
+            {tournamentTab === "upcoming" && (
+              tournamentsLoading ? <Spinner size="md" /> :
+              upcoming.length === 0 ? <EmptyState icon="📅" title="Sin torneos próximos" /> :
               <div className="flex flex-col gap-2">
-                {upcoming.map((t) => (
-                  <TournamentCard
-                    key={t.id}
-                    tournament={t}
-                    onInfoClick={() => setSelectedTournament(t)}
-                  />
+                {upcoming.map((t) => <TournamentCard key={t.id} tournament={t} onInfoClick={() => setSelectedTournament(t)} />)}
+              </div>
+            )}
+
+            {tournamentTab === "history" && (
+              tournamentsLoading ? <Spinner size="md" /> :
+              completed.length === 0 ? <EmptyState icon="⏱️" title="Sin historial" /> :
+              <div className="flex flex-col gap-2">
+                {completed.map((t) => (
+                  <div key={t.id} className="opacity-80 hover:opacity-100 transition-opacity cursor-pointer">
+                    <TournamentCard tournament={t} onInfoClick={() => setSelectedTournament(t)} />
+                  </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* ══ COMPLETED TOURNAMENTS ══ */}
-          {completed.length > 0 && (
-            <div>
-              <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">
-                ✅ Torneos Completados ({completed.length})
-              </h2>
-              <div className="flex flex-col gap-2">
-                {completed.map((t) => (
-                  <div
-                    key={t.id}
-                    onClick={() => navigate(`/tournament/${t.slug}`)}
-                    className="cursor-pointer"
-                  >
-                    {/* 🔥 Corrección 2: Eliminamos e.stopPropagation() para respetar la interfaz de TournamentCard */}
-                    <TournamentCard
-                      tournament={t}
-                      onInfoClick={() => setSelectedTournament(t)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

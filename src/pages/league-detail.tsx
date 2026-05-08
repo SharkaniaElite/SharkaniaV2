@@ -21,7 +21,8 @@ import { cn } from "../lib/cn";
 import { SEOHead } from "../components/seo/seo-head";
 import { formatNumber } from "../lib/format"; // 👈 Importamos formateador de números
 
-type Tab = "standings" | "ccp_standings" | "calendar" | "info";
+// 🔥 Actualizado con las nuevas pestañas (eliminamos "calendar")
+type Tab = "standings" | "ccp_standings" | "upcoming" | "history" | "info";
 
 const statusBadge = {
   upcoming: { label: "Próxima", variant: "accent" as const },
@@ -101,11 +102,21 @@ export function LeagueDetailPage() {
 
   const TABS: { key: Tab; label: string }[] = [
     { key: "standings", label: "Tabla de Posiciones" },
-    // Si es de Latin Allin, inyectamos la pestaña justo después de la tabla principal
     ...(isLatinAllin ? [{ key: "ccp_standings" as Tab, label: "Ranking de Clubes CCP" }] : []), 
-    { key: "calendar", label: "Calendario" },
+    { key: "upcoming", label: "Próximos" },
+    { key: "history", label: "Historial" },
     { key: "info", label: "Información" },
   ];
+
+  // 🕒 Torneos Activos (Orden ASCENDENTE)
+  const upcoming = (tournaments ?? [])
+    .filter(t => ["scheduled", "live", "late_registration"].includes(t.status))
+    .sort((a, b) => new Date(a.start_datetime || 0).getTime() - new Date(b.start_datetime || 0).getTime());
+
+  // ✅ Torneos Finalizados (Orden DESCENDENTE)
+  const completed = (tournaments ?? [])
+    .filter(t => ["completed", "cancelled"].includes(t.status))
+    .sort((a, b) => new Date(b.start_datetime || 0).getTime() - new Date(a.start_datetime || 0).getTime());
 
   return (
     <PageShell>
@@ -233,38 +244,28 @@ export function LeagueDetailPage() {
             />
           )}
 
-          {tab === "calendar" && (
-            tournamentsLoading ? (
-              <Spinner size="md" />
-            ) : (tournaments ?? []).length === 0 ? (
-              <EmptyState icon="📅" title="Sin torneos en esta liga" />
-            ) : (
-              <div className="flex flex-col gap-2">
-                {/* 🕒 Torneos Activos (Orden ASCENDENTE: Más próximo arriba) */}
-                {(tournaments ?? [])
-                  .filter(t => 
-                    !["completed", "cancelled"].includes(t.status) && 
-                    !(t.status === "late_registration" && t.late_reg_end && new Date(t.late_reg_end) <= new Date())
-                  )
-                  .sort((a, b) => new Date(a.start_datetime || 0).getTime() - new Date(b.start_datetime || 0).getTime())
-                  .map((t) => (
-                    <TournamentCard key={t.id} tournament={t} onInfoClick={() => setSelectedTournament(t)} />
-                  ))}
-                
-                {/* ✅ Torneos Finalizados (Orden DESCENDENTE: Más reciente terminado arriba) */}
-                {(tournaments ?? [])
-                  .filter(t => 
-                    t.status === "completed" || 
-                    (t.status === "late_registration" && t.late_reg_end && new Date(t.late_reg_end) <= new Date())
-                  )
-                  .sort((a, b) => new Date(b.start_datetime || 0).getTime() - new Date(a.start_datetime || 0).getTime())
-                  .map((t) => (
-                    <div key={t.id} className="opacity-60">
-                      <TournamentCard tournament={t} onInfoClick={() => setSelectedTournament(t)} />
-                    </div>
-                  ))}
-              </div>
-            )
+          {/* TAB: PRÓXIMOS */}
+          {tab === "upcoming" && (
+            tournamentsLoading ? <Spinner size="md" /> :
+            upcoming.length === 0 ? <EmptyState icon="📅" title="Sin torneos próximos" /> :
+            <div className="flex flex-col gap-2">
+              {upcoming.map((t) => (
+                <TournamentCard key={t.id} tournament={t} onInfoClick={() => setSelectedTournament(t)} />
+              ))}
+            </div>
+          )}
+
+          {/* TAB: HISTORIAL */}
+          {tab === "history" && (
+            tournamentsLoading ? <Spinner size="md" /> :
+            completed.length === 0 ? <EmptyState icon="⏱️" title="Sin historial de torneos" /> :
+            <div className="flex flex-col gap-2">
+              {completed.map((t) => (
+                <div key={t.id} className="opacity-80 hover:opacity-100 transition-opacity">
+                  <TournamentCard tournament={t} onInfoClick={() => setSelectedTournament(t)} />
+                </div>
+              ))}
+            </div>
           )}
 
           {tab === "info" && (

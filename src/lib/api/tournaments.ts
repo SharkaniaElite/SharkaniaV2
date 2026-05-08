@@ -5,36 +5,51 @@ import type {
   TournamentResultWithPlayer,
 } from "../../types";
 
-const mapTournamentWithLateReg = (t: any): TournamentWithDetails => ({
-  ...t,
-  late_reg_end: t.late_registration_minutes 
-    ? new Date(new Date(t.start_datetime).getTime() + t.late_registration_minutes * 60000).toISOString()
-    : null
-});
+// 🔥 NUEVO: Motor de cálculo de estado en tiempo real
+export function deriveTournamentStatus(t: any): "scheduled" | "live" | "late_registration" | "completed" | "cancelled" {
+  if (t.status === "cancelled") return "cancelled";
+  if (t.status === "completed" || t.results_uploaded) return "completed";
+
+  const now = new Date().getTime();
+  const start = new Date(t.start_datetime).getTime();
+  const lateRegMs = (t.late_registration_minutes || 0) * 60000;
+  const endLateReg = start + lateRegMs;
+
+  if (now < start) return "scheduled";
+  if (now >= start && now <= endLateReg) return "late_registration";
+  if (now > endLateReg) return "completed"; // Si ya pasó su registro tardío, es historial
+
+  return t.status;
+}
+
+const mapTournamentWithLateReg = (t: any): TournamentWithDetails => {
+  const mapped = {
+    ...t,
+    late_reg_end: t.late_registration_minutes 
+      ? new Date(new Date(t.start_datetime).getTime() + t.late_registration_minutes * 60000).toISOString()
+      : null
+  };
+  mapped.status = deriveTournamentStatus(mapped);
+  return mapped;
+};
 
 // ── 1. GETTERS ──
 
 export async function getUpcomingTournaments(): Promise<TournamentWithDetails[]> {
-  const now = new Date();
-  const nowISO = now.toISOString();
   const { data, error } = await supabase
     .from("tournaments")
-    // 🔥 SOLUCIÓN: Agregamos !club_id para resolver la ambigüedad
     .select("*, clubs!club_id(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)")
-    .or(`and(status.eq.scheduled,start_datetime.gte.${nowISO}),status.eq.live,status.eq.late_registration`)
-    .order("start_datetime", { ascending: true });
+    .in("status", ["scheduled", "live", "late_registration"]); // Trae los abiertos en DB
 
   if (error) throw error;
-  if (!data) return [];
   
-  const MARGIN_MS = 12 * 60 * 60 * 1000;
-  return (data as any[])
+  // 1. Mapea y calcula el estado real
+  // 2. Filtra solo los que sigan activos
+  // 3. Ordena ASCENDENTE (el más próximo primero)
+  return (data || [])
     .map(mapTournamentWithLateReg)
-    .filter((t) => {
-      const start = new Date(t.start_datetime).getTime();
-      const windowEnd = start + (t.late_registration_minutes ?? 0) * 60 * 1000 + MARGIN_MS;
-      return t.status === "scheduled" || now.getTime() < windowEnd;
-    });
+    .filter((t) => ["scheduled", "live", "late_registration"].includes(t.status))
+    .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
 }
 
 export async function getCompletedTournaments(options?: {
@@ -52,8 +67,9 @@ export async function getCompletedTournaments(options?: {
     selectStr += ", tournament_clubs!inner(club_id)";
   }
 
+  // 🔥 ESTRATEGIA ANTIBALAS: Trae completados, cancelados, y aquellos cuya fecha ya pasó
   let query = supabase.from("tournaments").select(selectStr, { count: "exact" })
-    .eq("status", "completed");
+    .or(`status.in.(completed,cancelled),results_uploaded.eq.true,start_datetime.lt.${new Date().toISOString()}`);
 
   if (options?.clubId) query = query.eq("tournament_clubs.club_id", options.clubId);
   if (options?.leagueId) query = query.eq("league_id", options.leagueId);
