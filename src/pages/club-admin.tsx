@@ -16,7 +16,7 @@ import { BulkDeleteBar } from "../components/admin/bulk-delete-bar";
 import { useAuthStore } from "../stores/auth-store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
-import { deleteTournamentSafe } from "../lib/api/tournaments";
+import { deleteTournamentSafe, getTournamentsByClub } from "../lib/api/tournaments"; // 👈 Agregamos getTournamentsByClub
 import { duplicateLeague } from "../lib/api/leagues";
 import { formatCurrency } from "../lib/format";
 import { cn } from "../lib/cn";
@@ -113,15 +113,7 @@ export function ClubAdminPage() {
 
   const { data: tournaments } = useQuery({
     queryKey: ["club-tournaments", firstClubId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tournaments")
-        .select("*, poker_rooms(name), clubs(id, name, country_code), leagues(id, name)")
-        .eq("club_id", firstClubId!)
-        .order("start_datetime", { ascending: false });
-      if (error) throw error;
-      return data as TournamentWithDetails[];
-    },
+    queryFn: () => getTournamentsByClub(firstClubId!), // 👈 Usamos la función de la API que ya está blindada
     enabled: !!firstClubId,
   });
 
