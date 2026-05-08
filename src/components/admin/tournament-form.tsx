@@ -1,3 +1,4 @@
+// src/components/admin/tournament-form.tsx
 import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Modal } from "../ui/modal";
@@ -13,7 +14,6 @@ function toLocalDatetimeInputValue(dateString: string) {
   return localDate.toISOString().slice(0, 16);
 }
 
-// 🛡️ Generador de slugs único (Añade DD-MM para evitar colisiones)
 function generateSlugWithDate(name: string, dateString: string) {
   const date = new Date(dateString);
   const day = String(date.getDate()).padStart(2, '0');
@@ -22,9 +22,9 @@ function generateSlugWithDate(name: string, dateString: string) {
   const baseSlug = name
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Quita tildes
-    .replace(/[^a-z0-9]+/g, "-")     // Reemplaza espacios/símbolos con guiones
-    .replace(/^-+|-+$/g, "");        // Limpia guiones en los extremos
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
     
   return `${baseSlug}-${day}-${month}`;
 }
@@ -69,25 +69,27 @@ export function TournamentForm({
   leagueOptions = [],
 }: TournamentFormProps) {
   const { data: rooms } = usePokerRooms();
-  const isEdit = !!tournament?.id; // Solo es edición si tiene ID real
+  const isEdit = !!tournament?.id;
 
   const [form, setForm] = useState({
-    name: "",
-    description: "",
-    room_id: "",
-    league_id: "",
-    buy_in: 0,
-    currency: "USD",
-    guaranteed_prize: 0,
-    start_datetime: "",
-    timezone: "America/Santiago",
-    late_registration_minutes: 30,
-    max_players: 0,
-    game_type: "NLH" as string,
-    tournament_type: "MTT" as string,
+    name: "", description: "", room_id: "", league_id: "",
+    buy_in: 0, currency: "USD", guaranteed_prize: 0, start_datetime: "",
+    timezone: "America/Santiago", late_registration_minutes: 30, max_players: 0,
+    game_type: "NLH" as string, tournament_type: "MTT" as string,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // 🔥 NUEVO: Estados para los co-organizadores
+  const [allClubs, setAllClubs] = useState<{id: string, name: string}[]>([]);
+  const [coHostIds, setCoHostIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      supabase.from("clubs").select("id, name").eq("is_approved", true).order("name")
+        .then(({data}) => { if (data) setAllClubs(data); });
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -107,6 +109,11 @@ export function TournamentForm({
           game_type: tournament.game_type || "NLH",
           tournament_type: tournament.tournament_type || "MTT",
         });
+
+        // Cargar los co-organizadores existentes
+        supabase.from("tournament_clubs").select("club_id").eq("tournament_id", tournament.id).eq("is_primary", false)
+          .then(({data}) => { if (data) setCoHostIds(data.map(d => d.club_id)); });
+
       } else {
         setForm({
           name: "", description: "", room_id: rooms?.[0]?.id ?? "", league_id: "",
@@ -114,6 +121,7 @@ export function TournamentForm({
           timezone: "America/Santiago", late_registration_minutes: 30, max_players: 0,
           game_type: "NLH", tournament_type: "MTT",
         });
+        setCoHostIds([]);
       }
       setError("");
     }
@@ -124,14 +132,8 @@ export function TournamentForm({
   };
 
   const handleSave = async () => {
-    // 🛡️ Validación estricta de IDs
     if (!form.name || !form.room_id || form.room_id === "" || !form.start_datetime) {
       setError("Nombre, sala y fecha son obligatorios");
-      return;
-    }
-
-    if (!clubId || clubId === "undefined") {
-      setError("Error interno: ID de Club no válido");
       return;
     }
 
@@ -139,9 +141,9 @@ export function TournamentForm({
     setError("");
 
     const payload: any = {
-      club_id: clubId,
+      club_id: clubId, // Se mantiene como principal por integridad heredada
       name: form.name,
-      slug: generateSlugWithDate(form.name, form.start_datetime), // 👈 ¡Inyección del slug único!
+      slug: generateSlugWithDate(form.name, form.start_datetime),
       description: form.description || null,
       room_id: form.room_id,
       league_id: form.league_id === "" ? null : form.league_id,
@@ -158,20 +160,34 @@ export function TournamentForm({
     };
 
     try {
-      let result;
+      let savedTournamentId;
+      
       if (isEdit && tournament?.id) {
-        result = await supabase.from("tournaments").update(payload).eq("id", tournament.id);
+        // 🔥 Solo extraemos el error y quitamos el .select() innecesario
+        const { error: updErr } = await supabase.from("tournaments").update(payload).eq("id", tournament.id);
+        if (updErr) throw updErr;
+        savedTournamentId = tournament.id;
       } else {
-        // Al crear, omitimos el ID para que Supabase genere uno nuevo
-        result = await supabase.from("tournaments").insert([payload]);
+        const { data, error: insErr } = await supabase.from("tournaments").insert([payload]).select("id").single();
+        if (insErr) throw insErr;
+        savedTournamentId = data.id;
       }
 
-      if (result.error) throw new Error(result.error.message);
+      // 🔥 Sincronización de tabla puente de clubes
+      if (savedTournamentId) {
+        await supabase.from("tournament_clubs").delete().eq("tournament_id", savedTournamentId);
+        
+        const tcPayload = [
+          { tournament_id: savedTournamentId, club_id: clubId, is_primary: true },
+          ...coHostIds.map(cid => ({ tournament_id: savedTournamentId, club_id: cid, is_primary: false }))
+        ];
+        
+        await supabase.from("tournament_clubs").insert(tcPayload);
+      }
 
       onSaved();
       onClose();
     } catch (err: any) {
-      console.error("Error al guardar:", err);
       setError(err.message || "Error al guardar el torneo");
     } finally {
       setSaving(false);
@@ -187,6 +203,27 @@ export function TournamentForm({
         <div>
           <label className={labelClass}>Nombre *</label>
           <input type="text" value={form.name} onChange={(e) => update("name", e.target.value)} className={inputClass} placeholder="Ej: Sunday Shark 🦈" />
+        </div>
+
+        {/* 🔥 NUEVO UI: Selector de Co-Organizadores */}
+        <div>
+          <label className={labelClass}>Clubes Co-Organizadores (Opcional)</label>
+          <div className="max-h-24 overflow-y-auto bg-sk-bg-0 border border-sk-border-2 rounded-md p-2 space-y-1.5">
+            {allClubs.filter(c => c.id !== clubId).map(c => (
+              <label key={c.id} className="flex items-center gap-2 text-sk-sm text-sk-text-2 cursor-pointer hover:text-sk-text-1">
+                <input 
+                  type="checkbox" 
+                  className="accent-sk-accent bg-sk-bg-3 border-sk-border-2 rounded-sm"
+                  checked={coHostIds.includes(c.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) setCoHostIds([...coHostIds, c.id]);
+                    else setCoHostIds(coHostIds.filter(id => id !== c.id));
+                  }}
+                />
+                {c.name}
+              </label>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">

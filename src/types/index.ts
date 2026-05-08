@@ -318,6 +318,11 @@ export interface TournamentWithDetails extends Tournament {
   clubs: Pick<Club, "id" | "name" | "country_code" | "slug">;
   leagues: Pick<League, "id" | "name" | "slug"> | null;
   poker_rooms: Pick<PokerRoom, "name">;
+  // 🔥 NUEVO: Relación de co-organizadores
+  tournament_clubs?: Array<{
+    is_primary: boolean;
+    clubs: Pick<Club, "id" | "name" | "slug" | "country_code">;
+  }>;
 }
 
 export interface ClubWithRooms extends Club {
