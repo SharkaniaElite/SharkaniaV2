@@ -158,7 +158,11 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
       {/* Row 3: Club + League */}
       <div className="mt-1 flex justify-between items-start">
         <Link
-          to={`/clubs/${t.clubs?.slug ?? t.club_id}`}
+          to={
+            ["ccp", "latin-allin-poker"].includes(t.clubs?.slug || "")
+              ? "/como-jugar-en-clubgg"
+              : `/clubs/${t.clubs?.slug ?? t.club_id}`
+          }
           className="group flex flex-col items-start gap-1"
         >
           <div className="text-[11px] text-sk-accent font-medium group-hover:text-sk-accent-hover transition-colors flex items-center gap-1">
