@@ -36,6 +36,10 @@ export function ClubStandingsTable({ standings, isLoading }: ClubStandingsTableP
             <th className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-left">
               Club CCP
             </th>
+            {/* 🔥 NUEVA COLUMNA CABECERA */}
+            <th className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-center">
+              Jugadores
+            </th>
             <th className="bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 text-right">
               <div className="flex items-center justify-end gap-1.5">
                 Fechas Puntuadas
@@ -63,6 +67,12 @@ export function ClubStandingsTable({ standings, isLoading }: ClubStandingsTableP
               <td className="py-3 px-4 border-b border-sk-border-2">
                 <span className="font-bold text-sk-text-1 tracking-wide">
                   {club.clubName}
+                </span>
+              </td>
+              {/* 🔥 NUEVA CELDA DE DATOS */}
+              <td className="py-3 px-4 border-b border-sk-border-2 text-center">
+                <span className="bg-sk-bg-4 border border-sk-border-2 px-2 py-0.5 rounded font-mono text-sk-xs text-sk-accent font-bold">
+                  {club.playerCount}
                 </span>
               </td>
               <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono text-sk-text-2">
