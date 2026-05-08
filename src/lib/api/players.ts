@@ -133,7 +133,7 @@ export async function getPlayerTournamentResults(
   const { data, error } = await supabase
     .from("tournament_results")
     .select(
-      "*, tournaments(id, name, slug, buy_in, start_datetime, clubs(id, name, slug))"
+      "*, tournaments(id, name, slug, buy_in, start_datetime, clubs!club_id(id, name, slug))"
     )
     .eq("player_id", playerId)
     .order("created_at", { ascending: false });
@@ -273,7 +273,7 @@ export async function getUnifiedTournamentResults(
   const { data, error } = await supabase
     .from("tournament_results")
     .select(
-      "*, tournaments(id, name, slug, buy_in, start_datetime, clubs(id, name, slug)), players(nickname)"
+      "*, tournaments(id, name, slug, buy_in, start_datetime, clubs!club_id(id, name, slug)), players(nickname)"
     )
     .in("player_id", ids)
     .order("created_at", { ascending: false });

@@ -5,7 +5,6 @@ import type {
   TournamentResultWithPlayer,
 } from "../../types";
 
-// 🛠️ Función auxiliar para inyectar el fin del registro tardío calculado
 const mapTournamentWithLateReg = (t: any): TournamentWithDetails => ({
   ...t,
   late_reg_end: t.late_registration_minutes 
@@ -13,14 +12,15 @@ const mapTournamentWithLateReg = (t: any): TournamentWithDetails => ({
     : null
 });
 
-// ── 1. GETTERS: Necesarios para el Calendario y Perfiles ──
+// ── 1. GETTERS ──
 
 export async function getUpcomingTournaments(): Promise<TournamentWithDetails[]> {
   const now = new Date();
   const nowISO = now.toISOString();
   const { data, error } = await supabase
     .from("tournaments")
-    .select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)")
+    // 🔥 SOLUCIÓN: Agregamos !club_id para resolver la ambigüedad
+    .select("*, clubs!club_id(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)")
     .or(`and(status.eq.scheduled,start_datetime.gte.${nowISO}),status.eq.live,status.eq.late_registration`)
     .order("start_datetime", { ascending: true });
 
@@ -45,21 +45,21 @@ export async function getCompletedTournaments(options?: {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
   
-  // 🔥 Construcción dinámica del SELECT para incluir la tabla puente si filtramos por club
-  let selectStr = "*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)";
+  // 🔥 SOLUCIÓN DE AMBIGÜEDAD
+  let selectStr = "*, clubs!club_id(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)";
+  
   if (options?.clubId) {
     selectStr += ", tournament_clubs!inner(club_id)";
   }
 
   let query = supabase.from("tournaments").select(selectStr, { count: "exact" })
-    .eq("status", "completed").order("start_datetime", { ascending: false }).range(from, to);
-  
-  // 🔥 Filtro por tabla puente
+    .eq("status", "completed");
+
   if (options?.clubId) query = query.eq("tournament_clubs.club_id", options.clubId);
   if (options?.leagueId) query = query.eq("league_id", options.leagueId);
   if (options?.roomId) query = query.eq("room_id", options.roomId);
   
-  const { data, error, count } = await query;
+  const { data, error, count } = await query.order("start_datetime", { ascending: false }).range(from, to);
   if (error) throw error;
   return { 
     data: (data || []).map(mapTournamentWithLateReg), 
@@ -68,30 +68,31 @@ export async function getCompletedTournaments(options?: {
 }
 
 export async function getAllTournaments(): Promise<TournamentWithDetails[]> {
-  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)").order("start_datetime", { ascending: false });
+  const { data, error } = await supabase.from("tournaments").select("*, clubs!club_id(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)").order("start_datetime", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapTournamentWithLateReg);
 }
 
 export async function getTournamentsByClub(clubId: string): Promise<TournamentWithDetails[]> {
-  // 🔥 Leemos cruzando la nueva tabla puente tournament_clubs
   const { data, error } = await supabase
     .from("tournaments")
-    .select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name), tournament_clubs!inner(club_id)")
+    // 🔥 SOLUCIÓN DE AMBIGÜEDAD + FILTRO MANY-TO-MANY
+    .select("*, clubs!club_id(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name), tournament_clubs!inner(club_id)")
     .eq("tournament_clubs.club_id", clubId)
     .order("start_datetime", { ascending: false });
+
   if (error) throw error;
   return (data || []).map(mapTournamentWithLateReg);
 }
 
 export async function getTournamentsByLeague(leagueId: string): Promise<TournamentWithDetails[]> {
-  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)").eq("league_id", leagueId).order("start_datetime", { ascending: false });
+  const { data, error } = await supabase.from("tournaments").select("*, clubs!club_id(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)").eq("league_id", leagueId).order("start_datetime", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapTournamentWithLateReg);
 }
 
 export async function getTournamentById(id: string): Promise<TournamentWithDetails | null> {
-  const { data, error } = await supabase.from("tournaments").select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)").eq("id", id).single();
+  const { data, error } = await supabase.from("tournaments").select("*, clubs!club_id(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)").eq("id", id).single();
   if (error) return error.code === "PGRST116" ? null : (function() { throw error; })();
   return data ? mapTournamentWithLateReg(data) : null;
 }
@@ -99,7 +100,7 @@ export async function getTournamentById(id: string): Promise<TournamentWithDetai
 export async function getTournamentBySlug(slug: string): Promise<TournamentWithDetails | null> {
   const { data, error } = await supabase
     .from("tournaments")
-    .select("*, clubs(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)")
+    .select("*, clubs!club_id(id, name, country_code, slug), leagues(id, name, slug), poker_rooms(name)")
     .eq("slug", slug)
     .single();
     
@@ -113,87 +114,43 @@ export async function getTournamentResults(tournamentId: string): Promise<Tourna
   return (data as TournamentResultWithPlayer[]) ?? [];
 }
 
-// ── 2. ELIMINACIÓN: Modo Dios RPC (Limpia Fantasmas y Corrige ELO) ──
+// ── 2. ELIMINACIÓN Y PUNTOS DE LIGA ──
 
 export async function deleteTournamentSafe(tournamentId: string) {
-  console.log("🧨 INICIANDO ELIMINACIÓN RPC:", tournamentId);
-  try {
-    const { data, error } = await supabase.rpc('delete_tournament_god_mode', {
-      tournament_id_to_delete: tournamentId
-    });
-
-    if (error) throw error;
-    const result = data as { success: boolean; message: string };
-    if (!result.success) throw new Error(result.message);
-
-    console.log("✅ SISTEMA SINCRONIZADO TRAS ELIMINACIÓN SQL");
-  } catch (err) {
-    console.error("💥 FALLO CRÍTICO EN ELIMINACIÓN:", err);
-    throw err;
-  }
+  const { data, error } = await supabase.rpc('delete_tournament_god_mode', { tournament_id_to_delete: tournamentId });
+  if (error) throw error;
+  const result = data as { success: boolean; message: string };
+  if (!result.success) throw new Error(result.message);
 }
 
-// ── 3. PUNTOS DE LIGA ──
-
 export async function applyLeaguePoints(tournamentId: string, leagueId: string) {
-  const { data: results } = await supabase
-    .from("tournament_results")
-    .select("player_id, league_points_earned, position, ccp_club, buy_ins_count")
-    .eq("tournament_id", tournamentId);
-
+  const { data: results } = await supabase.from("tournament_results").select("player_id, league_points_earned, position, ccp_club, buy_ins_count").eq("tournament_id", tournamentId);
   if (!results || results.length === 0) return;
   const playersMap = new Map();
-
   for (const r of results) {
     const ex = playersMap.get(r.player_id) || { points: 0, best: r.position, ccp_club: null, buy_ins_count: 0 };
     ex.points += Number(r.league_points_earned || 0); 
     ex.best = Math.min(ex.best, r.position);
     if (r.ccp_club) ex.ccp_club = r.ccp_club; 
     ex.buy_ins_count += Number(r.buy_ins_count || 1);
-
     playersMap.set(r.player_id, ex);
   }
-  
   for (const [pid, d] of playersMap.entries()) {
     const { data: exSt } = await supabase.from("league_standings").select("*").eq("league_id", leagueId).eq("player_id", pid).maybeSingle();
     if (exSt) {
-      await supabase.from("league_standings").update({ 
-        total_points: Number(exSt.total_points) + d.points, 
-        tournaments_played: exSt.tournaments_played + 1, 
-        best_position: Math.min(exSt.best_position || 999, d.best), 
-        total_buy_ins_spent: Number(exSt.total_buy_ins_spent || 0) + d.buy_ins_count,
-        ccp_club: d.ccp_club || exSt.ccp_club,
-        updated_at: new Date().toISOString() 
-      }).eq("id", exSt.id);
+      await supabase.from("league_standings").update({ total_points: Number(exSt.total_points) + d.points, tournaments_played: exSt.tournaments_played + 1, best_position: Math.min(exSt.best_position || 999, d.best), total_buy_ins_spent: Number(exSt.total_buy_ins_spent || 0) + d.buy_ins_count, ccp_club: d.ccp_club || exSt.ccp_club, updated_at: new Date().toISOString() }).eq("id", exSt.id);
     } else {
-      await supabase.from("league_standings").insert({ 
-        league_id: leagueId, player_id: pid, total_points: d.points, 
-        tournaments_played: 1, best_position: d.best, rank_position: 0,
-        ccp_club: d.ccp_club,
-        total_buy_ins_spent: d.buy_ins_count
-      });
+      await supabase.from("league_standings").insert({ league_id: leagueId, player_id: pid, total_points: d.points, tournaments_played: 1, best_position: d.best, rank_position: 0, ccp_club: d.ccp_club, total_buy_ins_spent: d.buy_ins_count });
     }
   }
-
-  const { data: stand } = await supabase
-    .from("league_standings")
-    .select("id, total_points")
-    .eq("league_id", leagueId)
-    .order("total_points", { ascending: false })
-    .order("best_position", { ascending: true });
-    
+  const { data: stand } = await supabase.from("league_standings").select("id, total_points").eq("league_id", leagueId).order("total_points", { ascending: false }).order("best_position", { ascending: true });
   if (stand) { 
-    for (let i = 0; i < stand.length; i++) { 
-      await supabase.from("league_standings").update({ rank_position: i + 1 }).eq("id", stand[i]!.id); 
-    } 
+    for (let i = 0; i < stand.length; i++) { await supabase.from("league_standings").update({ rank_position: i + 1 }).eq("id", stand[i]!.id); } 
   }
 }
 
 export async function prepareTournamentForReedit(tournamentId: string) {
-  console.log("🛠️ Limpiando impacto del torneo para edición:", tournamentId);
-  const { data, error } = await supabase.rpc('reset_tournament_impact', {
-    tournament_id_to_reset: tournamentId
-  });
+  const { data, error } = await supabase.rpc('reset_tournament_impact', { tournament_id_to_reset: tournamentId });
   if (error) throw error;
   return data;
 }
