@@ -31,7 +31,8 @@ export function GlobalChampionsTicker() {
         // 1. Torneos (Últimas 24h: Jugadores en position = 1 de torneos completados)
         const { data: tourneyData } = await supabase
           .from("tournament_results")
-          .select("id, tournaments!inner(id, name, start_datetime, clubs(name)), players!inner(nickname)")
+          // 🔥 DESAMBIGUACIÓN: clubs!club_id(name)
+          .select("id, tournaments!inner(id, name, start_datetime, clubs!club_id(name)), players!inner(nickname)")
           .eq("position", 1)
           .eq("tournaments.status", "completed")
           .gte("tournaments.start_datetime", past24hIso);
