@@ -92,12 +92,9 @@ export function Footer() {
           <p className="text-[11px] text-sk-text-2">
             Realizado por{" "}
             <a
-              href="https://clerigopoker.com"
-              target="_blank"
-              rel="noopener noreferrer"
               className="text-sk-accent underline decoration-sk-accent/30 hover:decoration-sk-accent"
             >
-              clerigopoker.com
+              clerigopoker
             </a>
             {" "}y{" "}
             <a
