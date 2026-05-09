@@ -292,21 +292,38 @@ export function SuperAdminPage() {
   
   // 🚀 Estados para Stream Dinámico
   const [streamUrl, setStreamUrl] = useState("");
+  const [streamTitle, setStreamTitle] = useState("");
+  const [streamDesc, setStreamDesc] = useState("");
   const [loadingStream, setLoadingStream] = useState(false);
 
   useEffect(() => {
     if (tab === "shark_tv") {
-      supabase.from("site_configs").select("value").eq("key", "live_stream_url").single()
-        .then(({ data }) => { if (data) setStreamUrl(data.value); });
+      supabase.from("site_configs")
+        .select("key, value")
+        .in("key", ["live_stream_url", "live_stream_title", "live_stream_description"])
+        .then(({ data }) => { 
+          if (data) {
+            data.forEach(conf => {
+              if (conf.key === "live_stream_url") setStreamUrl(conf.value);
+              if (conf.key === "live_stream_title") setStreamTitle(conf.value);
+              if (conf.key === "live_stream_description") setStreamDesc(conf.value);
+            });
+          }
+        });
     }
   }, [tab]);
 
-  const handleSaveStreamUrl = async () => {
+  const handleSaveStreamConfig = async () => {
     setLoadingStream(true);
     try {
-      const { error } = await supabase.from("site_configs").upsert({ key: "live_stream_url", value: streamUrl.trim() });
+      const payloads = [
+        { key: "live_stream_url", value: streamUrl.trim() },
+        { key: "live_stream_title", value: streamTitle.trim() },
+        { key: "live_stream_description", value: streamDesc.trim() }
+      ];
+      const { error } = await supabase.from("site_configs").upsert(payloads);
       if (error) throw error;
-      alert("✅ Link del stream actualizado.");
+      alert("✅ Configuración de la transmisión actualizada.");
     } catch (e: any) { alert("❌ Error: " + e.message); } finally { setLoadingStream(false); }
   };
 
@@ -1227,22 +1244,31 @@ export function SuperAdminPage() {
             <div className="space-y-6">
               {/* 📺 CONTROL DE STREAM */}
               <div className="bg-sk-bg-2 border border-sk-accent/30 rounded-xl p-6 shadow-sk-lg">
-                <h3 className="text-sk-sm font-bold text-sk-accent flex items-center gap-2 mb-4">
-                  <Tv size={16} /> Configuración de Transmisión (Rumble)
-                </h3>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="https://rumble.com/embed/..." 
-                    className="flex-1 bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 font-mono focus:border-sk-accent focus:outline-none"
-                    value={streamUrl}
-                    onChange={(e) => setStreamUrl(e.target.value)}
-                  />
-                  <Button variant="accent" onClick={handleSaveStreamUrl} isLoading={loadingStream}>
-                    <Save size={14} className="mr-2" /> Guardar Link
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-sk-sm font-bold text-sk-accent flex items-center gap-2">
+                      <Tv size={16} /> Configuración de Transmisión
+                    </h3>
+                    <p className="text-[10px] text-sk-text-3 mt-1">Cambia el título y enlace para avisar de próximas fechas.</p>
+                  </div>
+                  <Button variant="accent" onClick={handleSaveStreamConfig} isLoading={loadingStream}>
+                    <Save size={14} className="mr-2" /> Guardar Todo
                   </Button>
                 </div>
-                <p className="text-[10px] text-sk-text-4 mt-2 italic">* Pega el link que dice "Incrustar URL IFRAME" en Rumble.</p>
+                <div className="grid gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Título en Vivo</label>
+                    <input type="text" placeholder="Ej: PRÓXIMAMENTE: Liga Austral | Fecha 3" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-sk-accent focus:outline-none" value={streamTitle} onChange={(e) => setStreamTitle(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Descripción corta</label>
+                    <input type="text" placeholder="Ej: Jueves 20:00 hrs. Análisis por Osvaldo y Andrés." className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-sk-accent focus:outline-none" value={streamDesc} onChange={(e) => setStreamDesc(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Link de Rumble / Twitch</label>
+                    <input type="text" placeholder="https://rumble.com/embed/..." className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 font-mono focus:border-sk-accent focus:outline-none" value={streamUrl} onChange={(e) => setStreamUrl(e.target.value)} />
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-between items-center mb-4">

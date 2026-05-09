@@ -149,19 +149,33 @@ function LivePollPanel() {
 
 // ── PÁGINA PRINCIPAL ──────────────────────────────────────────────────────
 export function LiveStreamPage() {
-  // Estado inicial con Rumble por defecto
-  const [videoUrl, setVideoUrl] = useState("https://rumble.com/embed/v76yzcg/?pub=4par2u");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [streamTitle, setStreamTitle] = useState("Transmisión en Vivo");
+  const [streamDesc, setStreamDesc] = useState("Acompaña a nuestros especialistas en el análisis de las mejores manos.");
 
   useEffect(() => {
-    const fetchUrl = async () => {
-      const { data } = await supabase.from("site_configs").select("value").eq("key", "live_stream_url").single();
-      if (data?.value) setVideoUrl(data.value);
+    const fetchConfigs = async () => {
+      const { data } = await supabase.from("site_configs")
+        .select("key, value")
+        .in("key", ["live_stream_url", "live_stream_title", "live_stream_description"]);
+      
+      if (data) {
+        data.forEach(conf => {
+          if (conf.key === "live_stream_url" && conf.value) setVideoUrl(conf.value);
+          if (conf.key === "live_stream_title" && conf.value) setStreamTitle(conf.value);
+          if (conf.key === "live_stream_description" && conf.value) setStreamDesc(conf.value);
+        });
+      }
     };
-    fetchUrl();
+    fetchConfigs();
 
-    const channel = supabase.channel('stream_live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_configs', filter: 'key=eq.live_stream_url' }, 
-      (payload: any) => { setVideoUrl(payload.new.value); })
+    const channel = supabase.channel('stream_live_configs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_configs' }, 
+      (payload: any) => { 
+        if (payload.new.key === "live_stream_url") setVideoUrl(payload.new.value);
+        if (payload.new.key === "live_stream_title") setStreamTitle(payload.new.value);
+        if (payload.new.key === "live_stream_description") setStreamDesc(payload.new.value);
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -170,8 +184,8 @@ export function LiveStreamPage() {
   return (
     <PageShell>
       <SEOHead 
-        title="🔴 EN VIVO: Liga Poker Austral 14° Edición | Fecha 2" 
-        description="Cobertura oficial de la Liga Poker Austral 2026. Análisis en vivo por Osvaldo Colombo y Andrés Duhau. Participa en nuestra encuesta en vivo."
+        title={`🔴 EN VIVO: ${streamTitle}`} 
+        description={streamDesc}
         path="/live"
       />
       
@@ -200,10 +214,10 @@ export function LiveStreamPage() {
                   </span>
                 </div>
                 <h1 className="text-2xl md:text-[1.7rem] font-black text-sk-text-1 tracking-tight leading-tight mb-3 flex items-center gap-2.5">
-                  Liga Poker Austral 14° Edición | Fecha 2 <Crown size={24} className="text-sk-gold shrink-0" />
+                  {streamTitle} <Crown size={24} className="text-sk-gold shrink-0" />
                 </h1>
-                <p className="text-sk-sm text-sk-text-3">
-                  Cobertura y análisis táctico por <strong className="text-sk-accent">Osvaldo Colombo (Kolonvo)</strong> y <strong className="text-sk-accent">Andrés Duhau (Clerigo)</strong>.
+                <p className="text-sk-sm text-sk-text-3 whitespace-pre-wrap">
+                  {streamDesc}
                 </p>
               </div>
 
