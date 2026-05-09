@@ -153,7 +153,8 @@ export function LeagueDetailPage() {
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap mb-3">
-              {clubs.map((lc) => (
+              {/* 🔥 Filtramos para mostrar SOLO el club organizador oficial (Dueño / is_primary) */}
+              {clubs.filter(lc => lc.is_primary).map((lc) => (
                 <Link
                   key={lc.clubs?.id}
                   to={`/clubs/${(lc.clubs as any)?.slug ?? lc.clubs?.id}`}
@@ -275,7 +276,8 @@ export function LeagueDetailPage() {
                 <p><span className="text-sk-text-1 font-semibold">Nombre:</span> {league.name}</p>
                 <p><span className="text-sk-text-1 font-semibold">Estado:</span> {status.label}</p>
                 <p><span className="text-sk-text-1 font-semibold">Periodo:</span> {league.start_date} — {league.end_date}</p>
-                <p><span className="text-sk-text-1 font-semibold">Clubes:</span> {clubs.map((c) => c.clubs?.name).join(", ")}</p>
+                {/* 🔥 Cambiamos "Clubes:" a "Organizador:" y filtramos al primario */}
+                <p><span className="text-sk-text-1 font-semibold">Organizador:</span> {clubs.filter(c => c.is_primary).map((c) => c.clubs?.name).join(", ")}</p>
                 
                 {rooms.length > 0 ? (
                   <p><span className="text-sk-text-1 font-semibold">Salas:</span> {rooms.join(", ")}</p>
