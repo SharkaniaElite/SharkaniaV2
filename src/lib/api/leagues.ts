@@ -140,22 +140,34 @@ export async function forceRecalculateStandings(leagueId: string): Promise<boole
   
   // 🔥 PARCHE: El RPC borra el ccp_club y buyins al recrear la tabla.
   // Vamos a restaurarlos leyendo directamente desde los torneos de esta liga.
-  const { data: tourneys } = await supabase.from("tournaments").select("id").eq("league_id", leagueId);
+  // Modificamos para traer los torneos ORDENADOS POR FECHA
+  const { data: tourneys } = await supabase.from("tournaments").select("id, start_datetime").eq("league_id", leagueId).order("start_datetime", { ascending: true });
   if (tourneys && tourneys.length > 0) {
     const tIds = tourneys.map(t => t.id);
     const { data: results } = await supabase
       .from("tournament_results")
-      .select("player_id, ccp_club, buy_ins_count")
+      .select("tournament_id, player_id, ccp_club, buy_ins_count")
       .in("tournament_id", tIds)
       .not("ccp_club", "is", null);
 
     if (results && results.length > 0) {
+      // Agrupamos por torneo para procesar en orden cronológico estricto
+      const resultsByTid = results.reduce((acc: any, r: any) => {
+        acc[r.tournament_id] = acc[r.tournament_id] || [];
+        acc[r.tournament_id].push(r);
+        return acc;
+      }, {});
+
       const playerMap = new Map();
-      for (const r of results) {
-        const ex = playerMap.get(r.player_id) || { ccp: null, buyins: 0 };
-        if (r.ccp_club) ex.ccp = r.ccp_club; // Mantiene el último club registrado
-        ex.buyins += (Number(r.buy_ins_count) || 1);
-        playerMap.set(r.player_id, ex);
+      for (const t of tourneys) {
+        const tourneyResults = resultsByTid[t.id] || [];
+        for (const r of tourneyResults) {
+          const ex = playerMap.get(r.player_id) || { ccp: null, buyins: 0 };
+          // 🔥 MAGIA: Solo asigna el club si NO tiene uno previo. (Primer club queda bloqueado)
+          if (r.ccp_club && !ex.ccp) ex.ccp = r.ccp_club; 
+          ex.buyins += (Number(r.buy_ins_count) || 1);
+          playerMap.set(r.player_id, ex);
+        }
       }
 
       // Guardamos los datos de vuelta en la tabla de posiciones
@@ -270,24 +282,37 @@ export async function getLeagueCCPStandings(leagueId: string): Promise<CCPClubRa
   if (!tournaments || tournaments.length === 0) return [];
   const tournamentIds = tournaments.map((t) => t.id);
 
-  // 2. Obtener los resultados incluyendo player_id para el conteo
+  // 🔥 2. Buscamos la fuente de la verdad: el club oficial bloqueado del jugador
+  const { data: standings } = await supabase
+    .from("league_standings")
+    .select("player_id, ccp_club")
+    .eq("league_id", leagueId)
+    .not("ccp_club", "is", null);
+  
+  const lockedClubs = new Map(standings?.map(s => [s.player_id, s.ccp_club]) || []);
+
+  // 3. Obtener los resultados 
   const { data: results } = await supabase
     .from("tournament_results")
-    .select("tournament_id, player_id, league_points_earned, ccp_club") // 🔥 Agregamos player_id
-    .in("tournament_id", tournamentIds)
-    .not("ccp_club", "is", null);
+    .select("tournament_id, player_id, league_points_earned, ccp_club") 
+    .in("tournament_id", tournamentIds);
 
   if (!results || results.length === 0) return [];
 
-  // 3. Agrupar por torneo y luego por club
+  // 4. Agrupar por torneo y luego por club
   const clubTotals: Record<string, number> = {};
   const clubDatesScored: Record<string, Set<string>> = {};
-  const clubPlayers: Record<string, Set<string>> = {}; // 🔥 Rastreador de jugadores únicos
+  const clubPlayers: Record<string, Set<string>> = {}; 
 
   const resultsByTournament = results.reduce((acc, curr) => {
     const tId = curr.tournament_id;
-    const clubName = curr.ccp_club!.toUpperCase().trim();
     const pId = curr.player_id;
+    
+    // 🔥 MAGIA: Forzamos el club al oficial bloqueado. Si no tiene, descartamos.
+    const rawClub = lockedClubs.get(pId);
+    if (!rawClub) return acc; 
+
+    const clubName = rawClub.toUpperCase().trim();
 
     // Rastrear jugador único para este club
     const playerSet = clubPlayers[clubName] ?? (clubPlayers[clubName] = new Set());
