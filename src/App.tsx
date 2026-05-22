@@ -6,6 +6,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "./stores/auth-store";
 import { ProtectedRoute } from "./components/layout/protected-route";
+// 🔥 NUEVAS IMPORTACIONES PARA LA CONTABILIDAD
+import { AccountingShell } from "./components/layout/accounting-shell";
+import { LapUploadPage } from "./pages/lap-upload";
+import { LapTransactionsPage } from "./pages/lap-transactions";
+import { LapPlayersPage } from "./pages/lap-players";
+import { LapAgentsPage } from "./pages/lap-agents";
+import { LapLiquidationsPage } from "./pages/lap-liquidations";
 import { ScrollToTop } from "./components/layout/scroll-to-top";
 import { FloatingCTA } from "./components/marketing/FloatingCTA";
 import { Spinner } from "./components/ui/spinner";
@@ -18,6 +25,9 @@ import { PromotionsPage } from "./pages/promotions";
 import { PromoFreerollPage } from "./pages/promo-freeroll";
 import { SharkTvPage } from "./pages/shark-tv";
 import { HandReviewPage } from "./pages/hand-review";
+import { LapPromotionsPage } from "./pages/lap-promotions";
+import { LapDashboardPage } from "./pages/lap-dashboard";
+import { LapBackingPage } from "./pages/lap-backing";
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
@@ -226,7 +236,22 @@ export function App() {
                   </ProtectedRoute>
                 }
               />
-            </Routes>
+
+              {/* 💼 BACKOFFICE FINANCIERO (Solo Admins Autorizados) */}
+<Route path="/lap-admin" element={<AccountingShell />}>
+  {/* Esta ruta es la que carga automáticamente al entrar a /lap-admin */}
+  <Route index element={<LapDashboardPage />} />
+  
+  {/* Las sub-rutas no deben empezar con / para no romper la jerarquía */}
+  <Route path="upload" element={<LapUploadPage />} />
+  <Route path="backing" element={<LapBackingPage />} />
+  <Route path="transactions" element={<LapTransactionsPage />} />
+  <Route path="players" element={<LapPlayersPage />} />
+  <Route path="liquidations" element={<LapLiquidationsPage />} />
+  <Route path="promotions" element={<LapPromotionsPage />} />
+  <Route path="agents" element={<LapAgentsPage />} />
+</Route>
+</Routes>
           </Suspense>
 
           <FloatingCTA />
