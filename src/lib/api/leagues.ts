@@ -272,6 +272,22 @@ export interface CCPClubRanking {
   playerCount: number; // 🔥 NUEVO CAMPO
 }
 
+// (Busca la parte final de tu archivo leagues.ts y reemplaza desde la interfaz CCPClubRanking hacia abajo)
+
+export interface ScoreDetail {
+  tournamentId: string;
+  playerId: string;
+  points: number;
+}
+
+export interface CCPClubRanking {
+  clubName: string;
+  totalPoints: number;
+  datesScored: number;
+  playerCount: number;
+  scoreHistory: ScoreDetail[]; // 🔥 NUEVO: Historial de puntajes que sumaron
+}
+
 export async function getLeagueCCPStandings(leagueId: string): Promise<CCPClubRanking[]> {
   // 1. Obtener los torneos de la liga
   const { data: tournaments } = await supabase
@@ -282,7 +298,7 @@ export async function getLeagueCCPStandings(leagueId: string): Promise<CCPClubRa
   if (!tournaments || tournaments.length === 0) return [];
   const tournamentIds = tournaments.map((t) => t.id);
 
-  // 🔥 2. Buscamos la fuente de la verdad: el club oficial bloqueado del jugador
+  // 2. Buscamos la fuente de la verdad: el club oficial bloqueado del jugador
   const { data: standings } = await supabase
     .from("league_standings")
     .select("player_id, ccp_club")
@@ -291,7 +307,7 @@ export async function getLeagueCCPStandings(leagueId: string): Promise<CCPClubRa
   
   const lockedClubs = new Map(standings?.map(s => [s.player_id, s.ccp_club]) || []);
 
-  // 3. Obtener los resultados 
+  // 3. Obtener los resultados (ahora también pedimos datos del jugador y fecha)
   const { data: results } = await supabase
     .from("tournament_results")
     .select("tournament_id, player_id, league_points_earned, ccp_club") 
@@ -299,52 +315,60 @@ export async function getLeagueCCPStandings(leagueId: string): Promise<CCPClubRa
 
   if (!results || results.length === 0) return [];
 
-  // 4. Agrupar por torneo y luego por club
   const clubTotals: Record<string, number> = {};
   const clubDatesScored: Record<string, Set<string>> = {};
   const clubPlayers: Record<string, Set<string>> = {}; 
+  const clubHistory: Record<string, ScoreDetail[]> = {}; // 🔥 Diccionario para guardar los detalles
 
+  // 4. Agrupar por torneo y luego por club
   const resultsByTournament = results.reduce((acc, curr) => {
     const tId = curr.tournament_id;
     const pId = curr.player_id;
+    const points = Number(curr.league_points_earned || 0);
     
-    // 🔥 MAGIA: Forzamos el club al oficial bloqueado. Si no tiene, descartamos.
     const rawClub = lockedClubs.get(pId);
     if (!rawClub) return acc; 
 
     const clubName = rawClub.toUpperCase().trim();
 
-    // Rastrear jugador único para este club
     const playerSet = clubPlayers[clubName] ?? (clubPlayers[clubName] = new Set());
     playerSet.add(pId);
 
     const tournamentData = acc[tId] ?? (acc[tId] = {});
     const clubData = tournamentData[clubName] ?? (tournamentData[clubName] = []);
     
-    clubData.push(Number(curr.league_points_earned || 0));
+    clubData.push({ playerId: pId, points: points, tournamentId: tId });
     return acc;
-  }, {} as Record<string, Record<string, number[]>>);
+  }, {} as Record<string, Record<string, {playerId: string, points: number, tournamentId: string}[]>>);
 
-  // 4. Sumar solo el mejor puntaje por torneo para cada club
+  // 5. Sumar solo el mejor puntaje por torneo para cada club y guardar el detalle
   for (const tId in resultsByTournament) {
     const tournamentData = resultsByTournament[tId]!;
     for (const club in tournamentData) {
-      const pointsArray = tournamentData[club]!;
-      pointsArray.sort((a, b) => b - a);
+      const recordsArray = tournamentData[club]!;
+      // Ordenamos para sacar el registro con más puntos
+      recordsArray.sort((a, b) => b.points - a.points);
       
-      const bestScore = pointsArray[0] ?? 0;
-      clubTotals[club] = (clubTotals[club] ?? 0) + bestScore;
+      const bestRecord = recordsArray[0];
+      if (!bestRecord || bestRecord.points === 0) continue;
+
+      clubTotals[club] = (clubTotals[club] ?? 0) + bestRecord.points;
       
       const datesSet = clubDatesScored[club] ?? (clubDatesScored[club] = new Set());
-      if (bestScore > 0) datesSet.add(tId);
+      datesSet.add(tId);
+
+      // Guardamos el detalle de la persona que aportó el punto en esta fecha
+      const historyList = clubHistory[club] ?? (clubHistory[club] = []);
+      historyList.push(bestRecord);
     }
   }
 
-  // 5. Convertir a array y ordenar
+  // 6. Convertir a array y ordenar
   return Object.keys(clubTotals).map(club => ({
     clubName: club,
     totalPoints: clubTotals[club] ?? 0,
     datesScored: clubDatesScored[club]?.size ?? 0,
-    playerCount: clubPlayers[club]?.size ?? 0 // 🔥 Enviamos el conteo
+    playerCount: clubPlayers[club]?.size ?? 0,
+    scoreHistory: clubHistory[club] ?? [] // 🔥 Añadimos el historial al objeto
   })).sort((a, b) => b.totalPoints - a.totalPoints || a.clubName.localeCompare(b.clubName));
 }

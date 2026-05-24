@@ -118,6 +118,11 @@ export function LeagueDetailPage() {
     .filter(t => ["completed", "cancelled"].includes(t.status))
     .sort((a, b) => new Date(b.start_datetime || 0).getTime() - new Date(a.start_datetime || 0).getTime());
 
+    const playersMap = standings?.reduce((acc, st) => {
+    acc[st.player_id] = st.players?.nickname || "Desconocido";
+    return acc;
+  }, {} as Record<string, string>) || {};
+
   return (
     <PageShell>
       <SEOHead
@@ -241,6 +246,8 @@ export function LeagueDetailPage() {
           {tab === "ccp_standings" && (
             <ClubStandingsTable 
               standings={ccpStandings} 
+              tournaments={tournaments ?? []} // Le pasamos los torneos para los nombres de fecha
+              playersMap={playersMap}         // Le pasamos el mapa de nombres
               isLoading={ccpLoading} 
             />
           )}
