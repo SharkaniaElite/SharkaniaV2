@@ -28,6 +28,7 @@ import { HandReviewPage } from "./pages/hand-review";
 import { LapPromotionsPage } from "./pages/lap-promotions";
 import { LapDashboardPage } from "./pages/lap-dashboard";
 import { LapBackingPage } from "./pages/lap-backing";
+import { AdminBroadcastPage } from "./pages/admin-broadcast";
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
@@ -233,6 +234,15 @@ export function App() {
                 element={
                   <ProtectedRoute requiredRole={["super_admin"]}>
                     <SuperAdminPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/broadcast"
+                element={
+                  <ProtectedRoute requiredRole={["super_admin"]}>
+                    <AdminBroadcastPage />
                   </ProtectedRoute>
                 }
               />

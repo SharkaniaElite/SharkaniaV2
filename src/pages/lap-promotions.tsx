@@ -3,10 +3,11 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase"; 
 import { Button } from "../components/ui/button";
 import { Spinner } from "../components/ui/spinner";
-import { Settings, Wallet, Search, ToggleLeft, ToggleRight } from "lucide-react"; 
+import { Settings, Wallet, Search, ToggleLeft, ToggleRight, History, Undo2 } from "lucide-react"; 
 
 export function LapPromotionsPage() {
   const [report, setReport] = useState<any[]>([]);
+  const [payoutHistory, setPayoutHistory] = useState<any[]>([]); // 🔥 Nuevo estado para historial
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -134,7 +135,8 @@ export function LapPromotionsPage() {
         }
 
         // C. MATEMÁTICA INDEPENDIENTE CON TOPE MÁXIMO
-        const rakeOtrosJuegos = Math.max(0, rakeGeneral - bonoLigaBase);
+        const costoLigaTotal = ligaBuyIns * 7000; // 🔥 2000 para el jugador + 5000 para el pozo CCP
+        const rakeOtrosJuegos = Math.max(0, rakeGeneral - costoLigaTotal); // Descontamos los 7000 del rake
         const bonoBienvenidaBruto = isWelcomeActive ? (rakeOtrosJuegos * (Number(cfg.welcome_percentage) / 100)) : 0;
         
         const topeBienvenida = Number(cfg.welcome_max_amount) || 0;
@@ -170,6 +172,17 @@ export function LapPromotionsPage() {
           saldoPendiente
         };
       });
+
+      // 🔥 Generar el historial cruzando los pagos con los nombres de los jugadores
+      const history = payouts?.map((p: any) => {
+        const ply = accPlayers.find((ap: any) => ap.clubgg_id === p.clubgg_id);
+        return {
+          ...p,
+          nickname: ply?.nickname || p.clubgg_id
+        };
+      }).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
+      
+      setPayoutHistory(history);
 
       const sorted = calculatedData.sort((a: any, b: any) => b.saldoPendiente - a.saldoPendiente);
       setReport(sorted);
@@ -227,6 +240,22 @@ export function LapPromotionsPage() {
       loadPromotionsData();
     } catch (err: any) {
       alert("Error al procesar pago: " + err.message);
+    }
+  };
+
+  // 🔥 NUEVA FUNCIÓN DE REVERSO
+  const handleRevertPayout = async (id: number) => {
+    if (!window.confirm("⚠️ ¿Seguro que quieres reversar este pago? Se eliminará el registro y la deuda volverá a aparecer en el saldo del jugador.")) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("acc_player_promo_payouts").delete().eq("id", id);
+      if (error) throw error;
+      
+      loadPromotionsData(); // Recarga todo para que la deuda reaparezca al instante
+    } catch (err: any) {
+      alert("Error al reversar la operación: " + err.message);
+      setLoading(false);
     }
   };
 
@@ -335,6 +364,59 @@ export function LapPromotionsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* 🔥 HISTORIAL DE PAGOS */}
+      {!loading && (
+        <div className="pt-8">
+          <h3 className="text-sk-lg font-black text-sk-text-1 mb-4 flex items-center gap-2">
+            <History size={20} className="text-sk-purple" />
+            Historial de Pagos Recientes
+          </h3>
+          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl overflow-hidden overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="bg-sk-bg-3 font-mono text-[10px] font-semibold tracking-wider uppercase text-sk-text-2 border-b border-sk-border-2">
+                  <th className="py-3 px-4">Fecha de Pago</th>
+                  <th className="py-3 px-4">Jugador</th>
+                  <th className="py-3 px-4 text-right">Monto Liquidado</th>
+                  <th className="py-3 px-4 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-sk-border-2 font-medium text-sk-sm">
+                {payoutHistory.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-sk-text-4 text-xs">
+                      No hay pagos de promociones registrados aún.
+                    </td>
+                  </tr>
+                ) : (
+                  payoutHistory.map((h: any) => (
+                    <tr key={h.id} className="hover:bg-sk-bg-3/50 transition-colors">
+                      <td className="py-3 px-4 text-sk-text-3 font-mono text-xs">
+                        {new Date(h.date).toLocaleString("es-CL")}
+                      </td>
+                      <td className="py-3 px-4 font-bold text-sk-text-1">{h.nickname}</td>
+                      <td className="py-3 px-4 text-right text-emerald-400 font-mono font-bold">
+                        ${Number(h.total_paid).toLocaleString("es-CL")}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          onClick={() => handleRevertPayout(h.id)} 
+                          className="border-red-500/20 text-red-400 hover:bg-red-500/10 hover:border-red-500/40 text-xs px-2 py-1 h-auto"
+                        >
+                          <Undo2 size={14} className="mr-1.5" /> Reversar
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
