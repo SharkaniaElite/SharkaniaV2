@@ -1,35 +1,37 @@
+// src/components/players/tournament-history-table.tsx
 import { Link } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { formatCurrency, formatEloChange } from "../../lib/format";
 import { format } from "date-fns";
-import { Lock } from "lucide-react"; // 👈 Nuevo import
+import { Lock } from "lucide-react"; 
 
 interface TournamentHistoryEntry {
   id: string;
   position: number;
   prize_won: number;
   elo_change: number | null;
-  ccp_club?: string | null; // 🔥 NUEVO: Recibimos el club del jugador en esta fecha
+  ccp_club?: string | null; 
+  buy_ins_count?: number; 
   tournaments: {
     id: string;
     name: string;
     slug: string;
     buy_in: number;
     start_datetime: string;
-    clubs: { id: string; name: string; slug?: string } | null; // 👈 Le decimos que puede venir nulo
+    clubs: { id: string; name: string; slug?: string } | null; 
   };
 }
 
 interface TournamentHistoryTableProps {
   results: TournamentHistoryEntry[];
   isLoading: boolean;
-  hasAccess?: boolean; // 👈 Prop de monetización
+  hasAccess?: boolean; 
 }
 
 export function TournamentHistoryTable({
   results,
   isLoading,
-  hasAccess = false, // 👈 Por defecto bloqueado
+  hasAccess = false, 
 }: TournamentHistoryTableProps) {
   if (isLoading) {
     return (
@@ -47,16 +49,21 @@ export function TournamentHistoryTable({
     );
   }
 
+  // 🔥 NUEVO: Ordenamos los resultados por fecha (más reciente primero)
+  const sortedResults = [...results].sort((a, b) => {
+    return new Date(b.tournaments.start_datetime).getTime() - new Date(a.tournaments.start_datetime).getTime();
+  });
+
   // Si no tiene acceso, solo mostramos 5 filas, difuminando desde la 3ra
-  const displayResults = hasAccess ? results : results.slice(0, 5);
+  const displayResults = hasAccess ? sortedResults : sortedResults.slice(0, 5);
 
   return (
     <div className="relative border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sk-sm min-w-[600px]">
+        <table className="w-full border-collapse text-sk-sm min-w-[650px]">
           <thead>
             <tr>
-              {["Fecha", "Torneo", "Club", "Buy-in", "Pos.", "Premio", "ΔELO"].map(
+              {["Fecha", "Torneo", "Club", "Buy-in", "Compras", "Pos.", "Premio", "ΔELO"].map(
                 (h, i) => (
                   <th
                     key={h}
@@ -95,7 +102,6 @@ export function TournamentHistoryTable({
                     </Link>
                   </td>
                   <td className="py-3 px-4 border-b border-sk-border-2">
-                    {/* 🔥 NUEVO: Lógica de Prioridad CCP con Enlace Estratégico */}
                     {r.ccp_club ? (
                       <div className="flex flex-col">
                         <span className="font-mono text-sk-text-1 font-bold text-[12px] tracking-wide">
@@ -124,6 +130,11 @@ export function TournamentHistoryTable({
                   <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono text-sk-text-2">
                     {formatCurrency(r.tournaments.buy_in)}
                   </td>
+                  
+                  <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono text-sk-text-2">
+                    {r.buy_ins_count ?? 1}
+                  </td>
+
                   <td className="py-3 px-4 border-b border-sk-border-2 text-right">
                     <span
                       className={cn(

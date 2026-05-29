@@ -2,33 +2,41 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { Spinner } from "../components/ui/spinner";
-import { CheckCircle2, AlertTriangle, History, Undo2, Calculator } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { CheckCircle2, AlertTriangle, History, Undo2, Calculator, Calendar, Wallet } from "lucide-react";
+
+const SYSTEM_START_DATE = "2026-05-18T00:00:00Z";
 
 export function LapLiquidationsPage() {
   const [report, setReport] = useState<any[]>([]);
   const [payoutHistory, setPayoutHistory] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
-  const [inputAmounts, setInputAmounts] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Modal de Pago
+  const [payingAgent, setPayingAgent] = useState<any>(null);
+  const [payAmount, setPayAmount] = useState("");
+
+  const [startDate, setStartDate] = useState<string>(
+    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  );
+  const [endDate, setEndDate] = useState<string>(
+    new Date().toISOString().slice(0, 10)
+  );
 
   const loadFinancialReport = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const { data: agents } = await supabase.from("acc_agents").select("*").neq("name", "GettingRIcher").order("name");
+      // 🔥 AQUÍ ESTÁ LA CORRECCIÓN: Se quitó el .neq("name", "GettingRIcher") para que traiga a TODOS.
+      const { data: agents } = await supabase.from("acc_agents").select("*").order("name");
       const { data: players } = (await supabase.from("acc_players").select("clubgg_id, agent_id, nickname")) as { data: any[] | null };
       
-      const { data: transactions } = await supabase
-        .from("acc_transactions")
-        .select("amount, date, agent_id, category, type, clubgg_id") 
-        .in("category", ["Rakeback"])
-        .limit(10000); 
-
-      const { data: payouts } = await supabase.from("acc_payouts").select("id, amount, agent_id, created_at");
-      
+      const { data: transactions } = await supabase.from("acc_transactions").select("amount, date, agent_id, category, type, clubgg_id").in("category", ["Rakeback"]).gte("date", SYSTEM_START_DATE).limit(10000); 
+      const { data: payouts } = await supabase.from("acc_payouts").select("id, amount, agent_id, created_at").gte("created_at", SYSTEM_START_DATE);
       const { data: configs } = await supabase.from("acc_player_promo_config").select("*");
-      const { data: tourneys } = await supabase.from("tournaments").select("id, created_at").in("club_id", ["ccb5c5bc-efaf-4710-b9c5-b4e2baa17328", "1da03414-0ed2-416e-b4f4-bd94caabd5c7"]).not("league_id", "is", null);
+      const { data: tourneys } = await supabase.from("tournaments").select("id, created_at").in("club_id", ["ccb5c5bc-efaf-4710-b9c5-b4e2baa17328", "1da03414-0ed2-416e-b4f4-bd94caabd5c7"]).not("league_id", "is", null).gte("created_at", SYSTEM_START_DATE);
       const tourneyIds = tourneys?.map((t: any) => t.id) || [];
       
       let tResults: any[] = [];
@@ -38,156 +46,170 @@ export function LapLiquidationsPage() {
       }
       
       const { data: tPlayers } = await supabase.from("players").select("id, nickname").limit(10000);
-
       if (!agents) return;
 
       const history = payouts?.map((p: any) => {
         const ag = agents.find((a: any) => a.id === p.agent_id);
-        return {
-          ...p,
-          agent_name: ag?.name || "Agente Desconocido"
-        };
+        return { ...p, agent_name: ag?.name || "Agente Desconocido" };
       }).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) || [];
-      
       setPayoutHistory(history);
 
       const calculatedReport = agents.map((agent) => {
-        // 1. Rake Histórico Total
-        const historicalRake = transactions
-          ?.filter((t) => t.category === "Rakeback" && ["Ingreso", "ingreso"].includes(t.type) && t.agent_id === agent.id)
-          .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+        const grossRakeHist = transactions?.filter((t) => t.category === "Rakeback" && ["Ingreso", "ingreso"].includes(t.type) && t.agent_id === agent.id).reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+        const grossRakePeriodo = transactions?.filter((t) => t.category === "Rakeback" && ["Ingreso", "ingreso"].includes(t.type) && t.agent_id === agent.id && t.date.slice(0,10) >= startDate && t.date.slice(0,10) <= endDate).reduce((sum, t) => sum + Number(t.amount), 0) || 0;
 
-        // 2. Promociones Históricas Totales Asumidas
-        let promosGeneradasHistorico = 0;
+        let buyinsMayHist = 0; let buyinsJuneHist = 0;
+        let buyinsMayPeriodo = 0; let buyinsJunePeriodo = 0;
+        
+        let welcomeBonoTotalHist = 0; let welcomeBonoTotalPeriodo = 0;
+
         const myPlayers = players?.filter(p => p.agent_id === agent.id) || [];
         
         myPlayers.forEach(player => {
-          const cfg = configs?.find(c => c.clubgg_id === player.clubgg_id) || { welcome_percentage: 30, liga_active: true };
-          const isLigaActive = cfg.liga_active ?? true;
-          const isWelcomeActive = cfg.welcome_active ?? false;
+          const defaultCfg = { welcome_percentage: 30, welcome_max_amount: 100000, welcome_active: true, welcome_expiry: "2026-06-30", liga_active: true, liga_expiry: "2026-05-31" };
+          const cfg = configs?.find(c => c.clubgg_id === player.clubgg_id) || defaultCfg;
+          const isWelcomeActive = cfg.welcome_active ?? true; 
           
-          const tPlayer = tPlayers?.find(tp => tp.nickname.toLowerCase() === player.nickname.toLowerCase());
+          const matchingTPlayers = tPlayers?.filter(tp => tp.nickname.toLowerCase() === player.nickname.toLowerCase()) || [];
+          const matchingPlayerIds = matchingTPlayers.map(tp => tp.id);
           
-          let ligaBuyInsHistorico = 0;
+          let pBMayH = 0; let pBJuneH = 0; let pBMayP = 0; let pBJuneP = 0;
 
-          if (tPlayer && tResults && tourneys) {
-            tResults.filter(r => r.player_id === tPlayer.id).forEach(res => {
+          if (matchingPlayerIds.length > 0 && tResults && tourneys) {
+            tResults.filter(r => matchingPlayerIds.includes(r.player_id)).forEach(res => {
               const tourney = tourneys.find(t => t.id === res.tournament_id);
               if (tourney && tourney.created_at) {
                 const tDateStr = new Date(tourney.created_at).toISOString().slice(0, 10);
-                const validStart = !cfg.liga_start_date || tDateStr >= cfg.liga_start_date.slice(0, 10);
-                const validEnd = !cfg.liga_expiry || tDateStr <= cfg.liga_expiry.slice(0, 10);
+                const buyins = Number(res.buy_ins_count) || 0;
                 
-                if (validStart && validEnd) {
-                  ligaBuyInsHistorico += (Number(res.buy_ins_count) || 0);
+                if (tDateStr <= "2026-05-31") {
+                    pBMayH += buyins;
+                    if (tDateStr >= startDate && tDateStr <= endDate) pBMayP += buyins;
+                } else {
+                    pBJuneH += buyins;
+                    if (tDateStr >= startDate && tDateStr <= endDate) pBJuneP += buyins;
                 }
               }
             });
           }
 
-          // 7000 por entry (5000 pozo + 2000 jugador)
-          const deduccionLigaHistorico = (ligaBuyInsHistorico * 5000) + (isLigaActive ? ligaBuyInsHistorico * 2000 : 0);
+          buyinsMayHist += pBMayH; buyinsJuneHist += pBJuneH;
+          buyinsMayPeriodo += pBMayP; buyinsJunePeriodo += pBJuneP;
 
-          let rakeGenHistorico = 0;
-
+          let pRakeGenHist = 0; let pRakeGenPeriodo = 0;
           transactions?.filter(t => t.clubgg_id === player.clubgg_id && ["Ingreso", "ingreso"].includes(t.type)).forEach(t => {
             const tDateStr = new Date(t.date).toISOString().slice(0, 10);
             const validStart = !cfg.welcome_start_date || tDateStr >= cfg.welcome_start_date.slice(0, 10);
             const validEnd = !cfg.welcome_expiry || tDateStr <= cfg.welcome_expiry.slice(0, 10);
-            
             if (validStart && validEnd) {
-              rakeGenHistorico += Number(t.amount);
+              pRakeGenHist += Number(t.amount);
+              if (tDateStr >= startDate && tDateStr <= endDate) pRakeGenPeriodo += Number(t.amount);
             }
           });
 
-          const costoLigaTotalHist = ligaBuyInsHistorico * 7000;
-          const rakeOtrosHist = Math.max(0, rakeGenHistorico - costoLigaTotalHist);
-          let bonoBienvenidaHist = isWelcomeActive ? (rakeOtrosHist * (Number(cfg.welcome_percentage) / 100)) : 0;
-          if (cfg.welcome_max_amount && bonoBienvenidaHist > Number(cfg.welcome_max_amount)) bonoBienvenidaHist = Number(cfg.welcome_max_amount);
+          const pDeduccionLigaHist = (pBMayH * 7000) + (pBJuneH * 5000);
+          const pRakeLiquidoHist = Math.max(0, pRakeGenHist - pDeduccionLigaHist);
+          let pBonoWHist = isWelcomeActive ? (pRakeLiquidoHist * (Number(cfg.welcome_percentage) / 100)) : 0;
+          if (cfg.welcome_max_amount && pBonoWHist > Number(cfg.welcome_max_amount)) pBonoWHist = Number(cfg.welcome_max_amount);
+          welcomeBonoTotalHist += pBonoWHist;
 
-          promosGeneradasHistorico += (deduccionLigaHistorico + bonoBienvenidaHist);
+          const pDeduccionLigaPeriodo = (pBMayP * 7000) + (pBJuneP * 5000);
+          const pRakeLiquidoPeriodo = Math.max(0, pRakeGenPeriodo - pDeduccionLigaPeriodo);
+          let pBonoWPeriodo = isWelcomeActive ? (pRakeLiquidoPeriodo * (Number(cfg.welcome_percentage) / 100)) : 0;
+          if (cfg.welcome_max_amount && pBonoWPeriodo > Number(cfg.welcome_max_amount)) pBonoWPeriodo = Number(cfg.welcome_max_amount);
+          welcomeBonoTotalPeriodo += pBonoWPeriodo;
         });
 
-        // 3. Pagos Históricos al Agente
-        const totalPaid = payouts?.filter((p) => p.agent_id === agent.id).reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-
-        // 4. Matemática Final
         const dealPerc = Number(agent.deal_percentage || 0);
-        const historicalCommission = historicalRake * (dealPerc / 100);
-        const pendingRake = historicalCommission - promosGeneradasHistorico - totalPaid;
+
+        const deduccionLigaPeriodo = (buyinsMayPeriodo * 7000) + (buyinsJunePeriodo * 5000);
+        const rakeLiquidoPeriodo = Math.max(0, grossRakePeriodo - deduccionLigaPeriodo);
+        const aRecibirPeriodo = rakeLiquidoPeriodo * (dealPerc / 100);
+        
+        const promosJugadoresPeriodo = welcomeBonoTotalPeriodo;
+        const generadoPeriodo = aRecibirPeriodo - promosJugadoresPeriodo;
+
+        const deduccionLigaHist = (buyinsMayHist * 7000) + (buyinsJuneHist * 5000);
+        const rakeLiquidoHist = Math.max(0, grossRakeHist - deduccionLigaHist);
+        const aRecibirHist = rakeLiquidoHist * (dealPerc / 100);
+        
+        const promosJugadoresHist = welcomeBonoTotalHist;
+        const generadoHist = aRecibirHist - promosJugadoresHist;
+        
+        const totalPaid = payouts?.filter((p) => p.agent_id === agent.id).reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+        const saldoTotal = generadoHist - totalPaid;
 
         return {
           id: agent.id,
           name: agent.name,
           deal: dealPerc,
-          historicalRake,
-          historicalCommission,
-          promosPaid: promosGeneradasHistorico, 
-          totalPaid,
-          pendingRake,
+          grossRakePeriodo, 
+          deduccionLigaPeriodo,
+          rakeLiquidoPeriodo,
+          aRecibirPeriodo,
+          promosJugadoresPeriodo, 
+          generadoPeriodo, 
+          saldoTotal,   
         };
       });
 
       setReport(calculatedReport);
     } catch (err: any) {
-      setErrorMessage("Error al calcular cuenta corriente: " + err.message);
+      setErrorMessage("Error al calcular: " + err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [startDate, endDate]); 
 
   useEffect(() => {
     loadFinancialReport();
   }, [loadFinancialReport]);
 
-  const handleAmountChange = (agentId: string, value: string) => {
-    setInputAmounts((prev) => ({ ...prev, [agentId]: value }));
-  };
+  const handlePay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null); setSuccessMessage(null);
+    const amt = parseFloat(payAmount);
+    if (isNaN(amt) || amt <= 0) return setErrorMessage("Monto mayor a 0.");
+    
+    // 🔥 PERMITE PAGAR HASTA EL MÁXIMO ENTRE LO GENERADO ESTE PERIODO Y LA DEUDA HISTÓRICA
+    const maxAllowed = Math.max(payingAgent.saldoTotal, payingAgent.generadoPeriodo);
+    if (amt > maxAllowed) return setErrorMessage("Supera deuda histórica y lo generado en el periodo.");
 
-  const validateAndSendPayout = async (agentId: string, pendingRake: number) => {
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    const amountToPay = parseFloat(inputAmounts[agentId] || "0");
-
-    if (amountToPay <= 0 || isNaN(amountToPay)) {
-      setErrorMessage("Introduce un monto mayor a 0 para pagar.");
-      return;
-    }
-
-    if (amountToPay > pendingRake) {
-      setErrorMessage("🚫 Operación denegada: Estás intentando pagarle más dinero del que se le adeuda históricamente.");
-      return;
-    }
-
-    const { error } = await supabase.from("acc_payouts").insert({
-      agent_id: agentId,
-      amount: amountToPay
-    });
-
-    if (error) {
-      setErrorMessage("Error al registrar pago: " + error.message);
-    } else {
-      setSuccessMessage("✅ Pago de comisión registrado correctamente.");
-      setInputAmounts((prev) => ({ ...prev, [agentId]: "" }));
+    try {
+      const { error } = await supabase.from("acc_payouts").insert({ agent_id: payingAgent.id, amount: amt });
+      if (error) throw error;
+      
+      setSuccessMessage(`Pago registrado a ${payingAgent.name}.`);
+      setPayingAgent(null);
+      setPayAmount("");
       loadFinancialReport(); 
+    } catch (err: any) {
+      setErrorMessage("Error: " + err.message);
     }
   };
 
   const handleRevertPayout = async (id: number) => {
-    if (!window.confirm("⚠️ ¿Seguro que quieres reversar este pago al agente? El registro se eliminará y el monto volverá a sumarse a su saldo pendiente.")) return;
-    
+    if (!window.confirm("¿Reversar este pago?")) return;
     setLoading(true);
     try {
       const { error } = await supabase.from("acc_payouts").delete().eq("id", id);
       if (error) throw error;
-      
-      setSuccessMessage("✅ Pago reversado y saldo restaurado correctamente.");
+      setSuccessMessage("Pago reversado.");
       loadFinancialReport(); 
     } catch (err: any) {
-      setErrorMessage("Error al reversar el pago: " + err.message);
+      setErrorMessage("Error: " + err.message);
       setLoading(false);
     }
   };
+
+  // 🔥 CÁLCULO DE SUMATORIAS PARA LA FILA DE TOTALES
+  const totalRakeBrutoPer = report.reduce((acc, a) => acc + a.grossRakePeriodo, 0);
+  const totalDeduccionLigaPer = report.reduce((acc, a) => acc + a.deduccionLigaPeriodo, 0);
+  const totalRakeLiquidoPer = report.reduce((acc, a) => acc + a.rakeLiquidoPeriodo, 0);
+  const totalARecibirPer = report.reduce((acc, a) => acc + a.aRecibirPeriodo, 0);
+  const totalPromosJugadoresPer = report.reduce((acc, a) => acc + (a.promosJugadoresPeriodo || 0), 0);
+  const totalGeneradoPer = report.reduce((acc, a) => acc + a.generadoPeriodo, 0);
+  const totalSaldoTotal = report.reduce((acc, a) => acc + a.saldoTotal, 0);
 
   return (
     <div className="space-y-6">
@@ -195,9 +217,16 @@ export function LapLiquidationsPage() {
         <div>
           <h2 className="text-2xl font-black text-white flex items-center gap-2">
             <Calculator className="text-emerald-400" />
-            Cuenta Corriente de Agentes
+            Liquidaciones y Cuenta Corriente
           </h2>
-          <p className="text-sm text-gray-400">Balance acumulativo histórico. El saldo pendiente es la deuda real actual.</p>
+          <p className="text-sm text-gray-400">Balance desde el 18-05-2026. Lectura lineal y exacta del rendimiento del Agente.</p>
+        </div>
+        
+        <div className="flex items-center gap-2 bg-gray-900 p-2 rounded-lg border border-gray-700 text-sm text-white">
+          <Calendar size={16} className="text-gray-400" />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent outline-none cursor-pointer" />
+          <span className="text-gray-600">~</span>
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent outline-none cursor-pointer" />
         </div>
       </div>
 
@@ -216,57 +245,64 @@ export function LapLiquidationsPage() {
         <div className="py-20 flex justify-center"><Spinner size="md" /></div>
       ) : (
         <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 overflow-x-auto shadow-xl">
-          <table className="w-full text-left text-white min-w-[1000px]">
+          <table className="w-full text-left text-white min-w-[1200px]">
             <thead className="bg-gray-800 text-[10px] uppercase font-mono tracking-wider text-gray-400">
               <tr>
                 <th className="p-4">Agente</th>
-                <th className="p-4 text-right">Rake Total</th>
+                <th className="p-4 text-right">Rake Bruto</th>
+                <th className="p-4 text-right">Deducción Liga</th>
+                <th className="p-4 text-right text-emerald-300">Rake Líquido</th>
                 <th className="p-4 text-center">Deal</th>
-                <th className="p-4 text-right">Comisión Total</th>
-                <th className="p-4 text-right text-rose-400">Promos Asumidas</th>
-                <th className="p-4 text-right text-blue-400">Ya Pagado</th>
-                <th className="p-4 text-right text-amber-400 text-sm">Saldo Pendiente</th>
-                <th className="p-4 text-center">Abonar a Saldo</th>
+                <th className="p-4 text-right text-blue-400">A Recibir</th>
+                <th className="p-4 text-right text-rose-400">Promos Jugadores</th>
+                <th className="p-4 text-right text-emerald-400">Generado Periodo</th>
+                <th className="p-4 text-right text-amber-400 text-sm">Saldo Total</th>
                 <th className="p-4 text-center">Acción</th>
               </tr>
+              
+              <tr className="bg-gray-950 border-b border-gray-700 font-mono text-[11px] font-bold text-white uppercase tracking-wider">
+                <th className="py-3 px-4">TOTALES</th>
+                <th className="py-3 px-4 text-right text-gray-300">${totalRakeBrutoPer.toLocaleString("es-CL")}</th>
+                <th className="py-3 px-4 text-right text-gray-500">-${totalDeduccionLigaPer.toLocaleString("es-CL")}</th>
+                <th className="py-3 px-4 text-right text-emerald-300">${totalRakeLiquidoPer.toLocaleString("es-CL")}</th>
+                <th className="py-3 px-4"></th>
+                <th className="py-3 px-4 text-right text-blue-400">${totalARecibirPer.toLocaleString("es-CL")}</th>
+                <th className="py-3 px-4 text-right text-rose-400">-${totalPromosJugadoresPer.toLocaleString("es-CL")}</th>
+                <th className="py-3 px-4 text-right text-emerald-400">${totalGeneradoPer.toLocaleString("es-CL")}</th>
+                <th className="py-3 px-4 text-right text-amber-400">${totalSaldoTotal.toLocaleString("es-CL")}</th>
+                <th className="py-3 px-4"></th>
+              </tr>
             </thead>
+            
             <tbody className="text-sm divide-y divide-gray-800">
               {report.map((agent) => (
                 <tr key={agent.id} className="hover:bg-gray-800/50 transition-colors">
                   <td className="p-4 font-bold">{agent.name}</td>
-                  <td className="p-4 text-right font-mono text-gray-300">${agent.historicalRake.toLocaleString("es-CL")}</td>
+                  <td className="p-4 text-right font-mono text-gray-300">${agent.grossRakePeriodo.toLocaleString("es-CL")}</td>
+                  <td className="p-4 text-right font-mono text-gray-500">-${agent.deduccionLigaPeriodo.toLocaleString("es-CL")}</td>
+                  <td className="p-4 text-right font-mono text-emerald-300 font-bold">${agent.rakeLiquidoPeriodo.toLocaleString("es-CL")}</td>
                   <td className="p-4 text-center font-bold text-emerald-500 bg-emerald-500/5">{agent.deal}%</td>
-                  <td className="p-4 text-right font-mono text-emerald-400 font-bold">${agent.historicalCommission.toLocaleString("es-CL")}</td>
-                  
+                  <td className="p-4 text-right font-mono text-blue-400 font-bold">${agent.aRecibirPeriodo.toLocaleString("es-CL")}</td>
                   <td className="p-4 text-right font-mono text-rose-400 font-bold">
-                    -${(agent.promosPaid || 0).toLocaleString("es-CL")}
+                    -${(agent.promosJugadoresPeriodo || 0).toLocaleString("es-CL")}
                   </td>
-
-                  <td className="p-4 text-right font-mono text-blue-400 font-bold">
-                    -${agent.totalPaid.toLocaleString("es-CL")}
+                  <td className="p-4 text-right font-mono text-emerald-400 font-black bg-emerald-500/5">
+                    ${agent.generadoPeriodo.toLocaleString("es-CL")}
                   </td>
-
                   <td className="p-4 text-right font-mono text-amber-400 font-black bg-amber-500/10 text-base">
-                    ${agent.pendingRake.toLocaleString("es-CL")}
+                    ${agent.saldoTotal.toLocaleString("es-CL")}
                   </td>
                   
                   <td className="p-4 text-center">
-                    <input
-                      type="number"
-                      placeholder="$0"
-                      value={inputAmounts[agent.id] || ""}
-                      onChange={(e) => handleAmountChange(agent.id, e.target.value)}
-                      className="w-24 bg-gray-950 border border-gray-700 rounded p-1.5 text-right font-mono text-white focus:border-emerald-500 outline-none text-sm"
-                    />
-                  </td>
-                  <td className="p-4 text-center">
-                    <button
-                      onClick={() => validateAndSendPayout(agent.id, agent.pendingRake)}
-                      disabled={agent.pendingRake <= 0}
-                      className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded text-xs font-black uppercase transition-all"
+                    <Button 
+                      variant="accent" 
+                      size="sm" 
+                      onClick={() => setPayingAgent(agent)} 
+                      disabled={agent.generadoPeriodo <= 0 && agent.saldoTotal <= 0}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8 text-xs border-none"
                     >
-                      Pagar
-                    </button>
+                      <Wallet size={14} className="mr-1.5" /> Pagar
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -275,7 +311,52 @@ export function LapLiquidationsPage() {
         </div>
       )}
 
-      {/* 🔥 HISTORIAL DE PAGOS A AGENTES */}
+      {payingAgent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-black text-white mb-2">Pagar a {payingAgent.name}</h3>
+            
+            <div className="bg-gray-950 p-3 rounded-lg border border-gray-800 mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[11px] text-gray-400 uppercase tracking-wider">Generado en Periodo:</span>
+                <span className="text-emerald-400 font-bold font-mono">${payingAgent.generadoPeriodo.toLocaleString("es-CL")}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] text-gray-400 uppercase tracking-wider">Deuda Histórica Total:</span>
+                <span className="text-amber-400 font-bold font-mono">${payingAgent.saldoTotal.toLocaleString("es-CL")}</span>
+              </div>
+              
+              <div className="flex gap-2 mt-3 pt-3 border-t border-gray-800">
+                <Button type="button" variant="secondary" size="sm" className="flex-1 text-[10px] py-1 h-auto" onClick={() => setPayAmount(payingAgent.generadoPeriodo.toString())}>
+                  Monto Periodo
+                </Button>
+                <Button type="button" variant="secondary" size="sm" className="flex-1 text-[10px] py-1 h-auto" onClick={() => setPayAmount(payingAgent.saldoTotal.toString())}>
+                  Monto Histórico
+                </Button>
+              </div>
+            </div>
+
+            <form onSubmit={handlePay} className="space-y-4">
+              <div>
+                <label className="text-[10px] uppercase font-mono text-gray-400 mb-1 block">Monto a Liquidar</label>
+                <input 
+                  type="number" 
+                  max={Math.max(payingAgent.saldoTotal, payingAgent.generadoPeriodo)} 
+                  required 
+                  className="w-full bg-gray-950 border border-gray-700 rounded p-2 text-sm text-white focus:border-emerald-500 outline-none font-mono" 
+                  value={payAmount} 
+                  onChange={e => setPayAmount(e.target.value)} 
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button variant="secondary" className="flex-1" onClick={() => setPayingAgent(null)}>Cancelar</Button>
+                <Button variant="accent" type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white border-none">Registrar Pago</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {!loading && (
         <div className="pt-8">
           <h3 className="text-xl font-black text-white mb-4 flex items-center gap-2">
