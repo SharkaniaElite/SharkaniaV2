@@ -29,7 +29,6 @@ export function LapLiquidationsPage() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      // 🔥 AQUÍ ESTÁ LA CORRECCIÓN: Se quitó el .neq("name", "GettingRIcher") para que traiga a TODOS.
       const { data: agents } = await supabase.from("acc_agents").select("*").order("name");
       const { data: players } = (await supabase.from("acc_players").select("clubgg_id, agent_id, nickname")) as { data: any[] | null };
       
@@ -61,7 +60,8 @@ export function LapLiquidationsPage() {
         let buyinsMayHist = 0; let buyinsJuneHist = 0;
         let buyinsMayPeriodo = 0; let buyinsJunePeriodo = 0;
         
-        let welcomeBonoTotalHist = 0; let welcomeBonoTotalPeriodo = 0;
+        let totalWelcomeHist = 0; let totalLigaHist = 0;
+        let totalWelcomePeriodo = 0; let totalLigaPeriodo = 0;
 
         const myPlayers = players?.filter(p => p.agent_id === agent.id) || [];
         
@@ -69,6 +69,7 @@ export function LapLiquidationsPage() {
           const defaultCfg = { welcome_percentage: 30, welcome_max_amount: 100000, welcome_active: true, welcome_expiry: "2026-06-30", liga_active: true, liga_expiry: "2026-05-31" };
           const cfg = configs?.find(c => c.clubgg_id === player.clubgg_id) || defaultCfg;
           const isWelcomeActive = cfg.welcome_active ?? true; 
+          const isLigaActive = cfg.liga_active ?? true;
           
           const matchingTPlayers = tPlayers?.filter(tp => tp.nickname.toLowerCase() === player.nickname.toLowerCase()) || [];
           const matchingPlayerIds = matchingTPlayers.map(tp => tp.id);
@@ -107,35 +108,59 @@ export function LapLiquidationsPage() {
             }
           });
 
-          const pDeduccionLigaHist = (pBMayH * 7000) + (pBJuneH * 5000);
-          const pRakeLiquidoHist = Math.max(0, pRakeGenHist - pDeduccionLigaHist);
-          let pBonoWHist = isWelcomeActive ? (pRakeLiquidoHist * (Number(cfg.welcome_percentage) / 100)) : 0;
+          // 🔥 HISTÓRICO DEL JUGADOR (Promos)
+          const pBonoLigaHist = isLigaActive ? (pBMayH * 2000) : 0;
+          const pDeduccionBaseWHist = (pBMayH * 7000) + (pBJuneH * 5000);
+          const pRakeLiquidoWHist = Math.max(0, pRakeGenHist - pDeduccionBaseWHist);
+          let pBonoWHist = isWelcomeActive ? (pRakeLiquidoWHist * (Number(cfg.welcome_percentage) / 100)) : 0;
           if (cfg.welcome_max_amount && pBonoWHist > Number(cfg.welcome_max_amount)) pBonoWHist = Number(cfg.welcome_max_amount);
-          welcomeBonoTotalHist += pBonoWHist;
+          
+          totalWelcomeHist += pBonoWHist;
+          totalLigaHist += pBonoLigaHist;
 
-          const pDeduccionLigaPeriodo = (pBMayP * 7000) + (pBJuneP * 5000);
-          const pRakeLiquidoPeriodo = Math.max(0, pRakeGenPeriodo - pDeduccionLigaPeriodo);
-          let pBonoWPeriodo = isWelcomeActive ? (pRakeLiquidoPeriodo * (Number(cfg.welcome_percentage) / 100)) : 0;
-          if (cfg.welcome_max_amount && pBonoWPeriodo > Number(cfg.welcome_max_amount)) pBonoWPeriodo = Number(cfg.welcome_max_amount);
-          welcomeBonoTotalPeriodo += pBonoWPeriodo;
+          // 🔥 PERIODO DEL JUGADOR (Promos)
+          const pBonoLigaPer = isLigaActive ? (pBMayP * 2000) : 0;
+          const pDeduccionBaseWPer = (pBMayP * 7000) + (pBJuneP * 5000);
+          const pRakeLiquidoWPer = Math.max(0, pRakeGenPeriodo - pDeduccionBaseWPer);
+          let pBonoWPer = isWelcomeActive ? (pRakeLiquidoWPer * (Number(cfg.welcome_percentage) / 100)) : 0;
+          if (cfg.welcome_max_amount && pBonoWPer > Number(cfg.welcome_max_amount)) pBonoWPer = Number(cfg.welcome_max_amount);
+          
+          totalWelcomePeriodo += pBonoWPer;
+          totalLigaPeriodo += pBonoLigaPer;
         });
 
         const dealPerc = Number(agent.deal_percentage || 0);
 
-        const deduccionLigaPeriodo = (buyinsMayPeriodo * 7000) + (buyinsJunePeriodo * 5000);
-        const rakeLiquidoPeriodo = Math.max(0, grossRakePeriodo - deduccionLigaPeriodo);
-        const aRecibirPeriodo = rakeLiquidoPeriodo * (dealPerc / 100);
+        // =========================================================
+        // 🔥 MATEMÁTICA EXACTA DEL PERIODO
+        // =========================================================
         
-        const promosJugadoresPeriodo = welcomeBonoTotalPeriodo;
-        const generadoPeriodo = aRecibirPeriodo - promosJugadoresPeriodo;
+        // 1. Deducción Pozo ($5.000 puros de premio de la Unión)
+        const deduccionPozoPer = (buyinsMayPeriodo * 5000) + (buyinsJunePeriodo * 5000);
+        
+        // 2. Rake Líquido
+        const rakeLiquidoPer = Math.max(0, grossRakePeriodo - deduccionPozoPer);
+        
+        // 3. Rakeback Bruto: Aplicamos el % de Deal a TODO el Rake Líquido
+        const rakebackBrutoPer = rakeLiquidoPer * (dealPerc / 100);
+        
+        // 4. Generado Periodo (Corte Real) = Rakeback Bruto - Promos Jugadores
+        const totalPromosPeriodo = totalWelcomePeriodo + totalLigaPeriodo;
+        const generadoPeriodo = rakebackBrutoPer - totalPromosPeriodo;
 
-        const deduccionLigaHist = (buyinsMayHist * 7000) + (buyinsJuneHist * 5000);
-        const rakeLiquidoHist = Math.max(0, grossRakeHist - deduccionLigaHist);
-        const aRecibirHist = rakeLiquidoHist * (dealPerc / 100);
+
+        // =========================================================
+        // 🔥 MATEMÁTICA EXACTA HISTÓRICA
+        // =========================================================
+        const deduccionPozoHist = (buyinsMayHist * 5000) + (buyinsJuneHist * 5000);
+        const rakeLiquidoHist = Math.max(0, grossRakeHist - deduccionPozoHist);
         
-        const promosJugadoresHist = welcomeBonoTotalHist;
-        const generadoHist = aRecibirHist - promosJugadoresHist;
+        const rakebackBrutoHist = rakeLiquidoHist * (dealPerc / 100);
         
+        const totalPromosHist = totalWelcomeHist + totalLigaHist;
+        const generadoHist = rakebackBrutoHist - totalPromosHist;
+        
+        // Saldo Total
         const totalPaid = payouts?.filter((p) => p.agent_id === agent.id).reduce((sum, p) => sum + Number(p.amount), 0) || 0;
         const saldoTotal = generadoHist - totalPaid;
 
@@ -144,10 +169,10 @@ export function LapLiquidationsPage() {
           name: agent.name,
           deal: dealPerc,
           grossRakePeriodo, 
-          deduccionLigaPeriodo,
-          rakeLiquidoPeriodo,
-          aRecibirPeriodo,
-          promosJugadoresPeriodo, 
+          deduccionPozoPeriodo: deduccionPozoPer,
+          rakeLiquidoPeriodo: rakeLiquidoPer,
+          rakebackBrutoPeriodo: rakebackBrutoPer,
+          promosJugadoresPeriodo: totalPromosPeriodo, 
           generadoPeriodo, 
           saldoTotal,   
         };
@@ -171,7 +196,6 @@ export function LapLiquidationsPage() {
     const amt = parseFloat(payAmount);
     if (isNaN(amt) || amt <= 0) return setErrorMessage("Monto mayor a 0.");
     
-    // 🔥 PERMITE PAGAR HASTA EL MÁXIMO ENTRE LO GENERADO ESTE PERIODO Y LA DEUDA HISTÓRICA
     const maxAllowed = Math.max(payingAgent.saldoTotal, payingAgent.generadoPeriodo);
     if (amt > maxAllowed) return setErrorMessage("Supera deuda histórica y lo generado en el periodo.");
 
@@ -204,9 +228,9 @@ export function LapLiquidationsPage() {
 
   // 🔥 CÁLCULO DE SUMATORIAS PARA LA FILA DE TOTALES
   const totalRakeBrutoPer = report.reduce((acc, a) => acc + a.grossRakePeriodo, 0);
-  const totalDeduccionLigaPer = report.reduce((acc, a) => acc + a.deduccionLigaPeriodo, 0);
+  const totalDeduccionPozoPer = report.reduce((acc, a) => acc + a.deduccionPozoPeriodo, 0);
   const totalRakeLiquidoPer = report.reduce((acc, a) => acc + a.rakeLiquidoPeriodo, 0);
-  const totalARecibirPer = report.reduce((acc, a) => acc + a.aRecibirPeriodo, 0);
+  const totalRakebackBrutoPer = report.reduce((acc, a) => acc + a.rakebackBrutoPeriodo, 0);
   const totalPromosJugadoresPer = report.reduce((acc, a) => acc + (a.promosJugadoresPeriodo || 0), 0);
   const totalGeneradoPer = report.reduce((acc, a) => acc + a.generadoPeriodo, 0);
   const totalSaldoTotal = report.reduce((acc, a) => acc + a.saldoTotal, 0);
@@ -245,15 +269,15 @@ export function LapLiquidationsPage() {
         <div className="py-20 flex justify-center"><Spinner size="md" /></div>
       ) : (
         <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 overflow-x-auto shadow-xl">
-          <table className="w-full text-left text-white min-w-[1200px]">
+          <table className="w-full text-left text-white min-w-[1300px]">
             <thead className="bg-gray-800 text-[10px] uppercase font-mono tracking-wider text-gray-400">
               <tr>
                 <th className="p-4">Agente</th>
                 <th className="p-4 text-right">Rake Bruto</th>
-                <th className="p-4 text-right">Deducción Liga</th>
+                <th className="p-4 text-right">Deducción Pozo ($5k)</th>
                 <th className="p-4 text-right text-emerald-300">Rake Líquido</th>
                 <th className="p-4 text-center">Deal</th>
-                <th className="p-4 text-right text-blue-400">A Recibir</th>
+                <th className="p-4 text-right text-blue-400">Rakeback Bruto</th>
                 <th className="p-4 text-right text-rose-400">Promos Jugadores</th>
                 <th className="p-4 text-right text-emerald-400">Generado Periodo</th>
                 <th className="p-4 text-right text-amber-400 text-sm">Saldo Total</th>
@@ -263,10 +287,10 @@ export function LapLiquidationsPage() {
               <tr className="bg-gray-950 border-b border-gray-700 font-mono text-[11px] font-bold text-white uppercase tracking-wider">
                 <th className="py-3 px-4">TOTALES</th>
                 <th className="py-3 px-4 text-right text-gray-300">${totalRakeBrutoPer.toLocaleString("es-CL")}</th>
-                <th className="py-3 px-4 text-right text-gray-500">-${totalDeduccionLigaPer.toLocaleString("es-CL")}</th>
+                <th className="py-3 px-4 text-right text-gray-500">-${totalDeduccionPozoPer.toLocaleString("es-CL")}</th>
                 <th className="py-3 px-4 text-right text-emerald-300">${totalRakeLiquidoPer.toLocaleString("es-CL")}</th>
                 <th className="py-3 px-4"></th>
-                <th className="py-3 px-4 text-right text-blue-400">${totalARecibirPer.toLocaleString("es-CL")}</th>
+                <th className="py-3 px-4 text-right text-blue-400">${totalRakebackBrutoPer.toLocaleString("es-CL")}</th>
                 <th className="py-3 px-4 text-right text-rose-400">-${totalPromosJugadoresPer.toLocaleString("es-CL")}</th>
                 <th className="py-3 px-4 text-right text-emerald-400">${totalGeneradoPer.toLocaleString("es-CL")}</th>
                 <th className="py-3 px-4 text-right text-amber-400">${totalSaldoTotal.toLocaleString("es-CL")}</th>
@@ -279,10 +303,10 @@ export function LapLiquidationsPage() {
                 <tr key={agent.id} className="hover:bg-gray-800/50 transition-colors">
                   <td className="p-4 font-bold">{agent.name}</td>
                   <td className="p-4 text-right font-mono text-gray-300">${agent.grossRakePeriodo.toLocaleString("es-CL")}</td>
-                  <td className="p-4 text-right font-mono text-gray-500">-${agent.deduccionLigaPeriodo.toLocaleString("es-CL")}</td>
+                  <td className="p-4 text-right font-mono text-gray-500">-${agent.deduccionPozoPeriodo.toLocaleString("es-CL")}</td>
                   <td className="p-4 text-right font-mono text-emerald-300 font-bold">${agent.rakeLiquidoPeriodo.toLocaleString("es-CL")}</td>
                   <td className="p-4 text-center font-bold text-emerald-500 bg-emerald-500/5">{agent.deal}%</td>
-                  <td className="p-4 text-right font-mono text-blue-400 font-bold">${agent.aRecibirPeriodo.toLocaleString("es-CL")}</td>
+                  <td className="p-4 text-right font-mono text-blue-400 font-bold">${agent.rakebackBrutoPeriodo.toLocaleString("es-CL")}</td>
                   <td className="p-4 text-right font-mono text-rose-400 font-bold">
                     -${(agent.promosJugadoresPeriodo || 0).toLocaleString("es-CL")}
                   </td>
