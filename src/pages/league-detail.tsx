@@ -15,13 +15,13 @@ import { EmptyState } from "../components/ui/empty-state";
 import { useLeagueBySlug, useLeagueStandings } from "../hooks/use-leagues";
 import { useTournamentsByLeague } from "../hooks/use-tournaments";
 import { FlagIcon } from "../components/ui/flag-icon";
-import { ArrowLeft, Trophy, Crown } from "lucide-react"; // 👈 Añadido Crown
+import { ArrowLeft, Trophy, Crown, Download } from "lucide-react"; // 👈 Añadido Download
 import type { TournamentWithDetails } from "../types";
 import { cn } from "../lib/cn";
 import { SEOHead } from "../components/seo/seo-head";
-import { formatNumber } from "../lib/format"; // 👈 Importamos formateador de números
+import { formatNumber } from "../lib/format";
+import Papa from "papaparse"; // 👈 Importamos PapaParse para el CSV
 
-// 🔥 Actualizado con las nuevas pestañas (eliminamos "calendar")
 type Tab = "standings" | "ccp_standings" | "upcoming" | "history" | "info";
 
 const statusBadge = {
@@ -38,14 +38,11 @@ export function LeagueDetailPage() {
   const [tab, setTab] = useState<Tab>("standings");
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
-  // 🔥 NUEVO: Estados para el Ranking de Clubes CCP
   const [ccpStandings, setCcpStandings] = useState<CCPClubRanking[]>([]);
   const [ccpLoading, setCcpLoading] = useState(false);
 
   useEffect(() => {
-    // Solo hacemos el cálculo matemático si entra a la pestaña y aún no hay datos
     if (league?.id && tab === "ccp_standings" && ccpStandings.length === 0) {
-      // Usar setTimeout envía esto a la cola asíncrona, evitando el error del linter sobre renderizado en cascada
       const timerId = setTimeout(() => {
         setCcpLoading(true);
         getLeagueCCPStandings(league.id)
@@ -55,8 +52,7 @@ export function LeagueDetailPage() {
       }, 0);
       return () => clearTimeout(timerId);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [league?.id, tab]);
+  }, [league?.id, tab, ccpStandings.length]);
 
   if (isLoading) {
     return (
@@ -92,10 +88,8 @@ export function LeagueDetailPage() {
   const tournamentRooms = Array.from(new Set((tournaments ?? []).map(t => t.poker_rooms?.name).filter(Boolean)));
   const rooms = directRooms.length > 0 ? directRooms : tournamentRooms;
 
-  // 👑 Detectamos al campeón (El primero en la lista de posiciones)
   const champion = standings && standings.length > 0 ? standings[0] : null;
 
-  // 🔥 Evaluamos si la liga pertenece a Latin Allin Poker
   const isLatinAllin = clubs.some(
     (lc) => (lc.clubs as any)?.slug === "latin-allin-poker" || lc.clubs?.name.toLowerCase().includes("latin allin")
   );
@@ -108,20 +102,47 @@ export function LeagueDetailPage() {
     { key: "info", label: "Información" },
   ];
 
-  // 🕒 Torneos Activos (Orden ASCENDENTE)
   const upcoming = (tournaments ?? [])
     .filter(t => ["scheduled", "live", "late_registration"].includes(t.status))
     .sort((a, b) => new Date(a.start_datetime || 0).getTime() - new Date(b.start_datetime || 0).getTime());
 
-  // ✅ Torneos Finalizados (Orden DESCENDENTE)
   const completed = (tournaments ?? [])
     .filter(t => ["completed", "cancelled"].includes(t.status))
     .sort((a, b) => new Date(b.start_datetime || 0).getTime() - new Date(a.start_datetime || 0).getTime());
 
-    const playersMap = standings?.reduce((acc, st) => {
+  const playersMap = standings?.reduce((acc, st) => {
     acc[st.player_id] = st.players?.nickname || "Desconocido";
     return acc;
   }, {} as Record<string, string>) || {};
+
+  // 🔥 FUNCIÓN PARA DESCARGAR CSV
+  const handleDownloadCSV = () => {
+    if (!standings || standings.length === 0) return;
+
+    // Preparamos los datos excluyendo el ELO
+    const csvData = standings.map((s, index) => ({
+      Posición: index + 1,
+      Jugador: s.players?.nickname || "—",
+      "Club CCP": s.ccp_club || "Sin Club",
+      Puntos: Math.round(s.total_points),
+      "Torneos Jugados": s.tournaments_played,
+      "Mejor Posición": s.best_position ? `${s.best_position}°` : "—",
+    }));
+
+    // Generamos el CSV
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: "text/csv;charset=utf-8;" }); // BOM para Excel
+    
+    // Creamos enlace de descarga
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    // Usamos el slug de la liga para el nombre del archivo
+    link.setAttribute("download", `ranking_${leagueSlug}.csv`); 
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <PageShell>
@@ -158,7 +179,6 @@ export function LeagueDetailPage() {
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap mb-3">
-              {/* 🔥 Filtramos para mostrar SOLO el club organizador oficial (Dueño / is_primary) */}
               {clubs.filter(lc => lc.is_primary).map((lc) => (
                 <Link
                   key={lc.clubs?.id}
@@ -177,7 +197,6 @@ export function LeagueDetailPage() {
             </div>
           </div>
 
-          {/* 👑 NUEVO: BANNER DE CAMPEÓN (Solo si la liga terminó) */}
           {currentStatus === "finished" && champion && (
             <div className="bg-gradient-to-r from-sk-gold/10 via-sk-gold/5 to-transparent border border-sk-gold/30 rounded-xl p-6 mb-6 flex items-center gap-5 sm:gap-6 animate-in fade-in zoom-in-95 duration-500 shadow-[0_4px_30px_rgba(250,212,25,0.05)]">
               <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-full bg-sk-bg-0 border-2 border-sk-gold flex items-center justify-center shadow-[0_0_15px_rgba(250,212,25,0.3)] relative overflow-hidden">
@@ -190,7 +209,6 @@ export function LeagueDetailPage() {
                 </h2>
                 <div className="text-sk-xl sm:text-3xl font-extrabold text-sk-text-1 flex items-center gap-3">
                   <FlagIcon countryCode={champion.players?.country_code ?? null} />
-                  {/* SEO: Internal link al perfil del jugador */}
                   <Link 
                     to={`/ranking/${(champion.players as any)?.slug ?? champion.player_id}`} 
                     className="hover:text-sk-gold transition-colors"
@@ -205,7 +223,6 @@ export function LeagueDetailPage() {
             </div>
           )}
 
-          {/* Mensaje de Regla de Descartes */}
           {league.best_dates_to_count && league.total_dates && (
             <div className="flex items-center gap-3 bg-sk-gold/10 border border-sk-gold/20 text-sk-gold rounded-lg p-3.5 px-5 mb-6 text-sk-sm">
               <Trophy size={18} className="shrink-0" />
@@ -217,21 +234,35 @@ export function LeagueDetailPage() {
           )}
 
           {/* Tabs */}
-          <div className="flex gap-px bg-sk-bg-0 rounded-md p-0.5 border border-sk-border-2 mb-6 overflow-x-auto">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={cn(
-                  "text-sk-sm font-medium px-4 py-2 rounded-sm whitespace-nowrap transition-all duration-100",
-                  tab === t.key
-                    ? "bg-sk-bg-3 text-sk-text-1 shadow-sk-xs"
-                    : "text-sk-text-2 hover:text-sk-text-1"
-                )}
+          <div className="flex justify-between items-end mb-6">
+            <div className="flex gap-px bg-sk-bg-0 rounded-md p-0.5 border border-sk-border-2 overflow-x-auto">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={cn(
+                    "text-sk-sm font-medium px-4 py-2 rounded-sm whitespace-nowrap transition-all duration-100",
+                    tab === t.key
+                      ? "bg-sk-bg-3 text-sk-text-1 shadow-sk-xs"
+                      : "text-sk-text-2 hover:text-sk-text-1"
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 🔥 BOTÓN DE DESCARGA CSV (Solo visible en la tabla de posiciones principal) */}
+            {tab === "standings" && standings && standings.length > 0 && (
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={handleDownloadCSV}
+                className="hidden sm:flex items-center gap-2 border-sk-border-2"
               >
-                {t.label}
-              </button>
-            ))}
+                <Download size={14} /> Descargar CSV
+              </Button>
+            )}
           </div>
 
           {/* Tab content */}
@@ -242,17 +273,15 @@ export function LeagueDetailPage() {
             />
           )}
 
-          {/* 🔥 NUEVO: Renderizado del Ranking de Clubes CCP */}
           {tab === "ccp_standings" && (
             <ClubStandingsTable 
               standings={ccpStandings} 
-              tournaments={tournaments ?? []} // Le pasamos los torneos para los nombres de fecha
-              playersMap={playersMap}         // Le pasamos el mapa de nombres
+              tournaments={tournaments ?? []} 
+              playersMap={playersMap}         
               isLoading={ccpLoading} 
             />
           )}
 
-          {/* TAB: PRÓXIMOS */}
           {tab === "upcoming" && (
             tournamentsLoading ? <Spinner size="md" /> :
             upcoming.length === 0 ? <EmptyState icon="📅" title="Sin torneos próximos" /> :
@@ -263,7 +292,6 @@ export function LeagueDetailPage() {
             </div>
           )}
 
-          {/* TAB: HISTORIAL */}
           {tab === "history" && (
             tournamentsLoading ? <Spinner size="md" /> :
             completed.length === 0 ? <EmptyState icon="⏱️" title="Sin historial de torneos" /> :
@@ -283,7 +311,6 @@ export function LeagueDetailPage() {
                 <p><span className="text-sk-text-1 font-semibold">Nombre:</span> {league.name}</p>
                 <p><span className="text-sk-text-1 font-semibold">Estado:</span> {status.label}</p>
                 <p><span className="text-sk-text-1 font-semibold">Periodo:</span> {league.start_date} — {league.end_date}</p>
-                {/* 🔥 Cambiamos "Clubes:" a "Organizador:" y filtramos al primario */}
                 <p><span className="text-sk-text-1 font-semibold">Organizador:</span> {clubs.filter(c => c.is_primary).map((c) => c.clubs?.name).join(", ")}</p>
                 
                 {rooms.length > 0 ? (
