@@ -241,13 +241,13 @@ export function IgnitionChampionshipPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-black/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm hover:border-orange-500/50 transition-colors">
                 <div className="text-orange-500 mb-2"><Trophy size={24} /></div>
-                <p className="text-xs font-mono text-gray-500 uppercase mb-1">Pozo Garantizado</p>
+                <p className="text-xs font-mono text-gray-500 uppercase mb-1">Pozo Garantizado en cada Torneo</p>
                 <p className="text-xl font-bold text-white">$150 USD</p>
               </div>
               <div className="bg-black/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm hover:border-red-500/50 transition-colors">
                 <div className="text-red-500 mb-2"><Gamepad2 size={24} /></div>
                 <p className="text-xs font-mono text-gray-500 uppercase mb-1">Buy-in / Rebuy</p>
-                <p className="text-xl font-bold text-white">FREE / $2.20</p>
+                <p className="text-xl font-bold text-white">FREE / $2.20 USD</p>
               </div>
             </div>
 
@@ -311,7 +311,7 @@ export function IgnitionChampionshipPage() {
                       isExistingUser ? "bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg" : "text-gray-400 hover:text-white"
                     )}
                   >
-                    <LogIn size={16} /> Ya tengo cuenta
+                    <LogIn size={16} /> Ya tengo cuenta en Sharkania.com
                   </button>
                 </div>
               </div>
