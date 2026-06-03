@@ -565,7 +565,7 @@ export function SuperAdminPage() {
 
             <!-- HERO MASCOT & INTRO -->
             <tr><td align="center" style="padding: 40px 30px 20px 30px;">
-              <img src="https://sharkania.com/mascot/shark-5.webp" width="130" alt="Shark Mascot" style="display: block; margin: 0 auto 20px auto;" />
+              <img src="https://sharkania.com/mascot/shark-5.png" width="130" alt="Shark Mascot" style="display: block; margin: 0 auto 20px auto;" />
               <h2 style="margin: 0 0 15px 0; color: #ffffff; font-size: 24px;">¡Hola {{nickname}}!</h2>
               <p style="color: #9ca3af; font-size: 16px; line-height: 1.6; margin: 0;">${nlIntro.replace(/\n/g, '<br/>')}</p>
             </td></tr>
