@@ -7,7 +7,14 @@ export async function signUp(
   password: string,
   displayName: string,
   role: UserRole = "player",
-  extra?: { country_code?: string; whatsapp?: string },
+  // 🔥 1. ACTUALIZAMOS EL TIPADO DE EXTRA PARA ACEPTAR IGNITION
+  extra?: { 
+    country_code?: string; 
+    whatsapp?: string;
+    ignition_league_player?: boolean;
+    ignition_email?: string;
+    ignition_nickname?: string;
+  },
   captchaToken?: string // 🛡️ AÑADIDO: Token de Turnstile
 ) {
   const { data, error } = await supabase.auth.signUp({
@@ -22,6 +29,10 @@ export async function signUp(
         // Supabase trigger leerá estos campos para poblar profiles
         country_code: extra?.country_code ?? null,
         whatsapp: extra?.whatsapp ?? null,
+        // 🔥 2. PASAMOS LOS DATOS PARA QUE SE GUARDEN EN USER_METADATA DE SUPABASE
+        ignition_league_player: extra?.ignition_league_player ?? null,
+        ignition_email: extra?.ignition_email ?? null,
+        ignition_nickname: extra?.ignition_nickname ?? null,
       },
     },
   });
@@ -93,8 +104,8 @@ export async function updateProfile(
   if (!profile) throw new Error("Profile not found after update");
   return profile;
 }
-// Agrega esto al final de src/lib/api/auth.ts
 
+// Agrega esto al final de src/lib/api/auth.ts
 export async function resetPasswordForEmail(email: string, captchaToken?: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/update-password`,

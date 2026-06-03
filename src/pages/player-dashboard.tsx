@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+// src/pages/player-dashboard.tsx
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { StatCard } from "../components/ui/stat-card";
 import { Button } from "../components/ui/button";
@@ -9,7 +10,7 @@ import { NicknameClaim } from "../components/admin/nickname-claim";
 import { useAuthStore } from "../stores/auth-store";
 import { updateProfile } from "../lib/api/auth";
 import { getFlag, getCountryName } from "../lib/countries";
-import { Settings, User, LogOut, Link as LinkIcon, Camera } from "lucide-react";
+import { Settings, User, LogOut, Link as LinkIcon, Camera, Flame, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { PlayerStatsGrid } from "../components/players/player-stats-grid";
 import { EloChart } from "../components/players/elo-chart";
@@ -19,12 +20,15 @@ import { getUnifiedPlayerStats } from "../lib/api/players";
 import { supabase } from "../lib/supabase";
 import { SEOHead } from "../components/seo/seo-head";
 import { SharkCoin } from "../components/ui/shark-coin";
-// 👇 IMPORTAMOS EL NUEVO PANEL DE MISIONES
 import { MissionsPanel } from "../components/gamification/missions-panel"; 
+import { cn } from "../lib/cn";
 
 export function PlayerDashboardPage() {
   const { profile, user, refreshProfile, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const ignitionPanelRef = useRef<HTMLDivElement>(null);
+
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.display_name ?? "");
   const [countryCode, setCountryCode] = useState(profile?.country_code ?? "");
@@ -37,6 +41,28 @@ export function PlayerDashboardPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const avatarFileRef = useRef<HTMLInputElement>(null);
+
+  // 🔥 Estados para la vinculación de Ignition Poker
+  const isIgnitionLinked = user?.user_metadata?.ignition_league_player === true;
+  const [ignitionEmail, setIgnitionEmail] = useState(user?.user_metadata?.ignition_email ?? "");
+  const [ignitionNickname, setIgnitionNickname] = useState(user?.user_metadata?.ignition_nickname ?? "");
+  const [isSubmittingIgnition, setIsSubmittingIgnition] = useState(false);
+  const [isHighlighting, setIsHighlighting] = useState(false);
+
+  // Efecto para iluminar el panel si viene redirigido desde la Landing
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("highlight") === "ignition") {
+      setIsHighlighting(true);
+      window.history.replaceState({}, '', location.pathname);
+      
+      setTimeout(() => {
+        ignitionPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500);
+
+      setTimeout(() => setIsHighlighting(false), 4000);
+    }
+  }, [location]);
 
   // Get user's nickname claims
   const { data: myClaims, refetch: refetchClaims } = useQuery({
@@ -65,20 +91,17 @@ export function PlayerDashboardPage() {
     enabled: !!user?.id,
   });
 
-  // ── Datos completos para el Perfil Privado ──
   const primaryPlayerId = linkedPlayers?.[0]?.id;
   const primaryPlayerSlug = linkedPlayers?.[0]?.slug;
   const hasMultipleNicknames = (linkedPlayers ?? []).length > 1;
   const { data: fullPlayer } = usePlayer(primaryPlayerId || "");
 
-  // Stats unificadas (solo se usa si tiene múltiples nicknames)
   const { data: unifiedStats } = useQuery({
     queryKey: ["dashboard-unified-stats", primaryPlayerSlug],
     queryFn: () => getUnifiedPlayerStats(primaryPlayerSlug!),
     enabled: !!primaryPlayerSlug && hasMultipleNicknames,
   });
 
-  // ELO History: unificado si tiene aliases, individual si no
   const { data: unifiedElo, isLoading: unifiedEloLoading } = useUnifiedEloHistory(
     hasMultipleNicknames ? primaryPlayerSlug : undefined
   );
@@ -98,7 +121,6 @@ export function PlayerDashboardPage() {
     : individualElo ?? [];
   const isLoadingElo = hasMultipleNicknames ? unifiedEloLoading : individualEloLoading;
 
-  // Tournament Results: unificado si tiene aliases, individual si no
   const { data: unifiedResults, isLoading: unifiedResultsLoading } = useUnifiedTournamentResults(
     hasMultipleNicknames ? user?.id : undefined
   );
@@ -108,7 +130,6 @@ export function PlayerDashboardPage() {
   const tournamentResults = hasMultipleNicknames ? unifiedResults ?? [] : individualResults ?? [];
   const isLoadingResults = hasMultipleNicknames ? unifiedResultsLoading : individualResultsLoading;
 
-  // Player con stats unificadas para el StatsGrid
   const displayPlayer = hasMultipleNicknames && fullPlayer && unifiedStats
     ? {
         ...fullPlayer,
@@ -126,7 +147,7 @@ export function PlayerDashboardPage() {
     return <PageShell><div className="pt-20 min-h-screen flex items-center justify-center"><Spinner size="lg" /></div></PageShell>;
   }
 
-  const MAX_AVATAR_BYTES = 100 * 1024; // 100 KB
+  const MAX_AVATAR_BYTES = 100 * 1024;
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -286,8 +307,8 @@ export function PlayerDashboardPage() {
             {message && <div className={`mt-4 rounded-md p-3 text-sk-sm ${message.includes("Error") ? "bg-sk-red-dim text-sk-red" : "bg-sk-green-dim text-sk-green"}`}>{message}</div>}
           </div>
 
-          {/* 🎁 ZONA VIP WPT GLOBAL (A NIVEL DE PERFIL) */}
-          <div className="bg-gradient-to-r from-sk-bg-0 to-sk-bg-1 border border-sk-accent/30 rounded-lg p-6 mb-6 shadow-[0_0_20px_rgba(34,211,238,0.05)]">
+          {/* 🎁 ZONA VIP WPT GLOBAL */}
+          <div className="bg-gradient-to-r from-sk-bg-0 to-sk-bg-1 border border-sk-accent/30 rounded-lg p-6 mb-4 shadow-[0_0_20px_rgba(34,211,238,0.05)]">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2 mb-1">
@@ -344,6 +365,129 @@ export function PlayerDashboardPage() {
             )}
           </div>
 
+          {/* 🔥 ZONA IGNITION POKER (SMART HIGHLIGHT CON NUEVA VALIDACIÓN) */}
+          <div 
+            ref={ignitionPanelRef}
+            className={cn(
+              "rounded-lg p-6 mb-6 transition-all duration-1000",
+              isHighlighting 
+                ? "bg-gradient-to-r from-orange-600/30 to-red-600/20 border-2 border-orange-500 shadow-[0_0_40px_rgba(249,115,22,0.4)] scale-[1.02]"
+                : "bg-gradient-to-r from-orange-900/20 to-red-900/10 border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.05)]"
+            )}
+          >
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="lg:max-w-md">
+                <h2 className="text-sk-md font-bold text-white flex items-center gap-2 mb-1">
+                  <Flame size={18} className="text-orange-500" /> Liga Sharkania Ignition Championship
+                </h2>
+                <p className="text-sk-sm text-sk-text-3">
+                  Vincula tu <strong className="text-orange-400">Email y Nickname</strong> de Ignition Póker para participar por el ranking y recibir las contraseñas de los torneos gratuitos. (Si no tienes tu cuenta vinculada, no podremos saber tus posiciones en cada torneo, recuerda que en Ignition Póker todos son anónimos al momento de jugar)
+                </p>
+
+                {!isIgnitionLinked && (
+                  <a 
+                    href="https://record.revenuenetwork.com/_s_OAdmC6KUepsRaI0hkgHmNd7ZgqdRLk/1/" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-400 hover:text-orange-300 mt-3 bg-orange-500/10 border border-orange-500/20 px-3 py-1.5 rounded-full transition-colors w-max"
+                  >
+                    <Download size={14} /> ¿No tienes cuenta en Ignition? Créala aquí
+                  </a>
+                )}
+              </div>
+
+              {isIgnitionLinked ? (
+                <div className="flex flex-col items-start lg:items-end bg-black/30 p-3 rounded-lg border border-white/5 w-full lg:w-auto">
+                  <Badge variant="green">¡Vinculado a Ignition!</Badge>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-[11px] text-sk-text-3 font-mono flex justify-between gap-4">
+                      <span>Email:</span> <strong className="text-white">{user?.user_metadata?.ignition_email}</strong>
+                    </p>
+                    <p className="text-[11px] text-sk-text-3 font-mono flex justify-between gap-4">
+                      <span>Nickname:</span> <strong className="text-orange-400">{user?.user_metadata?.ignition_nickname}</strong>
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                  <div className="w-full space-y-2">
+                    <input
+                      type="email"
+                      placeholder="Correo de Ignition..."
+                      value={ignitionEmail}
+                      onChange={(e) => setIgnitionEmail(e.target.value)}
+                      className="w-full bg-black/40 border border-orange-500/30 rounded-md py-2 px-3 text-sk-sm text-white font-mono focus:outline-none focus:border-orange-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Nickname en Ignition..."
+                      value={ignitionNickname}
+                      onChange={(e) => setIgnitionNickname(e.target.value)}
+                      className="w-full bg-black/40 border border-orange-500/30 rounded-md py-2 px-3 text-sk-sm text-white font-mono focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  {/* 🔥 BOTÓN VINCULAR CON EL IS_LOADING AGREGADO DE VUELTA Y NUEVA LÓGICA */}
+                  <Button
+                    variant="accent"
+                    size="sm"
+                    className="w-full sm:w-auto sm:self-stretch whitespace-nowrap bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 border-none text-white font-bold"
+                    isLoading={isSubmittingIgnition}
+                    onClick={async () => {
+                      if (!ignitionEmail.trim() || !ignitionEmail.includes("@")) {
+                        alert("Ingresa un correo válido.");
+                        return;
+                      }
+                      if (!ignitionNickname.trim()) {
+                        alert("Ingresa tu Nickname de Ignition.");
+                        return;
+                      }
+                      setIsSubmittingIgnition(true);
+                      try {
+                        const emailToLink = ignitionEmail.trim();
+                        const nickToLink = ignitionNickname.trim();
+
+                        // 1. CONSULTAMOS AL GUARDIA DE SEGURIDAD
+                        const { data: isDuplicate, error: rpcError } = await supabase.rpc("check_ignition_duplicate", {
+                          p_email: emailToLink,
+                          p_nickname: nickToLink,
+                          p_user_id: user.id
+                        });
+
+                        if (rpcError) throw rpcError;
+
+                        // 2. BLOQUEAMOS SI ESTÁ DUPLICADO
+                        if (isDuplicate) {
+                          alert("⚠️ Error: Este correo o Nickname de Ignition ya está vinculado a otra cuenta de Sharkania.");
+                          setIsSubmittingIgnition(false);
+                          return;
+                        }
+
+                        // 3. SI ESTÁ LIBRE, LO VINCULAMOS
+                        const { error } = await supabase.auth.updateUser({
+                          data: {
+                            ignition_league_player: true,
+                            ignition_email: emailToLink,
+                            ignition_nickname: nickToLink,
+                          }
+                        });
+                        
+                        if (error) throw error;
+                        alert("¡Cuenta de Ignition vinculada con éxito!");
+                        window.location.reload();
+                      } catch (e) {
+                        console.error(e);
+                        alert("Error al vincular tu correo.");
+                      }
+                      setIsSubmittingIgnition(false);
+                    }}
+                  >
+                    Vincular
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Linked Nicknames */}
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -391,7 +535,7 @@ export function PlayerDashboardPage() {
             <StatCard label="Nicknames" value={String((linkedPlayers ?? []).length)} />
           </div>
 
-          {/* 🎯 PANEL DE MISIONES Y RECOMPENSAS (NUEVO) */}
+          {/* 🎯 PANEL DE MISIONES Y RECOMPENSAS */}
           <div className="mb-10 mt-10">
             <h2 className="text-sk-xl font-extrabold text-sk-text-1 mb-4 flex items-center gap-2">
               🎯 Misiones Activas
