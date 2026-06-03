@@ -565,7 +565,8 @@ export function SuperAdminPage() {
 
             <!-- HERO MASCOT & INTRO -->
             <tr><td align="center" style="padding: 40px 30px 20px 30px;">
-              <img src="https://sharkania.com/mascot/shark-5.png" width="130" alt="Shark Mascot" style="display: block; margin: 0 auto 20px auto;" />
+              <!-- Reemplaza la URL de abajo por el link de tu nuevo PNG en Supabase -->
+              <img src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-5.png" width="130" alt="Shark Mascot" style="display: block; margin: 0 auto 20px auto;" />
               <h2 style="margin: 0 0 15px 0; color: #ffffff; font-size: 24px;">¡Hola {{nickname}}!</h2>
               <p style="color: #9ca3af; font-size: 16px; line-height: 1.6; margin: 0;">${nlIntro.replace(/\n/g, '<br/>')}</p>
             </td></tr>
