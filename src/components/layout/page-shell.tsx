@@ -78,21 +78,21 @@ export function PageShell({ children }: PageShellProps) {
             
             {/* 💻 Banner 1: Latin Allin (Viene de tu CMS) */}
             {hasSuperBanner && (
-              <div className="w-full xl:w-[728px] h-[90px] flex justify-center shrink-0">
+              <div className="w-full xl:w-[728px] h-auto xl:h-[90px] flex justify-center shrink-0">
                 {hasSuperDesktop && (
                   <a
                     href={superBanner.desktop?.href || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={cn(
-                      "w-[728px] h-[90px] flex justify-center bg-sk-bg-1 rounded-md overflow-hidden shadow-sm",
+                      "w-full max-w-[728px] h-auto xl:h-[90px] flex justify-center bg-sk-bg-1 rounded-md overflow-hidden shadow-sm hover:opacity-90 transition-opacity",
                       hasSuperMobile ? "hidden md:flex" : "flex"
                     )}
                   >
                     <img
                       src={superBanner.desktop?.src}
                       alt="Promoción Principal"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain xl:object-cover"
                     />
                   </a>
                 )}
@@ -102,43 +102,34 @@ export function PageShell({ children }: PageShellProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className={cn(
-                      "w-[728px] max-w-full h-[90px] flex justify-center bg-sk-bg-1 rounded-md overflow-hidden shadow-sm",
+                      "w-full max-w-[728px] h-auto flex justify-center bg-sk-bg-1 rounded-md overflow-hidden shadow-sm hover:opacity-90 transition-opacity",
                       hasSuperDesktop ? "md:hidden" : "flex"
                     )}
                   >
                     <img
                       src={superBanner.mobile?.src}
                       alt="Promoción Principal"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </a>
                 )}
               </div>
             )}
 
-            {/* 🔥 Banner 2: Ignition Poker (Iframe Script de Afiliado) */}
-            <div className="w-full xl:w-[728px] h-[90px] flex justify-center shrink-0 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              <iframe
-                title="Ignition Poker Promo"
-                srcDoc={`
-                  <!DOCTYPE html>
-                  <html>
-                    <head>
-                      <style>
-                        body { margin:0; padding:0; overflow:hidden; background:transparent; display:flex; justify-content:center; align-items:center; }
-                      </style>
-                    </head>
-                    <body>
-                      <script type="text/javascript" src="https://js.revenuenetwork.com/javascript.php?prefix=s_OAdmC6KUeMYv1gp8sW3WNd7ZgqdRLk&amp;media=2603&amp;campaign=1"></script>
-                    </body>
-                  </html>
-                `}
-                width="728"
-                height="90"
-                frameBorder="0"
-                scrolling="no"
-                className="w-[728px] h-[90px] shrink-0 rounded-md shadow-sm border border-white/5"
-              />
+            {/* 🔥 Banner 2: Ignition Poker (HTML Directo) */}
+            <div className="w-full xl:w-[728px] h-auto xl:h-[90px] flex justify-center shrink-0">
+              <a 
+                href="https://record.revenuenetwork.com/_s_OAdmC6KUcClNpGDbJ6T1wYPd_vJ7Zw/1/" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full max-w-[728px] h-auto xl:h-[90px] flex justify-center bg-black rounded-md overflow-hidden shadow-sm border border-white/5 hover:opacity-90 transition-opacity"
+              >
+                <img 
+                  src="https://media.revenuenetwork.com/GIF/Ignition%20Poker/Spanish/Poker/728x90.jpg" 
+                  alt="Ignition Poker Promoción" 
+                  className="w-full h-full object-contain xl:object-cover"
+                />
+              </a>
             </div>
 
           </div>
