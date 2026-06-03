@@ -6,7 +6,7 @@ import { Footer } from "./footer";
 import { AdminAccessBanner } from "./admin-access-banner";
 import { getLatestChampion, type LeagueChampionNews } from "../../lib/api/champions";
 import { Crown, X } from "lucide-react";
-import { useBanners } from "../../hooks/use-banners"; // 👈 Importamos los banners
+import { useBanners } from "../../hooks/use-banners";
 import { cn } from "../../lib/cn";
 import { GlobalChampionsTicker } from "./global-champions-ticker";
 
@@ -18,7 +18,7 @@ export function PageShell({ children }: PageShellProps) {
   const [champion, setChampion] = useState<LeagueChampionNews | null>(null);
   const [dismissed, setDismissed] = useState(true);
   
-  // 🎯 Obtenemos el banner super desde la configuración general
+  // 🎯 Obtenemos el banner de Latin Allin (CMS)
   const banners = useBanners();
   const superBanner = banners?.slots?.super;
   
@@ -66,54 +66,84 @@ export function PageShell({ children }: PageShellProps) {
       {/* Spacer para compensar el navbar (56px) */}
       <div style={{ height: "56px", flexShrink: 0 }} />
 
-      {/* 🚀 ZONA PEGADA AL NAVBAR (Ticker + Super Banner) */}
+      {/* 🚀 ZONA PEGADA AL NAVBAR (Ticker + Super Banners) */}
       <div className="sticky top-[56px] left-0 right-0 w-full z-[90] flex flex-col">
         
         {/* 🏆 1ro: TICKER DE CAMPEONES */}
         <GlobalChampionsTicker />
 
-        {/* 🌟 2do: SUPER BANNER GLOBAL */}
-        {hasSuperBanner && (
-          <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 overflow-hidden shadow-md flex justify-center items-center relative z-40">
-            {/* 💻 Banner Desktop */}
-            {hasSuperDesktop && (
-              <a
-                href={superBanner.desktop?.href || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "w-full h-[70px] md:h-[148px] flex justify-center bg-sk-bg-1",
-                  hasSuperMobile ? "hidden md:flex" : "flex"
-                )}
-              >
-                <img
-                  src={superBanner.desktop?.src}
-                  alt="Promoción Especial"
-                  className="w-full h-full object-contain md:object-cover max-w-[1023px]"
-                />
-              </a>
-            )}
+        {/* 🌟 2do: ZONA DUAL DE BANNERS (Latin Allin + Ignition) */}
+        <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 overflow-hidden shadow-md flex justify-center py-3 relative z-40">
+          <div className="w-full max-w-[1520px] px-2 flex flex-col xl:flex-row items-center justify-center gap-4">
             
-            {/* 📱 Banner Mobile */}
-            {hasSuperMobile && (
-              <a
-                href={superBanner.mobile?.href || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "w-full h-[70px] flex justify-center bg-sk-bg-1",
-                  hasSuperDesktop ? "md:hidden" : "flex"
+            {/* 💻 Banner 1: Latin Allin (Viene de tu CMS) */}
+            {hasSuperBanner && (
+              <div className="w-full xl:w-[728px] h-[90px] flex justify-center shrink-0">
+                {hasSuperDesktop && (
+                  <a
+                    href={superBanner.desktop?.href || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "w-[728px] h-[90px] flex justify-center bg-sk-bg-1 rounded-md overflow-hidden shadow-sm",
+                      hasSuperMobile ? "hidden md:flex" : "flex"
+                    )}
+                  >
+                    <img
+                      src={superBanner.desktop?.src}
+                      alt="Promoción Principal"
+                      className="w-full h-full object-cover"
+                    />
+                  </a>
                 )}
-              >
-                <img
-                  src={superBanner.mobile?.src}
-                  alt="Promoción Especial"
-                  className="w-full h-full object-cover max-w-[870px]"
-                />
-              </a>
+                {hasSuperMobile && (
+                  <a
+                    href={superBanner.mobile?.href || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "w-[728px] max-w-full h-[90px] flex justify-center bg-sk-bg-1 rounded-md overflow-hidden shadow-sm",
+                      hasSuperDesktop ? "md:hidden" : "flex"
+                    )}
+                  >
+                    <img
+                      src={superBanner.mobile?.src}
+                      alt="Promoción Principal"
+                      className="w-full h-full object-cover"
+                    />
+                  </a>
+                )}
+              </div>
             )}
+
+            {/* 🔥 Banner 2: Ignition Poker (Iframe Script de Afiliado) */}
+            <div className="w-full xl:w-[728px] h-[90px] flex justify-center shrink-0 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <iframe
+                title="Ignition Poker Promo"
+                srcDoc={`
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <style>
+                        body { margin:0; padding:0; overflow:hidden; background:transparent; display:flex; justify-content:center; align-items:center; }
+                      </style>
+                    </head>
+                    <body>
+                      <script type="text/javascript" src="https://js.revenuenetwork.com/javascript.php?prefix=s_OAdmC6KUeMYv1gp8sW3WNd7ZgqdRLk&amp;media=2603&amp;campaign=1"></script>
+                    </body>
+                  </html>
+                `}
+                width="728"
+                height="90"
+                frameBorder="0"
+                scrolling="no"
+                className="w-[728px] h-[90px] shrink-0 rounded-md shadow-sm border border-white/5"
+              />
+            </div>
+
           </div>
-        )}
+        </div>
+
       </div>
 
       {/* 👑 CINTILLO GLOBAL DE CAMPEÓN */}
@@ -161,6 +191,7 @@ export function PageShell({ children }: PageShellProps) {
 
       <AdminAccessBanner />
 
+      {/* BOTÓN FLOTANTE WHATSAPP */}
       {showWhatsapp && (
         <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <button
