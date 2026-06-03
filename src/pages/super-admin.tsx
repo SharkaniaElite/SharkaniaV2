@@ -16,7 +16,7 @@ import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
   Image, Save, Eye, RefreshCw, Power, MessageCircle,
-  Zap, Star, Tv
+  Zap, Star, Tv, Mail, Newspaper // 🔥 Agregamos Newspaper
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -290,6 +290,29 @@ export function SuperAdminPage() {
 
   const [isSyncingElo, setIsSyncingElo] = useState(false);
   
+  // 🚀 Estados para Email a Jugadores Ignition
+  const [showIgnitionEmailModal, setShowIgnitionEmailModal] = useState(false);
+  const [ignitionEmailSubject, setIgnitionEmailSubject] = useState("Contraseña Torneo Ignition de Hoy");
+  const [isSendingIgnitionEmails, setIsSendingIgnitionEmails] = useState(false);
+  
+  // Variables dinámicas para el correo
+  const [ignEmailLeagueName, setIgnEmailLeagueName] = useState("Liga Ignition Championship");
+  const [ignEmailGtd, setIgnEmailGtd] = useState("$150 USD");
+  const [ignEmailPassword, setIgnEmailPassword] = useState("");
+  const [ignEmailTournamentName, setIgnEmailTournamentName] = useState("Sharkania Championship");
+  const [ignEmailStreamUrl, setIgnEmailStreamUrl] = useState("https://sharkania.com");
+
+  // 📰 NUEVO: Estados para el Boletín Semanal (Newsletter)
+  const [showNewsletterModal, setShowNewsletterModal] = useState(false);
+  const [isSendingNewsletter, setIsSendingNewsletter] = useState(false);
+  const [isTestMode, setIsTestMode] = useState(true); // 🔥 Por seguridad arranca en True
+  const [testEmail, setTestEmail] = useState("andresduhau@gmail.com"); // 🔥 Tu correo
+  const [nlSubject, setNlSubject] = useState("Boletín Semanal | Sharkania");
+  const [nlIntro, setNlIntro] = useState("¡Tenemos grandes noticias para ti esta semana!");
+  const [nlNews, setNlNews] = useState([
+    { title: "", description: "", image: "", link: "", btnText: "Leer más" }
+  ]);
+
   // 🚀 Estados para Stream Dinámico
   const [streamUrl, setStreamUrl] = useState("");
   const [streamTitle, setStreamTitle] = useState("");
@@ -428,6 +451,164 @@ export function SuperAdminPage() {
       alert("Error crítico: " + e.message);
     } finally {
       setIsSyncingElo(false);
+    }
+  };
+
+  // 🔥 NUEVO: Función para Enviar Correos a Jugadores de Ignition y Disparar el Worker
+  const handleSendIgnitionEmails = async () => {
+    if (!ignitionEmailSubject.trim() || !ignEmailPassword.trim()) {
+      alert("El asunto y la contraseña son obligatorios.");
+      return;
+    }
+    if (!confirm("¿Estás seguro de encolar este correo para TODOS los jugadores vinculados a Ignition y enviarlos ahora mismo?")) return;
+
+    setIsSendingIgnitionEmails(true);
+    try {
+      // Construimos el HTML inyectando las variables
+      const finalHtml = `
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 10px;">
+        <tr><td align="center">
+          <table width="100%" max-width="600" cellpadding="0" cellspacing="0" style="background-color: #111111; border: 1px solid #333333; border-radius: 12px; overflow: hidden; max-width: 600px; margin: 0 auto;">
+            <tr><td align="center" style="padding: 30px 20px; background-color: #ea580c; background-image: linear-gradient(90deg, #f97316, #dc2626);">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">🦈 Sharkania x Ignition 🔥</h1>
+            </td></tr>
+            <tr><td style="padding: 40px 30px;">
+              <h2 style="margin-top: 0; color: #ffffff; font-size: 22px;">¡Hola {{nickname}}!</h2>
+              <p style="color: #d1d5db; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                La fecha de hoy de la <strong>${ignEmailLeagueName}</strong> está a punto de comenzar. Recuerda que tenemos <strong>${ignEmailGtd} Garantizados</strong> y el torneo es exclusivo para nuestra comunidad.
+              </p>
+              <div style="background-color: #1a0f0a; border: 2px dashed #f97316; border-radius: 8px; padding: 25px; text-align: center; margin: 30px 0;">
+                <p style="margin: 0 0 10px 0; color: #fdba74; font-size: 14px; text-transform: uppercase; font-weight: bold;">Contraseña de hoy:</p>
+                <p style="margin: 0; color: #f97316; font-size: 36px; font-weight: 900; font-family: 'Courier New', Courier, monospace; letter-spacing: 3px;">
+                  ${ignEmailPassword}
+                </p>
+              </div>
+              <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; text-align: center;">
+                Ve a la pestaña de <strong>Torneos Programados</strong> en Ignition Poker y busca "${ignEmailTournamentName}".
+              </p>
+              <div style="text-align: center; margin-top: 40px;">
+                <a href="https://record.revenuenetwork.com/_s_OAdmC6KUepsRaI0hkgHmNd7ZgqdRLk/1/" target="_blank" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 16px 32px; font-size: 18px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase;">
+                  Abrir Ignition Poker
+                </a>
+              </div>
+            </td></tr>
+            <tr><td align="center" style="padding: 20px; background-color: #050505; border-top: 1px solid #222222;">
+              <p style="color: #6b7280; font-size: 13px; margin: 0; line-height: 1.5;">
+                Acompáñanos en el Live Stream oficial en <a href="${ignEmailStreamUrl}" style="color: #f97316; text-decoration: none;">Sharkania.com</a><br>
+                ¡Nos vemos en las mesas!
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>`;
+
+      // 1. Encolamos los correos en la base de datos
+      const { data: count, error } = await supabase.rpc("queue_ignition_emails", {
+        p_subject: ignitionEmailSubject,
+        p_body_html: finalHtml
+      });
+
+      if (error) throw error;
+
+      // 2. Disparamos el Worker de Cloudflare inmediatamente
+      try {
+        const workerRes = await fetch("https://sharkania-email-worker.duhauandres.workers.dev/");
+        const result = await workerRes.json();
+        alert(`✅ Éxito: Se encolaron ${count} correos.\n🚀 Worker ejecutado: ${result.processed} procesados (${result.success} enviados, ${result.failed} fallidos).`);
+      } catch (workerErr) {
+        console.error("Error al contactar al worker:", workerErr);
+        alert(`✅ Éxito: Se encolaron ${count} correos.\n⚠️ Nota: No pudimos leer la respuesta del Worker en tiempo real, pero si el script programado (Cron) está activo, se enviarán pronto.`);
+      }
+
+      setIgnEmailPassword(""); // Limpiamos solo la contraseña por seguridad
+      setShowIgnitionEmailModal(false);
+    } catch (e: any) {
+      alert("❌ Error: " + e.message);
+    } finally {
+      setIsSendingIgnitionEmails(false);
+    }
+  };
+
+  // 📰 NUEVO: Función para Enviar el Boletín Semanal
+  const handleSendNewsletter = async () => {
+    if (!nlSubject.trim()) return alert("El asunto es obligatorio.");
+    
+    // Si NO es prueba, lanzamos la alerta de peligro
+    if (!isTestMode) {
+      if (!confirm("🚨 ADVERTENCIA 🚨\n¿Estás 100% seguro de enviar este Boletín a TODOS los usuarios registrados de Sharkania?")) return;
+    }
+
+    setIsSendingNewsletter(true);
+    try {
+      // Ensamblamos el HTML de las noticias en bucle
+      const newsHtml = nlNews.map(item => `
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 25px; background-color: #1a1a1a; border-radius: 8px; overflow: hidden; border: 1px solid #333;">
+          ${item.image ? `<tr><td><img src="${item.image}" width="600" alt="Noticia" style="width: 100%; max-width: 600px; height: auto; display: block;" /></td></tr>` : ''}
+          <tr><td style="padding: 20px;">
+            <h3 style="margin-top: 0; color: #ffffff; font-size: 20px; font-weight: bold;">${item.title}</h3>
+            <p style="color: #d1d5db; font-size: 15px; line-height: 1.6; margin-bottom: ${item.link ? '20px' : '0'};">${item.description.replace(/\n/g, '<br/>')}</p>
+            ${item.link ? `<div><a href="${item.link}" target="_blank" style="background-color: #0ea5e9; color: #ffffff; text-decoration: none; padding: 10px 20px; font-size: 14px; font-weight: bold; border-radius: 4px; display: inline-block;">${item.btnText || 'Leer más'}</a></div>` : ''}
+          </td></tr>
+        </table>
+      `).join('');
+
+      // Construimos el esqueleto principal del correo
+      const finalHtml = `
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 30px 10px;">
+        <tr><td align="center">
+          <table width="100%" max-width="600" cellpadding="0" cellspacing="0" style="background-color: #111111; border: 1px solid #333333; border-radius: 12px; overflow: hidden; max-width: 600px; margin: 0 auto;">
+            
+            <!-- HEADER LOGO -->
+            <tr><td align="center" style="padding: 25px 20px; background-color: #000000; border-bottom: 2px solid #0ea5e9;">
+              <img src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/sharkania-horizontal-dark.svg" width="220" alt="Sharkania" style="display: block;" />
+            </td></tr>
+
+            <!-- HERO MASCOT & INTRO -->
+            <tr><td align="center" style="padding: 40px 30px 20px 30px;">
+              <img src="https://sharkania.com/mascot/shark-5.webp" width="130" alt="Shark Mascot" style="display: block; margin: 0 auto 20px auto;" />
+              <h2 style="margin: 0 0 15px 0; color: #ffffff; font-size: 24px;">¡Hola {{nickname}}!</h2>
+              <p style="color: #9ca3af; font-size: 16px; line-height: 1.6; margin: 0;">${nlIntro.replace(/\n/g, '<br/>')}</p>
+            </td></tr>
+
+            <!-- BUCLE DE NOTICIAS -->
+            <tr><td style="padding: 20px 30px;">
+              ${newsHtml}
+            </td></tr>
+
+            <!-- FOOTER -->
+            <tr><td align="center" style="padding: 25px 20px; background-color: #050505; border-top: 1px solid #222222;">
+              <p style="color: #6b7280; font-size: 13px; margin: 0; line-height: 1.5;">
+                Estás recibiendo este correo porque eres miembro de <a href="https://sharkania.com" style="color: #0ea5e9; text-decoration: none;">Sharkania.com</a><br>
+                Nos vemos en las mesas. 🦈
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>`;
+
+      // 1. Encolamos usando el NUEVO RPC
+      const { data: count, error } = await supabase.rpc("queue_newsletter_emails", {
+        p_subject: nlSubject,
+        p_body_html: finalHtml,
+        p_test_email: isTestMode ? testEmail : null // 🔥 Enviamos el correo de prueba si está activo
+      });
+
+      if (error) throw error;
+
+      // 2. Disparamos Worker
+      try {
+        const workerRes = await fetch("https://sharkania-email-worker.duhauandres.workers.dev/");
+        const result = await workerRes.json();
+        alert(`✅ Éxito: Se encolaron ${count} boletines.\n🚀 Worker: ${result.processed} procesados.`);
+      } catch (workerErr) {
+        alert(`✅ Éxito: Se encolaron ${count} boletines. Se enviarán en breve por el Cron.`);
+      }
+
+      setShowNewsletterModal(false);
+    } catch (e: any) {
+      alert("❌ Error: " + e.message);
+    } finally {
+      setIsSendingNewsletter(false);
     }
   };
 
@@ -765,6 +946,28 @@ export function SuperAdminPage() {
                     <RefreshCw size={14} className={isSyncingElo ? "animate-spin" : ""} />
                     Sincronizar ELOs Unificados (Backfill)
                   </Button>
+
+                  {/* 🔥 BOTÓN PARA ENVIAR CORREOS DE IGNITION */}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowIgnitionEmailModal(true)}
+                    className="border-sk-border-3 hover:border-orange-500 hover:text-orange-500 transition-colors"
+                  >
+                    <Mail size={14} />
+                    Enviar Correo a Jugadores Ignition
+                  </Button>
+
+                  {/* 📰 BOTÓN PARA BOLETINES (NEWSLETTER) */}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowNewsletterModal(true)}
+                    className="border-sk-border-3 hover:border-sk-accent hover:text-sk-accent transition-colors"
+                  >
+                    <Newspaper size={14} />
+                    Crear Boletín Semanal
+                  </Button>
                 </div>
               </div>
 
@@ -920,7 +1123,7 @@ export function SuperAdminPage() {
             </div>
           )}
 
-          {/* ══ SOLICITUDES (NUEVO DISEÑO CON SUB-TABS Y MODO HISTORIAL) ══ */}
+          {/* ══ SOLICITUDES ══ */}
           {tab === "requests" && (
             <div className="flex flex-col md:flex-row gap-6 min-h-[600px]">
               
@@ -1339,7 +1542,7 @@ export function SuperAdminPage() {
                 </div>
               </div>
 
-              {/* NUEVO PANEL: CONTROL DE ENCUESTAS EN VIVO */}
+              {/* PANEL: CONTROL DE ENCUESTAS EN VIVO */}
               <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 mt-4">
                 <div className="flex justify-between items-center mb-4 border-b border-sk-border-2 pb-4">
                   <div>
@@ -1529,7 +1732,7 @@ export function SuperAdminPage() {
                                 ...bannersConfig,
                                 floatingCta: { ...bannersConfig.floatingCta, [f.key]: e.target.value },
                               })}
-                              className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 focus:outline-none focus:border-sk-accent font-mono"
+                              className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
                             />
                           </div>
                         ))}
@@ -1589,6 +1792,188 @@ export function SuperAdminPage() {
 
         </div>
       </div>
+
+      {/* 🔥 MODAL PARAMETRIZADO PARA ENVIAR CORREOS DE IGNITION */}
+      {showIgnitionEmailModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-sk-lg">
+            <div className="px-6 py-4 border-b border-sk-border-2 flex items-center justify-between bg-sk-bg-3 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center">
+                  <Mail size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sk-md font-bold text-sk-text-1">Enviar Correo a Jugadores Ignition</h3>
+                  <p className="text-[11px] text-sk-text-3">Completa los datos. El diseño HTML ya viene incluido.</p>
+                </div>
+              </div>
+              <button onClick={() => setShowIgnitionEmailModal(false)} className="text-sk-text-3 hover:text-white transition-colors">
+                <XIcon size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div>
+                <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Asunto del Correo</label>
+                <input type="text" value={ignitionEmailSubject} onChange={(e) => setIgnitionEmailSubject(e.target.value)} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-orange-500 focus:outline-none" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 border-t border-sk-border-2 pt-4 mt-4">
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Contraseña del Torneo *</label>
+                  <input type="text" value={ignEmailPassword} onChange={(e) => setIgnEmailPassword(e.target.value)} placeholder="Ej: SHARK123" className="w-full bg-sk-bg-0 border border-orange-500/50 rounded p-2 text-sk-sm text-orange-400 font-bold focus:border-orange-500 focus:outline-none placeholder:font-normal placeholder:text-sk-text-4" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Nombre del Torneo (Ignition)</label>
+                  <input type="text" value={ignEmailTournamentName} onChange={(e) => setIgnEmailTournamentName(e.target.value)} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-orange-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Nombre de la Liga</label>
+                  <input type="text" value={ignEmailLeagueName} onChange={(e) => setIgnEmailLeagueName(e.target.value)} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-orange-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Monto Garantizado</label>
+                  <input type="text" value={ignEmailGtd} onChange={(e) => setIgnEmailGtd(e.target.value)} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-orange-500 focus:outline-none" />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Link del Stream en vivo</label>
+                  <input type="url" value={ignEmailStreamUrl} onChange={(e) => setIgnEmailStreamUrl(e.target.value)} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-orange-500 focus:outline-none" />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-sk-bg-3 border-t border-sk-border-2 shrink-0 flex justify-end gap-3">
+              <Button variant="secondary" onClick={() => setShowIgnitionEmailModal(false)}>Cancelar</Button>
+              <Button 
+                variant="accent" 
+                className="bg-orange-600 hover:bg-orange-500 text-white border-none"
+                onClick={handleSendIgnitionEmails} 
+                isLoading={isSendingIgnitionEmails}
+                disabled={!ignEmailPassword}
+              >
+                <Mail size={14} className="mr-2"/> Enviar y Notificar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📰 MODAL PARA BOLETÍN SEMANAL (NEWSLETTER) */}
+      {showNewsletterModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-sk-lg">
+            <div className="px-6 py-4 border-b border-sk-border-2 flex items-center justify-between bg-sk-bg-3 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-sk-accent/20 text-sk-accent flex items-center justify-center">
+                  <Newspaper size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sk-md font-bold text-sk-text-1">Constructor de Boletín</h3>
+                  <p className="text-[11px] text-sk-text-3">Este correo se enviará a TODOS los usuarios registrados.</p>
+                </div>
+              </div>
+              <button onClick={() => setShowNewsletterModal(false)} className="text-sk-text-3 hover:text-white transition-colors">
+                <XIcon size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto space-y-6">
+              {/* ASUNTO E INTRO */}
+              <div className="space-y-4 bg-sk-bg-0 p-4 border border-sk-border-2 rounded-lg">
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Asunto del Correo</label>
+                  <input type="text" value={nlSubject} onChange={e => setNlSubject(e.target.value)} className="w-full bg-sk-bg-2 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-sk-accent focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Introducción General (Aparece bajo la mascota)</label>
+                  <textarea value={nlIntro} onChange={e => setNlIntro(e.target.value)} className="w-full h-20 bg-sk-bg-2 border border-sk-border-2 rounded p-2 text-sm text-sk-text-1 resize-none focus:border-sk-accent focus:outline-none" />
+                </div>
+              </div>
+
+              {/* BUCLE DE NOTICIAS */}
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-sk-sm font-bold text-sk-text-1">Noticias ({nlNews.length})</h4>
+                  <Button variant="secondary" size="sm" onClick={() => setNlNews([...nlNews, { title: "", description: "", image: "", link: "", btnText: "Leer más" }])}>
+                    <Plus size={13} className="mr-1"/> Agregar Bloque
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {nlNews.map((news, index) => (
+                    <div key={index} className="relative border border-sk-border-2 bg-sk-bg-3 p-4 rounded-lg">
+                      {nlNews.length > 1 && (
+                        <button onClick={() => setNlNews(nlNews.filter((_, i) => i !== index))} className="absolute top-3 right-3 text-sk-text-4 hover:text-sk-red transition-colors">
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                      <h5 className="text-[11px] font-mono font-bold text-sk-accent mb-3">BLOQUE #{index + 1}</h5>
+                      
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="col-span-2">
+                          <label className="text-[10px] uppercase text-sk-text-3 block mb-1">Titular *</label>
+                          <input type="text" value={news.title} onChange={e => setNlNews(nlNews.map((n, i) => i === index ? { ...n, title: e.target.value } : n))} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-white" />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="text-[10px] uppercase text-sk-text-3 block mb-1">Descripción corta *</label>
+                          <textarea value={news.description} onChange={e => setNlNews(nlNews.map((n, i) => i === index ? { ...n, description: e.target.value } : n))} className="w-full h-16 bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sm text-sk-text-1 resize-none" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] uppercase text-sk-text-3 block mb-1">Imagen (URL) (Recomendado: 600x300px)</label>
+                          <input type="url" value={news.image} onChange={e => setNlNews(nlNews.map((n, i) => i === index ? { ...n, image: e.target.value } : n))} placeholder="https://..." className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] uppercase text-sk-text-3 block mb-1">Link del Botón</label>
+                          <input type="url" value={news.link} onChange={e => setNlNews(nlNews.map((n, i) => i === index ? { ...n, link: e.target.value } : n))} placeholder="https://..." className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" />
+                        </div>
+                        {news.link && (
+                          <div className="col-span-2">
+                            <label className="text-[10px] uppercase text-sk-text-3 block mb-1">Texto del Botón</label>
+                            <input type="text" value={news.btnText} onChange={e => setNlNews(nlNews.map((n, i) => i === index ? { ...n, btnText: e.target.value } : n))} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-sk-bg-3 border-t border-sk-border-2 shrink-0 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-3 w-full sm:w-auto bg-sk-bg-0 px-3 py-2 rounded-md border border-sk-border-2 shadow-inner">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={isTestMode} 
+                    onChange={(e) => setIsTestMode(e.target.checked)} 
+                    className="w-4 h-4 accent-sk-accent cursor-pointer" 
+                  />
+                  <span className="text-[11px] font-bold text-sk-text-1 uppercase tracking-wide">Modo Prueba</span>
+                </label>
+                {isTestMode && (
+                  <input 
+                    type="email" 
+                    value={testEmail} 
+                    onChange={(e) => setTestEmail(e.target.value)} 
+                    className="bg-sk-bg-2 border border-sk-border-2 rounded px-2 py-1 text-xs text-sk-text-1 focus:outline-none focus:border-sk-accent w-48 font-mono" 
+                  />
+                )}
+              </div>
+              <div className="flex gap-3 w-full sm:w-auto justify-end">
+                <Button variant="secondary" onClick={() => setShowNewsletterModal(false)}>Cancelar</Button>
+                <Button 
+                  variant={isTestMode ? "accent" : "danger"} 
+                  onClick={handleSendNewsletter} 
+                  isLoading={isSendingNewsletter}
+                >
+                  <Newspaper size={14} className="mr-2"/> 
+                  {isTestMode ? "Enviar Prueba" : "Enviar a TODOS"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {entityForm && (
         <EntityForm
