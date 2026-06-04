@@ -8,9 +8,25 @@ import { signUp, getProfile } from "../lib/api/auth";
 import { supabase } from "../lib/supabase";
 import { useAuthStore } from "../stores/auth-store";
 import { translateAuthError } from "../lib/format";
-import { Flame, Download, Mail, Gamepad2, Trophy, AlertCircle, LogIn, UserPlus } from "lucide-react";
+import { 
+  Flame, 
+  Download, 
+  Mail, 
+  Gamepad2, 
+  Trophy, 
+  AlertCircle, 
+  LogIn, 
+  UserPlus,
+  Gift,           // 🔥 Nuevos iconos para los beneficios
+  Percent, 
+  Shield, 
+  ChevronRight,
+  MonitorPlay,  // 🔥 Nuevo
+  CalendarDays, // 🔥 Nuevo
+  History       // 🔥 Nuevo
+} from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
-import { PageShell } from "../components/layout/page-shell"; // 🔥 Importamos el PageShell
+import { PageShell } from "../components/layout/page-shell";
 import { cn } from "../lib/cn";
 
 const LATAM_COUNTRIES = [
@@ -205,19 +221,19 @@ export function IgnitionChampionshipPage() {
     }
   };
 
-  // 🔥 ENVOLVEMOS TODO EN EL PAGESHELL
   return (
     <PageShell>
-      <div className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden font-sans pt-20">
+      <div className="min-h-screen bg-[#0a0a0a] text-white relative font-sans pt-20">
         <SEOHead 
           title="Sharkania Ignition Championship"
           description="Participa en la liga exclusiva de Sharkania en Ignition Poker. $150 GTD cada jueves, Free Buy-in."
         />
 
-        {/* Efectos visuales mantenidos */}
+        {/* Efectos visuales de fondo */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-orange-600/20 blur-[150px] rounded-full pointer-events-none opacity-60" />
         <div className="absolute top-40 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-red-600/20 blur-[100px] rounded-full pointer-events-none opacity-40" />
 
+        {/* ══ HERO SECTION ══ */}
         <div className="relative z-10 max-w-7xl mx-auto px-6 pb-24 grid grid-cols-1 lg:grid-cols-2 gap-16 items-start mt-8">
           
           {/* COLUMNA IZQUIERDA: Copy & Explicación */}
@@ -241,7 +257,7 @@ export function IgnitionChampionshipPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-black/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm hover:border-orange-500/50 transition-colors">
                 <div className="text-orange-500 mb-2"><Trophy size={24} /></div>
-                <p className="text-xs font-mono text-gray-500 uppercase mb-1">Pozo Garantizado en cada Torneo</p>
+                <p className="text-xs font-mono text-gray-500 uppercase mb-1">Pozo Garantizado</p>
                 <p className="text-xl font-bold text-white">$150 USD</p>
               </div>
               <div className="bg-black/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm hover:border-red-500/50 transition-colors">
@@ -301,7 +317,7 @@ export function IgnitionChampionshipPage() {
                       !isExistingUser ? "bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg" : "text-gray-400 hover:text-white"
                     )}
                   >
-                    <UserPlus size={16} /> Soy Nuevo en Sharkania.com
+                    <UserPlus size={16} /> Nuevo en Sharkania
                   </button>
                   <button
                     type="button"
@@ -311,7 +327,7 @@ export function IgnitionChampionshipPage() {
                       isExistingUser ? "bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg" : "text-gray-400 hover:text-white"
                     )}
                   >
-                    <LogIn size={16} /> Ya tengo cuenta en Sharkania.com
+                    <LogIn size={16} /> Ya tengo cuenta
                   </button>
                 </div>
               </div>
@@ -374,7 +390,7 @@ export function IgnitionChampionshipPage() {
                       </div>
 
                       <div>
-                        <label className={labelClass}>Tu Nickname de Ignition (El que creaste en el lobby) *</label>
+                        <label className={labelClass}>Tu Nickname de Ignition (El del lobby) *</label>
                         <input
                           type="text"
                           value={displayName}
@@ -459,8 +475,89 @@ export function IgnitionChampionshipPage() {
               )}
             </div>
           </div>
-
         </div>
+
+        {/* ══ NUEVA SECCIÓN DE BENEFICIOS ══ */}
+        <div className="relative z-10 bg-black/60 border-t border-white/5 py-24 shadow-[inset_0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-black text-white mb-4 uppercase tracking-tight">
+                Mucho más que una Liga
+              </h2>
+              <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+                Al jugar en Ignition Poker a través de Sharkania no solo participas por los premios garantizados de la liga, sino que también accedes a todos los beneficios nativos de la sala.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Card 1: Bono de Bienvenida */}
+              <div className="bg-gradient-to-b from-orange-500/10 to-transparent border border-orange-500/30 p-8 rounded-2xl relative overflow-hidden group flex flex-col">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/20 blur-3xl group-hover:bg-orange-500/30 transition-colors" />
+                <Gift className="text-orange-500 mb-6" size={40} />
+                <h3 className="text-xl font-bold text-white mb-3">Paquete de Bienvenida</h3>
+                <p className="text-gray-400 mb-6 leading-relaxed text-sm flex-1">
+                  Duplica tu primer depósito hasta $1,000 USD, obtén 50 Free Spins y entradas a 4 torneos Freerolls de $1,200 garantizados.
+                </p>
+                <Link to="/promociones/ignition-bonus" className="inline-flex items-center text-orange-400 hover:text-orange-300 font-bold text-[11px] uppercase tracking-wider transition-colors mt-auto w-fit">
+                  Ver detalles del bono <ChevronRight size={16} className="ml-1" />
+                </Link>
+              </div>
+
+              {/* Card 2: Cashback del Bono */}
+              <div className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:border-white/20 transition-colors flex flex-col">
+                <Percent className="text-gray-300 mb-6" size={40} />
+                <h3 className="text-xl font-bold text-white mb-3">50% de Cashback Inicial</h3>
+                <p className="text-gray-400 leading-relaxed text-sm flex-1">
+                  Mientras liberas tu bono de bienvenida, estarás recuperando $5 USD directamente a tu cajero por cada $10 USD que generes en rake en las mesas de Cash o Torneos.
+                </p>
+              </div>
+
+              {/* Card 3: Mesas Anónimas / Ecosistema Blando */}
+              <div className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:border-white/20 transition-colors flex flex-col">
+                <Shield className="text-gray-300 mb-6" size={40} />
+                <h3 className="text-xl font-bold text-white mb-3">Mesas Anónimas</h3>
+                <p className="text-gray-400 leading-relaxed text-sm flex-1">
+                  Ignition Poker utiliza un sistema de mesas 100% anónimas, lo que protege a los jugadores recreacionales y mantiene un ecosistema muy blando, ideal para generar ganancias.
+                </p>
+              </div>
+
+              {/* Card 4: Live Stream con Premios */}
+              <Link to="/live" className="bg-gradient-to-b from-[#0f172a] to-transparent border border-blue-500/20 p-8 rounded-2xl hover:border-blue-500/40 transition-colors flex flex-col relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl group-hover:bg-blue-500/20 transition-colors" />
+                <MonitorPlay className="text-blue-400 mb-6" size={40} />
+                <h3 className="text-xl font-bold text-white mb-3">Live Stream de la Liga</h3>
+                <p className="text-gray-400 leading-relaxed text-sm flex-1 mb-6">
+                  Sigue cada fecha de la liga en nuestro Live Stream oficial. Disfruta del análisis, interactúa en el chat y gana premios sorpresa durante la transmisión.
+                </p>
+                <span className="inline-flex items-center text-blue-400 hover:text-blue-300 font-bold text-[11px] uppercase tracking-wider transition-colors mt-auto w-fit">
+                  Ir al Stream <ChevronRight size={16} className="ml-1" />
+                </span>
+              </Link>
+
+              {/* Card 5: Ranking y Calendario */}
+              <Link to="/calendar" className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:border-white/20 transition-colors flex flex-col group">
+                <CalendarDays className="text-sk-accent mb-6" size={40} />
+                <h3 className="text-xl font-bold text-white mb-3">Ranking y Calendario</h3>
+                <p className="text-gray-400 leading-relaxed text-sm flex-1 mb-6">
+                  Accede al calendario completo de torneos en Sharkania. Acumula puntos fecha a fecha y sigue tu posición en el ranking actual e histórico en tiempo real.
+                </p>
+                <span className="inline-flex items-center text-sk-accent hover:text-cyan-300 font-bold text-[11px] uppercase tracking-wider transition-colors mt-auto w-fit">
+                  Ver Calendario <ChevronRight size={16} className="ml-1" />
+                </span>
+              </Link>
+
+              {/* Card 6: Historial de Resultados */}
+              <div className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:border-white/20 transition-colors flex flex-col">
+                <History className="text-gray-300 mb-6" size={40} />
+                <h3 className="text-xl font-bold text-white mb-3">Historial Permanente</h3>
+                <p className="text-gray-400 leading-relaxed text-sm flex-1">
+                  Tu carrera queda grabada. Mantén un registro inmutable de todos los torneos que juegues, tus lugares alcanzados y premios obtenidos para siempre en tu perfil de Sharkania.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </PageShell>
   );

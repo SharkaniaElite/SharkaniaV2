@@ -3,6 +3,7 @@ import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
 import { Link } from "react-router-dom";
 import { Gift, ArrowRight, Zap, Sparkles } from "lucide-react";
+import { cn } from "../lib/cn";
 
 export function PromotionsPage() {
   const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
@@ -17,7 +18,16 @@ export function PromotionsPage() {
       status: "active",
       link: "/promociones/freeroll-diario"
     },
-    // Aquí puedes agregar más promociones a futuro (ej. Bonos de bienvenida, Ligas)
+    // 🔥 NUEVA PROMOCIÓN AGREGADA AQUÍ
+    {
+      id: "ignition-bonus",
+      title: "Paquete de Bienvenida $1,000 USD en Ignition",
+      excerpt: "Duplica tu primer depósito, llévate 4 entradas a Freerolls de $1,200 garantizados y 50 giros gratis de Casino.",
+      image: "/bg/ignition-promo.webp", // Nombre del archivo que generarás
+      tag: "Bono Bienvenida",
+      status: "active",
+      link: "/promociones/ignition-bonus"
+    }
   ];
 
   return (
@@ -74,9 +84,16 @@ export function PromotionsPage() {
                 className="group flex flex-col bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/50 transition-all duration-300 shadow-sk-md hover:shadow-[0_0_30px_rgba(34,211,238,0.1)]"
               >
                 <div className="h-48 overflow-hidden relative border-b border-sk-border-2">
-                  <div className="absolute top-3 left-3 z-10 bg-sk-accent text-sk-bg-0 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded">
+                  {/* Etiqueta superior izquierda */}
+                  <div className={cn(
+                    "absolute top-3 left-3 z-10 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded",
+                    promo.id === "ignition-bonus" 
+                      ? "bg-orange-500 text-white" 
+                      : "bg-sk-accent text-sk-bg-0"
+                  )}>
                     {promo.tag}
                   </div>
+                  
                   <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-2 to-transparent z-0 opacity-80" />
                   <img 
                     src={promo.image} 
@@ -86,7 +103,12 @@ export function PromotionsPage() {
                 </div>
                 
                 <div className="p-6 flex flex-col flex-1">
-                  <h3 className="text-xl font-bold text-sk-text-1 mb-2 group-hover:text-sk-accent transition-colors">
+                  <h3 className={cn(
+                    "text-xl font-bold text-sk-text-1 mb-2 transition-colors",
+                    promo.id === "ignition-bonus" 
+                      ? "group-hover:text-orange-500" 
+                      : "group-hover:text-sk-accent"
+                  )}>
                     {promo.title}
                   </h3>
                   <p className="text-sk-sm text-sk-text-3 mb-6 flex-1">
@@ -97,7 +119,10 @@ export function PromotionsPage() {
                     <span className="text-[11px] font-mono text-sk-green flex items-center gap-1.5 uppercase font-bold">
                       <Zap size={14} /> Activa
                     </span>
-                    <span className="text-sk-sm font-bold text-sk-accent flex items-center gap-1">
+                    <span className={cn(
+                      "text-sk-sm font-bold flex items-center gap-1",
+                      promo.id === "ignition-bonus" ? "text-orange-500" : "text-sk-accent"
+                    )}>
                       Ver detalles <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
                     </span>
                   </div>

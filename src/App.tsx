@@ -31,6 +31,7 @@ import { LapBackingPage } from "./pages/lap-backing";
 import { AdminBroadcastPage } from "./pages/admin-broadcast";
 import { IgnitionChampionshipPage } from "./pages/ignition-championship";
 import { TutorialIgnitionPage } from "./pages/tutorial-ignition";
+import { PromoIgnitionBonusPage } from "./pages/promo-ignition-bonus";
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
@@ -144,6 +145,7 @@ export function App() {
               <Route path="/promociones/freeroll-diario" element={<PromoFreerollPage />} />
               <Route path="/ignition" element={<IgnitionChampionshipPage />} />
               <Route path="/tutorial-ignition" element={<TutorialIgnitionPage />} />
+              <Route path="/promociones/ignition-bonus" element={<PromoIgnitionBonusPage />} />
               {/* SharkTV */}
               <Route path="/tv" element={<SharkTvPage />} />
               <Route path="/tv/:id" element={<HandReviewPage />} />
