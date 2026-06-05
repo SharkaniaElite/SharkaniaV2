@@ -142,10 +142,16 @@ export function HomePage() {
       }).finally(() => setLoadingTourneys(false));
 
 
-    // Últimos Posts del Blog + Promociones Estáticas
+    // Últimos Posts del Blog + Promociones Estáticas (Ordenados por fecha de forma segura)
     getBlogPosts().then(posts => {
       const combined = [...staticPromos, ...posts];
-      setBlogPosts(combined.slice(0, 3)); // Mostramos solo los 3 más recientes en total
+      // Ordenamos de más reciente a más antiguo, asegurándonos de manejar valores nulos
+      combined.sort((a, b) => {
+        const timeA = a.published_at ? new Date(a.published_at).getTime() : 0;
+        const timeB = b.published_at ? new Date(b.published_at).getTime() : 0;
+        return timeB - timeA;
+      });
+      setBlogPosts(combined.slice(0, 3));
     }).finally(() => setLoadingBlog(false));
 
     // Estadísticas

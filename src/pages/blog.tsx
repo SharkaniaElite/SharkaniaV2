@@ -46,16 +46,30 @@ export default function BlogPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Extraer categorías dinámicamente
+  // Extraer categorías dinámicamente (Excluyendo Noticias y Promociones)
   const categories = useMemo(() => {
-    const cats = new Set(posts.map((p) => p.category).filter(Boolean));
+    const cats = new Set(
+      posts
+        .map((p) => p.category)
+        .filter((cat) => cat && cat.toLowerCase() !== "noticias" && cat.toLowerCase() !== "promociones")
+    );
     return ["Todas", ...Array.from(cats)];
   }, [posts]);
 
   // 🧠 MOTOR DE BÚSQUEDA INTELIGENTE
   const filteredPosts = useMemo(() => {
-    // 1. Filtro base por categoría (CORREGIDO: const en lugar de let)
-    const base = posts.filter((post) => selectedCategory === "Todas" || post.category === selectedCategory);
+    // 1. Filtro base por categoría (Omitiendo siempre Noticias y Promociones)
+    const base = posts.filter((post) => {
+      const cat = post.category.toLowerCase();
+      // Si la categoría del post es "noticias" o "promociones", lo bloqueamos
+      if (cat === "noticias" || cat === "promociones") return false;
+      
+      // Si el usuario eligió "Todas", permitimos que pase (porque ya bloqueamos las otras arriba)
+      if (selectedCategory === "Todas") return true;
+      
+      // Si eligió una específica (ej. "GTO & Teoría"), solo pasamos esa
+      return post.category === selectedCategory;
+    });
 
     // 2. Lógica de Puntuación (Scoring) para el buscador
     const query = search.trim().toLowerCase();

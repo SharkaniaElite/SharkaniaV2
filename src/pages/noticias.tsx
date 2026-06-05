@@ -7,7 +7,7 @@ import { Megaphone, CalendarDays, ChevronRight, Newspaper, Flame, FileText } fro
 import { getBlogPosts, formatBlogDate } from "../lib/api/blog";
 import { cn } from "../lib/cn";
 
-// Definimos las promociones estáticas FUERA del componente para evitar advertencias de dependencias en useEffect
+// Definimos las promociones estáticas FUERA del componente
 const staticPromos = [
   {
     id: "static-promo-1",
@@ -15,7 +15,7 @@ const staticPromos = [
     excerpt: "Duplica tu primer depósito, llévate 4 entradas a Freerolls de $1,200 garantizados y 50 giros gratis de Casino.",
     image_thumbnail: "/bg/ignition-promo.webp",
     category: "Promociones",
-    published_at: "2026-06-04T12:00:00Z", 
+    published_at: "2026-06-03T12:00:00Z", // Ajustado para que la noticia de la Liga (5 de junio) gane limpiamente
     slug: "ignition-bonus",
     isStaticPromo: true,
     link: "/promociones/ignition-bonus"
@@ -39,10 +39,20 @@ export function NoticiasPage() {
   const [activeCategory, setActiveCategory] = useState<string>("Todas");
 
   useEffect(() => {
-    // Obtenemos los artículos de la base de datos y le sumamos las promos estáticas
     getBlogPosts()
       .then((data) => {
-        setPosts([...staticPromos, ...data]); // Las promos estáticas quedan primero
+        const combined = [...staticPromos, ...data];
+        
+        // 🧠 Motor de Ordenamiento Cronológico Estricto
+        combined.sort((a, b) => {
+          // Extraemos las fechas y las pasamos a milisegundos de forma segura
+          const timeA = a.published_at ? new Date(a.published_at).getTime() : 0;
+          const timeB = b.published_at ? new Date(b.published_at).getTime() : 0;
+          
+          return timeB - timeA; // De más reciente a más antiguo
+        });
+        
+        setPosts(combined);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -85,7 +95,7 @@ export function NoticiasPage() {
               Actualidad y Novedades
             </div>
             <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-6 uppercase">
-              Noticias y <span className="text-transparent bg-clip-text bg-gradient-to-r from-sk-accent to-blue-500">Promociones</span>
+              Noticias y <span className="text-transparent bg-clip-text bg-gradient-to-r from-sk-accent to-blue-500">Más</span>
             </h1>
             <p className="text-lg text-sk-text-3 max-w-2xl mx-auto">
               Todo lo que necesitas saber para estar un paso adelante en las mesas. Novedades de la liga, beneficios exclusivos y contenido táctico.
