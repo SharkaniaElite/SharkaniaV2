@@ -212,9 +212,10 @@ export function App() {
   }
 />
 
-              {/* Blog */}
+              {/* Blog y Noticias */}
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
+              <Route path="/noticias/:slug" element={<BlogPostPage />} />
               <Route path="/glosario" element={<GlossaryPage />} />
 <Route path="/glosario/:slug" element={<GlossaryTermPage />} />
 
