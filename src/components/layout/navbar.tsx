@@ -8,20 +8,21 @@ import { useAuthStore } from "../../stores/auth-store";
 import { SharkCoin } from "../ui/shark-coin";
 
 const MAIN_LINKS = [
-  { label: "Ranking", href: "/ranking" },
-  { label: "Calendario", href: "/calendar" },
+  { label: "Noticias", href: "/noticias" },
+  { label: "Promociones", href: "/promociones" },
+  { label: "Estrategia", href: "/blog" },
   { label: "Clubes", href: "/clubs" },
   { label: "Ligas", href: "/leagues" },
-  { label: "Academia", href: "/academia" },
+  { label: "Ranking ELO", href: "/ranking" },
+  { label: "Calendario", href: "/calendar" },
 ];
 
 const MORE_LINKS = [
+  { label: "Academia", href: "/academia" },
   { label: "SharkTV", href: "/tv" },
   { label: "Herramientas", href: "/tools" },
   { label: "Comparador", href: "/compare" },
-  { label: "Promociones", href: "/promociones" },
   { label: "Tienda", href: "/shop" },
-  { label: "Blog", href: "/blog" },
 ];
 
 const ALL_LINKS = [...MAIN_LINKS, ...MORE_LINKS];

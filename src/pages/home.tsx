@@ -10,41 +10,42 @@ import { Badge } from "../components/ui/badge";
 import { cn } from "../lib/cn";
 import { getPlayers } from "../lib/api/players";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
-import { getBlogPosts, formatBlogDate, type BlogPost } from "../lib/api/blog";
+import { getBlogPosts, formatBlogDate } from "../lib/api/blog";
 import { supabase } from "../lib/supabase";
 import { FlagIcon } from "../components/ui/flag-icon";
-import { Trophy, CalendarDays, Building, Play, FileText, Megaphone, Zap, MonitorPlay } from "lucide-react";
+import { Trophy, CalendarDays, Megaphone, Zap } from "lucide-react";
 import { format } from "date-fns";
 import type { PlayerWithRoom, TournamentWithDetails } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
 
+// Definimos las promociones estáticas para inyectarlas en el feed de la portada
+const staticPromos = [
+  {
+    id: "static-promo-1",
+    title: "Paquete de Bienvenida $1,000 USD en Ignition",
+    excerpt: "Duplica tu primer depósito, llévate 4 entradas a Freerolls de $1,200 garantizados y 50 giros gratis de Casino.",
+    image_thumbnail: "/bg/ignition-promo.webp",
+    category: "Promociones",
+    published_at: "2026-06-04T12:00:00Z",
+    slug: "ignition-bonus",
+    isStaticPromo: true,
+    link: "/promociones/ignition-bonus"
+  },
+  {
+    id: "static-promo-2",
+    title: "El Camino del Tiburón: Freeroll Diario",
+    excerpt: "Juega gratis todos los días a las 17:00 hrs en LatinAllinPoker y clasifica a nuestros torneos principales.",
+    image_thumbnail: "/bg/freeroll-diario.webp",
+    category: "Promociones",
+    published_at: "2026-06-01T12:00:00Z",
+    slug: "freeroll-diario",
+    isStaticPromo: true,
+    link: "/promociones/freeroll-diario"
+  }
+];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const getLeagueStatus = (startDate: string | null | undefined, endDate: string | null | undefined): "upcoming" | "active" | "finished" => {
-  if (!startDate || !endDate) return "upcoming";
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  if (now < start) return "upcoming";
-  if (now > end) return "finished";
-  return "active";
-};
-
-const statusBadge = {
-  upcoming: { label: "Próxima", variant: "accent" as const },
-  active: { label: "Activa", variant: "green" as const },
-  finished: { label: "Finalizada", variant: "muted" as const },
-};
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j]!, a[i]!];
-  }
-  return a;
-}
 
 function secsUntil(datetime: string) {
   return Math.max(0, Math.floor((new Date(datetime).getTime() - Date.now()) / 1000));
@@ -111,44 +112,20 @@ function CardSkeleton() {
 export function HomePage() {
   const [players,     setPlayers]     = useState<PlayerWithRoom[]>([]);
   const [tournaments, setTournaments] = useState<TournamentWithDetails[]>([]);
-  const [leagues,     setLeagues]     = useState<any[]>([]);
-  const [blogPosts,   setBlogPosts]   = useState<BlogPost[]>([]);
+  const [blogPosts,   setBlogPosts]   = useState<any[]>([]); // Cambiado a any[] para aceptar estáticos
   const [stats,       setStats]       = useState({ players:0, tournaments:0, clubs:0, leagues:0, live:0 });
-  const [compA,       setCompA]       = useState<PlayerWithRoom|null>(null);
-  const [compB,       setCompB]       = useState<PlayerWithRoom|null>(null);
   
   const [loadingRank,    setLoadingRank]    = useState(true);
   const [loadingTourneys,setLoadingTourneys] = useState(true);
-  const [loadingLeagues, setLoadingLeagues] = useState(true);
   const [loadingBlog,    setLoadingBlog]    = useState(true);
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
-// Ahora el video viene de la Base de Datos
-  const [featuredVideo, setFeaturedVideo] = useState<any>(null);
-
-  useEffect(() => {
-    async function loadFeatured() {
-      const { data } = await supabase
-        .from('shark_tv_videos')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (data) setFeaturedVideo(data);
-    }
-    loadFeatured();
-  }, []);
 
   useEffect(() => {
     // Top 5 Jugadores
     getPlayers({ page:1, pageSize:10, orderBy:"elo_rating", orderDir:"desc" })
       .then(res => {
         setPlayers(res.data.slice(0,10)); // Ampliado a Top 10
-        if (res.data.length >= 2) {
-          const s = shuffle(res.data);
-          setCompA(s[0]!); setCompB(s[1]!);
-        }
       }).finally(() => setLoadingRank(false));
 
     // Torneos Próximos
@@ -165,14 +142,11 @@ export function HomePage() {
       }).finally(() => setLoadingTourneys(false));
 
 
-    // Ligas Recientes
-    supabase.from("leagues").select("*, league_clubs(is_primary, clubs(id,name,country_code,banner_url)), league_rooms(poker_rooms(id,name))")
-      .in("status", ["active", "upcoming", "finished"])
-      .order("start_date", { ascending: false }).limit(4)
-      .then(({ data }) => { if (data) setLeagues(data.slice(0, 2)); setLoadingLeagues(false); });
-
-    // Últimos Posts del Blog
-    getBlogPosts().then(posts => setBlogPosts(posts.slice(0,3))).finally(() => setLoadingBlog(false));
+    // Últimos Posts del Blog + Promociones Estáticas
+    getBlogPosts().then(posts => {
+      const combined = [...staticPromos, ...posts];
+      setBlogPosts(combined.slice(0, 3)); // Mostramos solo los 3 más recientes en total
+    }).finally(() => setLoadingBlog(false));
 
     // Estadísticas
     Promise.all([
@@ -191,8 +165,6 @@ export function HomePage() {
     <PageShell>
       <SEOHead title="Inicio" description="Plataforma global de poker competitivo. Rankings ELO, torneos online, análisis de manos y herramientas tácticas para tu club." path="/" />
 
-      
-
       {/* ══ HERO & TICKER ══ */}
       <section className="relative min-h-[85vh] flex flex-col items-center justify-center text-center px-6 pt-24 pb-12 overflow-hidden">
         <div className="absolute inset-0 -z-20" style={{ background:"radial-gradient(ellipse 60% 40% at 50% 0%, var(--sk-accent-dim), transparent 70%), radial-gradient(ellipse 40% 30% at 70% 80%, var(--sk-purple-dim), transparent 60%), var(--sk-bg-1)" }} />
@@ -203,14 +175,14 @@ export function HomePage() {
             <span className="px-2 py-0.5 bg-sk-accent-dim text-sk-accent rounded-full font-bold text-[10px] tracking-wide">BETA</span>
             Plataforma Global de Poker Competitivo
           </div>
-          <h1 className="text-sk-hero font-black tracking-[-0.045em] text-sk-text-1 leading-none mb-6 animate-sk-fade-up sk-delay-1">
-            El ecosistema definitivo<br />
-            <span className="bg-gradient-to-br from-sk-accent to-sk-purple bg-clip-text text-transparent">del poker de clubes.</span>
+          <h1 className="text-5xl md:text-7xl font-black tracking-[-0.045em] text-sk-text-1 leading-none mb-6 animate-sk-fade-up sk-delay-1 uppercase">
+            Juega. Aprende.<br />
+            <span className="bg-gradient-to-br from-sk-accent to-blue-400 bg-clip-text text-transparent">Domina las mesas.</span>
           </h1>
-          <p className="text-sk-lg text-sk-text-2 leading-relaxed mx-auto animate-sk-fade-up sk-delay-2">
-            Mucho más que un ranking. Únete a la élite mundial: explora clubes exclusivos, compite en ligas internacionales y forja tu legado en las mesas.
+          <p className="text-sk-lg text-sk-text-2 leading-relaxed mx-auto animate-sk-fade-up sk-delay-2 max-w-2xl">
+            Para ser un verdadero tiburón del póker necesitas dos cosas: volumen de juego y conocimiento táctico. En Sharkania te entregamos el ecosistema para ambas.
           </p>
-          <div className="flex justify-center gap-4 mt-10 flex-wrap animate-sk-fade-up sk-delay-3">
+          <div className="flex justify-center gap-4 mt-8 flex-wrap animate-sk-fade-up sk-delay-3">
             <Link to="/ranking">
               <Button variant="accent" size="xl" className="group relative overflow-hidden font-extrabold tracking-wide shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_35px_rgba(34,211,238,0.5)] transition-all duration-300 border border-sk-accent/50 hover:border-sk-accent">
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out" />
@@ -225,11 +197,21 @@ export function HomePage() {
               </Button>
             </Link>
           </div>
+          
+          {/* Trust Badges - Salas Afiliadas */}
+          <div className="mt-12 animate-sk-fade-up sk-delay-4 border-t border-sk-border-2 pt-6 w-full max-w-2xl mx-auto">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-sk-text-3 mb-4">Salas y Clubes Oficiales Afiliados</p>
+            <div className="flex justify-center items-center gap-6 md:gap-12 opacity-60 hover:opacity-100 transition-opacity duration-500 flex-wrap">
+               <span className="text-lg font-black italic tracking-tighter">WPT <span className="text-sk-accent">GLOBAL</span></span>
+               <span className="text-lg font-black italic tracking-tighter">IGNITION <span className="text-orange-500">POKER</span></span>
+               <span className="text-lg font-black italic tracking-tighter">LATINALLINPOKER <span className="text-green-500 text-xs tracking-normal align-middle">(Unión CCP)</span></span>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* ══ STATS BAR ══ */}
-      <div className="bg-sk-bg-0 border-b border-sk-border-2 py-3 overflow-hidden relative">
+      <div className="bg-sk-bg-0 border-y border-sk-border-2 py-3 overflow-hidden relative">
         <div className="absolute top-0 left-[-100%] w-1/2 h-full bg-gradient-to-r from-transparent via-sk-accent/5 to-transparent animate-[shimmer_3s_infinite]" />
         <div className="max-w-[1200px] mx-auto px-6 relative z-10">
           <div className="flex justify-center items-center gap-6 md:gap-10 flex-wrap">
@@ -253,6 +235,59 @@ export function HomePage() {
 
       {/* ══ ACTION CENTER (Torneos & Ranking) ══ */}
       <section className="py-16 bg-sk-bg-0" id="ranking">
+        
+        {/* 📰 NOTICIAS DIARIAS */}
+        <div className="max-w-[1300px] mx-auto px-6 mb-16">
+          <RevealSection>
+            <div className="flex items-center justify-between mb-6 border-b border-sk-border-2 pb-4">
+              <div>
+                <span className="text-[10px] font-mono text-sk-accent uppercase tracking-widest font-bold mb-1 block">
+                  Actualidad y Novedades
+                </span>
+                <h2 className="text-sk-xl font-black text-sk-text-1 uppercase flex items-center gap-2">
+                  <Megaphone className="text-sk-accent" size={20} /> Noticias y Promociones de Póker
+                </h2>
+              </div>
+              <Link to="/noticias" className="text-[11px] font-mono text-sk-text-3 hover:text-sk-accent font-bold uppercase transition-colors self-end pb-1">
+                Ver todas →
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {loadingBlog ? (
+                [1,2,3].map(i => <div key={i} className="animate-sk-pulse h-40 bg-sk-bg-2 border border-sk-border-2 rounded-xl" />)
+              ) : blogPosts.length === 0 ? (
+                <p className="text-sk-sm text-sk-text-3 col-span-3">Cargando noticias de la base de datos...</p>
+              ) : (
+                blogPosts.map(post => (
+                  // 🔥 ARREGLADO: Ahora apunta correctamente a /noticias/:slug
+                  <Link key={post.id} to={post.isStaticPromo ? post.link : `/noticias/${post.slug}`} className="group relative h-40 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 hover:shadow-sk-xl transition-all duration-300 flex items-end p-5">
+                    {post.image_thumbnail && (
+                      <>
+                        <img src={post.image_thumbnail} alt={post.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-90" />
+                      </>
+                    )}
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={cn(
+                          "px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-sm",
+                          post.category.toLowerCase() === 'promociones' ? "bg-orange-500 text-white" : 
+                          post.category.toLowerCase() === 'noticias' ? "bg-sk-accent text-black" : "bg-sk-purple text-white"
+                        )}>
+                          {post.category}
+                        </span>
+                        <span className="text-[10px] font-mono text-gray-300">{formatBlogDate(post.published_at)}</span>
+                      </div>
+                      <h3 className="text-white font-bold text-sm leading-tight group-hover:text-sk-accent transition-colors line-clamp-2">{post.title}</h3>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </RevealSection>
+        </div>
+
         <div className="max-w-[1300px] mx-auto px-6">
           <RevealSection>
             <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8">
@@ -288,7 +323,14 @@ export function HomePage() {
                               </div>
                               <div className="flex flex-col items-end gap-2 shrink-0">
                                 {isLive ? <Badge variant="live">EN VIVO</Badge> : secs>0 ? <CountdownTimer targetSeconds={secs} variant="soon" /> : null}
-                                <button onClick={() => setSelectedTournament(t)} className="text-[10px] uppercase font-bold text-sk-accent hover:underline">Ver Info →</button>
+                                <div className="flex items-center gap-4 mt-1">
+                                  <Link to="/como-jugar-en-clubgg" className="text-[10px] uppercase font-bold text-sk-green hover:underline">
+                                    Cómo Jugar
+                                  </Link>
+                                  <button onClick={() => setSelectedTournament(t)} className="text-[10px] uppercase font-bold text-sk-accent hover:underline">
+                                    Ver Info →
+                                  </button>
+                                </div>
                               </div>
                             </div>
                             <div className="mt-2 pt-2 border-t border-sk-border-2 flex justify-between items-center">
@@ -358,227 +400,6 @@ export function HomePage() {
             </div>
           </RevealSection>
         </div>
-      </section>
-
-      {/* ══ CONTENT HUB (SharkTV + Blog) ══ */}
-      <section className="py-20 border-y border-sk-border-2 bg-[radial-gradient(ellipse_at_center,_var(--sk-bg-2)_0%,_var(--sk-bg-0)_100%)]">
-        <div className="max-w-[1300px] mx-auto px-6">
-          <SectionHeader overline="Knowledge Base" title="Aprende de los Profesionales" desc="Análisis de manos en video y artículos técnicos para elevar tu winrate." />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* Lado Izquierdo: SharkTV Destacado (Ocupa 2 columnas en Desktop) */}
-            {/* Lado Izquierdo: SharkTV Destacado (Ocupa 2 columnas en Desktop) */}
-            <div className="lg:col-span-2">
-              {!featuredVideo ? (
-                <div className="w-full h-[400px] rounded-2xl bg-sk-bg-2 border border-sk-border-2 flex items-center justify-center animate-pulse">
-                  <MonitorPlay className="text-sk-text-4 opacity-50" size={48} />
-                </div>
-              ) : (
-                <Link to={`/tv/${featuredVideo.id}`} className="group relative block w-full h-[400px] rounded-2xl overflow-hidden border border-sk-border-2 shadow-sk-xl">
-                  {/* Imagen de Fondo */}
-                  <img src={featuredVideo.thumbnail_url} alt={featuredVideo.title} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-700 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-1 via-sk-bg-1/40 to-transparent" />
-                  
-                  {/* Badge Superior */}
-                  <div className="absolute top-6 left-6 z-10 flex gap-2">
-                    <Badge variant="accent" className="bg-sk-bg-0/80 backdrop-blur-md px-3 py-1 flex items-center gap-1.5 shadow-lg">
-                      <MonitorPlay size={12} /> SharkTV Destacado
-                    </Badge>
-                    <Badge variant="muted" className="bg-black/80">{featuredVideo.level || "Avanzado"}</Badge>
-                  </div>
-                  
-                  {/* Botón Central Play */}
-                  <div className="absolute inset-0 flex items-center justify-center z-10">
-                    <div className="w-20 h-20 rounded-full bg-sk-accent/20 flex items-center justify-center border border-sk-accent/50 group-hover:scale-110 group-hover:bg-sk-accent/30 backdrop-blur-sm transition-all duration-300 shadow-[0_0_30px_rgba(34,211,238,0.3)]">
-                      <Play className="text-sk-accent fill-sk-accent ml-2" size={32} />
-                    </div>
-                  </div>
-
-                  {/* Info Inferior */}
-                  <div className="absolute bottom-0 left-0 right-0 p-8 z-10">
-                    <h3 className="text-2xl md:text-3xl font-black text-white mb-3 tracking-tight drop-shadow-md group-hover:text-sk-accent transition-colors">{featuredVideo.title}</h3>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-sk-bg-4 overflow-hidden border border-sk-border-2">
-                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(featuredVideo.instructor_name || "Nicolas Fuentes")}&background=14151a&color=22d3ee`} alt="Instructor" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-white drop-shadow-md">{featuredVideo.instructor_name}</p>
-                        <p className="text-[11px] text-sk-text-2 font-mono">Duración: {featuredVideo.duration || "00:00"}</p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              )}
-            </div>
-
-            {/* Lado Derecho: Últimos Posts del Blog */}
-            <div className="flex flex-col bg-sk-bg-1 border border-sk-border-2 rounded-2xl p-6">
-              <h3 className="text-sk-md font-bold text-sk-text-1 mb-6 flex items-center gap-2">
-                <FileText className="text-sk-purple" size={18} /> Últimos Artículos
-              </h3>
-              
-              <div className="flex flex-col gap-6 flex-1">
-                {loadingBlog ? (
-                  [1,2,3].map(i => <div key={i} className="animate-sk-pulse h-20 bg-sk-bg-3 rounded-lg" />)
-                ) : blogPosts.length === 0 ? (
-                  <p className="text-sk-sm text-sk-text-3 text-center py-8">No hay artículos publicados aún.</p>
-                ) : (
-                  blogPosts.map(post => (
-                    <Link key={post.id} to={`/blog/${post.slug}`} className="group flex gap-4 items-center">
-                      <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 border border-sk-border-2 bg-sk-bg-3">
-                        {post.image_thumbnail ? (
-                          <img src={post.image_thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-sk-text-4"><FileText size={20} /></div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-mono text-sk-text-3 uppercase tracking-wider mb-1.5">{post.category} · {formatBlogDate(post.published_at)}</p>
-                        <h4 className="text-sk-sm font-bold text-sk-text-1 group-hover:text-sk-purple transition-colors leading-snug line-clamp-2">{post.title}</h4>
-                      </div>
-                    </Link>
-                  ))
-                )}
-              </div>
-              <div className="mt-6 pt-6 border-t border-sk-border-2">
-                <Link to="/blog"><Button variant="ghost" size="sm" className="w-full">Leer el Blog completo →</Button></Link>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ══ ECOSISTEMA (Ligas & Clubes Compactos) ══ */}
-      <section className="py-20 bg-sk-bg-0" id="ecosystem">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <RevealSection>
-            <SectionHeader overline="El Ecosistema" title="Ligas y Clubes de Élite" desc="Temporadas competitivas organizadas por los clubes más seguros de la red." />
-          </RevealSection>
-          <RevealSection>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {loadingLeagues
-                ? [1,2].map(i => <div key={i} className="animate-sk-pulse bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 h-32" />)
-                : leagues.map((lg) => {
-                    const currentStatus = getLeagueStatus(lg.start_date, lg.end_date);
-                    const status = statusBadge[currentStatus];
-                    const primaryClubObj = lg.league_clubs?.find((lc:any) => lc.is_primary)?.clubs;
-                    const bannerUrl = primaryClubObj?.banner_url;
-                    const cleanUrl = bannerUrl?.split('#')[0];
-                    
-                    return (
-                      <Link key={lg.id} to={`/leagues/${lg.slug ?? lg.id}`} className="relative overflow-hidden bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 hover:border-sk-accent/50 hover:-translate-y-1 transition-all duration-300 group" style={bannerUrl ? { backgroundImage: `linear-gradient(to right, rgba(12,13,16,0.95) 40%, rgba(12,13,16,0.2)), url('${cleanUrl}')`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
-                        <div className="relative z-10">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={status.variant}>{status.label}</Badge>
-                            <span className="font-mono text-[10px] text-sk-text-2">📅 {lg.start_date?.slice(0,10)}</span>
-                          </div>
-                          <h3 className="text-xl font-bold text-sk-text-1 group-hover:text-sk-accent transition-colors">{cleanName(lg.name)}</h3>
-                          <p className="text-sk-xs text-sk-text-3 mt-1 flex items-center gap-1">Organiza: {cleanName(primaryClubObj?.name ?? "Club")}</p>
-                        </div>
-                      </Link>
-                    );
-                  })
-              }
-            </div>
-            <div className="text-center mt-8 space-x-4">
-              <Link to="/leagues"><Button variant="secondary" size="md">Ver Ligas</Button></Link>
-              <Link to="/clubs"><Button variant="ghost" size="md">Explorar Clubes</Button></Link>
-            </div>
-          </RevealSection>
-        </div>
-      </section>
-
-      {/* ══ COMPARATOR ══ */}
-      <section className="py-20 bg-sk-bg-1 border-t border-sk-border-2" id="compare">
-        <div className="max-w-[900px] mx-auto px-6">
-          <RevealSection>
-            <SectionHeader overline="Análisis de Datos" title="Head to Head" desc="Enfrenta a dos jugadores y descubre quién domina en los números fríos." />
-          </RevealSection>
-          <RevealSection>
-            <div className="relative border border-sk-border-2 rounded-3xl p-6 md:p-10 overflow-hidden shadow-sk-xl sk-comparator-bg group">
-              <div className="absolute inset-0 bg-sk-bg-1/90 backdrop-blur-[2px] z-0 group-hover:bg-sk-bg-1/75 transition-all duration-700" />
-              <div className="relative z-10">
-                {!compA || !compB
-                  ? <div className="animate-sk-pulse h-48 rounded bg-sk-bg-3/50" />
-                  : <>
-                    <div className="grid grid-cols-[1fr_60px_1fr] gap-4 items-center">
-                    {/* Player A */}
-                    <div className="text-center">
-                      <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-xl font-extrabold text-sk-accent mx-auto mb-3">{cleanName(compA.nickname).charAt(0).toUpperCase()}</div>
-                      <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
-                        <FlagIcon countryCode={compA.country_code} />
-                        <span className="font-bold text-sk-text-1 text-sk-md">{cleanName(compA.nickname)}</span>
-                      </div>
-                      <div className="font-mono font-black text-2xl text-sk-accent">{Math.round(compA.elo_rating).toLocaleString("es")}</div>
-                    </div>
-                    {/* VS */}
-                    <div className="text-center"><div className="text-sk-xl font-black text-sk-text-4 tracking-tight italic">VS</div></div>
-                    {/* Player B */}
-                    <div className="text-center">
-                      <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-purple flex items-center justify-center text-sk-xl font-extrabold text-sk-purple mx-auto mb-3">{cleanName(compB.nickname).charAt(0).toUpperCase()}</div>
-                      <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
-                        <FlagIcon countryCode={compB.country_code} />
-                        <span className="font-bold text-sk-text-1 text-sk-md">{cleanName(compB.nickname)}</span>
-                      </div>
-                      <div className="font-mono font-black text-2xl text-sk-purple">{Math.round(compB.elo_rating).toLocaleString("es")}</div>
-                    </div>
-                  </div>
-                  <div className="w-full h-px my-8 bg-gradient-to-r from-transparent via-sk-border-3 to-transparent" />
-                  <div className="flex flex-col gap-2">
-                    {[
-                      { label:"Torneos Jugados",  a:compA.total_tournaments,  b:compB.total_tournaments,  aWins:compA.total_tournaments > compB.total_tournaments },
-                      { label:"ITM %",    a:compA.total_tournaments>0?((compA.total_cashes/compA.total_tournaments)*100).toFixed(1)+"%":"0%", b:compB.total_tournaments>0?((compB.total_cashes/compB.total_tournaments)*100).toFixed(1)+"%":"0%", aWins:compA.total_cashes/Math.max(1,compA.total_tournaments) > compB.total_cashes/Math.max(1,compB.total_tournaments) },
-                      { label:"Victorias (1er lugar)", a:compA.total_wins,         b:compB.total_wins,         aWins:compA.total_wins > compB.total_wins },
-                    ].map(row => (
-                      <div key={row.label} className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center py-2">
-                        <div className={cn("text-right font-mono font-bold text-sk-md", row.aWins?"text-sk-green":"text-sk-text-1")}>{String(row.a)}</div>
-                        <div className="text-[11px] font-bold text-sk-text-3 uppercase tracking-widest text-center min-w-[140px]">{row.label}</div>
-                        <div className={cn("font-mono font-bold text-sk-md", !row.aWins?"text-sk-green":"text-sk-text-1")}>{String(row.b)}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-center pt-8">
-                    <Link to="/compare"><Button variant="accent" size="lg" className="rounded-full shadow-[0_0_20px_rgba(34,211,238,0.2)]">⚔️ Comparador Avanzado</Button></Link>
-                  </div>
-                </>
-              }
-              </div>
-            </div>
-          </RevealSection>
-        </div>
-      </section>
-
-      {/* ══ FOR CLUBS ══ */}
-      <section className="py-24 bg-sk-bg-0 relative overflow-hidden border-t border-sk-border-2">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[300px] bg-sk-accent/5 blur-[120px] rounded-full pointer-events-none" />
-        <div className="max-w-[1200px] mx-auto px-6 relative z-10">
-          <RevealSection>
-            <SectionHeader overline="Software B2B" title="Herramientas para Clubes" desc="Crea y gestiona torneos, sube resultados, administra jugadores y configura ligas desde un dashboard profesional." />
-          </RevealSection>
-          <RevealSection className="flex justify-center mt-4">
-            <Link to="/register" className="relative inline-flex items-center justify-center gap-3 px-10 py-5 bg-sk-bg-1 border border-sk-border-2 rounded-2xl font-extrabold text-sk-md text-sk-text-1 overflow-hidden group transition-all duration-300 hover:border-sk-accent hover:text-sk-bg-0 hover:bg-sk-accent hover:shadow-[0_0_40px_rgba(34,211,238,0.4)] hover:-translate-y-1">
-              <Building className="text-sk-text-3 group-hover:text-sk-bg-0 transition-colors" size={22} />
-              <span className="relative z-10 tracking-wide">Dar de alta mi Club gratis</span>
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out" />
-            </Link>
-          </RevealSection>
-        </div>
-      </section>
-
-      {/* ══ CTA FINAL ══ */}
-      <section className="py-16 px-6 bg-sk-bg-1 border-t border-sk-border-2 text-center">
-        <RevealSection className="max-w-[600px] mx-auto">
-          <div className="mb-6"><Megaphone className="mx-auto text-sk-accent" size={48} /></div>
-          <h2 className="text-sk-3xl font-black text-sk-text-1 tracking-tight mb-4">Empieza tu legado hoy</h2>
-          <p className="text-sk-md text-sk-text-2 mb-8 leading-relaxed">
-            Únete a la matriz global. Completa misiones, gana <span className="text-sk-accent font-bold">Shark Coins</span> y demuestra que eres el tiburón más fuerte de tu sala.
-          </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link to="/register"><Button variant="accent" size="xl" className="shadow-lg">Crear Cuenta de Jugador</Button></Link>
-          </div>
-        </RevealSection>
       </section>
 
       <TournamentDetailModal
