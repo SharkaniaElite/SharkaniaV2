@@ -175,7 +175,7 @@ export function PromoMindevPage() {
                 <div className="absolute -top-4 right-4 bg-sk-accent text-black text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-lg transform rotate-3">
                   Menos de 1 Buy-in
                 </div>
-                <div className="text-sk-text-3 font-mono text-sm uppercase tracking-widest mb-2">Plan Permanente</div>
+                <div className="text-sk-text-3 font-mono text-sm uppercase tracking-widest mb-2">Plan Anual</div>
                 <div className="flex items-baseline justify-center gap-1 mb-6">
                   <span className="text-3xl font-bold text-sk-text-2">$</span>
                   <span className="text-6xl font-black text-white tracking-tighter">9.90</span>
@@ -189,7 +189,7 @@ export function PromoMindevPage() {
                 </ul>
                 <a href={affiliateLink} target="_blank" rel="noopener noreferrer" className="block">
                   <Button className="w-full bg-[#d4af37] text-black hover:bg-[#b5952f] font-black text-base h-12 shadow-[0_0_20px_rgba(212,175,55,0.3)]">
-                    Obtener Acceso Vitalicio
+                    Obtener Acceso Anual
                   </Button>
                 </a>
               </div>
