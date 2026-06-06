@@ -13,7 +13,7 @@ import { getUpcomingTournaments } from "../lib/api/tournaments";
 import { getBlogPosts, formatBlogDate } from "../lib/api/blog";
 import { supabase } from "../lib/supabase";
 import { FlagIcon } from "../components/ui/flag-icon";
-import { Trophy, CalendarDays, Megaphone, Zap } from "lucide-react";
+import { Trophy, CalendarDays, Megaphone, Zap, Brain, Flame } from "lucide-react";
 import { format } from "date-fns";
 import type { PlayerWithRoom, TournamentWithDetails } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
@@ -45,7 +45,6 @@ const staticPromos = [
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
 
 function secsUntil(datetime: string) {
   return Math.max(0, Math.floor((new Date(datetime).getTime() - Date.now()) / 1000));
@@ -120,7 +119,6 @@ export function HomePage() {
   const [loadingBlog,    setLoadingBlog]    = useState(true);
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
-
   useEffect(() => {
     // Top 5 Jugadores
     getPlayers({ page:1, pageSize:10, orderBy:"elo_rating", orderDir:"desc" })
@@ -140,7 +138,6 @@ export function HomePage() {
         });
         setTournaments(filtered.slice(0,5));
       }).finally(() => setLoadingTourneys(false));
-
 
     // Últimos Posts del Blog + Promociones Estáticas (Ordenados por fecha de forma segura)
     getBlogPosts().then(posts => {
@@ -266,7 +263,6 @@ export function HomePage() {
                 <p className="text-sk-sm text-sk-text-3 col-span-3">Cargando noticias de la base de datos...</p>
               ) : (
                 blogPosts.map(post => (
-                  // 🔥 ARREGLADO: Ahora apunta correctamente a /noticias/:slug
                   <Link key={post.id} to={post.isStaticPromo ? post.link : `/noticias/${post.slug}`} className="group relative h-40 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 hover:shadow-sk-xl transition-all duration-300 flex items-end p-5">
                     {post.image_thumbnail && (
                       <>
@@ -354,7 +350,7 @@ export function HomePage() {
                 </div>
               </div>
 
-              {/* Lado Derecho: Ranking Top 5 */}
+              {/* Lado Derecho: Ranking Top 10 */}
               <div className="flex flex-col">
                 <SectionHeader overline="Leaderboard" title="Top 10 Global" desc="Los reyes del algoritmo de varianza." />
                 <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl overflow-hidden shadow-sk-xl flex-1">
@@ -403,6 +399,89 @@ export function HomePage() {
                 </div>
               </div>
 
+            </div>
+          </RevealSection>
+        </div>
+      </section>
+
+      {/* ══ SOCIOS ESTRATÉGICOS ══ */}
+      <section className="py-20 bg-sk-bg-1 border-t border-sk-border-2" id="partners">
+        <div className="max-w-[1300px] mx-auto px-6">
+          <RevealSection>
+            <SectionHeader 
+              overline="Alianzas" 
+              title="Socios Estratégicos" 
+              desc="Herramientas y plataformas de élite verificadas por Sharkania para llevar tu juego al siguiente nivel." 
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              
+              {/* SOCIO 1: MindEV */}
+              <div className="group bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-[#d4af37]/50 shadow-sk-md hover:shadow-[0_0_30px_rgba(212,175,55,0.1)] transition-all duration-500 flex flex-col">
+                <Link to="/mindev" className="block relative w-full h-[300px] overflow-hidden bg-sk-bg-3">
+                  {/* Imagen destacada (Asegúrate de guardar la imagen generada como mindev-featured.webp en public/bg/) */}
+                  <img 
+                    src="/bg/mindev-featured.webp" 
+                    alt="MindEV Inteligencia Artificial para Poker" 
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-2 via-transparent to-transparent opacity-90" />
+                  
+                  <div className="absolute top-4 left-4 bg-[#0a1128]/80 backdrop-blur-md border border-[#d4af37]/30 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                     <Brain size={14} className="text-[#d4af37]" />
+                     <span className="text-[10px] font-black uppercase tracking-widest text-[#d4af37]">MindEV IA</span>
+                  </div>
+                </Link>
+                
+                <div className="p-8 flex flex-col flex-1">
+                  <h3 className="text-2xl font-black text-white mb-3 group-hover:text-[#d4af37] transition-colors leading-tight">
+                    Tu EV+ empieza en tu mente
+                  </h3>
+                  
+                  {/* Descripción de 42 palabras enfocada en la experiencia y dolor del usuario */}
+                  <p className="text-sk-sm text-sk-text-3 leading-relaxed mb-8 flex-1">
+                    Deja de adivinar por qué pierdes. MindEV audita tu mente y técnica con Inteligencia Artificial para revelarte tus fugas invisibles. Obtén un plan exacto de 12 semanas, elimina el tilt y transforma tu estancamiento en pura rentabilidad.
+                  </p>
+                  
+                  <Link to="/mindev">
+                    <Button className="w-full bg-[#d4af37] text-black hover:bg-[#b5952f] font-black shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+                      Iniciar Diagnóstico IA
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {/* SOCIO 2: FullNuts */}
+              <div className="group bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-orange-500/50 shadow-sk-md hover:shadow-[0_0_30px_rgba(249,115,22,0.1)] transition-all duration-500 flex flex-col">
+                <Link to="/fullnuts" className="block relative w-full h-[300px] overflow-hidden bg-sk-bg-3">
+                  <img 
+                    src="/bg/fullnuts-featured.webp" 
+                    alt="FullNuts Ropa de Poker" 
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-2 via-transparent to-transparent opacity-90" />
+                  
+                  <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md border border-orange-500/30 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                     <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">FullNuts</span>
+                     <Flame size={14} className="text-orange-500" />
+                  </div>
+                </Link>
+                
+                <div className="p-8 flex flex-col flex-1">
+                  <h3 className="text-2xl font-black text-white mb-3 group-hover:text-orange-500 transition-colors leading-tight italic">
+                    Viste como juegas.
+                  </h3>
+                  
+                  <p className="text-sk-sm text-sk-text-3 leading-relaxed mb-8 flex-1">
+                    La actitud en la mesa importa. FullNuts diseña streetwear exclusivo para verdaderos tiburones. Combina comodidad para tus sesiones más largas con el estilo agresivo que te define. Calidad premium con envíos a todo Chile.
+                  </p>
+                  
+                  <Link to="/fullnuts">
+                    <Button className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-400 hover:to-red-500 border-none font-black shadow-[0_0_15px_rgba(249,115,22,0.2)]">
+                      Ver Colección
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </div>
           </RevealSection>
         </div>
