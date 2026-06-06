@@ -7,7 +7,7 @@ import { supabase } from "../../lib/supabase";
 interface Field {
   key: string;
   label: string;
-  type: "text" | "number" | "select" | "textarea" | "checkbox" | "image";
+  type: "text" | "number" | "select" | "textarea" | "checkbox" | "image" | "datetime-local";
   required?: boolean;
   options?: Array<{ value: string; label: string }>;
   placeholder?: string;
@@ -129,7 +129,6 @@ export function EntityForm({
             
             {f.type === "image" ? (
               <div className="bg-sk-bg-3 border border-sk-border-2 rounded-lg p-3">
-                {/* 👇 Corrección de TypeScript: Boolean() y String() */}
                 {Boolean(form[f.key]) && (
                   <div className="h-20 w-full mb-3 rounded border border-sk-border-2 bg-cover bg-center" style={{ backgroundImage: `url('${String(form[f.key])}')` }} />
                 )}
@@ -161,9 +160,26 @@ export function EntityForm({
                 <input type="checkbox" checked={Boolean(form[f.key])} onChange={(e) => update(f.key, e.target.checked)} className="w-4 h-4 rounded accent-sk-accent" />
                 <span className="text-sk-sm text-sk-text-1">Sí</span>
               </label>
+            ) : f.type === "datetime-local" ? (
+              <input 
+                type="datetime-local"
+                value={form[f.key] ? new Date(form[f.key] as string).toISOString().slice(0, 16) : ""}
+                onChange={(e) => {
+                  const val = e.target.value ? new Date(e.target.value).toISOString() : null;
+                  update(f.key, val);
+                }}
+                className={inputClass}
+              />
             ) : (
-              <input type={f.type} value={String(form[f.key] ?? "")} onChange={(e) => update(f.key, f.type === "number" ? Number(e.target.value) : e.target.value)} className={inputClass} placeholder={f.placeholder} />
+              <input 
+                type={f.type} 
+                value={String(form[f.key] ?? "")} 
+                onChange={(e) => update(f.key, f.type === "number" ? Number(e.target.value) : e.target.value)} 
+                className={inputClass} 
+                placeholder={f.placeholder} 
+              />
             )}
+            
           </div>
         ))}
 

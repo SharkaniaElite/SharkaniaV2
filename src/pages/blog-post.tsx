@@ -71,7 +71,7 @@ function PostSkeleton() {
 }
 
 // ── Block Renderer ────────────────────────────────────────
-function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, alreadyLinked }: { block: BlogBlock; inlineImage: string | null; h2Index: number; postTitle: string; glossaryTerms: GlossaryTerm[]; alreadyLinked: Set<string>; }) {
+function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, alreadyLinked, post }: { block: BlogBlock; inlineImage: string | null; h2Index: number; postTitle: string; glossaryTerms: GlossaryTerm[]; alreadyLinked: Set<string>; post: BlogPost; }) {
   if (block.type === "h2") {
     return (
       <>
@@ -88,7 +88,15 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
             />
           </div>
         )}
-        {h2Index === 3 && <WptBanner slot="mid" />}
+        {h2Index === 3 && (
+          (post as any).custom_banner_src ? (
+            <a href={(post as any).custom_banner_href ?? "#"} target="_blank" rel="noopener noreferrer" className="block w-full my-8 overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+              <img src={(post as any).custom_banner_src} alt="Banner Promocional Exclusivo" className="w-full h-auto object-cover max-h-[200px]" />
+            </a>
+          ) : (
+            <WptBanner slot="mid" />
+          )
+        )}
       </>
     );
   }
@@ -362,11 +370,17 @@ export default function BlogPostPage() {
                 <div>
                   {post.body.map((block, i) => {
                     const h2Index = post.body.slice(0, i + 1).filter((b) => b.type === "h2").length;
-                    return <BlockRenderer key={i} block={block} inlineImage={post.image_inline} h2Index={h2Index} postTitle={post.title} glossaryTerms={glossaryTerms ?? []} alreadyLinked={alreadyLinked.current} />;
+                    return <BlockRenderer key={i} block={block} inlineImage={post.image_inline} h2Index={h2Index} postTitle={post.title} glossaryTerms={glossaryTerms ?? []} alreadyLinked={alreadyLinked.current} post={post} />;
                   })}
                 </div>
 
-                <WptBanner slot="final" className="mt-10" />
+                {(post as any).custom_banner_src ? (
+                  <a href={(post as any).custom_banner_href ?? "#"} target="_blank" rel="noopener noreferrer" className="block w-full mt-10 overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+                    <img src={(post as any).custom_banner_src} alt="Banner Promocional Exclusivo" className="w-full h-auto object-cover max-h-[200px]" />
+                  </a>
+                ) : (
+                  <WptBanner slot="final" className="mt-10" />
+                )}
 
                 {/* 🎯 MÓDULO DE MINERÍA SHARK COINS */}
                 <div ref={rewardBoxRef} className="mt-12 p-8 bg-sk-bg-2 border border-sk-border-2 rounded-2xl flex flex-col items-center justify-center text-center shadow-sk-lg relative overflow-hidden">

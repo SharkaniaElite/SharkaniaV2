@@ -18,31 +18,6 @@ import { format } from "date-fns";
 import type { PlayerWithRoom, TournamentWithDetails } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
 
-// Definimos las promociones estáticas para inyectarlas en el feed de la portada
-const staticPromos = [
-  {
-    id: "static-promo-1",
-    title: "Paquete de Bienvenida $1,000 USD en Ignition",
-    excerpt: "Duplica tu primer depósito, llévate 4 entradas a Freerolls de $1,200 garantizados y 50 giros gratis de Casino.",
-    image_thumbnail: "/bg/ignition-promo.webp",
-    category: "Promociones",
-    published_at: "2026-06-04T12:00:00Z",
-    slug: "ignition-bonus",
-    isStaticPromo: true,
-    link: "/promociones/ignition-bonus"
-  },
-  {
-    id: "static-promo-2",
-    title: "El Camino del Tiburón: Freeroll Diario",
-    excerpt: "Juega gratis todos los días a las 17:00 hrs en LatinAllinPoker y clasifica a nuestros torneos principales.",
-    image_thumbnail: "/bg/freeroll-diario.webp",
-    category: "Promociones",
-    published_at: "2026-06-01T12:00:00Z",
-    slug: "freeroll-diario",
-    isStaticPromo: true,
-    link: "/promociones/freeroll-diario"
-  }
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -139,16 +114,14 @@ export function HomePage() {
         setTournaments(filtered.slice(0,5));
       }).finally(() => setLoadingTourneys(false));
 
-    // Últimos Posts del Blog + Promociones Estáticas (Ordenados por fecha de forma segura)
+    // Últimos Posts del Blog y Promociones (Ordenados por fecha)
     getBlogPosts().then(posts => {
-      const combined = [...staticPromos, ...posts];
-      // Ordenamos de más reciente a más antiguo, asegurándonos de manejar valores nulos
-      combined.sort((a, b) => {
+      posts.sort((a, b) => {
         const timeA = a.published_at ? new Date(a.published_at).getTime() : 0;
         const timeB = b.published_at ? new Date(b.published_at).getTime() : 0;
         return timeB - timeA;
       });
-      setBlogPosts(combined.slice(0, 3));
+      setBlogPosts(posts.slice(0, 3));
     }).finally(() => setLoadingBlog(false));
 
     // Estadísticas
@@ -263,7 +236,7 @@ export function HomePage() {
                 <p className="text-sk-sm text-sk-text-3 col-span-3">Cargando noticias de la base de datos...</p>
               ) : (
                 blogPosts.map(post => (
-                  <Link key={post.id} to={post.isStaticPromo ? post.link : `/noticias/${post.slug}`} className="group relative h-40 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 hover:shadow-sk-xl transition-all duration-300 flex items-end p-5">
+                  <Link key={post.id} to={post.category === 'Promociones' ? `/promociones/${post.slug}` : `/noticias/${post.slug}`} className="group relative h-40 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 hover:shadow-sk-xl transition-all duration-300 flex items-end p-5">
                     {post.image_thumbnail && (
                       <>
                         <img src={post.image_thumbnail} alt={post.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />

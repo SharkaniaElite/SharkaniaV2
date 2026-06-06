@@ -32,7 +32,7 @@ import { AnalyticsTab } from "../components/admin/analytics-tab";
 
 // ── Tipos ─────────────────────────────────────────────────
 
-type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners" | "glossary" | "analytics" | "shark_tv";
+type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners" | "glossary" | "analytics" | "shark_tv" | "blog";
 
 // ── Descripción de cada slot de banner ───────────────────
 
@@ -267,7 +267,7 @@ export function SuperAdminPage() {
     title: string;
     fields: Array<{
       key: string; label: string;
-      type: "text" | "number" | "select" | "textarea" | "checkbox";
+      type: "text" | "number" | "select" | "textarea" | "checkbox" | "datetime-local";
       required?: boolean;
       options?: Array<{ value: string; label: string }>;
       placeholder?: string;
@@ -736,6 +736,35 @@ export function SuperAdminPage() {
     enabled: !!selectedUser?.id,
   });
 
+  const { data: blogPostsAdmin } = useQuery({
+    queryKey: ["admin-blog"],
+    queryFn: async () => {
+      const { data } = await supabase.from("blog_posts").select("*").order("published_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: tab === "blog",
+  });
+
+  const blogFields = [
+    { key: "title", label: "Título", type: "text" as const, required: true },
+    { key: "slug", label: "URL Amigable (Slug)", type: "text" as const, required: true, placeholder: "ej: fecha-2-liga-ccp" },
+    { key: "category", label: "Categoría", type: "select" as const, required: true, options: [
+      { value: "Noticias", label: "Noticias" },
+      { value: "Promociones", label: "Promociones" },
+      { value: "Estrategia", label: "Estrategia" },
+      { value: "GTO & Teoría", label: "GTO & Teoría" }
+    ]},
+    { key: "excerpt", label: "Extracto Corto", type: "textarea" as const },
+    { key: "published", label: "¿Artículo Publicado?", type: "checkbox" as const },
+    { key: "published_at", label: "Fecha de Publicación", type: "datetime-local" as const },
+    { key: "image_thumbnail", label: "Imagen Cuadrada/Card (Thumbnail)", type: "text" as const, placeholder: "/bg/imagen.webp o https://..." },
+    { key: "image_hero", label: "Imagen Hero (Banner principal)", type: "text" as const, placeholder: "/bg/imagen.webp o https://..." },
+    { key: "image_og", label: "Imagen OG (Redes Sociales)", type: "text" as const, placeholder: "/bg/imagen.webp o https://..." },
+    { key: "image_inline", label: "Imagen Inline (Dentro del post)", type: "text" as const, placeholder: "/bg/imagen.webp o https://..." },
+    { key: "custom_banner_src", label: "🔥 Banner Exclusivo (Imagen URL)", type: "text" as const, placeholder: "Opcional: Reemplaza banner global" },
+    { key: "custom_banner_href", label: "🔥 Banner Exclusivo (Link URL)", type: "text" as const, placeholder: "Opcional: Link de destino" },
+  ];
+
   const handleLoadBanners = async () => {
     if (bannersConfig) return; 
     setBannersLoading(true);
@@ -883,6 +912,7 @@ export function SuperAdminPage() {
     { key: "banners",   label: "Banners" },
     { key: "glossary",  label: "Glosario", badge: glossaryTerms?.length },
     { key: "shark_tv",  label: "SharkTV" },
+    { key: "blog",      label: "Noticias/Blog" },
   ];
 
   return (
@@ -1975,6 +2005,34 @@ export function SuperAdminPage() {
           </div>
         </div>
       )}
+
+      {/* ══ BLOG / NOTICIAS ══ */}
+          {tab === "blog" && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-sk-md font-bold text-sk-text-1">Gestión de Noticias y Blog ({blogPostsAdmin?.length ?? 0})</h2>
+                <Button variant="accent" size="sm" onClick={() => setEntityForm({ table: "blog_posts", title: "Artículo", fields: blogFields, data: null })}>
+                  <Plus size={14} /> Nueva Noticia
+                </Button>
+              </div>
+              <AdminTable
+                headers={["Título", "Categoría", "Estado", "Fecha Publicación"]}
+                rows={(blogPostsAdmin ?? []).map((b) => ({
+                  id: b.id,
+                  cells: [
+                    <span className="font-semibold text-sk-text-1 line-clamp-1">{b.title}</span>,
+                    <Badge variant="accent">{b.category}</Badge>,
+                    <Badge variant={b.published ? "green" : "muted"}>{b.published ? "Publicado" : "Borrador"}</Badge>,
+                    <span className="text-sk-text-3 font-mono text-[11px]">
+                      {b.published_at ? new Date(b.published_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : "—"}
+                    </span>
+                  ],
+                  onEdit: () => setEntityForm({ table: "blog_posts", title: "Artículo", fields: blogFields, data: b }),
+                  onDelete: () => handleDeleteEntity("blog_posts", b.id, b.title),
+                }))}
+              />
+            </div>
+          )}
 
       {entityForm && (
         <EntityForm

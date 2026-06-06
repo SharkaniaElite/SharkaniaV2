@@ -1,34 +1,33 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
 import { Link } from "react-router-dom";
 import { Gift, ArrowRight, Zap, Sparkles } from "lucide-react";
 import { cn } from "../lib/cn";
+import { supabase } from "../lib/supabase"; // Importación de DB agregada
 
 export function PromotionsPage() {
   const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
+  const [promotions, setPromotions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const promotions = [
-    {
-      id: "freeroll-diario",
-      title: "El Camino del Tiburón: Freeroll Diario",
-      excerpt: "Juega gratis todos los días a las 17:00 hrs en LatinAllinPoker y clasifica a nuestros torneos principales.",
-      image: "/bg/freeroll-diario.webp",
-      tag: "Diario",
-      status: "active",
-      link: "/promociones/freeroll-diario"
-    },
-    // 🔥 NUEVA PROMOCIÓN AGREGADA AQUÍ
-    {
-      id: "ignition-bonus",
-      title: "Paquete de Bienvenida $1,000 USD en Ignition",
-      excerpt: "Duplica tu primer depósito, llévate 4 entradas a Freerolls de $1,200 garantizados y 50 giros gratis de Casino.",
-      image: "/bg/ignition-promo.webp", // Nombre del archivo que generarás
-      tag: "Bono Bienvenida",
-      status: "active",
-      link: "/promociones/ignition-bonus"
-    }
-  ];
+  useEffect(() => {
+    // Definimos la función asíncrona
+    const fetchPromos = async () => {
+      const { data } = await supabase
+        .from("blog_posts")
+        .select("*")
+        .eq("category", "Promociones")
+        .eq("published", true)
+        .order("published_at", { ascending: false });
+      
+      setPromotions(data || []);
+      setLoading(false); // Lo manejamos aquí directamente
+    };
+
+    // La ejecutamos
+    fetchPromos();
+  }, []);
 
   return (
     <PageShell>
@@ -77,58 +76,69 @@ export function PromotionsPage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {promotions.map((promo) => (
-              <Link 
-                key={promo.id} 
-                to={promo.link}
-                className="group flex flex-col bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/50 transition-all duration-300 shadow-sk-md hover:shadow-[0_0_30px_rgba(34,211,238,0.1)]"
-              >
-                <div className="h-48 overflow-hidden relative border-b border-sk-border-2">
-                  {/* Etiqueta superior izquierda */}
-                  <div className={cn(
-                    "absolute top-3 left-3 z-10 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded",
-                    promo.id === "ignition-bonus" 
-                      ? "bg-orange-500 text-white" 
-                      : "bg-sk-accent text-sk-bg-0"
-                  )}>
-                    {promo.tag}
-                  </div>
-                  
-                  <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-2 to-transparent z-0 opacity-80" />
-                  <img 
-                    src={promo.image} 
-                    alt={promo.title} 
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                  />
-                </div>
-                
-                <div className="p-6 flex flex-col flex-1">
-                  <h3 className={cn(
-                    "text-xl font-bold text-sk-text-1 mb-2 transition-colors",
-                    promo.id === "ignition-bonus" 
-                      ? "group-hover:text-orange-500" 
-                      : "group-hover:text-sk-accent"
-                  )}>
-                    {promo.title}
-                  </h3>
-                  <p className="text-sk-sm text-sk-text-3 mb-6 flex-1">
-                    {promo.excerpt}
-                  </p>
-                  
-                  <div className="flex items-center justify-between border-t border-sk-border-2 pt-4 mt-auto">
-                    <span className="text-[11px] font-mono text-sk-green flex items-center gap-1.5 uppercase font-bold">
-                      <Zap size={14} /> Activa
-                    </span>
-                    <span className={cn(
-                      "text-sk-sm font-bold flex items-center gap-1",
-                      promo.id === "ignition-bonus" ? "text-orange-500" : "text-sk-accent"
+            {loading ? (
+              <div className="col-span-full text-center text-sk-text-3 py-10">
+                <div className="w-6 h-6 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin mx-auto mb-3" />
+                Cargando promociones...
+              </div>
+            ) : promotions.length === 0 ? (
+              <div className="col-span-full text-center text-sk-text-3 py-10">
+                No hay promociones activas en este momento.
+              </div>
+            ) : (
+              promotions.map((promo) => (
+                <Link 
+                  key={promo.id} 
+                  to={`/promociones/${promo.slug}`}
+                  className="group flex flex-col bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/50 transition-all duration-300 shadow-sk-md hover:shadow-[0_0_30px_rgba(34,211,238,0.1)]"
+                >
+                  <div className="h-48 overflow-hidden relative border-b border-sk-border-2">
+                    {/* Etiqueta superior izquierda */}
+                    <div className={cn(
+                      "absolute top-3 left-3 z-10 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded",
+                      promo.slug === "ignition-bonus" 
+                        ? "bg-orange-500 text-white" 
+                        : "bg-sk-accent text-sk-bg-0"
                     )}>
-                      Ver detalles <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
-                    </span>
+                      {promo.category}
+                    </div>
+                    
+                    <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-2 to-transparent z-0 opacity-80" />
+                    <img 
+                      src={promo.image_thumbnail} 
+                      alt={promo.title} 
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                    />
                   </div>
-                </div>
-              </Link>
-            ))}
+                  
+                  <div className="p-6 flex flex-col flex-1">
+                    <h3 className={cn(
+                      "text-xl font-bold text-sk-text-1 mb-2 transition-colors line-clamp-2",
+                      promo.slug === "ignition-bonus" 
+                        ? "group-hover:text-orange-500" 
+                        : "group-hover:text-sk-accent"
+                    )}>
+                      {promo.title}
+                    </h3>
+                    <p className="text-sk-sm text-sk-text-3 mb-6 flex-1 line-clamp-3">
+                      {promo.excerpt}
+                    </p>
+                    
+                    <div className="flex items-center justify-between border-t border-sk-border-2 pt-4 mt-auto">
+                      <span className="text-[11px] font-mono text-sk-green flex items-center gap-1.5 uppercase font-bold">
+                        <Zap size={14} /> Activa
+                      </span>
+                      <span className={cn(
+                        "text-sk-sm font-bold flex items-center gap-1",
+                        promo.slug === "ignition-bonus" ? "text-orange-500" : "text-sk-accent"
+                      )}>
+                        Ver detalles <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
 
         </div>
