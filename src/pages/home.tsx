@@ -439,12 +439,12 @@ export function HomePage() {
                   
                   {/* Descripción de 42 palabras enfocada en la experiencia y dolor del usuario */}
                   <p className="text-sk-sm text-sk-text-3 leading-relaxed mb-8 flex-1">
-                    Deja de adivinar por qué pierdes. MindEV audita tu mente y técnica con Inteligencia Artificial para revelarte tus fugas invisibles. Obtén un plan exacto de 12 semanas, elimina el tilt y transforma tu estancamiento en pura rentabilidad.
+                    Acelera tu aprendizajede torneos de póker sin horas de estudio aburrido. MindEV analiza las manos que jugaste en torneos y te explica tus aciertos y errores en idioma simple, sin GTO. Diseñado para jugadores de póker que buscan feedback inmediato de una IA para volver a ganar.
                   </p>
                   
                   <Link to="/mindev">
                     <Button className="w-full bg-[#d4af37] text-black hover:bg-[#b5952f] font-black shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-                      Iniciar Diagnóstico IA
+                      Quiero saber más
                     </Button>
                   </Link>
                 </div>

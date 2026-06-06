@@ -6,14 +6,13 @@ import { Button } from "../components/ui/button";
 import { 
   Brain, 
   Radar, 
-  Target, 
   Cpu, 
-  ShieldAlert, 
-  TrendingUp, 
   ChevronRight, 
   CheckCircle2, 
   Zap,
-  LineChart
+  Rocket,
+  MessageSquareWarning,
+  Hourglass
 } from "lucide-react";
 
 export function PromoMindevPage() {
@@ -22,8 +21,8 @@ export function PromoMindevPage() {
   return (
     <PageShell>
       <SEOHead 
-        title="Descubre tus fugas invisibles con IA | Sharkania x MindEV" 
-        description="Diagnóstico mental y técnico para jugadores de Texas Hold'em con Inteligencia Artificial. Descubre por qué estás perdiendo dinero y obtén tu plan de mejora." 
+        title="Acelera tu aprendizaje sin GTO | Sharkania x MindEV" 
+        description="La herramienta definitiva para jugadores de torneos de póker que no quieren perder tiempo. Aprende rápido, descubre qué hiciste bien y qué hiciste mal sin estudiar tablas aburridas." 
         path="/mindev"
       />
 
@@ -47,7 +46,6 @@ export function PromoMindevPage() {
                 <Zap size={20} className="text-[#d4af37]" />
               </div>
               <div className="flex items-center gap-2 bg-[#0a1128] border border-[#d4af37]/30 px-4 py-2 rounded-xl shadow-lg shadow-[#d4af37]/10">
-                {/* Asumo que guardarás el logo en la carpeta public como mindev-logo.png */}
                 <span className="font-extrabold text-white tracking-tight flex items-center gap-1.5">
                   Mind<span className="text-[#d4af37]">EV</span>
                 </span>
@@ -55,27 +53,27 @@ export function PromoMindevPage() {
             </div>
 
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20 text-[#d4af37] text-[10px] font-black uppercase tracking-widest mb-6">
-              <Brain size={14} /> Tu EV+ empieza en tu mente
+              <Rocket size={14} /> El Atajo para Aficionados
             </div>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter mb-6 leading-[1.1]">
-              ¿Sabes exactamente por qué estás <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-400">perdiendo dinero</span> en las mesas?
+              Acelera tu aprendizaje y descubre exactamente qué haces <span className="text-transparent bg-clip-text bg-gradient-to-r from-sk-accent to-blue-400">bien</span> y <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-400">mal</span>.
             </h1>
             
             <p className="text-lg md:text-xl text-sk-text-2 max-w-3xl mx-auto mb-10 leading-relaxed">
-              El 80% de los jugadores ignora sus <strong className="text-white">"fugas invisibles"</strong>. No es mala suerte, es falta de data. Evalúa tus 10 dimensiones psicológicas y tu nivel técnico con la primera IA de diagnóstico para póker.
+              Diseñado para jugadores de torneos de póker que no quieren perder tiempo. <strong className="text-white">Aprende rápido sin tener que memorizar teoría GTO aburrida.</strong> MindEV es la Inteligencia Artificial que audita tu juego y te habla claro.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a href={affiliateLink} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
                 <Button variant="accent" size="xl" className="w-full group shadow-[0_0_30px_rgba(34,211,238,0.25)] hover:shadow-[0_0_40px_rgba(34,211,238,0.4)]">
-                  <Cpu className="mr-2" size={20} />
-                  Iniciar Diagnóstico con IA
+                  <Rocket className="mr-2" size={20} />
+                  Acelerar mi Aprendizaje
                   <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
                 </Button>
               </a>
               <p className="text-xs text-sk-text-4 font-mono mt-3 sm:mt-0 sm:ml-4">
-                Toma menos de 15 minutos.
+                Feedback inmediato en tu idioma.
               </p>
             </div>
           </RevealSection>
@@ -87,24 +85,24 @@ export function PromoMindevPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-sk-bg-2/50 backdrop-blur-sm border border-sk-border-2 rounded-2xl p-8 hover:border-red-500/30 transition-colors">
                 <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center mb-6">
-                  <ShieldAlert className="text-red-500" size={24} />
+                  <Brain className="text-red-500" size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Tilt Destructivo</h3>
-                <p className="text-sk-text-3 text-sm leading-relaxed">Saber qué hacer no sirve de nada si pierdes el control cuando la varianza ataca. Identifica tus detonantes mentales exactos.</p>
+                <h3 className="text-xl font-bold text-white mb-3">GTO Innecesario</h3>
+                <p className="text-sk-text-3 text-sm leading-relaxed">Estudiar matemáticas avanzadas y tablas complejas drena tu energía. Como aficionado, necesitas respuestas simples y directas, no un máster en estadística.</p>
               </div>
               <div className="bg-sk-bg-2/50 backdrop-blur-sm border border-sk-border-2 rounded-2xl p-8 hover:border-orange-500/30 transition-colors">
                 <div className="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center mb-6">
-                  <TrendingUp className="text-orange-500" size={24} />
+                  <MessageSquareWarning className="text-orange-500" size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Estancamiento</h3>
-                <p className="text-sk-text-3 text-sm leading-relaxed">¿Llevas meses jugando los mismos niveles de compra-in? Tienes lagunas técnicas (leaks) que los regulares están explotando.</p>
+                <h3 className="text-xl font-bold text-white mb-3">Ceguera en las Mesas</h3>
+                <p className="text-sk-text-3 text-sm leading-relaxed">Juegas por intuición y, cuando pierdes, no sabes si fue por mala suerte o por un error táctico. Necesitas a alguien que te diga la verdad.</p>
               </div>
               <div className="bg-sk-bg-2/50 backdrop-blur-sm border border-sk-border-2 rounded-2xl p-8 hover:border-[#d4af37]/30 transition-colors">
                 <div className="w-12 h-12 bg-[#d4af37]/10 rounded-xl flex items-center justify-center mb-6">
-                  <LineChart className="text-[#d4af37]" size={24} />
+                  <Hourglass className="text-[#d4af37]" size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Falta de Rumbo</h3>
-                <p className="text-sk-text-3 text-sm leading-relaxed">Estudiar videos al azar en YouTube no es un sistema. Necesitas saber exactamente qué estudiar hoy para mejorar mañana.</p>
+                <h3 className="text-xl font-bold text-white mb-3">Aprendizaje Lento</h3>
+                <p className="text-sk-text-3 text-sm leading-relaxed">El camino tradicional toma años de ensayo y error perdiendo dinero. Tú quieres disfrutar el juego hoy y volverte rentable rápidamente.</p>
               </div>
             </div>
           </RevealSection>
@@ -116,18 +114,18 @@ export function PromoMindevPage() {
             <RevealSection>
               <div className="text-center mb-16">
                 <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
-                  El quirófano para tu <span className="text-[#d4af37]">Winrate</span>
+                  Tu atajo tecnológico para <span className="text-[#d4af37]">aprender rápido</span>
                 </h2>
-                <p className="text-sk-text-2 max-w-2xl mx-auto">La IA de MindEV analiza tus respuestas para generar un mapa exacto de tu cerebro como jugador de póker.</p>
+                <p className="text-sk-text-2 max-w-2xl mx-auto">No es solo un diagnóstico; es una herramienta que acelera tu evolución diciéndote exactamente qué ajustar para empezar a ganar.</p>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div className="space-y-8">
                   {[
-                    { icon: Target, title: "Test de 94 Preguntas Híbrido", desc: "Mide tus conocimientos técnicos reales en Texas Hold'em y evalúa 10 dimensiones de tu perfil psicológico." },
-                    { icon: Radar, title: "Radar de Habilidades", desc: "Visualización gráfica instantánea de tus mayores debilidades y tus puntos más fuertes en la mesa." },
-                    { icon: Brain, title: "Plan de Estudio de 12 Semanas", desc: "No te dejamos con el problema. La IA diseña un plan de mejora paso a paso basado exclusivamente en tus resultados." },
-                    { icon: Cpu, title: "Análisis de Manos con IA", desc: "Pega el historial de esa mano que te quitó el sueño y deja que nuestro coach de IA la analice al instante." }
+                    { icon: Cpu, title: "Feedback Claro y Directo", desc: "Pega el historial de tu mano y la IA te dirá en segundos, en español simple, qué hiciste bien y qué hiciste mal." },
+                    { icon: Rocket, title: "Ruta de Crecimiento Acelerado", desc: "Recibe un plan de 12 semanas diseñado exclusivamente para que los jugadores de torneos de pókersuban de nivel rápidamente." },
+                    { icon: Brain, title: "Test de 94 Preguntas Inteligente", desc: "Evalúa tus conocimientos técnicos y tus 10 dimensiones psicológicas sin estrés ni cálculos aburridos." },
+                    { icon: Radar, title: "Radar de Habilidades Visual", desc: "Observa al instante tus fortalezas y debilidades. Maximiza lo que haces bien y tapa tus fugas de dinero." }
                   ].map((feat, idx) => (
                     <div key={idx} className="flex gap-4">
                       <div className="w-12 h-12 bg-[#d4af37]/10 border border-[#d4af37]/20 rounded-xl flex items-center justify-center shrink-0">
@@ -145,8 +143,8 @@ export function PromoMindevPage() {
                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
                    <div className="text-center z-10">
                      <Radar size={80} className="text-[#d4af37] mx-auto mb-6 animate-[spin_10s_linear_infinite]" />
-                     <p className="font-mono text-sk-text-2 tracking-widest uppercase text-sm mb-2">Generando</p>
-                     <h3 className="text-2xl font-black text-white">Radar de Jugador</h3>
+                     <p className="font-mono text-sk-text-2 tracking-widest uppercase text-sm mb-2">Procesando Jugada</p>
+                     <h3 className="text-2xl font-black text-white">Coach IA Activado</h3>
                    </div>
                 </div>
               </div>
@@ -165,10 +163,10 @@ export function PromoMindevPage() {
               </div>
               
               <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
-                El coach más rentable del circuito
+                El acelerador más rentable del circuito
               </h2>
               <p className="text-sk-text-2 mb-10 max-w-lg mx-auto">
-                Olvídate de pagar $100 USD la hora a un coach humano para que te diga lo que nuestra IA puede diagnosticar en 15 minutos.
+                Olvídate de pagar $100 USD la hora a un coach o comprar cursos teóricos aburridos. Obtén feedback inmediato y aprende a tu propio ritmo.
               </p>
 
               <div className="bg-sk-bg-1 border border-sk-border-2 rounded-2xl p-6 md:p-8 max-w-md mx-auto mb-8 relative">
@@ -182,10 +180,10 @@ export function PromoMindevPage() {
                   <span className="text-sk-text-3 ml-1">USD</span>
                 </div>
                 <ul className="space-y-3 text-sm text-sk-text-2 text-left mb-8">
-                  <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#d4af37]" /> Test de 94 Preguntas</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#d4af37]" /> Radar de 10 Dimensiones</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#d4af37]" /> Plan de Mejora Semanal</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#d4af37]" /> Análisis de Manos con IA</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#d4af37]" /> Feedback Inteligente Directo</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#d4af37]" /> Cero Teoría GTO Complicada</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#d4af37]" /> Plan de Mejora Acelerado</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#d4af37]" /> Radar y Diagnóstico Completo</li>
                 </ul>
                 <a href={affiliateLink} target="_blank" rel="noopener noreferrer" className="block">
                   <Button className="w-full bg-[#d4af37] text-black hover:bg-[#b5952f] font-black text-base h-12 shadow-[0_0_20px_rgba(212,175,55,0.3)]">
