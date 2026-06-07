@@ -72,7 +72,7 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
     if (!startDate) return "upcoming"; 
     const today: string = new Date().toISOString().substring(0, 10);
     if (today < startDate) return "upcoming";
-    if (endDate && today > endDate) return "completed";
+    if (endDate && today > endDate) return "finished"; // 👈 Corregido a "finished"
     return "active"; 
   };
 

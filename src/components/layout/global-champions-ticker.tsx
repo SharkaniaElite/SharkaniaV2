@@ -21,17 +21,17 @@ export function GlobalChampionsTicker() {
       try {
         const now = new Date();
         const past24hIso = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-        const past72hIso = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString();
         
         // HOY en formato YYYY-MM-DD para comparar con el end_date de la liga
         const todayString = now.toISOString().split('T')[0];
+        // VENTANA EXACTA: 4 días hacia atrás desde hoy
+        const past4DaysString = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
         const fetchedChampions: Champion[] = [];
 
         // 1. Torneos (Últimas 24h: Jugadores en position = 1 de torneos completados)
         const { data: tourneyData } = await supabase
           .from("tournament_results")
-          // 🔥 DESAMBIGUACIÓN: clubs!club_id(name)
           .select("id, tournaments!inner(id, name, start_datetime, clubs!club_id(name)), players!inner(nickname)")
           .eq("position", 1)
           .eq("tournaments.status", "completed")
@@ -53,17 +53,13 @@ export function GlobalChampionsTicker() {
           });
         }
 
-        // 2. Ligas (Últimas 72h: LA LÓGICA PERFECTA)
-        // Ignoramos el 'status'. Solo pedimos:
-        // A) Que sea el rango 1.
-        // B) Que el ranking se haya actualizado en las últimas 72 hrs (Acabas de subir el CSV).
-        // C) Que la liga ya haya alcanzado su fecha final oficial (Evita coronar en ligas a medias).
+        // 2. Ligas (Regla de 4 días exactos tras la fecha de término)
         const { data: leaguesData } = await supabase
           .from("league_standings")
           .select("league_id, rank_position, updated_at, leagues!inner(id, name, end_date), players!inner(nickname)")
           .eq("rank_position", 1)
-          .gte("updated_at", past72hIso)         // 👈 Se subió el CSV recientemente
-          .lte("leagues.end_date", todayString); // 👈 La fecha oficial de la liga ya pasó
+          .lte("leagues.end_date", todayString)      // 👈 Ya alcanzó su fecha de término (hoy o en el pasado)
+          .gte("leagues.end_date", past4DaysString); // 👈 No han pasado más de 4 días desde que terminó
 
         if (leaguesData) {
           leaguesData.forEach((row: any) => {
@@ -72,7 +68,7 @@ export function GlobalChampionsTicker() {
               type: "league",
               playerName: row.players?.nickname || "Desconocido",
               eventName: row.leagues?.name || "Liga",
-              dateStr: row.updated_at // Usamos el updated_at para que salga fresquito
+              dateStr: row.leagues?.end_date // Usamos end_date para el ordenamiento
             });
           });
         }
