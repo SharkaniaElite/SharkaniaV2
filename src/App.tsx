@@ -74,6 +74,7 @@ const UpdatePasswordPage = lazy(() => import("./pages/update-password").then(m =
 const WelcomePage = lazy(() => import("./pages/welcome"));
 const LiveStreamPage = lazy(() => import("./pages/live-stream").then(m => ({ default: m.LiveStreamPage }))); // 🔴 NUEVO: Streaming en Vivo
 const RulesAustralPage = lazy(() => import("./pages/rules-poker-austral").then(m => ({ default: m.RulesAustralPage })));
+const TutorialIgnitionDepositPage = lazy(() => import("./pages/tutorial-ignition-deposit").then(m => ({ default: m.TutorialIgnitionDepositPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -148,6 +149,7 @@ export function App() {
               <Route path="/promociones/freeroll-diario" element={<PromoFreerollPage />} />
               <Route path="/ignition" element={<IgnitionChampionshipPage />} />
               <Route path="/tutorial-ignition" element={<TutorialIgnitionPage />} />
+              <Route path="/tutorial-ignition-deposit" element={<TutorialIgnitionDepositPage />} />
               <Route path="/promociones/ignition-bonus" element={<PromoIgnitionBonusPage />} />
               <Route path="/noticias" element={<NoticiasPage />} />
               <Route path="/mindev" element={<PromoMindevPage />} />

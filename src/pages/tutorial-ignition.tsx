@@ -2,7 +2,7 @@
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
 import { Link } from "react-router-dom";
-import { ArrowRight, ExternalLink, Gamepad2, Gift, MousePointerClick, Download, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ExternalLink, Gamepad2, Gift, MousePointerClick, Download, CheckCircle2, Wallet } from "lucide-react";
 import { Button } from "../components/ui/button";
 
 export function TutorialIgnitionPage() {
@@ -105,6 +105,17 @@ export function TutorialIgnitionPage() {
                   <p className="text-sk-text-2 mb-6 text-base md:text-lg leading-relaxed">
                     {step.description}
                   </p>
+                  
+                  {/* 🔥 Botón insertado solo en el paso 3 */}
+                  {step.id === 3 && (
+                    <div className="mb-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                      <Link to="/tutorial-ignition-deposit">
+                        <Button className="w-full sm:w-auto bg-gradient-to-r from-orange-600 to-red-700 hover:from-orange-500 hover:to-red-600 text-white font-bold shadow-lg shadow-orange-900/20">
+                          <Wallet size={18} className="mr-2" /> Ir al tutorial de cómo depositar
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                   
                   {/* Imagen del paso */}
                   <div className="rounded-xl overflow-hidden border border-sk-border-2 shadow-inner bg-black/50">
