@@ -6,7 +6,8 @@ import { Link } from "react-router-dom";
 import { 
   ExternalLink, ShieldCheck, CreditCard, Copy, 
   Send, PlayCircle, X, AlertTriangle, 
-  ArrowRight, Info, CheckCircle2, Globe
+  ArrowRight, Info, CheckCircle2, Globe,
+  Download, Banknote
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 
@@ -15,7 +16,7 @@ export function TutorialIgnitionDepositPage() {
 
   const BINANCE_REF = "https://www.binance.com/referral/earn-together/refer2earn-usdc/claim?hl=es&ref=GRO_28502_9W9FH&utm_source=referral_entrance&utm_medium=web_share_copy";
 
-  // Agrupamos las 23 imágenes en 6 Fases Lógicas
+  // Agrupamos las imágenes en 8 Fases Lógicas (Depósito y Retiro)
   const macroSteps = [
     {
       id: "fase1",
@@ -99,6 +100,36 @@ export function TutorialIgnitionDepositPage() {
       microSteps: [
         { img: "paso23.png", desc: "Vuelve a Ignition Poker. ¡Magia! Tu saldo para apostar ya refleja los USD depositados. Estás oficialmente listo para destrozar las mesas." }
       ]
+    },
+    {
+      id: "fase7",
+      number: "07",
+      title: "Dirección Binance",
+      shortDesc: "Para recibir fondos",
+      icon: <Download className="text-blue-500" size={24} />,
+      intro: "El proceso de retiro es el mismo, pero al revés. Primero necesitamos ir a Binance para obtener tu 'Dirección de Recepción'.",
+      microSteps: [
+        { img: "Paso28.png", desc: "Abre tu cuenta de Binance. Dirígete a la opción 'Deposit' (Depositar) en la parte superior derecha de tu pantalla." },
+        { img: "Paso29.png", desc: "En el menú desplegable, selecciona 'Deposit Crypto' (Depositar Criptomonedas), ya que Ignition te pagará enviando USDT." },
+        { img: "Paso30.png", desc: "¡PASO CRÍTICO! Selecciona la moneda USDT. En la Red (Network) elige ESTRICTAMENTE 'ETH Ethereum (ERC20)'. Copia la dirección '0x' generada." }
+      ]
+    },
+    {
+      id: "fase8",
+      number: "08",
+      title: "Retiro Ignition",
+      shortDesc: "Cobra ganancias",
+      icon: <Banknote className="text-green-500" size={24} />,
+      intro: "Con tu dirección de Binance copiada, vamos al cajero de Ignition a solicitar el pago de tus ganancias.",
+      microSteps: [
+        { img: "Paso24.jfif", desc: "Ve al lobby principal de Ignition Poker y haz clic en el botón naranja gigante de 'CAJERO'." },
+        { img: "Paso25.png", desc: "En el cajero, asegúrate de cambiar a la pestaña 'RETIRAR' (Withdraw) y selecciona 'USDT' como método de cobro." },
+        { img: "Paso26.png", desc: "Ignition te mostrará tu saldo disponible para retiro. En la casilla de monto, ingresa la cantidad que deseas retirar." },
+        { img: "Paso27.png", desc: "Verás que te solicita una 'USDT Dirección' para enviar los fondos." },
+        { img: "Paso31.png", desc: "Pega la dirección de tu monedero Binance (la que copiaste en el paso anterior) y haz clic en 'Solicitar Retiro'." },
+        { img: "Paso32.png", desc: "Por tu propia seguridad, Ignition te pedirá el PIN de 4 dígitos que configuraste al crear tu cuenta." },
+        { img: "Paso33.png", desc: "¡Éxito! Verás la pantalla de confirmación. Tus USDT llegarán a Binance usualmente en unas pocas horas (hasta 24h). Luego puedes venderlos en Binance P2P directo a tu cuenta bancaria." }
+      ]
     }
   ];
 
@@ -119,11 +150,11 @@ export function TutorialIgnitionDepositPage() {
               Válido para todos los países
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight mb-6 leading-tight">
-              Cómo Depositar en <br />
+              Cómo Depositar y Retirar en <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-[#FCD535]">Ignition Poker vía Binance</span>
             </h1>
             <p className="text-sk-lg text-sk-text-2 mb-8 max-w-3xl mx-auto">
-              El tutorial más detallado de internet. Te llevamos de la mano pantalla por pantalla para que cargues tu cuenta usando USDT (Dólar Digital) de forma rápida, segura y sin bloqueos bancarios, sin importar en qué país te encuentres.
+              El tutorial más detallado de internet. Te llevamos de la mano pantalla por pantalla para que cargues tu cuenta y retires tus ganancias usando USDT (Dólar Digital) de forma rápida, segura y sin bloqueos bancarios.
             </p>
           </div>
         </div>
@@ -148,19 +179,19 @@ export function TutorialIgnitionDepositPage() {
           </div>
 
           {/* ══ ROADMAP HORIZONTAL (NAVEGACIÓN) ══ */}
-          <div className="hidden md:flex justify-between items-start mb-20 relative">
+          <div className="hidden md:flex justify-between items-start mb-20 relative overflow-x-auto pb-4 scrollbar-hide">
             <div className="absolute top-5 left-8 right-8 h-0.5 bg-sk-border-2 z-0" />
             {macroSteps.map((fase) => (
               <a 
                 href={`#${fase.id}`} 
                 key={fase.id} 
-                className="relative z-10 flex flex-col items-center group w-28 text-center cursor-pointer"
+                className="relative z-10 flex flex-col items-center group min-w-[5rem] md:w-24 text-center cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-full bg-sk-bg-1 border-2 border-sk-border-2 flex items-center justify-center mb-3 group-hover:border-sk-accent group-hover:scale-110 transition-all duration-300 shadow-md">
                   <span className="font-mono text-xs font-bold text-sk-text-3 group-hover:text-sk-accent">{fase.number}</span>
                 </div>
-                <h4 className="text-[11px] font-bold text-white uppercase tracking-wider mb-1 group-hover:text-sk-accent transition-colors">{fase.title}</h4>
-                <p className="text-[10px] text-sk-text-4 leading-tight">{fase.shortDesc}</p>
+                <h4 className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-wider mb-1 group-hover:text-sk-accent transition-colors">{fase.title}</h4>
+                <p className="text-[9px] md:text-[10px] text-sk-text-4 leading-tight px-1">{fase.shortDesc}</p>
               </a>
             ))}
           </div>
@@ -196,14 +227,14 @@ export function TutorialIgnitionDepositPage() {
                   </div>
                 )}
 
-                {/* Alerta Roja especial para Fase 3 y 4 */}
-                {(fase.id === "fase3" || fase.id === "fase4") && (
+                {/* Alerta Roja especial para Redes ERC20 (Depósito y Retiro) */}
+                {(fase.id === "fase3" || fase.id === "fase4" || fase.id === "fase7") && (
                   <div className="bg-red-900/20 border border-red-500/50 rounded-xl p-5 flex items-start gap-4 mb-10 max-w-3xl">
                     <AlertTriangle className="text-red-500 shrink-0 mt-1" size={24} />
                     <div>
                       <h4 className="text-red-400 font-bold text-base mb-1">¡NUNCA TE EQUIVOQUES DE RED!</h4>
                       <p className="text-red-200/80 text-sm leading-relaxed">
-                        Ignition Poker procesa los USDT <strong>EXCLUSIVAMENTE bajo la red de Ethereum (ERC-20)</strong>. Si en Binance seleccionas otra red (como Tron o BSC) para ahorrar comisiones, <strong>perderás tu dinero permanentemente</strong>.
+                        Ignition Poker procesa los USDT <strong>EXCLUSIVAMENTE bajo la red de Ethereum (ERC-20)</strong>. Si seleccionas otra red (como Tron o BSC), <strong>perderás tu dinero permanentemente</strong>.
                       </p>
                     </div>
                   </div>
@@ -248,23 +279,23 @@ export function TutorialIgnitionDepositPage() {
             ))}
           </div>
 
-          {/* ══ CTA FINAL CORREGIDO Y DE ALTO CONTRASTE ══ */}
-<div className="mt-24 mb-10 text-center bg-[#0d1117] border border-orange-500/40 p-10 rounded-2xl shadow-2xl">
-  <h2 className="text-3xl font-black text-white mb-4">
-    ¿Todo listo? Nos vemos en las mesas
-  </h2>
-  <p className="text-gray-300 mb-8 max-w-2xl mx-auto text-lg leading-relaxed">
-    Una vez que tienes saldo en tu cuenta, estás oficialmente preparado para participar en nuestras ligas, cazar bounties y escalar en el ranking de Sharkania.
-  </p>
-  <Link to="/calendar">
-    <Button 
-      size="lg" 
-      className="!bg-orange-600 !text-white !border-none font-bold px-10 hover:!bg-orange-500 transition-colors"
-    >
-      Ver Calendario de Torneos
-    </Button>
-  </Link>
-</div>
+          {/* ══ CTA FINAL ══ */}
+          <div className="mt-24 mb-10 text-center bg-[#0d1117] border border-orange-500/40 p-10 rounded-2xl shadow-2xl">
+            <h2 className="text-3xl font-black text-white mb-4">
+              ¿Todo listo? Nos vemos en las mesas
+            </h2>
+            <p className="text-gray-300 mb-8 max-w-2xl mx-auto text-lg leading-relaxed">
+              Una vez que tienes saldo en tu cuenta, estás oficialmente preparado para participar en nuestras ligas, cazar bounties y escalar en el ranking de Sharkania.
+            </p>
+            <Link to="/calendar">
+              <Button 
+                size="lg" 
+                className="!bg-orange-600 !text-white !border-none font-bold px-10 hover:!bg-orange-500 transition-colors"
+              >
+                Ver Calendario de Torneos
+              </Button>
+            </Link>
+          </div>
 
         </div>
       </div>
