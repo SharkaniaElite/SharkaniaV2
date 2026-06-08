@@ -15,6 +15,10 @@ import { RelatedPosts } from "../components/blog/related-posts";
 import { useAuthStore } from "../stores/auth-store";
 import { claimBlogReward } from "../lib/api/players";
 
+// Importaciones para interceptar las landings dinámicas
+import { PromoFreerollPage } from "./promo-freeroll";
+import { PromoIgnitionBonusPage } from "./promo-ignition-bonus";
+
 // ── OG Meta ───────────────────────────────────────────────
 function setOGMeta(post: BlogPost) {
   const set = (property: string, content: string) => {
@@ -129,6 +133,7 @@ export default function BlogPostPage() {
   const [isClaiming, setIsClaiming] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // 1. Hooks de SEO
   useArticleSchema({
     title: post?.title ?? '',
     description: post?.excerpt ?? '',
@@ -144,6 +149,7 @@ export default function BlogPostPage() {
     { name: post?.title ?? 'Artículo', url: `https://sharkania.com/blog/${post?.slug ?? ''}` },
   ]);
 
+  // 2. Hook de carga de datos
   useEffect(() => {
     if (!slug) return;
     window.scrollTo(0, 0);
@@ -156,7 +162,6 @@ export default function BlogPostPage() {
           h2Count.current = 0;
           alreadyLinked.current = new Set(); 
           
-          // Configurar temporizador (minutos a segundos)
           const timeInSeconds = (data.read_time || 3) * 60;
           setInitialTime(timeInSeconds);
           setTimeLeft(timeInSeconds);
@@ -167,12 +172,11 @@ export default function BlogPostPage() {
     return () => resetOGMeta();
   }, [slug, navigate]);
 
-  // Lógica del Temporizador Anti-AFK
+  // 3. Hook de temporizador
   useEffect(() => {
     if (!isAuthenticated || timeLeft <= 0 || claimed) return;
 
     const timer = setInterval(() => {
-      // Solo descuenta si la pestaña está activa y visible
       if (document.visibilityState === "visible") {
         setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
       }
@@ -181,12 +185,10 @@ export default function BlogPostPage() {
     return () => clearInterval(timer);
   }, [isAuthenticated, timeLeft, claimed]);
 
-  // Referencia para el panel de recompensas
+  // 4. Referencia y Hook de Scroll
   const rewardBoxRef = useRef<HTMLDivElement>(null);
 
- // Lógica de Scroll con Intersection Observer (MÁS FIABLE)
   useEffect(() => {
-    // 1. Si la caja aún no existe en el DOM (ej. está cargando el post), abortamos
     if (!rewardBoxRef.current) return;
 
     const observer = new IntersectionObserver(
@@ -201,15 +203,16 @@ export default function BlogPostPage() {
     observer.observe(rewardBoxRef.current);
 
     return () => observer.disconnect();
-  }, [loading, post]); // 👈 LA CLAVE: Le decimos que se re-ejecute cuando loading o post cambien
+  }, [loading, post]);
 
+  // Funciones de utilidad
   const handleClaimCoins = async () => {
     if (!user || timeLeft > 0 || !hasScrolledToBottom || claimed) return;
     
     setIsClaiming(true);
     try {
       await claimBlogReward(user.id, REWARD_AMOUNT, XP_REWARD);
-      await refreshProfile(); // Actualiza el balance en la UI del navbar/store
+      await refreshProfile(); 
       setClaimed(true);
     } catch (error) {
       console.error("Error reclamando recompensa", error);
@@ -237,6 +240,7 @@ export default function BlogPostPage() {
         });
       } catch (err) {
         // Ignoramos el error si el usuario simplemente cierra el menú de compartir
+        console.warn("Error al compartir:", err);
       }
     } else {
       // Fallback: Si el navegador no soporta el menú nativo (PCs antiguos), copiamos el enlace
@@ -244,6 +248,16 @@ export default function BlogPostPage() {
     }
   };
 
+  // 🔥 🧠 INTERCEPTOR MÁGICO REUBICADO
+  // Ahora está DESPUÉS de todos los Hooks, cumpliendo con las reglas de React.
+  if (slug === "freeroll-diario") {
+    return <PromoFreerollPage />;
+  }
+  if (slug === "ignition-bonus") {
+    return <PromoIgnitionBonusPage />;
+  }
+
+  // Si no es ninguna de las promos especiales, renderizamos el blog normal
   return (
     <PageShell>
       {/* Breadcrumb */}

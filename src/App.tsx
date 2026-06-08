@@ -22,7 +22,6 @@ import { TutorialCsvPage } from "./pages/tutorial-csv";
 import { RoomProfilerPage } from "./pages/room-profiler";
 import { TutorialClubGGPage } from "./pages/tutorial-clubgg";
 import { PromotionsPage } from "./pages/promotions";
-import { PromoFreerollPage } from "./pages/promo-freeroll";
 import { SharkTvPage } from "./pages/shark-tv";
 import { HandReviewPage } from "./pages/hand-review";
 import { LapPromotionsPage } from "./pages/lap-promotions";
@@ -31,7 +30,6 @@ import { LapBackingPage } from "./pages/lap-backing";
 import { AdminBroadcastPage } from "./pages/admin-broadcast";
 import { IgnitionChampionshipPage } from "./pages/ignition-championship";
 import { TutorialIgnitionPage } from "./pages/tutorial-ignition";
-import { PromoIgnitionBonusPage } from "./pages/promo-ignition-bonus";
 import { NoticiasPage } from "./pages/noticias";
 import { PromoMindevPage } from "./pages/promo-mindev";
 import { PromoFullnutsPage } from "./pages/promo-fullnuts";
@@ -75,6 +73,8 @@ const WelcomePage = lazy(() => import("./pages/welcome"));
 const LiveStreamPage = lazy(() => import("./pages/live-stream").then(m => ({ default: m.LiveStreamPage }))); // 🔴 NUEVO: Streaming en Vivo
 const RulesAustralPage = lazy(() => import("./pages/rules-poker-austral").then(m => ({ default: m.RulesAustralPage })));
 const TutorialIgnitionDepositPage = lazy(() => import("./pages/tutorial-ignition-deposit").then(m => ({ default: m.TutorialIgnitionDepositPage })));
+const PromoFreerollPage = lazy(() => import("./pages/promo-freeroll").then(m => ({ default: m.PromoFreerollPage })));
+const PromoIgnitionBonusPage = lazy(() => import("./pages/promo-ignition-bonus").then(m => ({ default: m.PromoIgnitionBonusPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -147,10 +147,10 @@ export function App() {
               <Route path="/como-jugar-en-clubgg" element={<TutorialClubGGPage />} />
               <Route path="/promociones" element={<PromotionsPage />} />
               <Route path="/promociones/freeroll-diario" element={<PromoFreerollPage />} />
+              <Route path="/promociones/ignition-bonus" element={<PromoIgnitionBonusPage />} />
               <Route path="/ignition" element={<IgnitionChampionshipPage />} />
               <Route path="/tutorial-ignition" element={<TutorialIgnitionPage />} />
               <Route path="/tutorial-ignition-deposit" element={<TutorialIgnitionDepositPage />} />
-              <Route path="/promociones/ignition-bonus" element={<PromoIgnitionBonusPage />} />
               <Route path="/noticias" element={<NoticiasPage />} />
               <Route path="/mindev" element={<PromoMindevPage />} />
               <Route path="/fullnuts" element={<PromoFullnutsPage />} />

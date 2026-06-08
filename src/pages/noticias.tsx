@@ -7,52 +7,15 @@ import { Megaphone, CalendarDays, ChevronRight, Newspaper, Flame, FileText } fro
 import { getBlogPosts, formatBlogDate } from "../lib/api/blog";
 import { cn } from "../lib/cn";
 
-// Definimos las promociones estáticas FUERA del componente
-const staticPromos = [
-  {
-    id: "static-promo-1",
-    title: "Paquete de Bienvenida $1,000 USD en Ignition",
-    excerpt: "Duplica tu primer depósito, llévate 4 entradas a Freerolls de $1,200 garantizados y 50 giros gratis de Casino.",
-    image_thumbnail: "/bg/ignition-promo.webp",
-    category: "Promociones",
-    published_at: "2026-06-03T12:00:00Z", // Ajustado para que la noticia de la Liga (5 de junio) gane limpiamente
-    slug: "ignition-bonus",
-    isStaticPromo: true,
-    link: "/promociones/ignition-bonus"
-  },
-  {
-    id: "static-promo-2",
-    title: "El Camino del Tiburón: Freeroll Diario",
-    excerpt: "Juega gratis todos los días a las 17:00 hrs en LatinAllinPoker y clasifica a nuestros torneos principales.",
-    image_thumbnail: "/bg/freeroll-diario.webp",
-    category: "Promociones",
-    published_at: "2026-06-01T12:00:00Z", 
-    slug: "freeroll-diario",
-    isStaticPromo: true,
-    link: "/promociones/freeroll-diario"
-  }
-];
-
 export function NoticiasPage() {
-  const [posts, setPosts] = useState<any[]>([]); // Usamos any[] para permitir mezclar DB + Estáticos
+  const [posts, setPosts] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>("Todas");
 
   useEffect(() => {
     getBlogPosts()
       .then((data) => {
-        const combined = [...staticPromos, ...data];
-        
-        // 🧠 Motor de Ordenamiento Cronológico Estricto
-        combined.sort((a, b) => {
-          // Extraemos las fechas y las pasamos a milisegundos de forma segura
-          const timeA = a.published_at ? new Date(a.published_at).getTime() : 0;
-          const timeB = b.published_at ? new Date(b.published_at).getTime() : 0;
-          
-          return timeB - timeA; // De más reciente a más antiguo
-        });
-        
-        setPosts(combined);
+        setPosts(data);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -66,7 +29,6 @@ export function NoticiasPage() {
     if (activeCategory === "Promociones") return post.category.toLowerCase() === "promociones";
     if (activeCategory === "Blog") {
       // Todo lo que NO sea noticia ni promoción, cae en la cubeta de "Blog" 
-      // (esto agrupa tus artículos actuales de GTO, Mental Game, etc.)
       return post.category.toLowerCase() !== "noticias" && post.category.toLowerCase() !== "promociones";
     }
     return true;
@@ -146,7 +108,7 @@ export function NoticiasPage() {
               {/* NOTICIA DESTACADA (Ocupa todo el ancho arriba) */}
               {featuredPost && (
                 <Link 
-                  to={featuredPost.isStaticPromo ? featuredPost.link : `/noticias/${featuredPost.slug}`} 
+                  to={`/noticias/${featuredPost.slug}`} 
                   className="group md:col-span-3 flex flex-col md:flex-row bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/50 shadow-sk-md hover:shadow-[0_0_30px_rgba(34,211,238,0.1)] transition-all duration-500"
                 >
                   <div className="md:w-2/3 h-64 md:h-[450px] relative overflow-hidden bg-sk-bg-3">
@@ -199,7 +161,7 @@ export function NoticiasPage() {
               {regularPosts.map((post) => (
                 <Link 
                   key={post.id} 
-                  to={post.isStaticPromo ? post.link : `/noticias/${post.slug}`} 
+                  to={`/noticias/${post.slug}`} 
                   className="group flex flex-col bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/50 transition-all duration-300 shadow-sk-md hover:shadow-[0_0_20px_rgba(34,211,238,0.1)]"
                 >
                   <div className="h-52 overflow-hidden relative border-b border-sk-border-2 bg-sk-bg-3">
