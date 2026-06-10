@@ -90,9 +90,10 @@ export async function getLeagueStandings(
     // 👇 Añadimos "profiles(unified_elo)" a la consulta cruzando a través de players
     .select("*, players(id, nickname, slug, country_code, elo_rating, profiles(unified_elo))")
     .eq("league_id", leagueId)
-    .order("total_points", { ascending: false })
-    .order("best_position", { ascending: true })
-    .order("tournaments_played", { ascending: false });
+    .order("total_points", { ascending: false })          // 1° Instancia: Mayor cantidad de puntos
+    .order("tournaments_played", { ascending: false })    // 2° Instancia: Más participaciones
+    .order("best_position", { ascending: true })          // 3° Instancia: Mejor resultado individual
+    .order("final_tables_count", { ascending: false });   // 4° Instancia: Más mesas finales
 
   if (error) throw error;
 
