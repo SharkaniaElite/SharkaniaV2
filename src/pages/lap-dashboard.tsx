@@ -9,7 +9,7 @@ import {
   Target
 } from "lucide-react";
 
-const SYSTEM_START_DATE = "2026-05-18T00:00:00Z";
+const SYSTEM_START_DATE = "2026-06-08T00:00:00Z";
 
 export function LapDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -46,33 +46,31 @@ export function LapDashboardPage() {
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: allTxs } = await supabase.from("acc_transactions").select("*").in("category", ["Rakeback", "Pago Union"]).gte("date", SYSTEM_START_DATE).limit(10000);
+      const { data: allTxs } = await supabase.from("acc_transactions").select("*").in("category", ["Rakeback", "Pago Union"]).gte("date", SYSTEM_START_DATE).limit(100000);
       const { data: agents } = await supabase.from("acc_agents").select("*");
       const { data: players } = await supabase.from("acc_players").select("*");
       const { data: allAgentPayouts } = await supabase.from("acc_payouts").select("*").gte("created_at", SYSTEM_START_DATE);
       const { data: allPromoPayouts } = await supabase.from("acc_player_promo_payouts").select("*");
       const { data: configs } = await supabase.from("acc_player_promo_config").select("*");
-      const { data: tourneys } = await supabase.from("tournaments").select("id, created_at").in("club_id", ["ccb5c5bc-efaf-4710-b9c5-b4e2baa17328", "1da03414-0ed2-416e-b4f4-bd94caabd5c7"]).not("league_id", "is", null).gte("created_at", SYSTEM_START_DATE);
+      const { data: tourneys } = await supabase.from("tournaments").select("id, created_at, start_datetime").not("league_id", "is", null).gte("created_at", SYSTEM_START_DATE);
         
       const tourneyIds = tourneys?.map((t: any) => t.id) || [];
       
       let tResults: any[] = [];
       if (tourneyIds.length > 0) {
-        const { data: resData } = await supabase.from("tournament_results").select("tournament_id, player_id, buy_ins_count").in("tournament_id", tourneyIds).limit(10000);
+        const { data: resData } = await supabase.from("tournament_results").select("tournament_id, player_id, buy_ins_count").in("tournament_id", tourneyIds).limit(100000);
         tResults = resData || [];
       }
       
-      const { data: tPlayers } = await supabase.from("players").select("id, nickname").limit(10000);
+      const { data: tPlayers } = await supabase.from("players").select("id, nickname").limit(100000);
 
       if (allTxs && agents && players) {
         
         let gRakeBrutoPer = 0; let gRakeBrutoHist = 0;
-        let gBuyinsMayPer = 0; let gBuyinsMayHist = 0;
-        let gBuyinsJunePer = 0; let gBuyinsJuneHist = 0;
+        let gBuyinsPer = 0; let gBuyinsHist = 0;
         
         let gAgentsGrossPer = 0;
         let gTotalWelcomeBonoPer = 0;
-        let gTotalBonoLigaPer = 0;
         
         let gPendingAgents = 0;
         let gPendingPlayers = 0;
@@ -81,43 +79,42 @@ export function LapDashboardPage() {
 
         agents.forEach(agent => {
           let agentRakeBrutoHist = 0; let agentRakeBrutoPer = 0;
-          let agBuyMayHist = 0; let agBuyJuneHist = 0;
-          let agBuyMayPer = 0; let agBuyJunePer = 0;
+          let agBuyHist = 0; let agBuyPer = 0;
           let agWelcomeBonoHist = 0; 
 
           const myPlayers = players.filter(p => p.agent_id === agent.id);
 
           myPlayers.forEach(player => {
-            const defaultCfg = { welcome_percentage: 30, welcome_max_amount: 100000, welcome_active: true, liga_active: true };
+            const defaultCfg = { welcome_percentage: 30, welcome_max_amount: 100000, welcome_active: true };
             const cfg = configs?.find(c => c.clubgg_id === player.clubgg_id) || defaultCfg;
             const isWelcomeActive = cfg.welcome_active ?? true;
-            const isLigaActive = cfg.liga_active ?? true;
 
-            const matchingTPlayers = tPlayers?.filter(tp => tp.nickname.toLowerCase() === player.nickname.toLowerCase()) || [];
+            const matchingTPlayers = tPlayers?.filter(tp => tp.nickname.toLowerCase().trim() === player.nickname.toLowerCase().trim()) || [];
             const matchingPlayerIds = matchingTPlayers.map(tp => tp.id);
 
-            let pBMayH = 0; let pBJuneH = 0; let pBMayP = 0; let pBJuneP = 0;
+            let pBHist = 0; let pBPer = 0;
 
             if (matchingPlayerIds.length > 0 && tResults && tourneys) {
               tResults.filter(r => matchingPlayerIds.includes(r.player_id)).forEach(res => {
                 const tourney = tourneys.find(t => t.id === res.tournament_id);
-                if (tourney && tourney.created_at) {
-                  const tDateStr = new Date(tourney.created_at).toISOString().slice(0, 10);
-                  const buyins = Number(res.buy_ins_count) || 0;
+                if (tourney) {
+                  const targetDate = tourney.start_datetime || tourney.created_at;
+                  const tDateStr = new Date(targetDate).toISOString().slice(0, 10);
                   
-                  if (tDateStr <= "2026-05-31") {
-                      pBMayH += buyins;
-                      if (tDateStr >= startDate && tDateStr <= endDate) pBMayP += buyins;
-                  } else {
-                      pBJuneH += buyins;
-                      if (tDateStr >= startDate && tDateStr <= endDate) pBJuneP += buyins;
+                  let rawBuyins = Number(res.buy_ins_count);
+                  if (isNaN(rawBuyins) || rawBuyins <= 0) rawBuyins = 1;
+                  const buyins = rawBuyins;
+                  
+                  pBHist += buyins;
+                  if (tDateStr >= startDate && tDateStr <= endDate) {
+                    pBPer += buyins;
                   }
                 }
               });
             }
 
-            agBuyMayHist += pBMayH; agBuyJuneHist += pBJuneH;
-            agBuyMayPer += pBMayP; agBuyJunePer += pBJuneP;
+            agBuyHist += pBHist; 
+            agBuyPer += pBPer;
 
             let pRakeGenHist = 0; let pRakeGenPer = 0;
             allTxs.filter(t => t.clubgg_id === player.clubgg_id && ["Ingreso", "ingreso"].includes(t.type)).forEach(t => {
@@ -137,36 +134,31 @@ export function LapDashboardPage() {
             agentRakeBrutoHist += pRakeGenHist; agentRakeBrutoPer += pRakeGenPer;
 
             // Histórico Promos Jugador
-            const pDeduccionHist = (pBMayH * 7000) + (pBJuneH * 5000);
+            const pDeduccionHist = pBHist * 5000;
             let pBonoWHist = isWelcomeActive ? (Math.max(0, pRakeGenHist - pDeduccionHist) * (Number(cfg.welcome_percentage) / 100)) : 0;
             if (cfg.welcome_max_amount && pBonoWHist > Number(cfg.welcome_max_amount)) pBonoWHist = Number(cfg.welcome_max_amount);
             agWelcomeBonoHist += pBonoWHist;
 
-            const pBonoLigaHist = isLigaActive ? (pBMayH * 2000) : 0;
-            const pTotalGeneradoHist = pBonoLigaHist + pBonoWHist;
+            const pTotalGeneradoHist = pBonoWHist; // Solo Bono Bienvenida
             const pPaid = allPromoPayouts?.filter((p) => p.clubgg_id === player.clubgg_id).reduce((sum, p) => sum + Number(p.total_paid), 0) || 0;
             const pDebt = pTotalGeneradoHist - pPaid;
             if (pDebt > 0) gPendingPlayers += pDebt;
 
             // Periodo Promos Jugador
-            const pDeduccionPer = (pBMayP * 7000) + (pBJuneP * 5000);
+            const pDeduccionPer = pBPer * 5000;
             let pBonoWPer = isWelcomeActive ? (Math.max(0, pRakeGenPer - pDeduccionPer) * (Number(cfg.welcome_percentage) / 100)) : 0;
             if (cfg.welcome_max_amount && pBonoWPer > Number(cfg.welcome_max_amount)) pBonoWPer = Number(cfg.welcome_max_amount);
             
-            const pBonoLigaPer = isLigaActive ? (pBMayP * 2000) : 0;
-            
             gTotalWelcomeBonoPer += pBonoWPer;
-            gTotalBonoLigaPer += pBonoLigaPer;
           });
 
           gRakeBrutoHist += agentRakeBrutoHist; gRakeBrutoPer += agentRakeBrutoPer;
-          gBuyinsMayHist += agBuyMayHist; gBuyinsJuneHist += agBuyJuneHist;
-          gBuyinsMayPer += agBuyMayPer; gBuyinsJunePer += agBuyJunePer;
+          gBuyinsHist += agBuyHist; gBuyinsPer += agBuyPer;
 
           const dealPerc = Number(agent.deal_percentage || 0);
           
           // Histórico Agente
-          const agDeduccionHist = (agBuyMayHist * 7000) + (agBuyJuneHist * 5000);
+          const agDeduccionHist = agBuyHist * 5000;
           const agRakeLiqHist = Math.max(0, agentRakeBrutoHist - agDeduccionHist);
           const aRecibirHist = agRakeLiqHist * (dealPerc / 100);
           const agGeneradoHist = aRecibirHist - agWelcomeBonoHist; 
@@ -176,24 +168,23 @@ export function LapDashboardPage() {
           if (agDebt > 0) gPendingAgents += agDebt;
 
           // Periodo Agente
-          const agDeduccionPer = (agBuyMayPer * 7000) + (agBuyJunePer * 5000);
+          const agDeduccionPer = agBuyPer * 5000;
           const agRakeLiqPer = Math.max(0, agentRakeBrutoPer - agDeduccionPer);
           const agGrossPeriod = agRakeLiqPer * (dealPerc / 100);
           gAgentsGrossPer += agGrossPeriod; 
         });
 
-        // 🔥 1. MATEMÁTICA CORREGIDA DE LA UNIÓN (Base 5000)
-        const totalBuyinsPer = gBuyinsMayPer + gBuyinsJunePer;
-        const premiosLigaPer = totalBuyinsPer * 5000; // Deducción SOLO de los premios
+        // 🔥 MATEMÁTICA CORREGIDA DE LA UNIÓN
+        const premiosLigaPer = gBuyinsPer * 5000; 
         
         // Rake Líquido Global = Rake Bruto - Premios ($5000)
         const unionRakeLiquidoPer = Math.max(0, gRakeBrutoPer - premiosLigaPer);
-        const corteRedPer = unionRakeLiquidoPer * 0.20; // 20% exacto sobre la base
+        const corteRedPer = unionRakeLiquidoPer * 0.20; 
         
         const totalUnionPer = premiosLigaPer + corteRedPer;
 
         // Distribución a Agentes y Jugadores
-        const totalPromosJugadoresPer = gTotalWelcomeBonoPer + gTotalBonoLigaPer;
+        const totalPromosJugadoresPer = gTotalWelcomeBonoPer; // Solo Bono Bienvenida
         const totalAgentesNetoPer = gAgentsGrossPer - gTotalWelcomeBonoPer;
 
         // Utilidad Final Club
@@ -210,9 +201,8 @@ export function LapDashboardPage() {
           activePlayers: activePlayersSet.size
         });
 
-        // 🔥 2. DEUDA HISTÓRICA UNIÓN (Base 5000)
-        const totalBuyinsHist = gBuyinsMayHist + gBuyinsJuneHist;
-        const premiosLigaHist = totalBuyinsHist * 5000;
+        // 🔥 DEUDA HISTÓRICA UNIÓN
+        const premiosLigaHist = gBuyinsHist * 5000;
         const unionRakeLiquidoHist = Math.max(0, gRakeBrutoHist - premiosLigaHist);
         
         const unionCutHistTotal = (unionRakeLiquidoHist * 0.20) + premiosLigaHist;
@@ -225,7 +215,6 @@ export function LapDashboardPage() {
         setUnionHistory(unionTxs);
       }
 
-      // 🔥 RECUPERAMOS EL FEED DE ACTIVIDAD RECIENTE
       const { data: recent } = await supabase.from("acc_transactions").select("id, amount, date, category, type, is_manual, acc_players(nickname)").order("date", { ascending: false }).limit(6);
       setRecentFeed(recent || []);
 
@@ -266,7 +255,6 @@ export function LapDashboardPage() {
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-10">
       
-      {/* HEADER Y SELECTOR DE FECHAS */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h2 className="text-2xl font-black text-white">Dashboard Financiero</h2>
@@ -287,7 +275,6 @@ export function LapDashboardPage() {
         </div>
       </div>
 
-      {/* SECCIÓN 1: FOTOGRAFÍA DEL PERIODO */}
       <div>
         <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Cálculo Base (Fecha Seleccionada)</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -308,7 +295,7 @@ export function LapDashboardPage() {
 
           <div className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-5 shadow-lg relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10 text-blue-400"><Landmark size={64} /></div>
-            <p className="text-[11px] text-blue-300 font-bold uppercase tracking-wider mb-1">Rake Líquido</p>
+            <p className="text-[11px] text-blue-300 font-bold uppercase tracking-wider mb-1">Rake Base</p>
             <h3 className="text-2xl font-black text-blue-400 font-mono">${metrics.unionRakeLiquido.toLocaleString("es-CL")}</h3>
             <p className="text-[10px] text-blue-500/70 mt-2">Base de repartición porcentual</p>
           </div>
@@ -343,13 +330,12 @@ export function LapDashboardPage() {
             <div className="absolute top-0 right-0 p-4 opacity-10 text-pink-400"><Gift size={64} /></div>
             <p className="text-[11px] text-pink-300 font-bold uppercase tracking-wider mb-1">Promos Jugadores</p>
             <h3 className="text-2xl font-black text-pink-400 font-mono">-${metrics.promosJugadores.toLocaleString("es-CL")}</h3>
-            <p className="text-[10px] text-pink-500/60 mt-2">Bono Bienvenida + Liga CCP</p>
+            <p className="text-[10px] text-pink-500/60 mt-2">Bono Bienvenida</p>
           </div>
 
         </div>
       </div>
 
-      {/* SECCIÓN 2: DEUDAS HISTÓRICAS */}
       <div className="pt-4">
         <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Saldos Pendientes (Histórico Intocable)</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -409,7 +395,6 @@ export function LapDashboardPage() {
         </div>
       </div>
 
-      {/* SECCIÓN 3: HISTORIALES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-lg">

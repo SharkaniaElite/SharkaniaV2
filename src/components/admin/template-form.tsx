@@ -158,9 +158,9 @@ export function TemplateForm({ isOpen, onClose, onSaved, clubId, template, leagu
   const labelClass = "font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-3 mb-1 block";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className="bg-sk-bg-1 border border-sk-border-2 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-sk-bg-1 border border-sk-border-2 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative z-[1000]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
