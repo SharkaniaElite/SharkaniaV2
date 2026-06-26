@@ -20,8 +20,15 @@ export function PageShell({ children }: PageShellProps) {
   
   // 🎯 Obtenemos el banner de Latin Allin (CMS)
   const banners = useBanners();
-  const superBanner = banners?.slots?.super;
   
+  // CoinPoker Main Sponsor
+  const cpBanner = banners?.slots?.coinpoker;
+  const hasCpDesktop = !!(cpBanner?.desktop?.src || cpBanner?.desktop?.href);
+  const hasCpMobile = !!(cpBanner?.mobile?.src || cpBanner?.mobile?.href);
+  const hasCpBanner = hasCpDesktop || hasCpMobile;
+
+  // Secundarios
+  const superBanner = banners?.slots?.super;
   const hasSuperDesktop = !!(superBanner?.desktop?.src || superBanner?.desktop?.href);
   const hasSuperMobile = !!(superBanner?.mobile?.src || superBanner?.mobile?.href);
   const hasSuperBanner = hasSuperDesktop || hasSuperMobile;
@@ -72,7 +79,41 @@ export function PageShell({ children }: PageShellProps) {
         {/* 🏆 1ro: TICKER DE CAMPEONES */}
         <GlobalChampionsTicker />
 
-        {/* 🌟 2do: ZONA DUAL DE BANNERS (Latin Allin + Ignition) */}
+        {/* 🔥 2do: MAIN SPONSOR BANNER (COINPOKER) */}
+        {hasCpBanner && (
+          <div className="w-full bg-sk-bg-0/95 backdrop-blur-md border-b border-red-500/20 shadow-[0_4px_30px_rgba(220,38,38,0.05)] flex justify-center py-2 sm:py-3 relative z-[45]">
+            <div className="w-full max-w-[1200px] px-2 flex justify-center shrink-0">
+              {hasCpDesktop && (
+                <a
+                  href={cpBanner.desktop?.href || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "w-full h-auto xl:h-[150px] flex justify-center rounded-lg overflow-hidden hover:opacity-90 hover:scale-[1.01] transition-all duration-300",
+                    hasCpMobile ? "hidden md:flex" : "flex"
+                  )}
+                >
+                  <img src={cpBanner.desktop?.src} alt="CoinPoker Principal" className="w-full h-full object-contain xl:object-cover" />
+                </a>
+              )}
+              {hasCpMobile && (
+                <a
+                  href={cpBanner.mobile?.href || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "w-full h-auto flex justify-center rounded-lg overflow-hidden hover:opacity-90 hover:scale-[1.01] transition-all duration-300",
+                    hasCpDesktop ? "md:hidden" : "flex"
+                  )}
+                >
+                  <img src={cpBanner.mobile?.src} alt="CoinPoker Mobile" className="w-full h-full object-contain" />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 🌟 3ro: ZONA DUAL DE BANNERS SECUNDARIOS (Latin Allin + Ignition) */}
         <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 overflow-hidden shadow-md flex justify-center py-3 relative z-40">
           <div className="w-full max-w-[1520px] px-2 flex flex-col xl:flex-row items-center justify-center gap-4">
             

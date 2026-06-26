@@ -75,6 +75,8 @@ const RulesAustralPage = lazy(() => import("./pages/rules-poker-austral").then(m
 const TutorialIgnitionDepositPage = lazy(() => import("./pages/tutorial-ignition-deposit").then(m => ({ default: m.TutorialIgnitionDepositPage })));
 const PromoFreerollPage = lazy(() => import("./pages/promo-freeroll").then(m => ({ default: m.PromoFreerollPage })));
 const PromoIgnitionBonusPage = lazy(() => import("./pages/promo-ignition-bonus").then(m => ({ default: m.PromoIgnitionBonusPage })));
+const PromoCoinPokerPage = lazy(() => import("./pages/promo-coinpoker").then(m => ({ default: m.PromoCoinPokerPage })));
+const TutorialCoinPokerPage = lazy(() => import("./pages/tutorial-coinpoker").then(m => ({ default: m.TutorialCoinPokerPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -148,9 +150,11 @@ export function App() {
               <Route path="/promociones" element={<PromotionsPage />} />
               <Route path="/promociones/freeroll-diario" element={<PromoFreerollPage />} />
               <Route path="/promociones/ignition-bonus" element={<PromoIgnitionBonusPage />} />
+              <Route path="/promociones/coinpoker" element={<PromoCoinPokerPage />} />
               <Route path="/ignition" element={<IgnitionChampionshipPage />} />
               <Route path="/tutorial-ignition" element={<TutorialIgnitionPage />} />
               <Route path="/tutorial-ignition-deposit" element={<TutorialIgnitionDepositPage />} />
+              <Route path="/tutorial-coinpoker" element={<TutorialCoinPokerPage />} />
               <Route path="/noticias" element={<NoticiasPage />} />
               <Route path="/mindev" element={<PromoMindevPage />} />
               <Route path="/fullnuts" element={<PromoFullnutsPage />} />

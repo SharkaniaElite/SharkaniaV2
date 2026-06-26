@@ -28,7 +28,6 @@ export function LapUploadPage() {
   );
 
   // ================= ESTADOS DE BIBLIOTECA =================
-  // 🔥 AHORA GUARDAMOS LA FECHA DE BÚSQUEDA Y EL NOMBRE DEL PERIODO A MOSTRAR
   const [reportDates, setReportDates] = useState<{date: string, period: string}[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [reportRows, setReportRows] = useState<any[]>([]);
@@ -51,9 +50,8 @@ export function LapUploadPage() {
         
         data.forEach(d => {
           const dateOnly = d.date.split('T')[0];
-          let displayPeriod = d.period || dateOnly; // Fallback
+          let displayPeriod = d.period || dateOnly; 
           
-          // Convertimos el formato "2026-05-18 ~ 2026-05-24" a "18-05-26 / 24-05-26"
           if (d.period && d.period.includes('~')) {
             const parts = d.period.split('~').map((s: string) => s.trim());
             if (parts.length === 2) {
@@ -112,7 +110,6 @@ export function LapUploadPage() {
 
           return {
             id: index,
-            // 🔥 CORRECCIÓN TYPESCRIPT (Garantizamos strings puros)
             player: playerKey && row[playerKey] ? row[playerKey].trim() : "",
             agent: agentKey && row[agentKey] ? row[agentKey].trim() : "GettingRIcher",
             rake: rakeKey && row[rakeKey] ? row[rakeKey].trim() : "0"
@@ -195,7 +192,7 @@ export function LapUploadPage() {
 
       for (const row of parsedData) {
         const playerName = row.player;
-        const agentName = row.agent || "GettingRIcher"; // 🔥 CORRECCIÓN ESLINT
+        const agentName = row.agent || "GettingRIcher"; 
         
         let cleanRake = row.rake.replace(/[^0-9.,-]/g, '');
         if (cleanRake.lastIndexOf(',') > cleanRake.lastIndexOf('.')) {
@@ -205,16 +202,29 @@ export function LapUploadPage() {
         }
         const rakeVal = parseFloat(cleanRake) || 0;
 
+        // 🔥 CREACIÓN AUTOMÁTICA DE AGENTES
         let { data: agent } = await supabase.from("acc_agents").select("id").eq("name", agentName).maybeSingle();
 
-        if (!agent && agentName === "GettingRIcher") {
-          const { data: newAgent } = await supabase.from("acc_agents").insert({ name: "GettingRIcher", deal_percentage: 80 }).select("id").single();
-          agent = newAgent;
-          addLog(`👑 Agente Admin (GettingRIcher) creado automáticamente.`);
+        if (!agent) {
+          const { data: newAgent, error: agErr } = await supabase.from("acc_agents").insert({ 
+            name: agentName, 
+            deal_percentage: 50 // Porcentaje por defecto (Ignorado en los nuevos reportes)
+          }).select("id").single();
+          
+          if (newAgent) {
+            agent = newAgent;
+            addLog(agentName === "GettingRIcher" 
+              ? `👑 Agente Admin (GettingRIcher) creado automáticamente.` 
+              : `👤 Nuevo agente registrado automáticamente: ${agentName}`);
+          } else if (agErr) {
+            addLog(`❌ Error al crear agente ${agentName}: ${agErr.message}`);
+            continue;
+          }
         }
 
-        if (!agent) {
-          addLog(`⚠️ Omitido: El agente "${agentName}" no está registrado.`);
+        // 🔥 CORRECCIÓN TYPESCRIPT: Validación de seguridad
+        if (!agent || !agent.id) {
+          addLog(`❌ Error crítico: No se pudo verificar ni crear el agente ${agentName}.`);
           continue;
         }
 
@@ -289,7 +299,6 @@ export function LapUploadPage() {
       setLoading(false);
     }
   };
-
 
   // ================= LÓGICA DE BIBLIOTECA Y EDICIÓN (TAB 2) =================
   const loadReportDetails = async (dateStr: string) => {
@@ -433,7 +442,6 @@ export function LapUploadPage() {
     }
   };
 
-
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 pb-20">
       
@@ -487,7 +495,7 @@ export function LapUploadPage() {
                 <BarChart3 size={48} className="text-indigo-500 mb-4 opacity-50" />
                 <h3 className="text-lg font-bold text-white mb-2">Cargar Archivo CSV</h3>
                 <p className="text-xs text-gray-400 font-mono mb-6 text-center max-w-md">
-                  Asegúrate de que el archivo contenga las columnas "Player", "Agente" y "Rake".
+                  Asegúrate de que el archivo contenga las columnas "Player", "Agente" y "Rake". Los nuevos agentes se crearán solos.
                 </p>
                 <input 
                   id="csv-upload"
@@ -569,7 +577,6 @@ export function LapUploadPage() {
           
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 bg-gray-800 p-4 rounded-xl border border-gray-700 shadow">
             <div className="flex-1 w-full">
-              {/* 🔥 CORRECCIÓN TAILWIND (CSS CONFLICT ELIMINADO) */}
               <label className="flex items-center gap-1 text-[10px] uppercase font-mono text-emerald-400 mb-1">
                 <Calendar size={12} /> Seleccionar Reporte Histórico
               </label>
@@ -579,7 +586,6 @@ export function LapUploadPage() {
                 className="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white text-sm outline-none focus:border-emerald-500 cursor-pointer"
               >
                 <option value="">-- Elige un reporte --</option>
-                {/* 🔥 PERIODO FORMATEADO */}
                 {reportDates.map(report => (
                   <option key={report.date} value={report.date}>Periodo: {report.period}</option>
                 ))}

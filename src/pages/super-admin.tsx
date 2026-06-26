@@ -37,8 +37,14 @@ type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scor
 // ── Descripción de cada slot de banner ───────────────────
 
 const SLOT_INFO = {
+  coinpoker: {
+    title: "🔥 MAIN SPONSOR: CoinPoker",
+    description: "Este es el banner REY. Aparece primero en absolutamente todo el sitio web en ancho completo.",
+    desktop: { size: "1200×150 px", label: "Billboard Principal", hint: "Diseño apaisado de alta conversión." },
+    mobile:  { size: "600×200 px", label: "Header Mobile", hint: "Ajustado para vista de celular." },
+  },
   super: {
-    title: "Super Banner Global",
+    title: "Super Banner Global (Secundario)",
     description: "Aparece FIJO en la parte superior de TODAS las páginas, justo debajo del menú.",
     desktop: { size: "1023×148 px", label: "Top Super Banner", hint: "Formato billboard premium. Alta visibilidad vertical y persistente al hacer scroll." },
     mobile:  { size: "870×200 px", label: "Wide banner", hint: "Se ajusta al ancho del dispositivo móvil." },

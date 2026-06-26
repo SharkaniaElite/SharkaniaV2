@@ -36,6 +36,7 @@ export interface BannersConfig {
   bonusCode: string;
   floatingCta?: FloatingConfig;
   slots: {
+    coinpoker: BannerSlotConfig; // 🔥 MAIN SPONSOR
     super: BannerSlotConfig; // 👈 NUEVO: Slot para el Super Banner Global
     mid: BannerSlotConfig;
     final: BannerSlotConfig;
@@ -48,6 +49,21 @@ export interface BannersConfig {
 export const DEFAULT_BANNERS: BannersConfig = {
   bonusCode: "FPHL",
   slots: {
+    // 🔥 NUEVO: COINPOKER MAIN SPONSOR
+    coinpoker: {
+      desktop: {
+        src: "/images/promos/hero-coinpoker.webp",
+        href: "https://record.coinpokeraffiliates.com/_ZnRTLL6Lwv7UOsjNOfgKeWNd7ZgqdRLk/1/",
+        width: 1200, height: 150,
+        label: "Billboard 1200x150",
+      },
+      mobile: {
+        src: "/images/promos/hero-coinpoker.webp",
+        href: "https://record.coinpokeraffiliates.com/_ZnRTLL6Lwv7UOsjNOfgKeWNd7ZgqdRLk/1/",
+        width: 600, height: 200,
+        label: "Mobile 600x200",
+      },
+    },
     // 👇 NUEVO: Configuración por defecto del Super Banner
     super: {
       desktop: {
