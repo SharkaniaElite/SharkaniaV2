@@ -7,6 +7,19 @@ import { GlobalSearch } from "../search/global-search";
 import { useAuthStore } from "../../stores/auth-store";
 import { SharkCoin } from "../ui/shark-coin";
 
+const ROOMS = [
+  { 
+    name: "CoinPoker", 
+    href: "/promociones/coinpoker", 
+    tutorial: { label: "Cómo crear cuenta y depositar", href: "/tutorial-coinpoker" } 
+  },
+  { 
+    name: "Ignition Poker", 
+    href: "/ignition", 
+    tutorial: { label: "Guía de Registro", href: "/tutorial-ignition" } 
+  }
+];
+
 const MAIN_LINKS = [
   { label: "Noticias", href: "/noticias" },
   { label: "Promociones", href: "/promociones" },
@@ -124,15 +137,31 @@ export function Navbar() {
             </Link>
           ))}
 
-          {/* 2. Menú Desplegable "Explorar" */}
+          {/* 2. Menú Desplegable "Explorar" Optimizado */}
           <div className="relative group">
             <button className="flex items-center gap-1 text-sk-sm font-medium px-3 py-1.5 rounded-sm transition-colors duration-100 text-sk-text-2 hover:text-sk-text-1 hover:bg-white/[0.04]">
               Explorar <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-200" />
             </button>
             
-            {/* El div "puente" para que el mouse no pierda el hover al bajar */}
-            <div className="absolute top-full left-0 pt-3 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[200]">
-              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg shadow-sk-xl overflow-hidden py-1">
+            <div className="absolute top-full left-0 pt-3 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[200]">
+              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg shadow-sk-xl overflow-hidden py-2">
+                
+                {/* Salas */}
+                <div className="px-4 py-1 text-[10px] uppercase font-bold text-sk-text-4 tracking-wider mb-1">Salas Recomendadas</div>
+                {ROOMS.map((room) => (
+                  <div key={room.name} className="px-4 py-1.5">
+                    <Link to={room.href} className="block text-sk-sm font-semibold text-sk-text-1 hover:text-sk-accent transition-colors">
+                      {room.name}
+                    </Link>
+                    <Link to={room.tutorial.href} className="block text-[11px] text-sk-text-3 hover:text-sk-accent pl-2 mt-0.5 transition-colors">
+                      ↳ {room.tutorial.label}
+                    </Link>
+                  </div>
+                ))}
+
+                <div className="border-t border-sk-border-2 my-2" />
+
+                {/* Otros */}
                 {MORE_LINKS.map((link) => (
                   <Link
                     key={link.href}
