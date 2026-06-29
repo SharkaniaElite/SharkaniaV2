@@ -240,7 +240,7 @@ export function IgnitionChampionshipPage() {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-500/10 border border-orange-500/30 px-3 py-1.5 rounded-full text-orange-400 font-mono text-xs uppercase tracking-widest font-bold">
               <Flame size={14} className="animate-pulse" />
-              Liga Exclusiva
+              Liga Oficial - Julio 2026
             </div>
             
             <h1 className="text-5xl sm:text-6xl font-black leading-tight tracking-tight">
@@ -251,20 +251,55 @@ export function IgnitionChampionshipPage() {
             </h1>
             
             <p className="text-lg text-gray-300 leading-relaxed max-w-lg">
-              Las mesas en Ignition Poker son 100% anónimas. Para poder enviarte la contraseña de los torneos y asociar tus puntos en el ranking, necesitamos saber quién eres.
+              Regístrate en Sharkania para recibir la contraseña exclusiva de nuestra liga de Julio. Juega los Jueves, elimina al host por una recompensa directa y suma puntos para los premios mensuales.
             </p>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-black/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm hover:border-orange-500/50 transition-colors">
                 <div className="text-orange-500 mb-2"><Trophy size={24} /></div>
-                <p className="text-xs font-mono text-gray-500 uppercase mb-1">Pozo Garantizado</p>
+                <p className="text-xs font-mono text-gray-500 uppercase mb-1">Pozo Semanal</p>
                 <p className="text-xl font-bold text-white">$150 USD</p>
+                <p className="text-xs text-gray-400 mt-1">En Tickets de Torneo</p>
               </div>
               <div className="bg-black/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm hover:border-red-500/50 transition-colors">
                 <div className="text-red-500 mb-2"><Gamepad2 size={24} /></div>
                 <p className="text-xs font-mono text-gray-500 uppercase mb-1">Buy-in / Rebuy</p>
-                <p className="text-xl font-bold text-white">FREE / $2.20 USD</p>
+                <p className="text-xl font-bold text-white">FREE / $2 USD</p>
+                <p className="text-xs text-gray-400 mt-1">Turbo (60 min recompra)</p>
               </div>
+            </div>
+
+            {/* NUEVA TABLA DE PREMIOS */}
+            <div className="mt-8 bg-gradient-to-br from-orange-950/40 to-black border border-orange-500/30 rounded-xl p-6 shadow-lg">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                 <div>
+                   <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2 uppercase tracking-wide">
+                     <Trophy className="text-orange-500" size={16} /> Semanal (Jueves)
+                   </h3>
+                   <ul className="space-y-2 text-sm text-gray-300">
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>1° Lugar</span> <span className="font-bold text-orange-400">Ticket $55</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>2° Lugar</span> <span className="font-bold text-orange-400">Ticket $33</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>3° Lugar</span> <span className="font-bold text-orange-400">Ticket $22</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>4° Lugar</span> <span className="font-bold text-orange-400">Ticket $11</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>5° Lugar</span> <span className="font-bold text-orange-400">Ticket $5.50</span></li>
+                     <li className="flex justify-between pt-1 text-red-400 font-bold"><span>¡Bounty al Host!</span> <span>Ticket $22</span></li>
+                   </ul>
+                 </div>
+                 
+                 <div>
+                   <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2 uppercase tracking-wide">
+                     <Flame className="text-red-500" size={16} /> Ranking Mensual
+                   </h3>
+                   <ul className="space-y-2 text-sm text-gray-300">
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>1° de la Liga</span> <span className="font-bold text-red-400">Freerolling 1200</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>2° de la Liga</span> <span className="font-bold text-red-400">Freerolling 1000</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>3° de la Liga</span> <span className="font-bold text-red-400">Freerolling 300</span></li>
+                   </ul>
+                   <p className="text-[10px] text-gray-500 mt-3 leading-tight">
+                     * El ranking suma tus mejores resultados en los 4 torneos del mes. Debes estar registrado en Sharkania para calificar.
+                   </p>
+                 </div>
+               </div>
             </div>
 
             <div className="space-y-6 pt-4 border-t border-white/10 mt-8">
@@ -284,8 +319,8 @@ export function IgnitionChampionshipPage() {
               <div className="flex gap-4 items-start">
                 <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold shrink-0">2</div>
                 <div>
-                  <h4 className="font-bold text-white">Vincula tu cuenta</h4>
-                  <p className="text-sm text-gray-400 mt-1">Inicia sesión o regístrate en Sharkania aquí al lado para vincular tu usuario de Ignition.</p>
+                  <h4 className="font-bold text-white">Regístrate en Sharkania</h4>
+                  <p className="text-sm text-gray-400 mt-1">Usa el formulario aquí al lado para vincular tu Nickname de Ignition a nuestra base de datos. ¡Es obligatorio para el ranking!</p>
                 </div>
               </div>
 
@@ -293,7 +328,7 @@ export function IgnitionChampionshipPage() {
                 <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold shrink-0">3</div>
                 <div>
                   <h4 className="font-bold text-white">Recibe la Contraseña</h4>
-                  <p className="text-sm text-gray-400 mt-1">Cada Jueves a las 21:00 hrs. Te llegará por correo y se liberará en el Live Stream.</p>
+                  <p className="text-sm text-gray-400 mt-1">Cada Jueves te enviaremos la contraseña al correo con el que te registres. ¡Asegúrate de revisar la carpeta de spam!</p>
                 </div>
               </div>
             </div>
