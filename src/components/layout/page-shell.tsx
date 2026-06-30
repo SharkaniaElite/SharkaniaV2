@@ -9,6 +9,11 @@ import { Crown, X } from "lucide-react";
 import { useBanners } from "../../hooks/use-banners";
 import { cn } from "../../lib/cn";
 import { GlobalChampionsTicker } from "./global-champions-ticker";
+import { getUpcomingTournaments } from "../../lib/api/tournaments";
+import type { TournamentWithDetails } from "../../types";
+import { format } from "date-fns";
+import { Badge } from "../ui/badge";
+import { CountdownTimer } from "../landing/countdown-timer";
 
 interface PageShellProps {
   children: ReactNode;
@@ -17,6 +22,11 @@ interface PageShellProps {
 export function PageShell({ children }: PageShellProps) {
   const [champion, setChampion] = useState<LeagueChampionNews | null>(null);
   const [dismissed, setDismissed] = useState(true);
+  
+  // 🔥 Nuevo estado para el Calendario Superior
+  const [tournaments, setTournaments] = useState<TournamentWithDetails[]>([]);
+  const [loadingTourneys, setLoadingTourneys] = useState(true);
+  const [currentTime, setCurrentTime] = useState(() => Date.now()); // 🔥 Estado puro para el tiempo
   
   // 🎯 Obtenemos el banner de Latin Allin (CMS)
   const banners = useBanners();
@@ -54,6 +64,21 @@ export function PageShell({ children }: PageShellProps) {
     fetchChampion();
   }, []);
 
+  useEffect(() => {
+    getUpcomingTournaments()
+      .then(d => {
+        const now = new Date();
+        setCurrentTime(now.getTime()); // 🔥 Sincronizamos el reloj exacto al recibir los datos
+        const filtered = d.filter(t => {
+          if (t.status === "live" || t.status === "late_registration") return true;
+          if (t.status === "completed" || t.status === "cancelled") return false;
+          if (t.status === "scheduled") return new Date(t.start_datetime) > now;
+          return true;
+        });
+        setTournaments(filtered.slice(0, 3)); // Muestra solo los 3 más cercanos
+      }).finally(() => setLoadingTourneys(false));
+  }, []);
+
   const handleDismiss = () => {
     if (champion) {
       sessionStorage.setItem(`hide_champ_${champion.id}`, "true");
@@ -79,39 +104,92 @@ export function PageShell({ children }: PageShellProps) {
         {/* 🏆 1ro: TICKER DE CAMPEONES */}
         <GlobalChampionsTicker />
 
-        {/* 🔥 2do: MAIN SPONSOR BANNER (COINPOKER) */}
-        {hasCpBanner && (
-          <div className="w-full bg-sk-bg-0/95 backdrop-blur-md border-b border-red-500/20 shadow-[0_4px_30px_rgba(220,38,38,0.05)] flex justify-center py-2 sm:py-3 relative z-[45]">
-            <div className="w-full max-w-[1200px] px-2 flex justify-center shrink-0">
-              {hasCpDesktop && (
-                <a
-                  href={cpBanner.desktop?.href || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "w-full h-auto xl:h-[150px] flex justify-center rounded-lg overflow-hidden hover:opacity-90 hover:scale-[1.01] transition-all duration-300",
-                    hasCpMobile ? "hidden md:flex" : "flex"
+        {/* 🔥 2do: FILA SUPERIOR DUAL SIMÉTRICA (CALENDARIO + COINPOKER) */}
+        <div className="w-full bg-sk-bg-0/95 backdrop-blur-md border-b border-sk-border-2 shadow-md flex justify-center py-3 relative z-[45]">
+          <div className="w-full max-w-[1520px] px-2 flex flex-col xl:flex-row items-stretch justify-center gap-4">
+            
+            {/* 🗓️ Bloque Izquierdo: Calendario de Torneos Sharkania */}
+            <div className="w-full xl:w-1/2 bg-sk-bg-1 border border-sk-border-2 rounded-xl p-4 flex flex-col justify-between shadow-sm min-h-[140px] xl:min-h-auto">
+              <div className="flex items-center justify-between border-b border-sk-border-2 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🗓️</span>
+                  <h4 className="font-extrabold text-sm text-white uppercase tracking-wider">Calendario de Torneos</h4>
+                </div>
+                <span className="text-[10px] font-mono bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20 uppercase tracking-widest animate-pulse">En Vivo</span>
+              </div>
+              
+              {/* Aquí mapeamos la base de datos de torneos reales */}
+              <div className="flex-1 flex flex-col gap-2 py-3 overflow-y-auto">
+                {loadingTourneys ? (
+                  <p className="text-xs text-sk-text-3 italic text-center py-2">Cargando próximos eventos...</p>
+                ) : tournaments.length === 0 ? (
+                  <p className="text-xs text-sk-text-3 text-center py-2">No hay torneos próximos</p>
+                ) : (
+                  tournaments.map(t => {
+                    const isLive = t.status === "live";
+                    const startDate = new Date(t.start_datetime);
+                    const secs = Math.max(0, Math.floor((startDate.getTime() - currentTime) / 1000)); // 🔥 Usamos el estado predecible
+                    
+                    return (
+                      <div key={t.id} className={cn("bg-sk-bg-2 border border-sk-border-2 rounded-lg p-2.5 flex justify-between items-center transition-colors hover:border-sk-accent/30", isLive && "border-l-2 border-l-sk-green")}>
+                        <div className="min-w-0 flex-1 pr-2">
+                          <h5 className="font-bold text-sk-text-1 text-[11px] uppercase tracking-wide truncate">{t.name.replace(/^\[DEMO\]\s*/, "")}</h5>
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-sk-text-3 font-mono">
+                            <span>{format(startDate, "dd/MM HH:mm")}</span>
+                            <span>·</span>
+                            <span className={t.buy_in === 0 ? "text-sk-green" : "text-sk-text-2"}>{t.buy_in === 0 ? "FREE" : `$${t.buy_in}`}</span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 flex flex-col items-end">
+                          {isLive ? <Badge variant="live" className="text-[9px] px-1.5 py-0.5">EN VIVO</Badge> : secs > 0 ? <CountdownTimer targetSeconds={secs} variant="soon" /> : null}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <Link to="/calendar" className="w-full text-center py-1.5 bg-sk-bg-2 border border-sk-border-2 hover:border-sk-accent/50 text-sk-text-2 hover:text-white text-xs font-bold rounded-lg transition-all uppercase tracking-wider">
+                Ver Agenda Completa →
+              </Link>
+            </div>
+
+            {/* 🎰 Bloque Derecho: Banner CoinPoker */}
+            <div className="w-full xl:w-1/2 flex justify-center">
+              {hasCpBanner && (
+                <div className="w-full h-full flex items-center justify-center">
+                  {hasCpDesktop && (
+                    <a
+                      href={cpBanner.desktop?.href || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "w-full h-full aspect-[16/6] xl:aspect-auto flex justify-center bg-black rounded-xl overflow-hidden border border-white/5 shadow-sm hover:opacity-90 transition-opacity",
+                        hasCpMobile ? "hidden md:flex" : "flex"
+                      )}
+                    >
+                      <img src={cpBanner.desktop?.src} alt="CoinPoker Principal" className="w-full h-full object-cover" />
+                    </a>
                   )}
-                >
-                  <img src={cpBanner.desktop?.src} alt="CoinPoker Principal" className="w-full h-full object-contain xl:object-cover" />
-                </a>
-              )}
-              {hasCpMobile && (
-                <a
-                  href={cpBanner.mobile?.href || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "w-full h-auto flex justify-center rounded-lg overflow-hidden hover:opacity-90 hover:scale-[1.01] transition-all duration-300",
-                    hasCpDesktop ? "md:hidden" : "flex"
+                  {hasCpMobile && (
+                    <a
+                      href={cpBanner.mobile?.href || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "w-full aspect-[16/6] flex justify-center bg-black rounded-xl overflow-hidden border border-white/5 shadow-sm hover:opacity-90 transition-opacity",
+                        hasCpDesktop ? "md:hidden" : "flex"
+                      )}
+                    >
+                      <img src={cpBanner.mobile?.src} alt="CoinPoker Mobile" className="w-full h-full object-cover" />
+                    </a>
                   )}
-                >
-                  <img src={cpBanner.mobile?.src} alt="CoinPoker Mobile" className="w-full h-full object-contain" />
-                </a>
+                </div>
               )}
             </div>
+
           </div>
-        )}
+        </div>
 
         {/* 🌟 3ro: ZONA DUAL DE BANNERS SECUNDARIOS (Latin Allin + Ignition) */}
         <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 overflow-hidden shadow-md flex justify-center py-3 relative z-40">

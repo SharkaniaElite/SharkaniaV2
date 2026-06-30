@@ -59,13 +59,13 @@ export function TutorialCoinPokerPage() {
             <div className="grid md:grid-cols-2 gap-8">
               <div className="bg-sk-bg-1 border border-sk-border-2 rounded-xl p-4 shadow-lg">
                 <img 
-                  src="/tutorial/Step1-emailypass.jpeg" 
+                  src="/tutorial/Step1-emailypass-con-codigo.jpg" 
                   alt="Ingresar email y contraseña" 
                   className={imageClasses} 
-                  onClick={() => setMaximizedImage("/tutorial/Step1-emailypass.jpeg")}
+                  onClick={() => setMaximizedImage("/tutorial/Step1-emailypass-con-codigo.jpg")}
                 />
                 <h3 className="font-bold text-white mb-2">1. Ingresa tus datos</h3>
-                <p className="text-sm text-sk-text-3">Introduce tu correo electrónico y crea una contraseña segura. Asegúrate de haber usado nuestro enlace para acceder a los beneficios.</p>
+                <p className="text-sm text-sk-text-3">Introduce tu correo electrónico y crea una contraseña segura. Asegúrate de haber usado el código "SHARKANIA" y nuestro enlace para acceder a los beneficios.</p>
               </div>
               <div className="bg-sk-bg-1 border border-sk-border-2 rounded-xl p-4 shadow-lg">
                 <img 

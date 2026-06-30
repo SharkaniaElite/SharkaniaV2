@@ -3,27 +3,19 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { RevealSection } from "../components/landing/reveal-section";
-import { CountdownTimer } from "../components/landing/countdown-timer";
-import { TournamentDetailModal } from "../components/calendar/tournament-detail-modal";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { cn } from "../lib/cn";
 import { getPlayers } from "../lib/api/players";
-import { getUpcomingTournaments } from "../lib/api/tournaments";
 import { getBlogPosts, formatBlogDate } from "../lib/api/blog";
 import { supabase } from "../lib/supabase";
 import { FlagIcon } from "../components/ui/flag-icon";
-import { Trophy, CalendarDays, Megaphone, Zap, Brain, Flame } from "lucide-react";
-import { format } from "date-fns";
-import type { PlayerWithRoom, TournamentWithDetails } from "../types";
+import { Trophy, Megaphone, Zap, Brain, Flame } from "lucide-react";
+import type { PlayerWithRoom } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
 
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function secsUntil(datetime: string) {
-  return Math.max(0, Math.floor((new Date(datetime).getTime() - Date.now()) / 1000));
-}
 
 function DemoBadge() {
   return (
@@ -72,47 +64,22 @@ function RowSkeleton() {
   );
 }
 
-function CardSkeleton() {
-  return (
-    <div className="animate-sk-pulse bg-sk-bg-3 border border-sk-border-2 rounded-md p-3 px-4">
-      <div className="h-4 w-40 rounded bg-sk-bg-4 mb-2" />
-      <div className="h-3 w-24 rounded bg-sk-bg-4" />
-    </div>
-  );
-}
-
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function HomePage() {
   const [players,     setPlayers]     = useState<PlayerWithRoom[]>([]);
-  const [tournaments, setTournaments] = useState<TournamentWithDetails[]>([]);
   const [blogPosts,   setBlogPosts]   = useState<any[]>([]); // Cambiado a any[] para aceptar estáticos
   const [stats,       setStats]       = useState({ players:0, tournaments:0, clubs:0, leagues:0, live:0 });
   
   const [loadingRank,    setLoadingRank]    = useState(true);
-  const [loadingTourneys,setLoadingTourneys] = useState(true);
   const [loadingBlog,    setLoadingBlog]    = useState(true);
-  const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
   useEffect(() => {
-    // Top 5 Jugadores
+    // Top 10 Jugadores
     getPlayers({ page:1, pageSize:10, orderBy:"elo_rating", orderDir:"desc" })
       .then(res => {
         setPlayers(res.data.slice(0,10)); // Ampliado a Top 10
       }).finally(() => setLoadingRank(false));
-
-    // Torneos Próximos
-    getUpcomingTournaments()
-      .then(d => {
-        const now = new Date();
-        const filtered = d.filter(t => {
-          if (t.status === "live" || t.status === "late_registration") return true;
-          if (t.status === "completed" || t.status === "cancelled") return false;
-          if (t.status === "scheduled") return new Date(t.start_datetime) > now;
-          return true;
-        });
-        setTournaments(filtered.slice(0,5));
-      }).finally(() => setLoadingTourneys(false));
 
     // Últimos Posts del Blog y Promociones (Ordenados por fecha)
     getBlogPosts().then(posts => {
@@ -141,79 +108,9 @@ export function HomePage() {
     <PageShell>
       <SEOHead title="Inicio" description="Plataforma global de poker competitivo. Rankings ELO, torneos online, análisis de manos y herramientas tácticas para tu club." path="/" />
 
-      {/* ══ HERO & TICKER ══ */}
-      <section className="relative min-h-[85vh] flex flex-col items-center justify-center text-center px-6 pt-24 pb-12 overflow-hidden">
-        <div className="absolute inset-0 -z-20" style={{ background:"radial-gradient(ellipse 60% 40% at 50% 0%, var(--sk-accent-dim), transparent 70%), radial-gradient(ellipse 40% 30% at 70% 80%, var(--sk-purple-dim), transparent 60%), var(--sk-bg-1)" }} />
-        <div className="absolute inset-0 -z-10" style={{ backgroundImage:"linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px)", backgroundSize:"64px 64px", maskImage:"radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent)", WebkitMaskImage:"radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent)" }} />
-        
-        <div className="max-w-[800px] flex-1 flex flex-col justify-center mb-10">
-          <div className="inline-flex items-center gap-2 py-1 pl-1 pr-3.5 bg-sk-bg-3 border border-sk-border-2 rounded-full text-[11px] font-medium text-sk-text-2 mb-8 animate-sk-fade-up mx-auto">
-            <span className="px-2 py-0.5 bg-sk-accent-dim text-sk-accent rounded-full font-bold text-[10px] tracking-wide">BETA</span>
-            Plataforma Global de Poker Competitivo
-          </div>
-          <h1 className="text-5xl md:text-7xl font-black tracking-[-0.045em] text-sk-text-1 leading-none mb-6 animate-sk-fade-up sk-delay-1 uppercase">
-            Juega. Aprende.<br />
-            <span className="bg-gradient-to-br from-sk-accent to-blue-400 bg-clip-text text-transparent">Domina las mesas.</span>
-          </h1>
-          <p className="text-sk-lg text-sk-text-2 leading-relaxed mx-auto animate-sk-fade-up sk-delay-2 max-w-2xl">
-            Para ser un verdadero tiburón del póker necesitas dos cosas: volumen de juego y conocimiento táctico. En Sharkania te entregamos el ecosistema para ambas.
-          </p>
-          <div className="flex justify-center gap-4 mt-8 flex-wrap animate-sk-fade-up sk-delay-3">
-            <Link to="/ranking">
-              <Button variant="accent" size="xl" className="group relative overflow-hidden font-extrabold tracking-wide shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_35px_rgba(34,211,238,0.5)] transition-all duration-300 border border-sk-accent/50 hover:border-sk-accent">
-                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out" />
-                <Trophy className="w-5 h-5 mr-2 inline-block group-hover:scale-110 transition-transform duration-300" />
-                Ver Ranking Global
-              </Button>
-            </Link>
-            <Link to="/calendar">
-              <Button variant="secondary" size="xl" className="group font-bold tracking-wide border-sk-border-2 hover:border-sk-text-2 hover:bg-white/[0.03] transition-all duration-300">
-                <CalendarDays className="w-5 h-5 mr-2 inline-block text-sk-text-4 group-hover:text-sk-text-1 transition-colors duration-300" />
-                Torneos Online
-              </Button>
-            </Link>
-          </div>
-          
-          {/* Trust Badges - Salas Afiliadas */}
-          <div className="mt-12 animate-sk-fade-up sk-delay-4 border-t border-sk-border-2 pt-6 w-full max-w-2xl mx-auto">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-sk-text-3 mb-4">Salas y Clubes Oficiales Afiliados</p>
-            <div className="flex justify-center items-center gap-6 md:gap-12 opacity-60 hover:opacity-100 transition-opacity duration-500 flex-wrap">
-               <span className="text-lg font-black italic tracking-tighter">WPT <span className="text-sk-accent">GLOBAL</span></span>
-               <span className="text-lg font-black italic tracking-tighter">IGNITION <span className="text-orange-500">POKER</span></span>
-               <span className="text-lg font-black italic tracking-tighter">LATINALLINPOKER <span className="text-green-500 text-xs tracking-normal align-middle">(Unión CCP)</span></span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══ STATS BAR ══ */}
-      <div className="bg-sk-bg-0 border-y border-sk-border-2 py-3 overflow-hidden relative">
-        <div className="absolute top-0 left-[-100%] w-1/2 h-full bg-gradient-to-r from-transparent via-sk-accent/5 to-transparent animate-[shimmer_3s_infinite]" />
-        <div className="max-w-[1200px] mx-auto px-6 relative z-10">
-          <div className="flex justify-center items-center gap-6 md:gap-10 flex-wrap">
-            {[
-              { label:"JUGADORES TRACKEADOS",  value:stats.players.toLocaleString("es") },
-              { label:"TORNEOS DISPUTADOS",    value:stats.tournaments.toLocaleString("es") },
-              { label:"CLUBES VERIFICADOS", value:stats.clubs.toLocaleString("es") },
-            ].map(item => (
-              <div key={item.label} className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-sk-text-3 font-semibold group cursor-default">
-                <span className="group-hover:text-sk-accent transition-colors duration-300">{item.label}</span>
-                <span className="font-mono font-bold text-sk-text-1 text-sk-sm group-hover:text-white transition-colors duration-300">{item.value}</span>
-              </div>
-            ))}
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-sk-text-3 font-semibold group cursor-default">
-              <Badge variant="live" className="shadow-[0_0_10px_rgba(239,68,68,0.4)] animate-pulse">LIVE NOW</Badge>
-              <span className="font-mono font-bold text-sk-text-1 text-sk-sm group-hover:text-white transition-colors duration-300">{stats.live} Torneos</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ══ ACTION CENTER (Torneos & Ranking) ══ */}
-      <section className="py-16 bg-sk-bg-0" id="ranking">
-        
-        {/* 📰 NOTICIAS DIARIAS */}
-        <div className="max-w-[1300px] mx-auto px-6 mb-16">
+      {/* 📰 NOTICIAS DIARIAS (MOVIDO AL TOP, SOBRE EL TÍTULO) */}
+      <section className="pt-8 pb-4 relative z-10 bg-sk-bg-1 border-b border-sk-border-2/50">
+        <div className="max-w-[1300px] mx-auto px-6">
           <RevealSection>
             <div className="flex items-center justify-between mb-6 border-b border-sk-border-2 pb-4">
               <div>
@@ -221,7 +118,7 @@ export function HomePage() {
                   Actualidad y Novedades
                 </span>
                 <h2 className="text-sk-xl font-black text-sk-text-1 uppercase flex items-center gap-2">
-                  <Megaphone className="text-sk-accent" size={20} /> Noticias y Promociones de Póker
+                  <Megaphone className="text-sk-accent" size={20} /> Noticias y Promociones
                 </h2>
               </div>
               <Link to="/noticias" className="text-[11px] font-mono text-sk-text-3 hover:text-sk-accent font-bold uppercase transition-colors self-end pb-1">
@@ -262,116 +159,120 @@ export function HomePage() {
             </div>
           </RevealSection>
         </div>
+      </section>
 
-        <div className="max-w-[1300px] mx-auto px-6">
+      {/* ══ HERO & TICKER (TÍTULO DE PÁGINA) ══ */}
+      <section className="relative min-h-[75vh] flex flex-col items-center justify-center text-center px-6 pt-16 pb-12 overflow-hidden">
+        <div className="absolute inset-0 -z-20" style={{ background:"radial-gradient(ellipse 60% 40% at 50% 0%, var(--sk-accent-dim), transparent 70%), radial-gradient(ellipse 40% 30% at 70% 80%, var(--sk-purple-dim), transparent 60%), var(--sk-bg-1)" }} />
+        <div className="absolute inset-0 -z-10" style={{ backgroundImage:"linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px)", backgroundSize:"64px 64px", maskImage:"radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent)", WebkitMaskImage:"radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent)" }} />
+        
+        <div className="max-w-[800px] flex-1 flex flex-col justify-center mb-10">
+          <div className="inline-flex items-center gap-2 py-1 pl-1 pr-3.5 bg-sk-bg-3 border border-sk-border-2 rounded-full text-[11px] font-medium text-sk-text-2 mb-8 animate-sk-fade-up mx-auto">
+            <span className="px-2 py-0.5 bg-sk-accent-dim text-sk-accent rounded-full font-bold text-[10px] tracking-wide">BETA</span>
+            Plataforma Global de Poker Competitivo
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black tracking-[-0.045em] text-sk-text-1 leading-none mb-6 animate-sk-fade-up sk-delay-1 uppercase">
+            Juega. Aprende.<br />
+            <span className="bg-gradient-to-br from-sk-accent to-blue-400 bg-clip-text text-transparent">Domina las mesas.</span>
+          </h1>
+          <p className="text-sk-lg text-sk-text-2 leading-relaxed mx-auto animate-sk-fade-up sk-delay-2 max-w-2xl">
+            Para ser un verdadero tiburón del póker necesitas dos cosas: volumen de juego y conocimiento táctico. En Sharkania te entregamos el ecosistema para ambas.
+          </p>
+          <div className="flex justify-center gap-4 mt-8 flex-wrap animate-sk-fade-up sk-delay-3">
+            <Link to="/ranking">
+              <Button variant="accent" size="xl" className="group relative overflow-hidden font-extrabold tracking-wide shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_35px_rgba(34,211,238,0.5)] transition-all duration-300 border border-sk-accent/50 hover:border-sk-accent">
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out" />
+                <Trophy className="w-5 h-5 mr-2 inline-block group-hover:scale-110 transition-transform duration-300" />
+                Ver Ranking Global
+              </Button>
+            </Link>
+          </div>
+          
+          {/* Trust Badges - Salas Afiliadas */}
+          <div className="mt-12 animate-sk-fade-up sk-delay-4 border-t border-sk-border-2 pt-6 w-full max-w-2xl mx-auto">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-sk-text-3 mb-4">Salas y Clubes Oficiales Afiliados</p>
+            <div className="flex justify-center items-center gap-6 md:gap-12 opacity-60 hover:opacity-100 transition-opacity duration-500 flex-wrap">
+               <span className="text-lg font-black italic tracking-tighter">WPT <span className="text-sk-accent">GLOBAL</span></span>
+               <span className="text-lg font-black italic tracking-tighter">IGNITION <span className="text-orange-500">POKER</span></span>
+               <span className="text-lg font-black italic tracking-tighter">LATINALLINPOKER <span className="text-green-500 text-xs tracking-normal align-middle">(Unión CCP)</span></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ STATS BAR ══ */}
+      <div className="bg-sk-bg-0 border-y border-sk-border-2 py-3 overflow-hidden relative">
+        <div className="absolute top-0 left-[-100%] w-1/2 h-full bg-gradient-to-r from-transparent via-sk-accent/5 to-transparent animate-[shimmer_3s_infinite]" />
+        <div className="max-w-[1200px] mx-auto px-6 relative z-10">
+          <div className="flex justify-center items-center gap-6 md:gap-10 flex-wrap">
+            {[
+              { label:"JUGADORES TRACKEADOS",  value:stats.players.toLocaleString("es") },
+              { label:"TORNEOS DISPUTADOS",    value:stats.tournaments.toLocaleString("es") },
+              { label:"CLUBES VERIFICADOS", value:stats.clubs.toLocaleString("es") },
+            ].map(item => (
+              <div key={item.label} className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-sk-text-3 font-semibold group cursor-default">
+                <span className="group-hover:text-sk-accent transition-colors duration-300">{item.label}</span>
+                <span className="font-mono font-bold text-sk-text-1 text-sk-sm group-hover:text-white transition-colors duration-300">{item.value}</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-sk-text-3 font-semibold group cursor-default">
+              <Badge variant="live" className="shadow-[0_0_10px_rgba(239,68,68,0.4)] animate-pulse">LIVE NOW</Badge>
+              <span className="font-mono font-bold text-sk-text-1 text-sk-sm group-hover:text-white transition-colors duration-300">{stats.live} Torneos</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ ACTION CENTER (Ranking Exclusivo Centrado) ══ */}
+      <section className="py-16 bg-sk-bg-0" id="ranking">
+        <div className="max-w-[900px] mx-auto px-6">
           <RevealSection>
-            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8">
-
-              {/* Lado Izquierdo: Próximos Torneos */}
-              <div className="flex flex-col">
-                <SectionHeader overline="Acción Inmediata" title="Agenda de Torneos" desc="Encuentra mesas con registro tardío o por arrancar." />
-                <div className="flex flex-col gap-2 flex-1">
-                  {loadingTourneys
-                    ? [1,2,3,4].map(i => <CardSkeleton key={i} />)
-                    : tournaments.length === 0
-                      ? <p className="text-sk-sm text-sk-text-3 text-center py-8 bg-sk-bg-2 border border-sk-border-2 rounded-xl">No hay torneos próximos</p>
-                      : tournaments.map(t => {
-                        const isDemo = (t as any).is_demo;
-                        const secs = secsUntil(t.start_datetime);
-                        const isLive = t.status === "live";
-                        const clubData = t.clubs as any;
-                        const startDate = new Date(t.start_datetime);
+            <div className="flex flex-col">
+              <SectionHeader overline="Leaderboard" title="Top 10 Global" desc="Los reyes del algoritmo de varianza." />
+              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl overflow-hidden shadow-sk-xl flex-1">
+                <table className="w-full border-collapse text-sk-sm">
+                  <thead>
+                    <tr>
+                      {["#","Jugador","ELO","ITM%"].map((h,i) => (
+                        <th key={h} className={cn("bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 whitespace-nowrap", i===0&&"w-[40px]", i>=2&&"text-right")}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingRank
+                      ? [1,2,3,4,5,6,7,8,9,10].map(i => <RowSkeleton key={i} />)
+                      : players.map((p, idx) => {
+                        const rank = idx+1;
+                        const itm = p.total_tournaments > 0 ? ((p.total_cashes/p.total_tournaments)*100).toFixed(1) : "0.0";
+                        const isDemo = (p as any).is_demo;
                         return (
-                          <div key={t.id} className={cn("bg-sk-bg-2 border border-sk-border-2 hover:border-sk-accent/40 hover:shadow-sk-md rounded-xl p-4 transition-all duration-300", isLive&&"border-l-2 border-l-sk-green")}>
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="min-w-0 flex-1 pr-4">
-                                <h3 className="font-bold text-sk-text-1 text-sk-md truncate flex items-center gap-2">
-                                  {cleanName(t.name)} {isDemo && <DemoBadge />}
-                                </h3>
-                                <div className="text-[11px] text-sk-text-2 mt-1 flex items-center gap-2">
-                                  <span className="font-mono text-sk-text-1 font-medium">{format(startDate, "dd/MM HH:mm")}</span>
-                                  <span>·</span>
-                                  <span>Buy-in: <span className={cn("font-mono font-semibold", t.buy_in===0?"text-sk-green":"text-sk-text-1")}>{t.buy_in===0?"FREE":`$${t.buy_in}`}</span></span>
-                                  <span>·</span>
-                                  <span className="text-sk-gold font-bold font-mono">GTD: ${(t.guaranteed_prize??0).toLocaleString("es")}</span>
+                          <tr key={p.id} className={cn("hover:bg-white/[0.02] transition-colors", rank===1&&"bg-[rgba(251,191,36,0.03)]", rank===2&&"bg-[rgba(203,213,225,0.02)]", rank===3&&"bg-[rgba(217,119,6,0.02)]")}>
+                            <td className="py-3 px-4 border-b border-sk-border-2"><RankBadge rank={rank} /></td>
+                            <td className="py-3 px-4 border-b border-sk-border-2">
+                              <Link to={`/ranking/${p.slug}`} className="flex items-center gap-2 min-w-0 group">
+                                <div className="w-7 h-7 rounded-full bg-sk-bg-4 border border-sk-border-2 flex items-center justify-center text-[11px] font-bold text-sk-text-3 shrink-0 group-hover:border-sk-accent/40 transition-colors">
+                                  {cleanName(p.nickname).charAt(0).toUpperCase()}
                                 </div>
-                              </div>
-                              <div className="flex flex-col items-end gap-2 shrink-0">
-                                {isLive ? <Badge variant="live">EN VIVO</Badge> : secs>0 ? <CountdownTimer targetSeconds={secs} variant="soon" /> : null}
-                                <div className="flex items-center gap-4 mt-1">
-                                  <Link to="/como-jugar-en-clubgg" className="text-[10px] uppercase font-bold text-sk-green hover:underline">
-                                    Cómo Jugar
-                                  </Link>
-                                  <button onClick={() => setSelectedTournament(t)} className="text-[10px] uppercase font-bold text-sk-accent hover:underline">
-                                    Ver Info →
-                                  </button>
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-sk-text-1 truncate group-hover:text-sk-accent transition-colors leading-tight">
+                                    {cleanName(p.nickname)} {isDemo && <DemoBadge />}
+                                  </span>
+                                  {p.country_code && <span className="text-[9px] text-sk-text-4 flex items-center gap-1"><FlagIcon countryCode={p.country_code} /> {(p as any).poker_rooms?.name}</span>}
                                 </div>
-                              </div>
-                            </div>
-                            <div className="mt-2 pt-2 border-t border-sk-border-2 flex justify-between items-center">
-                              <Link to={`/clubs/${clubData?.slug ?? clubData?.id}`} className="text-[11px] text-sk-text-3 hover:text-sk-accent font-medium transition-colors flex items-center gap-1.5">
-                                <FlagIcon countryCode={clubData?.country_code ?? null} /> Organizador: {cleanName(clubData?.name ?? "")}
                               </Link>
-                            </div>
-                          </div>
+                            </td>
+                            <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono font-black text-sk-accent text-sk-md">{Math.round(p.elo_rating).toLocaleString("es")}</td>
+                            <td className={cn("py-3 px-4 border-b border-sk-border-2 text-right font-mono font-semibold", Number(itm)>20?"text-sk-green":"text-sk-text-2")}>{itm}%</td>
+                          </tr>
                         );
                       })
-                  }
-                </div>
-                <div className="mt-6">
-                  <Link to="/calendar"><Button variant="ghost" size="sm" className="w-full border border-sk-border-2">Ver agenda completa →</Button></Link>
-                </div>
-              </div>
-
-              {/* Lado Derecho: Ranking Top 10 */}
-              <div className="flex flex-col">
-                <SectionHeader overline="Leaderboard" title="Top 10 Global" desc="Los reyes del algoritmo de varianza." />
-                <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl overflow-hidden shadow-sk-xl flex-1">
-                  <table className="w-full border-collapse text-sk-sm">
-                    <thead>
-                      <tr>
-                        {["#","Jugador","ELO","ITM%"].map((h,i) => (
-                          <th key={h} className={cn("bg-sk-bg-3 font-mono text-[11px] font-semibold tracking-wide uppercase text-sk-text-2 py-3 px-4 border-b border-sk-border-2 whitespace-nowrap", i===0&&"w-[40px]", i>=2&&"text-right")}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loadingRank
-                        ? [1,2,3,4,5,6,7,8,9,10].map(i => <RowSkeleton key={i} />)
-                        : players.map((p, idx) => {
-                          const rank = idx+1;
-                          const itm = p.total_tournaments > 0 ? ((p.total_cashes/p.total_tournaments)*100).toFixed(1) : "0.0";
-                          const isDemo = (p as any).is_demo;
-                          return (
-                            <tr key={p.id} className={cn("hover:bg-white/[0.02] transition-colors", rank===1&&"bg-[rgba(251,191,36,0.03)]", rank===2&&"bg-[rgba(203,213,225,0.02)]", rank===3&&"bg-[rgba(217,119,6,0.02)]")}>
-                              <td className="py-3 px-4 border-b border-sk-border-2"><RankBadge rank={rank} /></td>
-                              <td className="py-3 px-4 border-b border-sk-border-2">
-                                <Link to={`/ranking/${p.slug}`} className="flex items-center gap-2 min-w-0 group">
-                                  <div className="w-7 h-7 rounded-full bg-sk-bg-4 border border-sk-border-2 flex items-center justify-center text-[11px] font-bold text-sk-text-3 shrink-0 group-hover:border-sk-accent/40 transition-colors">
-                                    {cleanName(p.nickname).charAt(0).toUpperCase()}
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="font-bold text-sk-text-1 truncate group-hover:text-sk-accent transition-colors leading-tight">
-                                      {cleanName(p.nickname)} {isDemo && <DemoBadge />}
-                                    </span>
-                                    {p.country_code && <span className="text-[9px] text-sk-text-4 flex items-center gap-1"><FlagIcon countryCode={p.country_code} /> {(p as any).poker_rooms?.name}</span>}
-                                  </div>
-                                </Link>
-                              </td>
-                              <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono font-black text-sk-accent text-sk-md">{Math.round(p.elo_rating).toLocaleString("es")}</td>
-                              <td className={cn("py-3 px-4 border-b border-sk-border-2 text-right font-mono font-semibold", Number(itm)>20?"text-sk-green":"text-sk-text-2")}>{itm}%</td>
-                            </tr>
-                          );
-                        })
-                      }
-                    </tbody>
-                  </table>
-                  <div className="p-4 bg-sk-bg-1 border-t border-sk-border-2 text-center">
-                    <Link to="/ranking"><Button variant="ghost" size="sm" className="w-full">Ver posiciones 11-1000+ →</Button></Link>
-                  </div>
+                    }
+                  </tbody>
+                </table>
+                <div className="p-4 bg-sk-bg-1 border-t border-sk-border-2 text-center">
+                  <Link to="/ranking"><Button variant="ghost" size="sm" className="w-full">Ver posiciones 11-1000+ →</Button></Link>
                 </div>
               </div>
-
             </div>
           </RevealSection>
         </div>
@@ -459,12 +360,6 @@ export function HomePage() {
           </RevealSection>
         </div>
       </section>
-
-      <TournamentDetailModal
-        tournament={selectedTournament}
-        isOpen={!!selectedTournament}
-        onClose={() => setSelectedTournament(null)}
-      />
     </PageShell>
   );
 }
