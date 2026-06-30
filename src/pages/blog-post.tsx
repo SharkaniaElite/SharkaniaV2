@@ -146,6 +146,22 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
     );
   }
 
+  // 🔥 NUEVO: Renderizado del Botón CTA 3D para el público
+  if (block.type === "button") {
+    return (
+      <div className="my-10 flex justify-center">
+        <a 
+          href={block.value || '#'} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-block px-10 py-4 text-center font-extrabold text-white text-lg tracking-wider uppercase rounded-xl bg-gradient-to-r from-sk-accent to-blue-600 shadow-[0_10px_30px_rgba(34,211,238,0.4)] hover:shadow-[0_15px_40px_rgba(34,211,238,0.6)] hover:-translate-y-1 transition-all duration-300 border-t border-t-white/20 border-b-[4px] border-b-black/50"
+        >
+          {block.content || 'CLIC AQUÍ'}
+        </a>
+      </div>
+    );
+  }
+
   // Default: Párrafo
   return <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p>;
 }

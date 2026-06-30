@@ -224,8 +224,11 @@ export function App() {
 
               {/* Blog y Noticias */}
               <Route path="/blog" element={<BlogPage />} />
-              <Route path="/blog/:slug" element={<BlogPostPage />} />
-              <Route path="/noticias/:slug" element={<BlogPostPage />} />
+              
+              {/* 🔥 RUTA MAESTRA PARA CUALQUIER CATEGORÍA DE POSTS 🔥 */}
+              {/* Atrapa /blog/slug, /noticias/slug, /promociones/slug, /estrategia/slug, etc. */}
+              <Route path="/:category/:slug" element={<BlogPostPage />} />
+              
               <Route path="/glosario" element={<GlossaryPage />} />
 <Route path="/glosario/:slug" element={<GlossaryTermPage />} />
 

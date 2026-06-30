@@ -2,7 +2,7 @@
 import { supabase } from "../supabase";
 
 export interface BlogBlock {
-  type: "p" | "h2" | "h3" | "callout" | "stat" | "list" | "image" | "box";
+  type: "p" | "h2" | "h3" | "callout" | "stat" | "list" | "image" | "box" | "button";
   content?: string;
   value?: string;
   items?: string[];

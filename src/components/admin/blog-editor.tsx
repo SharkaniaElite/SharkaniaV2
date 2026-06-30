@@ -5,7 +5,7 @@ import { Card } from '../ui/card';
 import { supabase } from '../../lib/supabase';
 
 interface Block {
-  type: 'p' | 'h2' | 'h3' | 'callout' | 'stat' | 'image' | 'box'; // 🔥 Añadimos image y box
+  type: 'p' | 'h2' | 'h3' | 'callout' | 'stat' | 'image' | 'box' | 'button'; // 🔥 Añadimos button
   content: string;
   value?: string; // Se usará para el 'value' de stat, el 'src' de image, o el 'variant' de box
 }
@@ -182,6 +182,25 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
     setBlocks(blocks.filter((_, i) => i !== index));
   };
 
+  // 🔥 NUEVAS FUNCIONES PARA MOVER BLOQUES
+  const moveBlockUp = (index: number) => {
+    if (index === 0) return; // Si ya está arriba del todo, no hace nada
+    const newBlocks = [...blocks];
+    const temp = newBlocks[index] as Block; // Le aseguramos a TS que esto existe
+    newBlocks[index] = newBlocks[index - 1] as Block;
+    newBlocks[index - 1] = temp;
+    setBlocks(newBlocks);
+  };
+
+  const moveBlockDown = (index: number) => {
+    if (index === blocks.length - 1) return; // Si ya está abajo del todo, no hace nada
+    const newBlocks = [...blocks];
+    const temp = newBlocks[index] as Block; // Le aseguramos a TS que esto existe
+    newBlocks[index] = newBlocks[index + 1] as Block;
+    newBlocks[index + 1] = temp;
+    setBlocks(newBlocks);
+  };
+
   // Guardar en Supabase
   const handleSave = async () => {
     setLoading(true);
@@ -300,6 +319,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                     <option value="stat">Estadística</option>
                     <option value="image">📸 Imagen Interna</option>
                     <option value="box">📦 Caja Estilizada</option>
+                    <option value="button">🔥 Botón CTA 3D</option>
                   </select>
 
                   <div className="flex-1 flex flex-col gap-2">
@@ -370,6 +390,22 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                           className="bg-bg-2 border-border text-xs"
                         />
                       </div>
+                    ) : block.type === 'button' ? (
+                      <div className="flex flex-col gap-2 p-4 bg-bg-3 rounded-lg border border-dashed border-accent/50">
+                        <label className="text-xs text-text-3 font-bold uppercase tracking-wider">Configuración del Botón 3D</label>
+                        <Input 
+                          placeholder="Texto del Botón (Ej: DESCARGAR WPT GLOBAL)"
+                          value={block.content || ''}
+                          onChange={(e) => updateBlock(index, 'content', e.target.value)}
+                          className="bg-bg-1 border-border font-extrabold text-text-1"
+                        />
+                        <Input 
+                          placeholder="URL del enlace (Ej: https://tracking...)"
+                          value={block.value || ''}
+                          onChange={(e) => updateBlock(index, 'value', e.target.value)}
+                          className="bg-bg-1 border-border text-xs font-mono text-accent"
+                        />
+                      </div>
                     ) : (
                       <textarea
                         className={`w-full bg-transparent border-l-2 border-border focus:border-accent p-3 resize-none outline-none ${
@@ -390,12 +426,33 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                     )}
                   </div>
 
-                  <button 
-                    onClick={() => removeBlock(index)}
-                    className="opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-500/10 p-2 rounded h-fit transition-opacity"
-                  >
-                    ✕
-                  </button>
+                  {/* 🔥 PANEL DE CONTROL DEL BLOQUE (Mover y Eliminar) */}
+                  <div className="opacity-0 group-hover:opacity-100 flex flex-col gap-1 transition-opacity h-fit items-center bg-bg-2/50 p-1 rounded border border-border/50">
+                    <button 
+                      onClick={() => moveBlockUp(index)}
+                      disabled={index === 0}
+                      className="text-text-3 hover:text-accent hover:bg-accent/10 p-1.5 rounded disabled:opacity-20 disabled:hover:bg-transparent transition-colors text-xs"
+                      title="Mover arriba"
+                    >
+                      ▲
+                    </button>
+                    <button 
+                      onClick={() => moveBlockDown(index)}
+                      disabled={index === blocks.length - 1}
+                      className="text-text-3 hover:text-accent hover:bg-accent/10 p-1.5 rounded disabled:opacity-20 disabled:hover:bg-transparent transition-colors text-xs"
+                      title="Mover abajo"
+                    >
+                      ▼
+                    </button>
+                    <div className="w-full h-px bg-border my-1" />
+                    <button 
+                      onClick={() => removeBlock(index)}
+                      className="text-red-500 hover:bg-red-500/10 p-1.5 rounded transition-colors text-xs"
+                      title="Eliminar bloque"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -408,6 +465,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
               <Button variant="ghost" onClick={() => addBlock('stat')}>+ Estadística</Button>
               <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'image', content: '', value: '' }])}>+ 📸 Imagen</Button>
               <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'box', content: '', value: 'gradient' }])}>+ 📦 Caja Especial</Button>
+              <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'button', content: 'DESCARGAR WPT GLOBAL', value: 'https://tracking.wptpartners.com/visit/?bta=35660&nci=15036' }])}>+ 🔥 Botón CTA</Button>
             </div>
           </>
         ) : (
@@ -444,6 +502,22 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                   if (block.value === "shadow") boxStyle = "bg-bg-1 border-border/60 shadow-[0_20px_40px_rgba(0,0,0,0.6)]";
                   if (block.value === "3d") boxStyle = "bg-bg-3 border-t border-l border-white/10 border-b-[4px] border-r-[4px] border-black/80";
                   return <div key={i} className={`my-5 p-4 rounded-xl border ${boxStyle}`}><p className="text-sm text-white leading-relaxed font-medium">{block.content}</p></div>;
+                }
+
+                // 🔥 Renderizado del nuevo Botón CTA 3D en Vista Previa Live
+                if (block.type === 'button') {
+                  return (
+                    <div key={i} className="my-10 flex justify-center">
+                      <a 
+                        href={block.value || '#'} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-block px-10 py-4 text-center font-extrabold text-white text-lg tracking-wider uppercase rounded-xl bg-gradient-to-r from-accent to-blue-600 shadow-[0_10px_30px_rgba(34,211,238,0.4)] hover:shadow-[0_15px_40px_rgba(34,211,238,0.6)] hover:-translate-y-1 transition-all duration-300 border-t border-t-white/20 border-b-[4px] border-b-black/50"
+                      >
+                        {block.content || 'CLIC AQUÍ'}
+                      </a>
+                    </div>
+                  );
                 }
 
                 return <p key={i} className="text-sm text-text-2 leading-relaxed mb-3">{block.content}</p>;
