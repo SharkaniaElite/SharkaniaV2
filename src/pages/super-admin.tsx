@@ -29,6 +29,7 @@ import { MissionsAdminTab } from "../components/admin/missions-admin-tab";
 import { PostHogStatsCard } from "../components/admin/posthog-stats-card";
 import { syncAllUnifiedElos } from "../lib/api/elo-engine";
 import { AnalyticsTab } from "../components/admin/analytics-tab";
+import { BlogEditor } from "../components/admin/blog-editor"; // 🔥 Agregamos el CMS
 
 // ── Tipos ─────────────────────────────────────────────────
 
@@ -751,25 +752,8 @@ export function SuperAdminPage() {
     enabled: tab === "blog",
   });
 
-  const blogFields = [
-    { key: "title", label: "Título", type: "text" as const, required: true },
-    { key: "slug", label: "URL Amigable (Slug)", type: "text" as const, required: true, placeholder: "ej: fecha-2-liga-ccp" },
-    { key: "category", label: "Categoría", type: "select" as const, required: true, options: [
-      { value: "Noticias", label: "Noticias" },
-      { value: "Promociones", label: "Promociones" },
-      { value: "Estrategia", label: "Estrategia" },
-      { value: "GTO & Teoría", label: "GTO & Teoría" }
-    ]},
-    { key: "excerpt", label: "Extracto Corto", type: "textarea" as const },
-    { key: "published", label: "¿Artículo Publicado?", type: "checkbox" as const },
-    { key: "published_at", label: "Fecha de Publicación", type: "datetime-local" as const },
-    { key: "image_thumbnail", label: "Imagen Cuadrada/Card (Thumbnail)", type: "text" as const, placeholder: "/bg/imagen.webp o https://..." },
-    { key: "image_hero", label: "Imagen Hero (Banner principal)", type: "text" as const, placeholder: "/bg/imagen.webp o https://..." },
-    { key: "image_og", label: "Imagen OG (Redes Sociales)", type: "text" as const, placeholder: "/bg/imagen.webp o https://..." },
-    { key: "image_inline", label: "Imagen Inline (Dentro del post)", type: "text" as const, placeholder: "/bg/imagen.webp o https://..." },
-    { key: "custom_banner_src", label: "🔥 Banner Exclusivo (Imagen URL)", type: "text" as const, placeholder: "Opcional: Reemplaza banner global" },
-    { key: "custom_banner_href", label: "🔥 Banner Exclusivo (Link URL)", type: "text" as const, placeholder: "Opcional: Link de destino" },
-  ];
+  // 🔥 Estado para manejar si estamos viendo la lista o editando un artículo en el CMS
+  const [editingBlogId, setEditingBlogId] = useState<string | "new" | null>(null);
 
   const handleLoadBanners = async () => {
     if (bannersConfig) return; 
@@ -2012,31 +1996,56 @@ export function SuperAdminPage() {
         </div>
       )}
 
-      {/* ══ BLOG / NOTICIAS ══ */}
+      {/* ══ BLOG / NOTICIAS (NUEVO CMS) ══ */}
           {tab === "blog" && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-sk-md font-bold text-sk-text-1">Gestión de Noticias y Blog ({blogPostsAdmin?.length ?? 0})</h2>
-                <Button variant="accent" size="sm" onClick={() => setEntityForm({ table: "blog_posts", title: "Artículo", fields: blogFields, data: null })}>
-                  <Plus size={14} /> Nueva Noticia
-                </Button>
-              </div>
-              <AdminTable
-                headers={["Título", "Categoría", "Estado", "Fecha Publicación"]}
-                rows={(blogPostsAdmin ?? []).map((b) => ({
-                  id: b.id,
-                  cells: [
-                    <span className="font-semibold text-sk-text-1 line-clamp-1">{b.title}</span>,
-                    <Badge variant="accent">{b.category}</Badge>,
-                    <Badge variant={b.published ? "green" : "muted"}>{b.published ? "Publicado" : "Borrador"}</Badge>,
-                    <span className="text-sk-text-3 font-mono text-[11px]">
-                      {b.published_at ? new Date(b.published_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : "—"}
-                    </span>
-                  ],
-                  onEdit: () => setEntityForm({ table: "blog_posts", title: "Artículo", fields: blogFields, data: b }),
-                  onDelete: () => handleDeleteEntity("blog_posts", b.id, b.title),
-                }))}
-              />
+            <div className="h-full flex flex-col">
+              {!editingBlogId ? (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-sk-md font-bold text-sk-text-1">Gestión de Noticias y Blog ({blogPostsAdmin?.length ?? 0})</h2>
+                    <Button variant="accent" size="sm" onClick={() => setEditingBlogId("new")}>
+                      <Plus size={14} className="mr-1" /> Nuevo Artículo
+                    </Button>
+                  </div>
+                  <AdminTable
+                    headers={["Título", "Categoría", "Estado", "Fecha Publicación"]}
+                    rows={(blogPostsAdmin ?? []).map((b) => ({
+                      id: b.id,
+                      cells: [
+                        <span className="font-semibold text-sk-text-1 line-clamp-1">{b.title}</span>,
+                        <Badge variant="accent">{b.category}</Badge>,
+                        <Badge variant={b.status === "published" || b.published ? "green" : "muted"}>
+                          {b.status === "published" || b.published ? "Publicado" : "Borrador"}
+                        </Badge>,
+                        <span className="text-sk-text-3 font-mono text-[11px]">
+                          {b.published_at ? new Date(b.published_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : "—"}
+                        </span>
+                      ],
+                      onEdit: () => setEditingBlogId(b.id),
+                      onDelete: () => handleDeleteEntity("blog_posts", b.id, b.title),
+                    }))}
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col">
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-sk-border-2">
+                    <div className="flex items-center gap-3">
+                      <Button variant="secondary" size="sm" onClick={() => setEditingBlogId(null)}>
+                        ← Volver al listado
+                      </Button>
+                      <h2 className="text-sk-md font-bold text-sk-text-1">
+                        {editingBlogId === "new" ? "Crear Nuevo Artículo" : "Editar Artículo"}
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-h-[650px] bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6">
+                    <BlogEditor 
+                      postId={editingBlogId === "new" ? undefined : editingBlogId} 
+                      onSaved={() => { refresh(); setEditingBlogId(null); }} 
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

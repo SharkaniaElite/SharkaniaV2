@@ -270,6 +270,7 @@ export function LeagueDetailPage() {
             <LeagueStandingsTable
               standings={standings ?? []}
               isLoading={standingsLoading}
+              leagueId={league?.id}
             />
           )}
 

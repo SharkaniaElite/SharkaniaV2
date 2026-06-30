@@ -108,6 +108,45 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
   if (block.type === "callout") return <div className="my-8 rounded-lg border border-sk-accent/20 bg-sk-accent-dim px-6 py-5"><p className="text-sk-base text-sk-text-1 font-medium leading-relaxed">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p></div>;
   if (block.type === "stat") return <div className="my-8 rounded-xl border border-sk-border-2 bg-sk-bg-2 px-6 py-6 flex items-center gap-5"><span className="text-[2.5rem] font-extrabold text-sk-accent leading-none shrink-0">{block.value}</span><p className="text-sk-base text-sk-text-2 leading-snug">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p></div>;
   if (block.type === "list") return <ul className="my-5 space-y-2 pl-5 list-none">{(block.items ?? []).map((item, j) => (<li key={j} className="text-sk-base text-sk-text-2 leading-relaxed relative before:content-[''] before:absolute before:-left-3.5 before:top-[10px] before:w-1.5 before:h-1.5 before:rounded-full before:bg-sk-accent">{renderWithLinksAndGlossary(item, glossaryTerms, alreadyLinked)}</li>))}</ul>;
+  
+  // 🔥 NUEVO: Renderizador de Múltiples Imágenes (Infinitas, donde quieras)
+  if (block.type === "image") {
+    return (
+      <figure className="my-10">
+        <div className="overflow-hidden rounded-xl border border-sk-border-2 bg-sk-bg-3">
+          <img src={block.value} alt={block.content || "Imagen de Sharkania"} loading="lazy" className="w-full h-auto object-cover" />
+        </div>
+        {block.content && (
+          <figcaption className="text-center text-sk-xs text-sk-text-4 mt-3 font-mono">
+            {block.content}
+          </figcaption>
+        )}
+      </figure>
+    );
+  }
+
+  // 🔥 NUEVO: Contenedores Estilizados Avanzados (El Glosario Funciona Aquí)
+  if (block.type === "box") {
+    let boxStyle = "bg-sk-bg-2 border-sk-border-2"; // Base
+    
+    if (block.value === "gradient") {
+      boxStyle = "bg-gradient-to-br from-sk-bg-3 via-sk-bg-2 to-sk-accent-dim border-sk-accent/30 shadow-[0_0_25px_rgba(34,211,238,0.1)]";
+    } else if (block.value === "shadow") {
+      boxStyle = "bg-sk-bg-1 border-sk-border-1 shadow-[0_25px_50px_rgba(0,0,0,0.8)]";
+    } else if (block.value === "3d") {
+      boxStyle = "bg-sk-bg-3 border-t border-l border-white/10 border-b-[4px] border-r-[4px] border-black/80";
+    }
+
+    return (
+      <div className={`my-8 p-6 rounded-xl border ${boxStyle}`}>
+        <p className="text-sk-base text-sk-text-1 leading-relaxed font-medium">
+          {renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}
+        </p>
+      </div>
+    );
+  }
+
+  // Default: Párrafo
   return <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p>;
 }
 

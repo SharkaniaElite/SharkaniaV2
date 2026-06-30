@@ -373,3 +373,43 @@ export async function getLeagueCCPStandings(leagueId: string): Promise<CCPClubRa
     scoreHistory: clubHistory[club] ?? [] // 🔥 Añadimos el historial al objeto
   })).sort((a, b) => b.totalPoints - a.totalPoints || a.clubName.localeCompare(b.clubName));
 }
+
+// ── NUEVO: Función para desglosar puntos de un jugador ───────────────────
+export interface PlayerPointsBreakdown {
+  id: string;
+  tournament_name: string;
+  date: string;
+  position: number;
+  points: number;
+}
+
+export async function getPlayerLeaguePointsBreakdown(leagueId: string, playerId: string): Promise<PlayerPointsBreakdown[]> {
+  const { data, error } = await supabase
+    .from("tournament_results")
+    .select(`
+      id,
+      position,
+      league_points_earned,
+      tournaments!inner (
+        name,
+        start_datetime,
+        league_id
+      )
+    `)
+    .eq("player_id", playerId)
+    .eq("tournaments.league_id", leagueId)
+    .gt("league_points_earned", 0);
+
+  if (error) throw error;
+
+  // Mapeamos los datos y los ordenamos por fecha (del más reciente al más antiguo)
+  const breakdown = (data || []).map((row: any) => ({
+    id: row.id,
+    tournament_name: row.tournaments.name,
+    date: row.tournaments.start_datetime,
+    position: row.position,
+    points: Number(row.league_points_earned)
+  }));
+
+  return breakdown.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
