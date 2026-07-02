@@ -11,9 +11,8 @@ import { cn } from "../../lib/cn";
 import { GlobalChampionsTicker } from "./global-champions-ticker";
 import { getUpcomingTournaments } from "../../lib/api/tournaments";
 import type { TournamentWithDetails } from "../../types";
-import { format } from "date-fns";
-import { Badge } from "../ui/badge";
-import { CountdownTimer } from "../landing/countdown-timer";
+import { TournamentCard } from "../calendar/tournament-card";
+import { TournamentDetailModal } from "../calendar/tournament-detail-modal";
 
 interface PageShellProps {
   children: ReactNode;
@@ -26,7 +25,7 @@ export function PageShell({ children }: PageShellProps) {
   // 🔥 Nuevo estado para el Calendario Superior
   const [tournaments, setTournaments] = useState<TournamentWithDetails[]>([]);
   const [loadingTourneys, setLoadingTourneys] = useState(true);
-  const [currentTime, setCurrentTime] = useState(() => Date.now()); // 🔥 Estado puro para el tiempo
+  const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
   
   // 🎯 Obtenemos el banner de Latin Allin (CMS)
   const banners = useBanners();
@@ -68,7 +67,6 @@ export function PageShell({ children }: PageShellProps) {
     getUpcomingTournaments()
       .then(d => {
         const now = new Date();
-        setCurrentTime(now.getTime()); // 🔥 Sincronizamos el reloj exacto al recibir los datos
         const filtered = d.filter(t => {
           if (t.status === "live" || t.status === "late_registration") return true;
           if (t.status === "completed" || t.status === "cancelled") return false;
@@ -109,8 +107,8 @@ export function PageShell({ children }: PageShellProps) {
           <div className="w-full max-w-[1520px] px-2 flex flex-col xl:flex-row items-stretch justify-center gap-4">
             
             {/* 🗓️ Bloque Izquierdo: Calendario de Torneos Sharkania */}
-            <div className="w-full xl:w-1/2 bg-sk-bg-1 border border-sk-border-2 rounded-xl p-4 flex flex-col justify-between shadow-sm min-h-[140px] xl:min-h-auto">
-              <div className="flex items-center justify-between border-b border-sk-border-2 pb-2">
+            <div className="w-full xl:w-[480px] shrink-0 bg-sk-bg-1 border border-sk-border-2 rounded-xl p-4 flex flex-col shadow-sm max-h-[300px]">
+              <div className="flex items-center justify-between border-b border-sk-border-2 pb-2 shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">🗓️</span>
                   <h4 className="font-extrabold text-sm text-white uppercase tracking-wider">Calendario de Torneos</h4>
@@ -118,44 +116,28 @@ export function PageShell({ children }: PageShellProps) {
                 <span className="text-[10px] font-mono bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20 uppercase tracking-widest animate-pulse">En Vivo</span>
               </div>
               
-              {/* Aquí mapeamos la base de datos de torneos reales */}
-              <div className="flex-1 flex flex-col gap-2 py-3 overflow-y-auto">
+              {/* 🔥 Aquí inyectamos exactamente el mismo componente del sitio de Calendario */}
+              <div className="flex-1 flex flex-col gap-3 py-3 overflow-y-auto custom-scrollbar">
                 {loadingTourneys ? (
-                  <p className="text-xs text-sk-text-3 italic text-center py-2">Cargando próximos eventos...</p>
+                  <p className="text-xs text-sk-text-3 italic text-center py-4">Cargando próximos eventos...</p>
                 ) : tournaments.length === 0 ? (
-                  <p className="text-xs text-sk-text-3 text-center py-2">No hay torneos próximos</p>
+                  <p className="text-xs text-sk-text-3 text-center py-4">No hay torneos próximos</p>
                 ) : (
-                  tournaments.map(t => {
-                    const isLive = t.status === "live";
-                    const startDate = new Date(t.start_datetime);
-                    const secs = Math.max(0, Math.floor((startDate.getTime() - currentTime) / 1000)); // 🔥 Usamos el estado predecible
-                    
-                    return (
-                      <div key={t.id} className={cn("bg-sk-bg-2 border border-sk-border-2 rounded-lg p-2.5 flex justify-between items-center transition-colors hover:border-sk-accent/30", isLive && "border-l-2 border-l-sk-green")}>
-                        <div className="min-w-0 flex-1 pr-2">
-                          <h5 className="font-bold text-sk-text-1 text-[11px] uppercase tracking-wide truncate">{t.name.replace(/^\[DEMO\]\s*/, "")}</h5>
-                          <div className="flex items-center gap-2 mt-1 text-[10px] text-sk-text-3 font-mono">
-                            <span>{format(startDate, "dd/MM HH:mm")}</span>
-                            <span>·</span>
-                            <span className={t.buy_in === 0 ? "text-sk-green" : "text-sk-text-2"}>{t.buy_in === 0 ? "FREE" : `$${t.buy_in}`}</span>
-                          </div>
-                        </div>
-                        <div className="shrink-0 flex flex-col items-end">
-                          {isLive ? <Badge variant="live" className="text-[9px] px-1.5 py-0.5">EN VIVO</Badge> : secs > 0 ? <CountdownTimer targetSeconds={secs} variant="soon" /> : null}
-                        </div>
-                      </div>
-                    );
-                  })
+                  tournaments.map(t => (
+                    <div key={t.id} onClick={() => setSelectedTournament(t)} className="cursor-pointer transition-transform hover:-translate-y-0.5">
+                      <TournamentCard tournament={t} />
+                    </div>
+                  ))
                 )}
               </div>
 
-              <Link to="/calendar" className="w-full text-center py-1.5 bg-sk-bg-2 border border-sk-border-2 hover:border-sk-accent/50 text-sk-text-2 hover:text-white text-xs font-bold rounded-lg transition-all uppercase tracking-wider">
+              <Link to="/calendar" className="w-full shrink-0 text-center py-1.5 bg-sk-bg-2 border border-sk-border-2 hover:border-sk-accent/50 text-sk-text-2 hover:text-white text-xs font-bold rounded-lg transition-all uppercase tracking-wider mt-2">
                 Ver Agenda Completa →
               </Link>
             </div>
 
-            {/* 🎰 Bloque Derecho: Banner CoinPoker */}
-            <div className="w-full xl:w-1/2 flex justify-center">
+            {/* 🎰 Bloque Derecho: Banner CoinPoker (Ratio estricto y redimensionamiento perfecto) */}
+            <div className="w-full flex-1 max-w-[1000px] flex justify-center items-center">
               {hasCpBanner && (
                 <div className="w-full h-full flex items-center justify-center">
                   {hasCpDesktop && (
@@ -164,7 +146,7 @@ export function PageShell({ children }: PageShellProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className={cn(
-                        "w-full h-full aspect-[16/6] xl:aspect-auto flex justify-center bg-black rounded-xl overflow-hidden border border-white/5 shadow-sm hover:opacity-90 transition-opacity",
+                        "w-full aspect-[10/3] flex justify-center bg-black rounded-xl overflow-hidden border border-white/5 shadow-sm hover:opacity-90 transition-opacity",
                         hasCpMobile ? "hidden md:flex" : "flex"
                       )}
                     >
@@ -177,7 +159,7 @@ export function PageShell({ children }: PageShellProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className={cn(
-                        "w-full aspect-[16/6] flex justify-center bg-black rounded-xl overflow-hidden border border-white/5 shadow-sm hover:opacity-90 transition-opacity",
+                        "w-full aspect-[10/3] flex justify-center bg-black rounded-xl overflow-hidden border border-white/5 shadow-sm hover:opacity-90 transition-opacity",
                         hasCpDesktop ? "md:hidden" : "flex"
                       )}
                     >
@@ -187,7 +169,6 @@ export function PageShell({ children }: PageShellProps) {
                 </div>
               )}
             </div>
-
           </div>
         </div>
 
@@ -333,6 +314,13 @@ export function PageShell({ children }: PageShellProps) {
           </a>
         </div>
       )}
+
+      {/* 🔥 Modal Global de Torneos para que las tarjetas del top sean clickeables */}
+      <TournamentDetailModal
+        tournament={selectedTournament}
+        isOpen={!!selectedTournament}
+        onClose={() => setSelectedTournament(null)}
+      />
     </div>
   );
 }

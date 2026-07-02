@@ -189,12 +189,66 @@ export function HomePage() {
           </div>
           
           {/* Trust Badges - Salas Afiliadas */}
-          <div className="mt-12 animate-sk-fade-up sk-delay-4 border-t border-sk-border-2 pt-6 w-full max-w-2xl mx-auto">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-sk-text-3 mb-4">Salas y Clubes Oficiales Afiliados</p>
-            <div className="flex justify-center items-center gap-6 md:gap-12 opacity-60 hover:opacity-100 transition-opacity duration-500 flex-wrap">
-               <span className="text-lg font-black italic tracking-tighter">WPT <span className="text-sk-accent">GLOBAL</span></span>
-               <span className="text-lg font-black italic tracking-tighter">IGNITION <span className="text-orange-500">POKER</span></span>
-               <span className="text-lg font-black italic tracking-tighter">LATINALLINPOKER <span className="text-green-500 text-xs tracking-normal align-middle">(Unión CCP)</span></span>
+          <div className="mt-12 animate-sk-fade-up sk-delay-4 border-t border-sk-border-2 pt-6 w-full max-w-4xl mx-auto">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-sk-text-3 mb-6">Salas y Clubes Oficiales Afiliados</p>
+            <div className="flex justify-center items-center gap-8 md:gap-14 flex-wrap">
+              
+              {/* CoinPoker */}
+              <a 
+                href="https://record.coinpokeraffiliates.com/_ZnRTLL6Lwv7UOsjNOfgKeWNd7ZgqdRLk/1/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="opacity-50 hover:opacity-100 hover:scale-105 hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all duration-300"
+              >
+                <img 
+                  src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/img_clubs/CoinPoker_Logotype_Light.svg" 
+                  alt="CoinPoker Logo" 
+                  className="h-10 md:h-12 object-contain w-auto"
+                />
+              </a>
+
+              {/* WPT Global */}
+              <a 
+                href="https://tracking.wptpartners.com/visit/?bta=35660&nci=13401" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="opacity-50 hover:opacity-100 hover:scale-105 hover:drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] transition-all duration-300"
+              >
+                <img 
+                  src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/img_clubs/wptglobal-logo.svg" 
+                  alt="WPT Global Logo" 
+                  className="h-10 md:h-12 object-contain w-auto"
+                />
+              </a>
+
+              {/* Ignition Poker */}
+              <a 
+                href="https://record.revenuenetwork.com/_s_OAdmC6KUcClNpGDbJ6T1wYPd_vJ7Zw/1/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="opacity-50 hover:opacity-100 hover:scale-105 hover:drop-shadow-[0_0_15px_rgba(249,115,22,0.2)] transition-all duration-300"
+              >
+                <img 
+                  src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/img_clubs/logo-ignition-poker.png" 
+                  alt="Ignition Poker Logo" 
+                  className="h-9 md:h-11 object-contain w-auto" 
+                />
+              </a>
+
+              {/* LatinAllinPoker (ClubGG) */}
+              <a 
+                href="https://sharkania.com/como-jugar-en-clubgg" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="opacity-50 hover:opacity-100 hover:scale-105 hover:drop-shadow-[0_0_15px_rgba(34,197,94,0.2)] transition-all duration-300"
+              >
+                <img 
+                  src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/img_clubs/logoLAP-clubbgg.png" 
+                  alt="LatinAllinPoker ClubGG Logo" 
+                  className="h-12 md:h-14 object-contain w-auto" 
+                />
+              </a>
+
             </div>
           </div>
         </div>
