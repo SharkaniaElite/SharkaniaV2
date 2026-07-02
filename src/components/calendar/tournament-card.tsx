@@ -155,24 +155,41 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
         </span>
       </div>
 
-      {/* Row 3: Club + League */}
+      {/* Row 3: Club/Room + League */}
       <div className="mt-1 flex justify-between items-start">
-        <Link
-          to={
-            ["ccp", "latin-allin-poker"].includes(t.clubs?.slug || "")
-              ? "/como-jugar-en-clubgg"
-              : `/clubs/${t.clubs?.slug ?? t.club_id}`
-          }
-          className="group flex flex-col items-start gap-1"
-        >
-          <div className="text-[11px] text-sk-accent font-medium group-hover:text-sk-accent-hover transition-colors flex items-center gap-1">
-            <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {cleanName(t.clubs?.name ?? "")}
-          </div>
-          <div className="flex items-center gap-1 text-[10px] text-sk-accent font-bold group-hover:brightness-125 transition-all uppercase tracking-widest font-mono mt-0.5">
-            <MousePointerClick size={12} className="animate-bounce" />
-            <span>CÓMO JUGAR AQUÍ</span>
-          </div>
-        </Link>
+        {t.custom_link ? (
+          <a
+            href={t.custom_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex flex-col items-start gap-1"
+          >
+            <div className="text-[11px] text-sk-accent font-medium group-hover:text-sk-accent-hover transition-colors flex items-center gap-1">
+              <span className="text-sm">🌐</span> {t.poker_rooms?.name}
+            </div>
+            <div className="flex items-center gap-1 text-[10px] text-sk-accent font-bold group-hover:brightness-125 transition-all uppercase tracking-widest font-mono mt-0.5">
+              <MousePointerClick size={12} className="animate-bounce" />
+              <span>Click aquí para registrarte en la sala donde se juega este torneo</span>
+            </div>
+          </a>
+        ) : (
+          <Link
+            to={
+              ["ccp", "latin-allin-poker"].includes(t.clubs?.slug || "")
+                ? "/como-jugar-en-clubgg"
+                : `/clubs/${t.clubs?.slug ?? t.club_id}`
+            }
+            className="group flex flex-col items-start gap-1"
+          >
+            <div className="text-[11px] text-sk-accent font-medium group-hover:text-sk-accent-hover transition-colors flex items-center gap-1">
+              <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {cleanName(t.clubs?.name ?? "")}
+            </div>
+            <div className="flex items-center gap-1 text-[10px] text-sk-accent font-bold group-hover:brightness-125 transition-all uppercase tracking-widest font-mono mt-0.5">
+              <MousePointerClick size={12} className="animate-bounce" />
+              <span>Click aquí para registrarte en la sala donde se juega este torneo</span>
+            </div>
+          </Link>
+        )}
         {t.leagues ? (
           <Link
             to={`/leagues/${t.leagues?.slug ?? t.league_id}`}

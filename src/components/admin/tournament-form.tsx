@@ -72,7 +72,7 @@ export function TournamentForm({
   const isEdit = !!tournament?.id;
 
   const [form, setForm] = useState({
-    name: "", description: "", room_id: "", league_id: "",
+    name: "", description: "", room_id: "", league_id: "", custom_link: "",
     buy_in: 0, currency: "USD", guaranteed_prize: 0, start_datetime: "",
     timezone: "America/Santiago", late_registration_minutes: 30, max_players: 0,
     game_type: "NLH" as string, tournament_type: "MTT" as string,
@@ -99,6 +99,7 @@ export function TournamentForm({
           description: tournament.description ?? "",
           room_id: tournament.room_id || (rooms?.[0]?.id ?? ""),
           league_id: tournament.league_id ?? "",
+          custom_link: tournament.custom_link ?? "",
           buy_in: tournament.buy_in || 0,
           currency: tournament.currency || "USD",
           guaranteed_prize: tournament.guaranteed_prize ?? 0,
@@ -116,7 +117,7 @@ export function TournamentForm({
 
       } else {
         setForm({
-          name: "", description: "", room_id: rooms?.[0]?.id ?? "", league_id: "",
+          name: "", description: "", room_id: rooms?.[0]?.id ?? "", league_id: "", custom_link: "",
           buy_in: 0, currency: "USD", guaranteed_prize: 0, start_datetime: "",
           timezone: "America/Santiago", late_registration_minutes: 30, max_players: 0,
           game_type: "NLH", tournament_type: "MTT",
@@ -140,12 +141,15 @@ export function TournamentForm({
     setSaving(true);
     setError("");
 
+    const isSharkania = clubId === "7b5e4040-53af-4885-bc76-4c0d77c15b92";
+
     const payload: any = {
       club_id: clubId, // Se mantiene como principal por integridad heredada
       name: form.name,
       slug: generateSlugWithDate(form.name, form.start_datetime),
       description: form.description || null,
       room_id: form.room_id,
+      custom_link: (isSharkania && form.custom_link) ? form.custom_link.trim() : null,
       league_id: form.league_id === "" ? null : form.league_id,
       buy_in: Number(form.buy_in),
       currency: form.currency,
@@ -242,6 +246,14 @@ export function TournamentForm({
             </select>
           </div>
         </div>
+
+        {clubId === "7b5e4040-53af-4885-bc76-4c0d77c15b92" && (
+          <div className="bg-sk-bg-3 border border-sk-accent/30 rounded-lg p-3 shadow-sk-xs">
+             <label className={labelClass}>Link Afiliado de la Sala (Exclusivo Torneos Globales)</label>
+             <input type="url" value={form.custom_link} onChange={(e) => update("custom_link", e.target.value)} className={inputClass} placeholder="Ej: https://record.coinpoker..." />
+             <p className="text-[10px] text-sk-text-4 mt-1 leading-tight">Si rellenas esto, el torneo aparecerá organizado directamente por la <strong>Sala</strong> y no por el Club.</p>
+          </div>
+        )}
 
         <div>
           <label className={labelClass}>Fecha y Hora *</label>

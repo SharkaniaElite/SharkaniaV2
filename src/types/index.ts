@@ -178,6 +178,7 @@ export interface Tournament {
   slug: string;
   description: string | null;
   room_id: string;
+  custom_link: string | null; // 🔥 NUEVO: Enlace de afiliado para torneos de Sala
   buy_in: number;
   currency: string;
   guaranteed_prize: number | null;

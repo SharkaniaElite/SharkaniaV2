@@ -98,14 +98,23 @@ export function TournamentDetailModal({
           </div>
         )}
 
-        {/* Club & League */}
+        {/* Club / Room & League */}
         <div className="bg-sk-bg-3 rounded-md p-3 relative z-20">
           <p className="font-mono text-[11px] font-semibold text-sk-text-2 uppercase tracking-wide mb-1">
-            Club
+            {t.custom_link ? "Organizador Oficial" : "Club"}
           </p>
           <p className="text-sk-sm font-semibold text-sk-text-1">
-            <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {t.clubs?.name}
+            {t.custom_link ? (
+              <span className="flex items-center gap-1">🌐 {t.poker_rooms?.name}</span>
+            ) : (
+              <><FlagIcon countryCode={t.clubs?.country_code ?? null} /> {t.clubs?.name}</>
+            )}
           </p>
+          {t.custom_link && (
+            <a href={t.custom_link} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 bg-sk-accent text-black font-bold uppercase tracking-wider text-[10px] px-3 py-1.5 rounded hover:scale-105 transition-transform">
+              Registrarme en {t.poker_rooms?.name} →
+            </a>
+          )}
           {t.leagues && (
             <>
               <p className="font-mono text-[11px] font-semibold text-sk-text-2 uppercase tracking-wide mb-1 mt-3">
