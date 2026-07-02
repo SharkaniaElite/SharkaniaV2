@@ -21,6 +21,10 @@ export interface BlogPost {
   image_hero: string | null;      // 1200×600 — portada del artículo
   image_thumbnail: string | null; // 600×340  — miniatura en /blog
   image_inline: string | null;    // 800×400  — imagen dentro del artículo
+  custom_banner_mid_src: string | null;   // 🔥 Banner Intermedio Exclusivo
+  custom_banner_mid_href: string | null;  // 🔥 Link Intermedio Exclusivo
+  custom_banner_final_src: string | null; // 🔥 Banner Final Exclusivo
+  custom_banner_final_href: string | null;// 🔥 Link Final Exclusivo
   published: boolean;
   published_at: string | null;
   created_at: string;
@@ -72,6 +76,10 @@ export interface CreateBlogPostInput {
   image_hero?: string | null;
   image_thumbnail?: string | null;
   image_inline?: string | null;
+  custom_banner_mid_src?: string | null;   // 🔥
+  custom_banner_mid_href?: string | null;  // 🔥
+  custom_banner_final_src?: string | null; // 🔥
+  custom_banner_final_href?: string | null;// 🔥
   published?: boolean;
 }
 

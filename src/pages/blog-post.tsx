@@ -93,10 +93,13 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
           </div>
         )}
         {h2Index === 3 && (
-          (post as any).custom_banner_src ? (
-            <a href={(post as any).custom_banner_href ?? "#"} target="_blank" rel="noopener noreferrer" className="block w-full my-8 overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
-              <img src={(post as any).custom_banner_src} alt="Banner Promocional Exclusivo" className="w-full h-auto object-cover max-h-[200px]" />
-            </a>
+          post.custom_banner_mid_src ? (
+            <div className="w-full my-8">
+              <small className="block text-[9px] font-mono text-sk-text-4 text-right mb-1 uppercase tracking-widest">Publicidad Exclusiva</small>
+              <a href={post.custom_banner_mid_href ?? "#"} target="_blank" rel="noopener noreferrer" className="block w-full overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+                <img src={post.custom_banner_mid_src} alt="Banner Intermedio Exclusivo" className="w-full h-auto object-cover" />
+              </a>
+            </div>
           ) : (
             <WptBanner slot="mid" />
           )
@@ -443,10 +446,13 @@ export default function BlogPostPage() {
                   })}
                 </div>
 
-                {(post as any).custom_banner_src ? (
-                  <a href={(post as any).custom_banner_href ?? "#"} target="_blank" rel="noopener noreferrer" className="block w-full mt-10 overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
-                    <img src={(post as any).custom_banner_src} alt="Banner Promocional Exclusivo" className="w-full h-auto object-cover max-h-[200px]" />
-                  </a>
+                {post.custom_banner_final_src ? (
+                  <div className="w-full mt-10">
+                    <small className="block text-[9px] font-mono text-sk-text-4 text-right mb-1 uppercase tracking-widest">Publicidad Exclusiva</small>
+                    <a href={post.custom_banner_final_href ?? "#"} target="_blank" rel="noopener noreferrer" className="block w-full overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+                      <img src={post.custom_banner_final_src} alt="Banner Final Exclusivo" className="w-full h-auto object-cover" />
+                    </a>
+                  </div>
                 ) : (
                   <WptBanner slot="final" className="mt-10" />
                 )}

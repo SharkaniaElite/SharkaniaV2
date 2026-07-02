@@ -29,6 +29,14 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
   const [imageInline, setImageInline] = useState('');
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
   
+  // Banner Override MID
+  const [customBannerMidSrc, setCustomBannerMidSrc] = useState('');
+  const [customBannerMidHref, setCustomBannerMidHref] = useState('');
+  
+  // Banner Override FINAL
+  const [customBannerFinalSrc, setCustomBannerFinalSrc] = useState('');
+  const [customBannerFinalHref, setCustomBannerFinalHref] = useState('');
+  
   // Estado de los bloques
   const [blocks, setBlocks] = useState<Block[]>([{ type: 'p', content: '' }]);
   const [status, setStatus] = useState('draft');
@@ -72,6 +80,12 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
         setImageThumbnail(data.image_thumbnail || '');
         setImageOg(data.image_og || '');
         setImageInline(data.image_inline || '');
+        
+        // Banners Exclusivos
+        setCustomBannerMidSrc(data.custom_banner_mid_src || '');
+        setCustomBannerMidHref(data.custom_banner_mid_href || '');
+        setCustomBannerFinalSrc(data.custom_banner_final_src || '');
+        setCustomBannerFinalHref(data.custom_banner_final_href || '');
       }
     };
 
@@ -225,6 +239,10 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
       image_thumbnail: imageThumbnail,
       image_og: imageOg,
       image_inline: imageInline,
+      custom_banner_mid_src: customBannerMidSrc || null,
+      custom_banner_mid_href: customBannerMidHref || null,
+      custom_banner_final_src: customBannerFinalSrc || null,
+      custom_banner_final_href: customBannerFinalHref || null,
     };
 
     if (postId) {
@@ -540,7 +558,41 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
           {renderImageField('Redes Sociales (OG)', 'image_og', imageOg, setImageOg)}
           {renderImageField('Intermedia (Inline)', 'image_inline', imageInline, setImageInline)}
         </Card>
+{/* 🔥 NUEVO: BANNERS PERSONALIZADOS MULTIPLES */}
+        <Card className="p-4 space-y-6 bg-bg-1 border-accent/30 shadow-[0_0_15px_rgba(34,211,238,0.05)]">
+          <h3 className="font-bold border-b border-border pb-2 text-text-1 flex items-center gap-2">
+            📢 Publicidad Exclusiva <span className="text-[10px] text-accent font-normal px-2 py-0.5 bg-accent/10 rounded-full">Opcional</span>
+          </h3>
+          <p className="text-[10px] text-text-4 leading-tight italic -mt-2">
+            Rellenar estos campos anula la publicidad global predeterminada (WPT/CoinPoker) y muestra la tuya solo en este artículo.
+          </p>
 
+          {/* Banner MID */}
+          <div className="p-3 bg-bg-2 border border-border rounded-lg space-y-3">
+            <h4 className="text-[11px] font-mono uppercase text-accent font-bold">1. Banner Intermedio</h4>
+            <div>
+              <label className="text-[10px] text-text-3">Imagen (URL)</label>
+              <Input className="mt-1 bg-bg-0 border-border text-xs" value={customBannerMidSrc} onChange={(e) => setCustomBannerMidSrc(e.target.value)} placeholder="https://..." />
+            </div>
+            <div>
+              <label className="text-[10px] text-text-3">URL Destino (Afiliado)</label>
+              <Input className="mt-1 bg-bg-0 border-border text-xs" value={customBannerMidHref} onChange={(e) => setCustomBannerMidHref(e.target.value)} placeholder="https://..." />
+            </div>
+          </div>
+
+          {/* Banner FINAL */}
+          <div className="p-3 bg-bg-2 border border-border rounded-lg space-y-3">
+            <h4 className="text-[11px] font-mono uppercase text-accent font-bold">2. Banner Final (Cierre)</h4>
+            <div>
+              <label className="text-[10px] text-text-3">Imagen (URL)</label>
+              <Input className="mt-1 bg-bg-0 border-border text-xs" value={customBannerFinalSrc} onChange={(e) => setCustomBannerFinalSrc(e.target.value)} placeholder="https://..." />
+            </div>
+            <div>
+              <label className="text-[10px] text-text-3">URL Destino (Afiliado)</label>
+              <Input className="mt-1 bg-bg-0 border-border text-xs" value={customBannerFinalHref} onChange={(e) => setCustomBannerFinalHref(e.target.value)} placeholder="https://..." />
+            </div>
+          </div>
+        </Card>
         <Card className="p-4 space-y-4 bg-bg-1 border-border">
           <h3 className="font-bold border-b border-border pb-2 text-text-1">Publicación</h3>
           

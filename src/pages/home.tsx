@@ -10,7 +10,7 @@ import { getPlayers } from "../lib/api/players";
 import { getBlogPosts, formatBlogDate } from "../lib/api/blog";
 import { supabase } from "../lib/supabase";
 import { FlagIcon } from "../components/ui/flag-icon";
-import { Trophy, Megaphone, Zap, Brain, Flame } from "lucide-react";
+import { Megaphone, Zap, Brain, Flame, CalendarDays, BookOpen } from "lucide-react";
 import type { PlayerWithRoom } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
 
@@ -178,14 +178,40 @@ export function HomePage() {
           <p className="text-sk-lg text-sk-text-2 leading-relaxed mx-auto animate-sk-fade-up sk-delay-2 max-w-2xl">
             Para ser un verdadero tiburón del póker necesitas dos cosas: volumen de juego y conocimiento táctico. En Sharkania te entregamos el ecosistema para ambas.
           </p>
-          <div className="flex justify-center gap-4 mt-8 flex-wrap animate-sk-fade-up sk-delay-3">
-            <Link to="/ranking">
-              <Button variant="accent" size="xl" className="group relative overflow-hidden font-extrabold tracking-wide shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_35px_rgba(34,211,238,0.5)] transition-all duration-300 border border-sk-accent/50 hover:border-sk-accent">
-                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out" />
-                <Trophy className="w-5 h-5 mr-2 inline-block group-hover:scale-110 transition-transform duration-300" />
-                Ver Ranking Global
-              </Button>
-            </Link>
+          
+          <div className="flex flex-col md:flex-row justify-center items-stretch gap-6 mt-10 animate-sk-fade-up sk-delay-3 w-full max-w-3xl mx-auto">
+            
+            {/* 🗓️ Pilar 1: Volumen de Juego */}
+            <div className="flex-1 bg-sk-bg-2/50 backdrop-blur-sm border border-sk-border-2 rounded-2xl p-5 flex flex-col items-center justify-center hover:border-sk-accent/40 transition-colors shadow-sm">
+              <p className="text-[10px] font-mono text-sk-text-3 uppercase tracking-widest mb-4">Pilar 1: Volumen de Juego</p>
+              <Link to="/calendar" className="w-full">
+                <Button variant="accent" size="xl" className="w-full group relative overflow-hidden font-extrabold tracking-wide shadow-[0_0_20px_rgba(34,211,238,0.15)] hover:shadow-[0_0_35px_rgba(34,211,238,0.4)] transition-all duration-300 border border-sk-accent/50 hover:border-sk-accent">
+                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out" />
+                  <CalendarDays className="w-5 h-5 mr-2 inline-block group-hover:scale-110 transition-transform duration-300" />
+                  Hacer Volumen de Juego
+                </Button>
+              </Link>
+            </div>
+
+            {/* 🧠 Pilar 2: Conocimiento Táctico */}
+            <div className="flex-1 bg-sk-bg-2/50 backdrop-blur-sm border border-sk-border-2 rounded-2xl p-5 flex flex-col items-center justify-center hover:border-sk-purple/40 transition-colors shadow-sm">
+              <p className="text-[10px] font-mono text-sk-text-3 uppercase tracking-widest mb-4">Pilar 2: Conocimiento Táctico</p>
+              <div className="flex flex-col sm:flex-row gap-3 w-full">
+                <Link to="/blog" className="flex-1">
+                  <Button variant="secondary" className="w-full h-full py-3.5 font-bold tracking-wide border-sk-border-2 hover:border-sk-text-2 hover:bg-white/[0.03] transition-all duration-300 group">
+                    <BookOpen className="w-4 h-4 mr-2 inline-block text-sk-text-4 group-hover:text-sk-text-1 transition-colors duration-300" />
+                    Blog Estrategia
+                  </Button>
+                </Link>
+                <Link to="/academy" className="flex-1">
+                  <Button variant="secondary" className="w-full h-full py-3.5 font-bold tracking-wide border-sk-border-2 hover:border-sk-purple/50 hover:text-sk-purple hover:bg-sk-purple/5 transition-all duration-300 group">
+                    <Brain className="w-4 h-4 mr-2 inline-block group-hover:scale-110 transition-transform duration-300" />
+                    Academia
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            
           </div>
           
           {/* Trust Badges - Salas Afiliadas */}
