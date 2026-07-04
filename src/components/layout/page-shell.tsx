@@ -71,8 +71,8 @@ export function PageShell({ children }: PageShellProps) {
       {/* Spacer para compensar el navbar (56px) */}
       <div style={{ height: "56px", flexShrink: 0 }} />
 
-      {/* 🚀 ZONA PEGADA AL NAVBAR (Ticker + Super Banners) */}
-      <div className="sticky top-[56px] left-0 right-0 w-full z-[90] flex flex-col">
+      {/* 🚀 ZONA BAJO EL NAVBAR (Ticker + Super Banners) */}
+      <div className="relative left-0 right-0 w-full z-[90] flex flex-col">
         
         {/* 🏆 1ro: TICKER DE CAMPEONES */}
         <GlobalChampionsTicker />

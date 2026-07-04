@@ -5,7 +5,6 @@ import { PurchaseModal } from "./purchase-modal";
 import { Button } from "../ui/button";
 import { SkeletonTitle, SkeletonText } from "../ui/skeleton";
 import { Lock, Zap, ShieldCheck } from "lucide-react"; // 👈 Añadido ShieldCheck
-import { Link } from "react-router-dom";
 import { SharkCoin } from "../ui/shark-coin";
 import type { ShopProduct } from "../../types";
 
@@ -83,7 +82,8 @@ export function FeaturePaywall({
         <h3 className="text-lg font-bold text-sk-text-1 mb-2">{title}</h3>
         <p className="text-sm text-sk-text-3 mb-6 max-w-sm mx-auto">{description}</p>
 
-        {featureProducts.length > 0 && (
+        {/* CASO 1: Hay productos configurados para esta herramienta */}
+        {featureProducts.length > 0 ? (
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
             {featureProducts.map((product) => (
               <Button
@@ -111,15 +111,27 @@ export function FeaturePaywall({
               </Button>
             ))}
           </div>
+        ) : (
+          /* CASO 2: NO hay productos configurados en la BD pero ESTÁ LOGUEADO */
+          isAuthenticated && (
+            <div className="mb-6 flex justify-center">
+              <Button variant="accent" size="sm" onClick={() => window.location.href = "/shop"}>
+                Ir a la Tienda
+              </Button>
+            </div>
+          )
         )}
 
+        {/* CASO 3: El usuario NO ESTÁ LOGUEADO (le mostramos un botón CTA fuerte) */}
         {!isAuthenticated && (
-          <p className="text-xs text-sk-text-4">
-            <Link to="/register" className="text-sk-accent hover:underline">
+          <div className="flex flex-col items-center gap-3">
+            <Button variant="accent" onClick={() => window.location.href = "/register"}>
               Crea tu cuenta gratis
-            </Link>{" "}
-            y recibe 100 <SharkCoin size={12} className="mx-0.5" /> de bienvenida.
-          </p>
+            </Button>
+            <p className="text-xs text-sk-text-4">
+              Y recibe 100 <SharkCoin size={12} className="mx-0.5 inline-block" /> de bienvenida.
+            </p>
+          </div>
         )}
 
         {selectedProduct && (

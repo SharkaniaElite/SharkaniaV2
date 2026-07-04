@@ -16,7 +16,7 @@ import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
   Image, Save, Eye, RefreshCw, Power, MessageCircle,
-  Zap, Star, Tv, Mail, Newspaper // 🔥 Agregamos Newspaper
+  Zap, Star, Tv, Mail, Newspaper
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -27,6 +27,7 @@ import {
 
 import { MissionsAdminTab } from "../components/admin/missions-admin-tab";
 import { PostHogStatsCard } from "../components/admin/posthog-stats-card";
+import { IgnitionClaimsTab } from "../components/admin/ignition-claims-tab"; // 👈 NUEVO COMPONENTE
 import { syncAllUnifiedElos } from "../lib/api/elo-engine";
 import { AnalyticsTab } from "../components/admin/analytics-tab";
 import { BlogEditor } from "../components/admin/blog-editor"; // 🔥 Agregamos el CMS
@@ -267,7 +268,7 @@ function BannerSlotEditor({
 
 export function SuperAdminPage() {
   const [tab, setTab] = useState<AdminTab>("overview");
-  const [reqCategory, setReqCategory] = useState<"clubs" | "claims" | "wpt" | "latin">("clubs");
+  const [reqCategory, setReqCategory] = useState<"clubs" | "claims" | "wpt" | "latin" | "ignition">("clubs");
   const [reqView, setReqView] = useState<"pending" | "history">("pending");
   const [entityForm, setEntityForm] = useState<{
     table: string;
@@ -698,6 +699,20 @@ export function SuperAdminPage() {
     enabled: tab === "requests",
   });
 
+  // 🔥 NUEVO: Query para el contador de correos pendientes de Ignition
+  const { data: pendingIgnitionCount } = useQuery({
+    queryKey: ["pending-ignition-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("ignition_status", "pending")
+        .not("ignition_email", "is", null);
+      return count || 0;
+    },
+    refetchInterval: 30000,
+  });
+
   const { data: rooms } = useQuery({
     queryKey: ["admin-rooms"],
     queryFn: async () => {
@@ -888,8 +903,9 @@ export function SuperAdminPage() {
 
   const pendingWpt = wptValidations?.filter((w: any) => w.wpt_status === "pending").length ?? 0;
   const pendingLatin = latinValidations?.filter((l: any) => l.latin_status === "pending").length ?? 0;
+  const pendingIgnition = pendingIgnitionCount ?? 0; // 🔥 Añadido
   
-  const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0) + pendingWpt + pendingLatin;
+  const pendingTotal = (stats?.pendingClubs ?? 0) + (stats?.pendingClaims ?? 0) + pendingWpt + pendingLatin + pendingIgnition;
 
   const TABS: { key: AdminTab; label: string; badge?: number }[] = [
     { key: "overview",  label: "General" },
@@ -1155,7 +1171,8 @@ export function SuperAdminPage() {
                   { id: "clubs", label: "Clubes", count: clubRequests?.filter(r => r.status === "pending").length || 0 },
                   { id: "claims", label: "Nickname Claims", count: nicknameClaims?.filter(c => c.status === "pending").length || 0 },
                   { id: "wpt", label: "Validaciones WPT", count: wptValidations?.filter(w => w.wpt_status === "pending").length || 0 },
-                  { id: "latin", label: "LatinAllin Onboarding", count: latinValidations?.filter(l => l.latin_status === "pending").length || 0 },
+                  { id: "latin", label: "Onboarding LatinAllin", count: latinValidations?.filter(l => l.latin_status === "pending").length || 0 },
+                  { id: "ignition", label: "Ignition Poker", count: pendingIgnitionCount || 0 }, // 🔥 NUEVA PESTAÑA
                 ].map(cat => (
                   <button
                     key={cat.id}
@@ -1189,6 +1206,7 @@ export function SuperAdminPage() {
                     {reqCategory === "claims" && "Validación de Nicknames"}
                     {reqCategory === "wpt" && "VIP WPT Global"}
                     {reqCategory === "latin" && "Onboarding LatinAllin"}
+                    {reqCategory === "ignition" && "Validaciones Ignition Poker"}
                   </h3>
                   <div className="flex gap-1 bg-sk-bg-0 border border-sk-border-2 rounded-md p-0.5">
                     <button
@@ -1384,6 +1402,13 @@ export function SuperAdminPage() {
                         ))}
                       </tbody>
                     </table>
+                  )}
+
+                  {/* --- CATEGORÍA: IGNITION --- */}
+                  {reqCategory === "ignition" && (
+                    <div className="mt-2">
+                      <IgnitionClaimsTab />
+                    </div>
                   )}
 
                 </div>

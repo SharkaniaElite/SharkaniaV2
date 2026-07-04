@@ -17,7 +17,7 @@ import {
   useRecordQuizAttempt,
 } from "../hooks/use-academy";
 import { useAuthStore } from "../stores/auth-store";
-import { ArrowLeft, Clock, Zap, BookOpen } from "lucide-react";
+import { ArrowLeft, Clock, Zap, BookOpen, ChevronRight } from "lucide-react"; // 👈 Añadido ChevronRight
 import { WptBanner } from "../components/blog/wpt-banner";
 export function AcademyLessonPage() {
   const { moduleSlug, lessonSlug } = useParams<{ moduleSlug: string; lessonSlug: string }>();
@@ -36,9 +36,10 @@ export function AcademyLessonPage() {
   const startMutation = useStartLesson();
   const retryMutation = useRecordQuizAttempt();
 
-  // Find next lesson
+  // Find next and previous lesson
   const currentIndex = lessons?.findIndex((l) => l.id === lesson?.id) ?? -1;
   const nextLesson = currentIndex >= 0 && lessons ? lessons[currentIndex + 1] : null;
+  const prevLesson = currentIndex > 0 && lessons ? lessons[currentIndex - 1] : null; // 👈 Añadida lección anterior
 
   // Register lesson start
   useEffect(() => {
@@ -200,6 +201,40 @@ export function AcademyLessonPage() {
               )}
             </div>
           )}
+
+          {/* 🔥 NAVEGACIÓN LIBRE (SEO Friendly) */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-12 pt-8 border-t border-sk-border-2">
+            {prevLesson ? (
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate(`/academia/${moduleSlug}/${prevLesson.slug}`)} 
+                className="w-full sm:w-auto text-sk-text-3 hover:text-white"
+              >
+                <ArrowLeft size={14} className="mr-2" /> Lección Anterior
+              </Button>
+            ) : (
+              <div className="hidden sm:block" /> /* Espaciador */
+            )}
+            
+            {nextLesson ? (
+              <Button 
+                variant="secondary" 
+                onClick={handleNextLesson} 
+                className="w-full sm:w-auto border-sk-border-3 hover:border-sk-accent hover:text-sk-accent transition-colors"
+              >
+                Siguiente Lección <ChevronRight size={14} className="ml-2" />
+              </Button>
+            ) : (
+              <Button 
+                variant="secondary" 
+                onClick={() => navigate(`/academia`)}
+                className="w-full sm:w-auto"
+              >
+                Volver a la Academia
+              </Button>
+            )}
+          </div>
+
         </div>
       </div>
     </PageShell>

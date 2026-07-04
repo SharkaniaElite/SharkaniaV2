@@ -23,18 +23,20 @@ export function PurchaseModal({ product, isOpen, onClose, onSuccess }: PurchaseM
   const navigate = useNavigate();
 
   // 🗺️ Mapa de rutas para cada herramienta
-  const getToolRoute = (featureKey: string) => {
+  const getToolRoute = (featureKey?: string) => {
+    if (!featureKey) return null;
     const routes: Record<string, string> = {
-      bankroll_calculator: "/tools/calculadora-banca",
-      tool_icm: "/tools/calculadora-icm",
-      tool_elo_sim: "/tools/simulador-elo",
-      tool_quiz: "/tools/quiz",
-      tool_replayer: "/tools/replayer",
-    };
+  tool_icm: "/tools/calculadora-icm", // Ajustado para coincidir con App.tsx
+  tool_elo_sim: "/tools/simulador-elo", // Ajustado
+  bankroll_calculator: "/tools/calculadora-banca", // Ajustado
+  tool_replayer: "/tools/replayer",
+  cosmetic_extended_stats: "/ranking",
+  tool_quiz: "/tools/quiz",
+};
     return routes[featureKey] || null;
   };
 
-  const toolRoute = getToolRoute(product.feature_key);
+  const toolRoute = getToolRoute(product?.feature_key);
 
   // ⏱️ Auto-redirección tras 2.5 segundos
   useEffect(() => {
@@ -46,6 +48,10 @@ export function PurchaseModal({ product, isOpen, onClose, onSuccess }: PurchaseM
     }
     return () => clearTimeout(timer);
   }, [result?.success, toolRoute, navigate]);
+
+  // 🛡️ PARCHE VITAL: Prevenir Crash si el producto es nulo.
+  // Debe ir DESPUÉS de los hooks para no romper el renderizado.
+  if (!product) return null;
 
   const balance = profile?.shark_coins_balance ?? 0;
   const canAfford = balance >= product.price_coins;

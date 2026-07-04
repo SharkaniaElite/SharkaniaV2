@@ -142,7 +142,7 @@ export function AcademyPage() {
                     key={m.id} 
                     module={m} 
                     index={i}
-                    previousCompleted={i === 0 || (modules[i - 1]?.isCompleted ?? false)}
+                    previousCompleted={true} // 🔥 AHORA SIEMPRE ESTÁN DESBLOQUEADOS
                     isSuperAdmin={profile?.role === "super_admin"}
                   />
                 ))}
@@ -161,14 +161,14 @@ export function AcademyPage() {
             
             <div className="space-y-4 text-sk-sm text-sk-text-2 leading-relaxed relative z-10">
               <p>
-                No somos una academia más. Cada lección termina con un quiz de precisión letal donde necesitas <strong className="text-sk-text-1">100% de efectividad para avanzar</strong>. No es por ser duros — es porque en la mesa, un error del 20% te cuesta el torneo.
+                No somos una academia convencional con manuales obsoletos. En Sharkania creemos en un <strong className="text-sk-text-1">modelo de aprendizaje ágil, abierto y modular</strong>, diseñado para adaptarse al ritmo del grinder moderno. Tienes acceso completo e inmediato a todo nuestro arsenal táctico, permitiéndote consultar cualquier concepto técnico de forma libre y directa en el momento exacto en que lo necesites.
               </p>
               <p>
-                Cada concepto viene con una <strong className="text-sk-accent font-bold italic">Misión en Mesa</strong> concreta. No enseñamos teoría abstracta; entregamos arsenal táctico aplicable desde tu próxima sesión.
+                Aunque puedes avanzar libremente entre lecciones, cada una cuenta con <strong className="text-sk-accent font-bold italic">quizzes de autoevaluación opcionales</strong> y misiones prácticas. No enseñamos teoría abstracta; entregamos herramientas de precisión letal que puedes aplicar en tu próxima sesión para transformar el conocimiento en ROI inmediato.
               </p>
               <div className="border-t border-sk-border-2 pt-4 mt-2">
                 <p className="text-sk-text-3 font-mono text-[11px] uppercase tracking-[0.15em]">
-                  Estructura: Nivel 1 (Acceso Abierto) · Niveles 2-6 (Desbloqueo vía SC)
+                  Estructura: Acceso 100% libre y modular
                 </p>
               </div>
             </div>

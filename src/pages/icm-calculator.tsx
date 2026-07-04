@@ -797,25 +797,27 @@ export function ICMCalculatorPage() {
             </ul>
           </div>
 
-          {/* CTA */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 text-center">
-            <p className="text-sk-xs font-mono font-semibold uppercase tracking-widest text-sk-accent mb-2">
-              Mejora tu juego con datos reales
-            </p>
-            <h3 className="text-sk-lg font-extrabold text-sk-text-1 tracking-tight mb-2">
-              Trackea tu evolución en Sharkania
-            </h3>
-            <p className="text-sk-sm text-sk-text-2 mb-4 max-w-md mx-auto">
-              Ranking ELO, historial de torneos, estadísticas y más. Gratis para
-              jugadores y clubes.
-            </p>
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold hover:bg-sk-accent-hover transition-colors"
-            >
-              Crear cuenta gratis <ChevronRight size={14} />
-            </Link>
-          </div>
+          {/* CTA - Solo visible para usuarios no registrados */}
+          {!isAuthenticated && (
+            <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 text-center">
+              <p className="text-sk-xs font-mono font-semibold uppercase tracking-widest text-sk-accent mb-2">
+                Mejora tu juego con datos reales
+              </p>
+              <h3 className="text-sk-lg font-extrabold text-sk-text-1 tracking-tight mb-2">
+                Trackea tu evolución en Sharkania
+              </h3>
+              <p className="text-sk-sm text-sk-text-2 mb-4 max-w-md mx-auto">
+                Ranking ELO, historial de torneos, estadísticas y más. Gratis para
+                jugadores y clubes.
+              </p>
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold hover:bg-sk-accent-hover transition-colors"
+              >
+                Crear cuenta gratis <ChevronRight size={14} />
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </PageShell>

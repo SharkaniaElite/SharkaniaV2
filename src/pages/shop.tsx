@@ -3,11 +3,10 @@ import { PageShell } from "../components/layout/page-shell";
 import { Spinner } from "../components/ui/spinner";
 import { Button } from "../components/ui/button";
 import { SEOHead } from "../components/seo/seo-head";
-import { useShopProducts, useUserPurchases, usePurchaseProduct, useSharkCoinsBalance } from "../hooks/use-shop";
+import { useShopProducts, useUserPurchases, useSharkCoinsBalance } from "../hooks/use-shop";
 import { useAuthStore } from "../stores/auth-store";
 import { Lock, Sparkles, CheckCircle2, FlaskConical, Zap, Hammer, ExternalLink, Gift, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "../lib/cn";
-import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import type { ShopProduct } from "../types";
 import { useQuery } from "@tanstack/react-query";
@@ -25,12 +24,12 @@ const IMPLEMENTED_FEATURES = [
 
 // ─── CONFIGURACIÓN DE RUTAS Y FONDOS (/bg/...) ───
 const TOOL_CONFIG: Record<string, { path: string; bgImage: string; label: string }> = {
-  "tool_icm": { path: "/icm-calculator", bgImage: "/bg/icm.webp", label: "Ir a la Calculadora ICM" },
-  "tool_elo_sim": { path: "/elo-simulator", bgImage: "/bg/elo.webp", label: "Ir al Simulador" },
-  "bankroll_calculator": { path: "/bankroll-calculator", bgImage: "/bg/bankroll.webp", label: "Ir a Gestión de Banca" },
-  "tool_replayer": { path: "/replayer", bgImage: "/bg/replayer.webp", label: "Ir al Replayer" },
+  "tool_icm": { path: "/tools/calculadora-icm", bgImage: "/bg/icm.webp", label: "Ir a la Calculadora ICM" }, // Ajustado
+  "tool_elo_sim": { path: "/tools/simulador-elo", bgImage: "/bg/elo.webp", label: "Ir al Simulador" }, // Ajustado
+  "bankroll_calculator": { path: "/tools/calculadora-banca", bgImage: "/bg/bankroll.webp", label: "Ir a Gestión de Banca" }, // Ajustado
+  "tool_replayer": { path: "/tools/replayer", bgImage: "/bg/replayer.webp", label: "Ir al Replayer" },
   "cosmetic_extended_stats": { path: "/ranking", bgImage: "/bg/stats.webp", label: "Probar en el Ranking" },
-  "tool_quiz": { path: "/tools/quiz", bgImage: "/bg/quiz.webp", label: "Ir al Quiz" }, // 👈 AÑADIDA RUTA DEL QUIZ
+  "tool_quiz": { path: "/tools/quiz", bgImage: "/bg/quiz.webp", label: "Ir al Quiz" },
 };
 
 // ─── DATOS DUROS PARA LA PESTAÑA "EN DESARROLLO" ───
@@ -92,15 +91,13 @@ function ProductCardGroup({
   activePurchase,
   balance,
   onPurchase,
-  isPurchasing,
   isAuthenticated,
   navigate,
 }: {
   group: { feature_key: string; name: string; description: string; icon: string; options: ShopProduct[]; free_tier: string | null };
   activePurchase: any;
   balance: number;
-  onPurchase: (slug: string) => void;
-  isPurchasing: boolean;
+  onPurchase: (product: ShopProduct) => void;
   isAuthenticated: boolean;
   navigate: ReturnType<typeof useNavigate>;
 }) {
@@ -255,7 +252,11 @@ function ProductCardGroup({
                   <p className="text-[11px] text-sk-green font-mono uppercase tracking-widest">Ilimitado</p>
                 ) : (
                   <p className="text-[11px] text-sk-text-3 font-mono">
-                    Expira: {format(new Date(activePurchase.expires_at), "dd MMM")}
+                    Expira: {
+                      isNaN(new Date(activePurchase.expires_at).getTime()) 
+                        ? "Pronto" 
+                        : new Date(activePurchase.expires_at).toLocaleDateString("es-CL", { day: "2-digit", month: "short" })
+                    }
                   </p>
                 )}
               </div>
@@ -294,11 +295,11 @@ function ProductCardGroup({
                   <Button
                     variant="accent"
                     size="sm"
-                    disabled={!canAfford || isPurchasing}
-                    onClick={() => onPurchase(selectedOption.slug!)}
+                    disabled={!canAfford}
+                    onClick={() => onPurchase(selectedOption)}
                     className="shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:shadow-[0_0_25px_rgba(34,211,238,0.4)]"
                   >
-                    {isPurchasing ? <Spinner size="sm" /> : canAfford ? "Adquirir" : "Sin Saldo"}
+                    {canAfford ? "Adquirir" : "Sin Saldo"}
                   </Button>
                 ) : null}
               </div>
@@ -310,11 +311,14 @@ function ProductCardGroup({
   );
 }
 
+import { PurchaseModal } from "../components/shop/purchase-modal";
+
 // ─── PÁGINA PRINCIPAL ───
 export function ShopPage() {
   const navigate = useNavigate();
   const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
   const [tab, setTab] = useState<"active" | "upcoming">("active");
+  const [selectedProductToBuy, setSelectedProductToBuy] = useState<ShopProduct | null>(null);
 
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -322,7 +326,6 @@ export function ShopPage() {
   const { data: products, isLoading } = useShopProducts();
   const { data: purchases } = useUserPurchases();
   const { data: balance } = useSharkCoinsBalance();
-  const { mutate: purchase, isPending: isPurchasing } = usePurchaseProduct();
 
   // 1. Agrupar productos (100% Type-Safe / Bypassa noUncheckedIndexedAccess)
   const groupedProducts = useMemo(() => {
@@ -531,8 +534,7 @@ export function ShopPage() {
                       group={group}
                       activePurchase={activePurchasesMap.get(group.feature_key)}
                       balance={balance ?? 0}
-                      onPurchase={purchase}
-                      isPurchasing={isPurchasing}
+                      onPurchase={(prod) => setSelectedProductToBuy(prod)}
                       isAuthenticated={isAuthenticated}
                       navigate={navigate}
                     />
@@ -570,6 +572,12 @@ export function ShopPage() {
 
         </div>
       </div>
+      {/* 🔥 MODAL DE COMPRA INTEGRADO 🔥 */}
+      <PurchaseModal
+        product={selectedProductToBuy!}
+        isOpen={!!selectedProductToBuy}
+        onClose={() => setSelectedProductToBuy(null)}
+      />
     </PageShell>
   );
 }

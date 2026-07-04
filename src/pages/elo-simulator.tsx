@@ -816,25 +816,27 @@ export function EloSimulatorPage() {
             </ul>
           </div>
 
-          {/* CTA */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 text-center">
-            <p className="text-sk-xs font-mono font-semibold uppercase tracking-widest text-sk-accent mb-2">
-              Deja de simular — empieza a competir
-            </p>
-            <h3 className="text-sk-lg font-extrabold text-sk-text-1 tracking-tight mb-2">
-              Registra tu club y obtén tu ELO real
-            </h3>
-            <p className="text-sk-sm text-sk-text-2 mb-4 max-w-md mx-auto">
-              Sharkania calcula tu ELO basándose en resultados reales.
-              Los primeros clubes acceden gratis de por vida.
-            </p>
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold hover:bg-sk-accent-hover transition-colors"
-            >
-              Crear cuenta gratis <ChevronRight size={14} />
-            </Link>
-          </div>
+          {/* CTA - Solo visible para usuarios no registrados */}
+          {!isAuthenticated && (
+            <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 text-center">
+              <p className="text-sk-xs font-mono font-semibold uppercase tracking-widest text-sk-accent mb-2">
+                Deja de simular — empieza a competir
+              </p>
+              <h3 className="text-sk-lg font-extrabold text-sk-text-1 tracking-tight mb-2">
+                Registra tu club y obtén tu ELO real
+              </h3>
+              <p className="text-sk-sm text-sk-text-2 mb-4 max-w-md mx-auto">
+                Sharkania calcula tu ELO basándose en resultados reales.
+                Los primeros clubes acceden gratis de por vida.
+              </p>
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold hover:bg-sk-accent-hover transition-colors"
+              >
+                Crear cuenta gratis <ChevronRight size={14} />
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
