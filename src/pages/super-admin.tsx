@@ -2033,12 +2033,18 @@ export function SuperAdminPage() {
                     </Button>
                   </div>
                   <AdminTable
-                    headers={["Título", "Categoría", "Estado", "Fecha Publicación"]}
+                    headers={["Título", "Categoría", "Lecturas", "Estado", "Publicado"]}
                     rows={(blogPostsAdmin ?? []).map((b) => ({
                       id: b.id,
                       cells: [
                         <span className="font-semibold text-sk-text-1 line-clamp-1">{b.title}</span>,
                         <Badge variant="accent">{b.category}</Badge>,
+                        
+                        // 🔥 NUEVA COLUMNA DE VISTAS ÚNICAS
+                        <span className="flex items-center gap-1.5 font-mono text-sk-sm font-bold text-sk-gold">
+                          <Eye size={13} className="text-sk-text-3" /> {b.unique_views ?? 0}
+                        </span>,
+
                         <Badge variant={b.status === "published" || b.published ? "green" : "muted"}>
                           {b.status === "published" || b.published ? "Publicado" : "Borrador"}
                         </Badge>,

@@ -28,6 +28,7 @@ export interface BlogPost {
   published: boolean;
   published_at: string | null;
   created_at: string;
+  unique_views: number;
 }
 
 export function formatBlogDate(iso: string | null): string {
@@ -120,3 +121,11 @@ export async function deleteBlogPost(id: string): Promise<void> {
   const { error } = await supabase.from("blog_posts").delete().eq("id", id);
   if (error) throw error;
 }
+// 🔥 NUEVO: Función para registrar un visitante único
+export async function incrementPostView(postId: string): Promise<void> {
+  const { error } = await supabase.rpc("increment_post_views", { p_post_id: postId });
+  if (error) {
+    console.error("Error al registrar la visita:", error);
+  }
+}
+

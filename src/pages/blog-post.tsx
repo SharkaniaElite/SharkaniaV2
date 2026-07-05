@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Share2, ChevronRight, Lock, Check } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
-import { getBlogPost, formatBlogDate, type BlogPost, type BlogBlock } from "../lib/api/blog";
+import { getBlogPost, formatBlogDate, incrementPostView, type BlogPost, type BlogBlock } from "../lib/api/blog";
+import { Eye } from "lucide-react"; // 👈 Importamos el ícono del ojito para luego
 import { SEOHead } from "../components/seo/seo-head";
 import { renderWithLinks, renderWithLinksAndGlossary } from "../lib/render-inline-links";
 import { useGlossaryTerms } from "../hooks/use-glossary";
@@ -262,6 +263,21 @@ export default function BlogPostPage() {
 
     return () => observer.disconnect();
   }, [loading, post]);
+
+  // 🔥 TRACKING DE VISITANTES ÚNICOS
+  useEffect(() => {
+    if (!post?.id) return;
+
+    // Leemos el historial del navegador del usuario
+    const viewedPosts = JSON.parse(localStorage.getItem("sk_viewed_posts") || "[]");
+    
+    // Si NO está en su historial, es un visitante nuevo para este artículo
+    if (!viewedPosts.includes(post.id)) {
+      incrementPostView(post.id); // Sumamos +1 en Supabase
+      viewedPosts.push(post.id);
+      localStorage.setItem("sk_viewed_posts", JSON.stringify(viewedPosts)); // Lo marcamos como visto
+    }
+  }, [post?.id]);
 
   // Funciones de utilidad
   const handleClaimCoins = async () => {
