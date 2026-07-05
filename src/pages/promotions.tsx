@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
 import { Link } from "react-router-dom";
-import { Gift, ArrowRight, Zap, Sparkles } from "lucide-react";
+import { Gift, ArrowRight, Zap, Sparkles, Clock } from "lucide-react"; // 👈 Añadimos Clock
 import { cn } from "../lib/cn";
 import { supabase } from "../lib/supabase"; // Importación de DB agregada
+import { formatBlogDate } from "../lib/api/blog"; // 👈 Importamos el formateador
 
 export function PromotionsPage() {
   const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
@@ -112,6 +113,15 @@ export function PromotionsPage() {
                   </div>
                   
                   <div className="p-6 flex flex-col flex-1">
+                    {/* 🔥 NUEVO: Fecha de publicación y tiempo de lectura */}
+                    <div className="flex items-center gap-2 mb-3 text-[10px] font-mono text-sk-text-4 uppercase tracking-widest">
+                      <span>{formatBlogDate(promo.published_at)}</span>
+                      <span className="opacity-50">•</span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={10} /> {promo.read_time ?? 3} min
+                      </span>
+                    </div>
+
                     <h3 className={cn(
                       "text-xl font-bold text-sk-text-1 mb-2 transition-colors line-clamp-2",
                       promo.slug === "ignition-bonus" 

@@ -370,6 +370,15 @@ export default function BlogPage() {
                       )}
                       
                       <div className="p-6 flex flex-col flex-1">
+                        {/* 🔥 NUEVO: Fecha de publicación y tiempo de lectura */}
+                        <div className="flex items-center gap-2 mb-3 text-[10px] font-mono text-sk-text-4 uppercase tracking-widest">
+                          <span>{formatBlogDate(post.published_at)}</span>
+                          <span className="opacity-50">•</span>
+                          <span className="flex items-center gap-1">
+                            <Clock size={10} /> {post.read_time} min
+                          </span>
+                        </div>
+
                         <h3 className="text-sk-lg font-bold text-sk-text-1 tracking-tight mb-3 group-hover:text-sk-accent transition-colors duration-300 leading-snug line-clamp-2">
                           {post.title}
                         </h3>

@@ -5,7 +5,6 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Share2, ChevronRight, Lock, Check } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { getBlogPost, formatBlogDate, incrementPostView, type BlogPost, type BlogBlock } from "../lib/api/blog";
-import { Eye } from "lucide-react"; // 👈 Importamos el ícono del ojito para luego
 import { SEOHead } from "../components/seo/seo-head";
 import { renderWithLinks, renderWithLinksAndGlossary } from "../lib/render-inline-links";
 import { useGlossaryTerms } from "../hooks/use-glossary";
