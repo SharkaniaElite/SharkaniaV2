@@ -37,7 +37,8 @@ export interface BannersConfig {
   floatingCta?: FloatingConfig;
   slots: {
     coinpoker: BannerSlotConfig; // 🔥 MAIN SPONSOR
-    super: BannerSlotConfig; // 👈 NUEVO: Slot para el Super Banner Global
+    super: BannerSlotConfig; // Super Banner Izquierdo
+    super2: BannerSlotConfig; // 🔥 NUEVO: Super Banner Derecho
     mid: BannerSlotConfig;
     final: BannerSlotConfig;
     sidebar: BannerSlotConfig;
@@ -81,6 +82,20 @@ export const DEFAULT_BANNERS: BannersConfig = {
         us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
         width: 870, height: 200,
         label: "Super Banner 870x200",
+      },
+    },
+    super2: {
+      desktop: {
+        src: "https://media.revenuenetwork.com/GIF/Ignition%20Poker/Spanish/Poker/728x90.jpg",
+        href: "https://record.revenuenetwork.com/_s_OAdmC6KUcClNpGDbJ6T1wYPd_vJ7Zw/1/",
+        width: 728, height: 90,
+        label: "Banner Derecho 728x90",
+      },
+      mobile: {
+        src: "https://media.revenuenetwork.com/GIF/Ignition%20Poker/Spanish/Poker/728x90.jpg",
+        href: "https://record.revenuenetwork.com/_s_OAdmC6KUcClNpGDbJ6T1wYPd_vJ7Zw/1/",
+        width: 320, height: 100,
+        label: "Mobile Banner 320x100",
       },
     },
     mid: {

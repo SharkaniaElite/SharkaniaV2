@@ -46,10 +46,16 @@ const SLOT_INFO = {
     mobile:  { size: "600×200 px", label: "Header Mobile", hint: "Ajustado para vista de celular." },
   },
   super: {
-    title: "Super Banner Global (Secundario)",
-    description: "Aparece FIJO en la parte superior de TODAS las páginas, justo debajo del menú.",
-    desktop: { size: "1023×148 px", label: "Top Super Banner", hint: "Formato billboard premium. Alta visibilidad vertical y persistente al hacer scroll." },
-    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Se ajusta al ancho del dispositivo móvil." },
+    title: "Super Banner Izquierdo (Ej. Latin Allin)",
+    description: "Aparece FIJO en la parte superior de TODAS las páginas, lado izquierdo.",
+    desktop: { size: "728×90 px", label: "Banner Izquierdo", hint: "Formato horizontal clásico (728x90)." },
+    mobile:  { size: "320×100 px", label: "Mobile Banner", hint: "Se ajusta al ancho del dispositivo móvil." },
+  },
+  super2: {
+    title: "Super Banner Derecho (Ej. Ignition)",
+    description: "Aparece FIJO en la parte superior de TODAS las páginas, lado derecho.",
+    desktop: { size: "728×90 px", label: "Banner Derecho", hint: "Formato horizontal clásico (728x90)." },
+    mobile:  { size: "320×100 px", label: "Mobile Banner", hint: "Se ajusta al ancho del dispositivo móvil." },
   },
   mid: {
     title: "Banner Mid-Article",

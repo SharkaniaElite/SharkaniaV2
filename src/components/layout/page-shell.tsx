@@ -38,6 +38,12 @@ export function PageShell({ children }: PageShellProps) {
   const hasSuperMobile = !!(superBanner?.mobile?.src || superBanner?.mobile?.href);
   const hasSuperBanner = hasSuperDesktop || hasSuperMobile;
 
+  // 🔥 NUEVO: Segundo banner secundario (Derecho)
+  const super2Banner = banners?.slots?.super2;
+  const hasSuper2Desktop = !!(super2Banner?.desktop?.src || super2Banner?.desktop?.href);
+  const hasSuper2Mobile = !!(super2Banner?.mobile?.src || super2Banner?.mobile?.href);
+  const hasSuper2Banner = hasSuper2Desktop || hasSuper2Mobile;
+
   const [showWhatsapp, setShowWhatsapp] = useState(() => {
     if (typeof window !== "undefined") {
       return !sessionStorage.getItem("hide_whatsapp");
@@ -191,21 +197,45 @@ export function PageShell({ children }: PageShellProps) {
               </div>
             )}
 
-            {/* 🔥 Banner 2: Ignition Poker (HTML Directo) */}
-            <div className="w-full xl:w-[728px] h-auto xl:h-[90px] flex justify-center shrink-0">
-              <a 
-                href="https://record.revenuenetwork.com/_s_OAdmC6KUcClNpGDbJ6T1wYPd_vJ7Zw/1/" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full max-w-[728px] h-auto xl:h-[90px] flex justify-center bg-black rounded-md overflow-hidden shadow-sm border border-white/5 hover:opacity-90 transition-opacity"
-              >
-                <img 
-                  src="https://media.revenuenetwork.com/GIF/Ignition%20Poker/Spanish/Poker/728x90.jpg" 
-                  alt="Ignition Poker Promoción" 
-                  className="w-full h-full object-contain xl:object-cover"
-                />
-              </a>
-            </div>
+            {/* 🔥 Banner 2: Ignition Poker (Viene de tu CMS) */}
+            {hasSuper2Banner && (
+              <div className="w-full xl:w-[728px] h-auto xl:h-[90px] flex justify-center shrink-0">
+                {hasSuper2Desktop && (
+                  <a
+                    href={super2Banner.desktop?.href || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "w-full max-w-[728px] h-auto xl:h-[90px] flex justify-center bg-black rounded-md overflow-hidden shadow-sm border border-white/5 hover:opacity-90 transition-opacity",
+                      hasSuper2Mobile ? "hidden md:flex" : "flex"
+                    )}
+                  >
+                    <img
+                      src={super2Banner.desktop?.src}
+                      alt="Promoción Secundaria"
+                      className="w-full h-full object-contain xl:object-cover"
+                    />
+                  </a>
+                )}
+                {hasSuper2Mobile && (
+                  <a
+                    href={super2Banner.mobile?.href || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "w-full max-w-[728px] h-auto flex justify-center bg-black rounded-md overflow-hidden shadow-sm border border-white/5 hover:opacity-90 transition-opacity",
+                      hasSuper2Desktop ? "md:hidden" : "flex"
+                    )}
+                  >
+                    <img
+                      src={super2Banner.mobile?.src}
+                      alt="Promoción Secundaria Mobile"
+                      className="w-full h-full object-contain"
+                    />
+                  </a>
+                )}
+              </div>
+            )}
 
           </div>
         </div>
