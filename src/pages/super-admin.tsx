@@ -213,6 +213,34 @@ function BannerSlotEditor({
                   />
                 </div>
 
+                {/* 🔥 NUEVO: Entradas para texto y código de referidos personalizados */}
+                <div className="grid grid-cols-2 gap-3 mt-1">
+                  <div>
+                    <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">
+                      Texto Corto (Ej: ID Club:)
+                    </label>
+                    <input
+                      type="text"
+                      value={banner?.custom_text ?? ""}
+                      onChange={(e) => updateSide(side, "custom_text", e.target.value)}
+                      placeholder="Usa el código:"
+                      className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">
+                      Código (Ej: SHARKANIA)
+                    </label>
+                    <input
+                      type="text"
+                      value={banner?.custom_code ?? ""}
+                      onChange={(e) => updateSide(side, "custom_code", e.target.value)}
+                      placeholder="FPHL"
+                      className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-accent font-bold font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
+                    />
+                  </div>
+                </div>
+
                 <div className="mt-4 pt-4 border-t border-sk-border-2">
                   <h4 className="text-[11px] font-bold text-sk-text-1 mb-3 flex items-center gap-1.5">
                     <span className="text-base">🇺🇸</span> Tráfico Estados Unidos (ACR)

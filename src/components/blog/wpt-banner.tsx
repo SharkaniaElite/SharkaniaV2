@@ -1,6 +1,6 @@
 // src/components/blog/wpt-banner.tsx
 import { useBanners } from "../../hooks/use-banners";
-import { useUserCountry } from "../../hooks/use-geo"; // 👈 El Radar
+import { useUserCountry } from "../../hooks/use-geo"; 
 import type { BannerConfig } from "../../lib/api/site-settings";
 
 type BannerSlot = "mid" | "final" | "sidebar";
@@ -16,30 +16,57 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
   const isUS = countryCode === "US"; // 🇺🇸 Condición mágica
 
   const slotCfg  = banners.slots[slot];
-  const bonusCode = banners.bonusCode;
+  const defaultBonusCode = banners.bonusCode;
 
   // Helpers que deciden qué enlace/imagen mostrar
   const getHref = (b: BannerConfig) => (isUS && b.us_href) ? b.us_href : b.href;
   const getSrc = (b: BannerConfig) => (isUS && b.us_src) ? b.us_src : b.src;
+
+  // 🔥 NUEVO: Lógica que lee el texto personalizado del CMS, si no existe usa el general.
+  const renderPromoText = (banner: BannerConfig | null) => {
+    if (!banner || isUS) return null;
+    
+    // Si llenaste el texto personalizado en el Super Admin, lo usamos
+    if (banner.custom_code || banner.custom_text) {
+      return (
+        <>
+          {banner.custom_text || "Usa el código"} <span style={{ color: "#22d3ee", fontWeight: 700, marginLeft: "4px" }}>{banner.custom_code}</span>
+        </>
+      );
+    }
+    
+    // Si está vacío, usa el general por defecto (FPHL)
+    if (defaultBonusCode) {
+      return (
+        <>
+          Usa el código <span style={{ color: "#22d3ee", fontWeight: 700, marginLeft: "4px" }}>{defaultBonusCode}</span>
+        </>
+      );
+    }
+    
+    return null;
+  };
 
   // ── Sidebar (300×250, solo desktop) ──────────────────────
   if (slot === "sidebar") {
     const banner = slotCfg.desktop;
     if (!banner) return null;
 
+    const promoContent = renderPromoText(banner);
+
     return (
       <div className={className}>
         <style>{`.wpt-sb{display:none}@media(min-width:1024px){.wpt-sb{display:block}}`}</style>
         <div className="wpt-sb">
           <a
-            href={getHref(banner)} // 👈 URL Inteligente
+            href={getHref(banner)}
             target="_blank"
             rel="noopener noreferrer sponsored"
             aria-label="Promoción Poker"
             style={{ display: "block", lineHeight: 0, borderRadius: "8px", overflow: "hidden" }}
           >
             <img
-              src={getSrc(banner)} // 👈 Imagen Inteligente
+              src={getSrc(banner)}
               alt="Promoción Poker"
               width={banner.width}
               height={banner.height}
@@ -47,13 +74,13 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
               loading="lazy"
             />
           </a>
-          {bonusCode && !isUS && (
+          {promoContent && (
             <p style={{
               marginTop: "6px", fontSize: "10px",
               color: "rgba(161,161,170,0.65)", textAlign: "center",
               fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.05em",
             }}>
-              Código: <span style={{ color: "#22d3ee", fontWeight: 700 }}>{bonusCode}</span>
+              {promoContent}
             </p>
           )}
         </div>
@@ -67,6 +94,8 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
   if (!desktopBanner && !mobileBanner) return null;
 
   const s = slot;
+  const activeBanner = desktopBanner || mobileBanner; // Leemos la config del activo
+  const promoContent = renderPromoText(activeBanner);
 
   return (
     <div className={className} style={{ width: "100%", margin: "2.5rem 0" }}>
@@ -76,8 +105,7 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
         .wpt-${s}-a:hover{outline-color:rgba(34,211,238,0.30);box-shadow:0 0 28px rgba(34,211,238,0.10)}
         .wpt-${s}-d{display:block}.wpt-${s}-m{display:none}
         @media(max-width:767px){.wpt-${s}-d{display:none}.wpt-${s}-m{display:block}}
-        .wpt-${s}-code{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px;font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(161,161,170,0.60);line-height:1}
-        .wpt-${s}-code strong{color:#22d3ee;font-weight:700}
+        .wpt-${s}-code{display:flex;align-items:center;justify-content:center;margin-top:8px;font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(161,161,170,0.60);line-height:1}
       `}</style>
 
       <small className={`wpt-${s}-label`}>Publicidad {isUS && "🇺🇸"}</small>
@@ -102,9 +130,9 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
         </a>
       )}
 
-      {bonusCode && !isUS && (
+      {promoContent && (
         <p className={`wpt-${s}-code`}>
-          Usa el código <strong>{bonusCode}</strong> al registrarte
+          {promoContent}
         </p>
       )}
     </div>

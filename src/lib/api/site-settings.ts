@@ -11,6 +11,8 @@ export interface BannerConfig {
   label: string;
   us_src?: string;  
   us_href?: string; 
+  custom_text?: string; // 🔥 NUEVO: Texto previo ("Usa el código", "ID Club:", etc)
+  custom_code?: string; // 🔥 NUEVO: El código a mostrar ("SHARKANIA", "9424-8605")
 }
 
 export interface BannerSlotConfig {
