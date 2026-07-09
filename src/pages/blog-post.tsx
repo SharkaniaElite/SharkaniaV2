@@ -76,11 +76,28 @@ function PostSkeleton() {
 
 // ── Block Renderer ────────────────────────────────────────
 function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, alreadyLinked, post }: { block: BlogBlock; inlineImage: string | null; h2Index: number; postTitle: string; glossaryTerms: GlossaryTerm[]; alreadyLinked: Set<string>; post: BlogPost; }) {
+  
+  // 🔥 Función auxiliar para renderizar enlaces HTML de forma segura
+  const renderSafeContent = (text: string) => {
+    if (text.includes('<a href=')) {
+      return <span dangerouslySetInnerHTML={{ __html: text }} />;
+    }
+    return renderWithLinksAndGlossary(text, glossaryTerms, alreadyLinked);
+  };
+
+  // 🔥 Función auxiliar específica para H2 (que usa renderWithLinks en vez de Glossary)
+  const renderSafeH2 = (text: string) => {
+    if (text.includes('<a href=')) {
+      return <span dangerouslySetInnerHTML={{ __html: text }} />;
+    }
+    return renderWithLinks(text);
+  };
+
   if (block.type === "h2") {
     return (
       <>
         <h2 id={slugify(block.content ?? "")} className="text-sk-xl font-extrabold text-sk-text-1 tracking-tight mt-12 mb-4 first:mt-0 scroll-mt-20">
-          {renderWithLinks(block.content ?? "")}
+          {renderSafeH2(block.content ?? "")}
         </h2>
         {h2Index === 2 && inlineImage && (
           <div className="my-6 rounded-xl overflow-hidden border border-sk-border-2">
@@ -108,16 +125,15 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
     );
   }
   
-  if (block.type === "h3") return <h3 className="text-sk-md font-bold text-sk-text-1 mt-8 mb-3">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</h3>;
+  if (block.type === "h3") return <h3 className="text-sk-md font-bold text-sk-text-1 mt-8 mb-3">{renderSafeContent(block.content ?? "")}</h3>;
   
-  // 🔥 NUEVO: Párrafos Explícitos (p)
-  if (block.type === "p") return <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p>;
+  if (block.type === "p") return <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">{renderSafeContent(block.content ?? "")}</p>;
 
-  if (block.type === "callout") return <div className="my-8 rounded-lg border border-sk-accent/20 bg-sk-accent-dim px-6 py-5"><p className="text-sk-base text-sk-text-1 font-medium leading-relaxed">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p></div>;
-  if (block.type === "stat") return <div className="my-8 rounded-xl border border-sk-border-2 bg-sk-bg-2 px-6 py-6 flex items-center gap-5"><span className="text-[2.5rem] font-extrabold text-sk-accent leading-none shrink-0">{block.value}</span><p className="text-sk-base text-sk-text-2 leading-snug">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p></div>;
+  if (block.type === "callout") return <div className="my-8 rounded-lg border border-sk-accent/20 bg-sk-accent-dim px-6 py-5"><p className="text-sk-base text-sk-text-1 font-medium leading-relaxed">{renderSafeContent(block.content ?? "")}</p></div>;
   
-  // Lista mejorada
-  if (block.type === "list") return <ul className="my-5 space-y-2 pl-5 list-none">{(block.items ?? []).map((item, j) => (<li key={j} className="text-sk-base text-sk-text-2 leading-relaxed relative before:content-[''] before:absolute before:-left-3.5 before:top-[10px] before:w-1.5 before:h-1.5 before:rounded-full before:bg-sk-accent">{renderWithLinksAndGlossary(item, glossaryTerms, alreadyLinked)}</li>))}</ul>;
+  if (block.type === "stat") return <div className="my-8 rounded-xl border border-sk-border-2 bg-sk-bg-2 px-6 py-6 flex items-center gap-5"><span className="text-[2.5rem] font-extrabold text-sk-accent leading-none shrink-0">{block.value}</span><p className="text-sk-base text-sk-text-2 leading-snug">{renderSafeContent(block.content ?? "")}</p></div>;
+  
+  if (block.type === "list") return <ul className="my-5 space-y-2 pl-5 list-none">{(block.items ?? []).map((item, j) => (<li key={j} className="text-sk-base text-sk-text-2 leading-relaxed relative before:content-[''] before:absolute before:-left-3.5 before:top-[10px] before:w-1.5 before:h-1.5 before:rounded-full before:bg-sk-accent">{renderSafeContent(item)}</li>))}</ul>;
   
   if (block.type === "image") {
     return (
@@ -134,32 +150,28 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
     );
   }
 
-  // Contenedores Estilizados Avanzados
   if (block.type === "box") {
     let boxStyle = "bg-sk-bg-2 border-sk-border-2"; // Base
     let textStyle = "text-sk-text-1";
     
-    // Gradiente Ignition (Naranja/Rojo)
     if (block.value === "gradient") {
       boxStyle = "bg-gradient-to-r from-orange-500/20 to-red-600/10 border-orange-500/30 shadow-[0_0_25px_rgba(249,115,22,0.15)]";
       textStyle = "text-orange-100 font-semibold";
     } else if (block.value === "shadow") {
       boxStyle = "bg-sk-bg-1 border-sk-border-1 shadow-[0_25px_50px_rgba(0,0,0,0.8)]";
     } else if (block.value === "3d") {
-      // 3D Box Ignition Style
       boxStyle = "bg-sk-bg-3 border-t border-l border-white/10 border-b-[4px] border-r-[4px] border-orange-500 shadow-lg";
     }
 
     return (
       <div className={`my-8 p-6 rounded-xl border ${boxStyle}`}>
         <p className={`text-sk-base leading-relaxed font-medium ${textStyle}`}>
-          {renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}
+          {renderSafeContent(block.content ?? "")}
         </p>
       </div>
     );
   }
 
-  // Botón CTA Ignition Style
   if (block.type === "button") {
     return (
       <div className="my-10 flex justify-center">
@@ -176,7 +188,7 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
   }
 
   // Default: Párrafo
-  return <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p>;
+  return <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">{renderSafeContent(block.content ?? "")}</p>;
 }
 
 // ── Page ──────────────────────────────────────────────────
