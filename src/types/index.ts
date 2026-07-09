@@ -6,7 +6,7 @@
 
 // ── Enums ──
 
-export type UserRole = "player" | "club_admin" | "super_admin";
+export type UserRole = "player" | "club_admin" | "super_admin" | "academy_admin";
 export type ClubAdminRole = "owner" | "admin" | "moderator";
 export type LeagueStatus = "upcoming" | "active" | "finished";
 export type ScoringType = "simple" | "complex";
@@ -56,6 +56,8 @@ export interface Profile {
   // Beneficios LatinAllinPoker (ClubGG)
   latin_nickname?: string | null;
   latin_status?: "none" | "pending" | "contacted" | "rejected";
+  // Afiliados de la Academia PRO
+  pro_referral_code?: string | null;
 }
 
 export interface CreditTransaction {
@@ -432,4 +434,44 @@ export interface FeatureAccess {
   has_access: boolean;
   expires_at: string | null;
   purchase_id: string | null;
+}
+
+// ── Pro Academy (Suscripciones) ──
+export interface ProModule {
+  id: string;
+  title: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface ProVideo {
+  id: string;
+  module_id: string;
+  title: string;
+  description: string | null;
+  external_video_url: string;
+  duration_minutes: number;
+  thumbnail_url: string | null;
+  sort_order: number;
+}
+
+export interface ProSubscription {
+  id: string;
+  user_id: string;
+  status: "pending" | "active" | "expired" | "rejected";
+  plan_type: "pro" | "elite"; // 🔥 NUEVO: Plan elegido
+  payment_method: string;
+  proof_image_url: string | null;
+  valid_until: string | null;
+  created_at: string;
+}
+
+export interface ProReferral {
+  id: string;
+  referrer_id: string;
+  referred_subscription_id: string;
+  status: "pending" | "paid";
+  commission_amount: number;
+  created_at: string;
 }

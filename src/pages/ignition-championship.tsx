@@ -244,9 +244,9 @@ export function IgnitionChampionshipPage() {
             </div>
             
             <h1 className="text-5xl sm:text-6xl font-black leading-tight tracking-tight">
-              Sharkania <br/>
+              SHARKANIA <br/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">
-                Ignition Championship
+                Liga Freeroll
               </span>
             </h1>
             
@@ -274,7 +274,7 @@ export function IgnitionChampionshipPage() {
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                  <div>
                    <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2 uppercase tracking-wide">
-                     <Trophy className="text-orange-500" size={16} /> Semanal (Jueves)
+                     <Trophy className="text-orange-500" size={16} /> PREMIOS EN CADA FECHA (Jueves)
                    </h3>
                    <ul className="space-y-2 text-sm text-gray-300">
                      <li className="flex justify-between border-b border-white/5 pb-1"><span>1° Lugar</span> <span className="font-bold text-orange-400">Ticket $55</span></li>
@@ -291,9 +291,9 @@ export function IgnitionChampionshipPage() {
                      <Flame className="text-red-500" size={16} /> Ranking Mensual
                    </h3>
                    <ul className="space-y-2 text-sm text-gray-300">
-                     <li className="flex justify-between border-b border-white/5 pb-1"><span>1° de la Liga</span> <span className="font-bold text-red-400">Freerolling 1200</span></li>
-                     <li className="flex justify-between border-b border-white/5 pb-1"><span>2° de la Liga</span> <span className="font-bold text-red-400">Freerolling 1000</span></li>
-                     <li className="flex justify-between border-b border-white/5 pb-1"><span>3° de la Liga</span> <span className="font-bold text-red-400">Freerolling 300</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>1° de la Liga</span> <span className="font-bold text-red-400">$325 TT para el $100,000 High Roller</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>2° de la Liga</span> <span className="font-bold text-red-400">$162 TT para el $200.000 GTD</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-1"><span>3° de la Liga</span> <span className="font-bold text-red-400">$162 TT para el $200.000 GTD</span></li>
                    </ul>
                    <p className="text-[10px] text-gray-500 mt-3 leading-tight">
                      * El ranking suma tus mejores resultados en los 4 torneos del mes. Debes estar registrado en Sharkania para calificar.
@@ -320,7 +320,7 @@ export function IgnitionChampionshipPage() {
                 <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold shrink-0">2</div>
                 <div>
                   <h4 className="font-bold text-white">Regístrate en Sharkania</h4>
-                  <p className="text-sm text-gray-400 mt-1">Usa el formulario aquí al lado para vincular tu Nickname de Ignition a nuestra base de datos. ¡Es obligatorio para el ranking!</p>
+                  <p className="text-sm text-gray-400 mt-1">Completa el siguiente formulario para vincular tu Nickname de Ignition a nuestra base de datos. ¡Es obligatorio para el ranking!</p>
                 </div>
               </div>
 

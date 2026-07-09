@@ -77,6 +77,9 @@ const PromoFreerollPage = lazy(() => import("./pages/promo-freeroll").then(m => 
 const PromoIgnitionBonusPage = lazy(() => import("./pages/promo-ignition-bonus").then(m => ({ default: m.PromoIgnitionBonusPage })));
 const PromoCoinPokerPage = lazy(() => import("./pages/promo-coinpoker").then(m => ({ default: m.PromoCoinPokerPage })));
 const TutorialCoinPokerPage = lazy(() => import("./pages/tutorial-coinpoker").then(m => ({ default: m.TutorialCoinPokerPage })));
+const LatinAllinProPage = lazy(() => import("./pages/latin-allin-pro").then(m => ({ default: m.LatinAllinProPage }))); // 🔥 NUEVA PÁGINA PRO
+const AcademyAdminPage = lazy(() => import("./pages/academy-admin").then(m => ({ default: m.AcademyAdminPage }))); // 🔥 PANEL ADMIN DE LA ACADEMIA
+const ProAcademyDashboardPage = lazy(() => import("./pages/pro-academy-dashboard").then(m => ({ default: m.ProAcademyDashboardPage }))); // 🔥 BÓVEDA PRO
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -158,6 +161,7 @@ export function App() {
               <Route path="/noticias" element={<NoticiasPage />} />
               <Route path="/mindev" element={<PromoMindevPage />} />
               <Route path="/fullnuts" element={<PromoFullnutsPage />} />
+              <Route path="/masterclass-latinallin" element={<LatinAllinProPage />} /> {/* 🔥 NUEVA RUTA PRO */}
               {/* SharkTV */}
               <Route path="/tv" element={<SharkTvPage />} />
               <Route path="/tv/:id" element={<HandReviewPage />} />
@@ -256,6 +260,26 @@ export function App() {
                 element={
                   <ProtectedRoute requiredRole={["super_admin"]}>
                     <SuperAdminPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 🔥 NUEVO: Panel de Administración de la Academia PRO */}
+              <Route
+                path="/admin/academy"
+                element={
+                  <ProtectedRoute requiredRole={["academy_admin", "super_admin"]}>
+                    <AcademyAdminPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 🔥 NUEVO: El Reproductor / "Netflix" de Latin Allin */}
+              <Route
+                path="/pro-dashboard"
+                element={
+                  <ProtectedRoute>
+                    <ProAcademyDashboardPage />
                   </ProtectedRoute>
                 }
               />

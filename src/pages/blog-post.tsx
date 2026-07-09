@@ -107,12 +107,18 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
       </>
     );
   }
+  
   if (block.type === "h3") return <h3 className="text-sk-md font-bold text-sk-text-1 mt-8 mb-3">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</h3>;
+  
+  // 🔥 NUEVO: Párrafos Explícitos (p)
+  if (block.type === "p") return <p className="text-sk-base text-sk-text-2 leading-relaxed mb-5">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p>;
+
   if (block.type === "callout") return <div className="my-8 rounded-lg border border-sk-accent/20 bg-sk-accent-dim px-6 py-5"><p className="text-sk-base text-sk-text-1 font-medium leading-relaxed">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p></div>;
   if (block.type === "stat") return <div className="my-8 rounded-xl border border-sk-border-2 bg-sk-bg-2 px-6 py-6 flex items-center gap-5"><span className="text-[2.5rem] font-extrabold text-sk-accent leading-none shrink-0">{block.value}</span><p className="text-sk-base text-sk-text-2 leading-snug">{renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}</p></div>;
+  
+  // Lista mejorada
   if (block.type === "list") return <ul className="my-5 space-y-2 pl-5 list-none">{(block.items ?? []).map((item, j) => (<li key={j} className="text-sk-base text-sk-text-2 leading-relaxed relative before:content-[''] before:absolute before:-left-3.5 before:top-[10px] before:w-1.5 before:h-1.5 before:rounded-full before:bg-sk-accent">{renderWithLinksAndGlossary(item, glossaryTerms, alreadyLinked)}</li>))}</ul>;
   
-  // 🔥 NUEVO: Renderizador de Múltiples Imágenes (Infinitas, donde quieras)
   if (block.type === "image") {
     return (
       <figure className="my-10">
@@ -128,28 +134,32 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
     );
   }
 
-  // 🔥 NUEVO: Contenedores Estilizados Avanzados (El Glosario Funciona Aquí)
+  // Contenedores Estilizados Avanzados
   if (block.type === "box") {
     let boxStyle = "bg-sk-bg-2 border-sk-border-2"; // Base
+    let textStyle = "text-sk-text-1";
     
+    // Gradiente Ignition (Naranja/Rojo)
     if (block.value === "gradient") {
-      boxStyle = "bg-gradient-to-br from-sk-bg-3 via-sk-bg-2 to-sk-accent-dim border-sk-accent/30 shadow-[0_0_25px_rgba(34,211,238,0.1)]";
+      boxStyle = "bg-gradient-to-r from-orange-500/20 to-red-600/10 border-orange-500/30 shadow-[0_0_25px_rgba(249,115,22,0.15)]";
+      textStyle = "text-orange-100 font-semibold";
     } else if (block.value === "shadow") {
       boxStyle = "bg-sk-bg-1 border-sk-border-1 shadow-[0_25px_50px_rgba(0,0,0,0.8)]";
     } else if (block.value === "3d") {
-      boxStyle = "bg-sk-bg-3 border-t border-l border-white/10 border-b-[4px] border-r-[4px] border-black/80";
+      // 3D Box Ignition Style
+      boxStyle = "bg-sk-bg-3 border-t border-l border-white/10 border-b-[4px] border-r-[4px] border-orange-500 shadow-lg";
     }
 
     return (
       <div className={`my-8 p-6 rounded-xl border ${boxStyle}`}>
-        <p className="text-sk-base text-sk-text-1 leading-relaxed font-medium">
+        <p className={`text-sk-base leading-relaxed font-medium ${textStyle}`}>
           {renderWithLinksAndGlossary(block.content ?? "", glossaryTerms, alreadyLinked)}
         </p>
       </div>
     );
   }
 
-  // 🔥 NUEVO: Renderizado del Botón CTA 3D para el público
+  // Botón CTA Ignition Style
   if (block.type === "button") {
     return (
       <div className="my-10 flex justify-center">
@@ -157,7 +167,7 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
           href={block.value || '#'} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="inline-block px-10 py-4 text-center font-extrabold text-white text-lg tracking-wider uppercase rounded-xl bg-gradient-to-r from-sk-accent to-blue-600 shadow-[0_10px_30px_rgba(34,211,238,0.4)] hover:shadow-[0_15px_40px_rgba(34,211,238,0.6)] hover:-translate-y-1 transition-all duration-300 border-t border-t-white/20 border-b-[4px] border-b-black/50"
+          className="inline-block px-10 py-4 text-center font-extrabold text-white text-lg tracking-wider uppercase rounded-xl bg-gradient-to-r from-orange-500 to-red-600 shadow-[0_10px_30px_rgba(249,115,22,0.4)] hover:shadow-[0_15px_40px_rgba(249,115,22,0.6)] hover:-translate-y-1 transition-all duration-300 border-t border-t-white/20 border-b-[4px] border-b-black/50"
         >
           {block.content || 'CLIC AQUÍ'}
         </a>

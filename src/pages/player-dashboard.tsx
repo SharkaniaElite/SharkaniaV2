@@ -10,7 +10,7 @@ import { NicknameClaim } from "../components/admin/nickname-claim";
 import { useAuthStore } from "../stores/auth-store";
 import { updateProfile } from "../lib/api/auth";
 import { getFlag, getCountryName } from "../lib/countries";
-import { Settings, User, LogOut, Link as LinkIcon, Camera, Flame, Download } from "lucide-react";
+import { Settings, User, LogOut, Link as LinkIcon, Camera, Flame, Download, Gift, Copy, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { PlayerStatsGrid } from "../components/players/player-stats-grid";
 import { EloChart } from "../components/players/elo-chart";
@@ -63,6 +63,50 @@ export function PlayerDashboardPage() {
       setTimeout(() => setIsHighlighting(false), 4000);
     }
   }, [location]);
+
+  // 🔥 LÓGICA DE AFILIADOS PRO
+  const [customCode, setCustomCode] = useState("");
+  const [isCreatingCode, setIsCreatingCode] = useState(false);
+
+  const handleCreateCode = async () => {
+    if (!customCode.trim()) return alert("Ingresa un código");
+    const code = customCode.trim().toUpperCase().replace(/[^A-Z0-9-]/g, ""); // Solo letras, números y guiones
+    if (code.length < 5) return alert("El código debe tener al menos 5 caracteres");
+    
+    setIsCreatingCode(true);
+    try {
+      const { error } = await supabase.from("profiles").update({ pro_referral_code: code }).eq("id", user!.id);
+      if (error) {
+        if (error.code === '23505') throw new Error("Este código ya está en uso por otra persona. Elige otro.");
+        throw error;
+      }
+      alert("¡Código creado con éxito!");
+      await refreshProfile();
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setIsCreatingCode(false);
+    }
+  };
+
+  const { data: myReferrals } = useQuery({
+    queryKey: ["my-pro-referrals", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pro_referrals")
+        .select(`
+          id, status, commission_amount, created_at,
+          pro_subscriptions (
+            plan_type,
+            profiles (display_name, email)
+          )
+        `)
+        .eq("referrer_id", user!.id)
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: !!user?.id && !!profile?.pro_referral_code,
+  });
 
   // Get user's nickname claims
   const { data: myClaims, refetch: refetchClaims } = useQuery({
@@ -378,10 +422,10 @@ export function PlayerDashboardPage() {
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="lg:max-w-md">
                 <h2 className="text-sk-md font-bold text-white flex items-center gap-2 mb-1">
-                  <Flame size={18} className="text-orange-500" /> Liga Sharkania Ignition Championship
+                  <Flame size={18} className="text-orange-500" /> SHARKANIA LIGA FREEROLL
                 </h2>
                 <p className="text-sk-sm text-sk-text-3">
-                  Vincula tu <strong className="text-orange-400">Email y Nickname</strong> de Ignition Póker para participar por el ranking y recibir las contraseñas de los torneos gratuitos. (Si no tienes tu cuenta vinculada, no podremos saber tus posiciones en cada torneo, recuerda que en Ignition Póker todos son anónimos al momento de jugar)
+                  Vincula tu <strong className="text-orange-400">Email y Nickname</strong> de Ignition Póker para participar por el ranking y recibir las contraseñas de los torneos gratuitos. (Si no tienes tu cuenta vinculada, no podremos acreditar tus premios ni saber tus posiciones en cada torneo, recuerda que en Ignition Póker todos son anónimos al momento de jugar)
                 </p>
 
                 {!isIgnitionLinked && (
@@ -486,6 +530,84 @@ export function PlayerDashboardPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* 🎁 PANEL DE AFILIADOS PRO */}
+          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2">
+                <Gift size={18} className="text-sk-accent" /> Mi Código de Afiliado PRO
+              </h2>
+            </div>
+
+            {!profile.pro_referral_code ? (
+              <div className="bg-sk-bg-0 border border-sk-border-2 rounded-lg p-5">
+                <p className="text-sk-sm text-sk-text-2 mb-4">
+                  Crea tu código único. Compártelo con tus amigos y gana <strong className="text-sk-green">$10 USD</strong> por cada suscripción a Latin Allin PRO que se registre usándolo.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input 
+                    type="text" 
+                    placeholder="Ej: JUAN-PRO" 
+                    value={customCode}
+                    onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
+                    className="w-full sm:w-64 bg-sk-bg-2 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm text-sk-accent font-bold font-mono focus:outline-none focus:border-sk-accent"
+                    maxLength={15}
+                  />
+                  <Button variant="accent" onClick={handleCreateCode} isLoading={isCreatingCode}>
+                    Crear Código
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row items-center gap-4 bg-sk-bg-0 border border-sk-accent/30 p-4 rounded-lg">
+                  <div className="flex-1 text-center sm:text-left">
+                    <p className="text-[10px] uppercase text-sk-text-3 font-mono mb-1">Tu Código Oficial</p>
+                    <p className="text-2xl font-black text-sk-accent tracking-widest">{profile.pro_referral_code}</p>
+                  </div>
+                  <Button variant="secondary" onClick={() => { navigator.clipboard.writeText(profile.pro_referral_code!); alert("¡Código copiado!"); }}>
+                    <Copy size={14} className="mr-2" /> Copiar
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-sk-bg-3 p-4 rounded-lg text-center border border-sk-border-2">
+                    <p className="text-[10px] uppercase text-sk-text-3 font-mono mb-1">Pendiente de Pago</p>
+                    <p className="text-xl font-bold text-sk-text-1">
+                      ${(myReferrals ?? []).filter(r => r.status === 'pending').reduce((acc, curr) => acc + curr.commission_amount, 0)} USD
+                    </p>
+                  </div>
+                  <div className="bg-sk-green-dim/20 p-4 rounded-lg text-center border border-sk-green/20">
+                    <p className="text-[10px] uppercase text-sk-green/70 font-mono mb-1">Ya Pagado</p>
+                    <p className="text-xl font-bold text-sk-green">
+                      ${(myReferrals ?? []).filter(r => r.status === 'paid').reduce((acc, curr) => acc + curr.commission_amount, 0)} USD
+                    </p>
+                  </div>
+                </div>
+
+                {/* Lista de Referidos */}
+                {myReferrals && myReferrals.length > 0 && (
+                  <div>
+                    <h3 className="text-sk-sm font-bold text-sk-text-2 mb-3 flex items-center gap-2"><Users size={14}/> Historial de Suscriptores</h3>
+                    <div className="space-y-2">
+                      {myReferrals.map((ref: any) => (
+                        <div key={ref.id} className="flex justify-between items-center bg-sk-bg-0 p-3 rounded border border-sk-border-2">
+                          <div>
+                            <p className="text-sk-sm font-semibold text-sk-text-1">{ref.pro_subscriptions?.profiles?.display_name || "Usuario"}</p>
+                            <p className="text-[10px] text-sk-text-4 font-mono">{new Date(ref.created_at).toLocaleDateString()} · Plan {ref.pro_subscriptions?.plan_type?.toUpperCase()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sk-sm font-bold text-sk-green">+${ref.commission_amount}</p>
+                            <Badge variant={ref.status === 'paid' ? 'green' : 'orange'}>{ref.status === 'paid' ? 'PAGADO' : 'PENDIENTE'}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Linked Nicknames */}

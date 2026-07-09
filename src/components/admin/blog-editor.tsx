@@ -5,9 +5,10 @@ import { Card } from '../ui/card';
 import { supabase } from '../../lib/supabase';
 
 interface Block {
-  type: 'p' | 'h2' | 'h3' | 'callout' | 'stat' | 'image' | 'box' | 'button'; // 🔥 Añadimos button
+  type: 'p' | 'h2' | 'h3' | 'callout' | 'stat' | 'list' | 'image' | 'box' | 'button'; // 🔥 Añadimos 'list'
   content: string;
   value?: string; // Se usará para el 'value' de stat, el 'src' de image, o el 'variant' de box
+  items?: string[]; // 🔥 Añadimos el array de items para las listas
 }
 
 export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () => void }) {
@@ -505,6 +506,20 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                 if (block.type === 'callout') return <div key={i} className="my-5 rounded-lg border border-accent/20 bg-accent/5 px-4 py-3.5"><p className="text-sm text-white font-medium leading-relaxed">{block.content}</p></div>;
                 if (block.type === 'stat') return <div key={i} className="my-5 rounded-xl border border-border bg-bg-2 px-4 py-4 flex items-center gap-4"><span className="text-3xl font-extrabold text-accent leading-none">{block.value}</span><p className="text-xs text-text-2 leading-snug">{block.content}</p></div>;
                 
+                // 🔥 NUEVO: Renderizado de Listas en la Vista Previa
+                if (block.type === 'list') {
+                  return (
+                    <ul key={i} className="my-5 space-y-2 pl-5 list-disc marker:text-accent text-sm text-text-2">
+                      {(block.items ?? []).map((item, j) => (
+                        <li key={j} className="pl-1 leading-relaxed">{item}</li>
+                      ))}
+                    </ul>
+                  );
+                }
+
+                // Párrafos explícitos
+                if (block.type === 'p') return <p key={i} className="text-sm text-text-2 leading-relaxed mb-3">{block.content}</p>;
+
                 if (block.type === 'image') return (
                   <figure key={i} className="my-6">
                     <div className="overflow-hidden rounded-xl border border-border bg-bg-3">
@@ -522,7 +537,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                   return <div key={i} className={`my-5 p-4 rounded-xl border ${boxStyle}`}><p className="text-sm text-white leading-relaxed font-medium">{block.content}</p></div>;
                 }
 
-                // 🔥 Renderizado del nuevo Botón CTA 3D en Vista Previa Live
+                // Botón CTA 3D en Vista Previa Live
                 if (block.type === 'button') {
                   return (
                     <div key={i} className="my-10 flex justify-center">
