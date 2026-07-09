@@ -5,10 +5,10 @@ import { Card } from '../ui/card';
 import { supabase } from '../../lib/supabase';
 
 interface Block {
-  type: 'p' | 'h2' | 'h3' | 'callout' | 'stat' | 'list' | 'image' | 'box' | 'button'; // 🔥 Añadimos 'list'
+  type: 'p' | 'h2' | 'h3' | 'callout' | 'stat' | 'list' | 'image' | 'box' | 'button';
   content: string;
-  value?: string; // Se usará para el 'value' de stat, el 'src' de image, o el 'variant' de box
-  items?: string[]; // 🔥 Añadimos el array de items para las listas
+  value?: string; 
+  items?: string[];
 }
 
 export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () => void }) {
@@ -42,9 +42,9 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
   const [blocks, setBlocks] = useState<Block[]>([{ type: 'p', content: '' }]);
   const [status, setStatus] = useState('draft');
   const [loading, setLoading] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false); // 🔥 Controla si estamos editando o viendo el post en vivo
+  const [previewMode, setPreviewMode] = useState(false);
 
-  // 🔥 NUEVO: Estado para almacenar las categorías únicas existentes
+  // Estado para almacenar las categorías únicas existentes
   const [existingCategories, setExistingCategories] = useState<string[]>([]);
 
   // Cargar categorías existentes (autocompletado)
@@ -52,7 +52,6 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
     const fetchCategories = async () => {
       const { data } = await supabase.from('blog_posts').select('category');
       if (data) {
-        // Extraemos solo los valores únicos que no estén vacíos
         const uniqueCategories = Array.from(new Set(data.map(p => p.category).filter(Boolean)));
         setExistingCategories(uniqueCategories as string[]);
       }
@@ -76,13 +75,11 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
         setStatus(data.status || 'draft');
         setBlocks(data.body || [{ type: 'p', content: '' }]);
         
-        // Cargar imágenes existentes
         setImageHero(data.image_hero || '');
         setImageThumbnail(data.image_thumbnail || '');
         setImageOg(data.image_og || '');
         setImageInline(data.image_inline || '');
         
-        // Banners Exclusivos
         setCustomBannerMidSrc(data.custom_banner_mid_src || '');
         setCustomBannerMidHref(data.custom_banner_mid_href || '');
         setCustomBannerFinalSrc(data.custom_banner_final_src || '');
@@ -108,17 +105,14 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
       const fileExt = file.name.split('.').pop();
       const fileName = `${slug}-${field}-${Date.now()}.${fileExt}`;
 
-      // Subir a Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('blog_images')
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      // Obtener URL Pública
       const { data } = supabase.storage.from('blog_images').getPublicUrl(fileName);
 
-      // Actualizar el estado correspondiente
       if (field === 'image_hero') setImageHero(data.publicUrl);
       if (field === 'image_thumbnail') setImageThumbnail(data.publicUrl);
       if (field === 'image_og') setImageOg(data.publicUrl);
@@ -183,7 +177,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
   );
 
   // Manejador de bloques
-  const updateBlock = (index: number, field: keyof Block, value: string) => {
+  const updateBlock = (index: number, field: keyof Block, value: any) => {
     const newBlocks = [...blocks];
     newBlocks[index] = { ...newBlocks[index], [field]: value } as Block;
     setBlocks(newBlocks);
@@ -197,20 +191,19 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
     setBlocks(blocks.filter((_, i) => i !== index));
   };
 
-  // 🔥 NUEVAS FUNCIONES PARA MOVER BLOQUES
   const moveBlockUp = (index: number) => {
-    if (index === 0) return; // Si ya está arriba del todo, no hace nada
+    if (index === 0) return;
     const newBlocks = [...blocks];
-    const temp = newBlocks[index] as Block; // Le aseguramos a TS que esto existe
+    const temp = newBlocks[index] as Block;
     newBlocks[index] = newBlocks[index - 1] as Block;
     newBlocks[index - 1] = temp;
     setBlocks(newBlocks);
   };
 
   const moveBlockDown = (index: number) => {
-    if (index === blocks.length - 1) return; // Si ya está abajo del todo, no hace nada
+    if (index === blocks.length - 1) return;
     const newBlocks = [...blocks];
-    const temp = newBlocks[index] as Block; // Le aseguramos a TS que esto existe
+    const temp = newBlocks[index] as Block;
     newBlocks[index] = newBlocks[index + 1] as Block;
     newBlocks[index + 1] = temp;
     setBlocks(newBlocks);
@@ -223,6 +216,14 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
     const textContent = blocks.map(b => b.content).join(' ');
     const readTime = Math.max(1, Math.ceil(textContent.split(/\s+/).length / 200));
 
+    // Limpiamos los bloques antes de guardar
+    const cleanBlocks = blocks.map(b => ({
+      type: b.type,
+      content: b.content || '',
+      value: b.value,
+      items: b.items
+    }));
+
     const postData = {
       title,
       slug,
@@ -234,7 +235,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
       status,
       published: status === 'published',
       published_at: status === 'published' ? new Date().toISOString() : null,
-      body: blocks,
+      body: cleanBlocks,
       read_time: readTime,
       image_hero: imageHero,
       image_thumbnail: imageThumbnail,
@@ -262,7 +263,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
       {/* Columna Principal: Editor */}
       <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-2 pb-10">
         
-        {/* 🎛️ SELECTOR DE VISTAS (Pestañas superiores) */}
+        {/* 🎛️ SELECTOR DE VISTAS */}
         <div className="flex gap-2 border-b border-border/20 pb-2 mb-2">
           <Button 
             variant={!previewMode ? "secondary" : "ghost"} 
@@ -297,7 +298,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
               }}
             />
 
-            {/* 🚀 BOTÓN MÁGICO PARA PEGAR DESDE LA IA */}
+            {/* BOTÓN MÁGICO PARA PEGAR DESDE LA IA */}
             <div className="mt-2 mb-2">
               <Button 
                 variant="secondary" 
@@ -336,13 +337,15 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                     <option value="h3">Subtítulo H3</option>
                     <option value="callout">Callout (Cita)</option>
                     <option value="stat">Estadística</option>
+                    <option value="list">📝 Lista</option>
                     <option value="image">📸 Imagen Interna</option>
                     <option value="box">📦 Caja Estilizada</option>
                     <option value="button">🔥 Botón CTA 3D</option>
                   </select>
 
                   <div className="flex-1 flex flex-col gap-2">
-                    {/* SI ES ESTADÍSTICA */}
+                    
+                    {/* STAT */}
                     {block.type === 'stat' && (
                       <Input 
                         placeholder="Valor (ej: 82%)"
@@ -352,7 +355,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                       />
                     )}
 
-                    {/* SI ES UNA CAJA ESTADÍSTICA/ESTILO */}
+                    {/* BOX */}
                     {block.type === 'box' && (
                       <select 
                         className="w-1/3 bg-bg-2 border border-border text-xs p-2 rounded text-text-1 focus:outline-none"
@@ -365,8 +368,80 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                       </select>
                     )}
 
-                    {/* SI ES UNA IMAGEN INTERNA */}
-                    {block.type === 'image' ? (
+                    {/* LIST */}
+                    {block.type === 'list' && (
+                      <div className="flex flex-col gap-3 p-4 bg-bg-1 rounded-lg border border-border mt-2">
+                        <label className="text-xs text-text-3 font-bold uppercase tracking-wider">Elementos de la Lista</label>
+                        <div className="space-y-2">
+                          {(block.items ?? []).map((item, itemIndex) => (
+                            <div key={itemIndex} className="flex gap-2 items-center">
+                              <Input 
+                                id={`list-${index}-item-${itemIndex}`} // 🔥 Añadimos ID para ubicar la selección
+                                value={item} 
+                                onChange={(e) => {
+                                  const newItems = [...(block.items ?? [])];
+                                  newItems[itemIndex] = e.target.value;
+                                  updateBlock(index, 'items', newItems);
+                                }}
+                                placeholder={`Ítem ${itemIndex + 1}...`}
+                                className="flex-1 bg-bg-2 border-border text-sm"
+                              />
+                              
+                              {/* 🔥 NUEVO: Botón de Enlace para Listas */}
+                              <button 
+                                onClick={() => {
+                                  const inputEl = document.getElementById(`list-${index}-item-${itemIndex}`) as HTMLInputElement;
+                                  if (!inputEl) return;
+                                  
+                                  const start = inputEl.selectionStart || 0;
+                                  const end = inputEl.selectionEnd || 0;
+                                  const selectedText = inputEl.value.substring(start, end);
+                                  
+                                  if (!selectedText) {
+                                    alert("☝️ Primero selecciona con el mouse la palabra en este ítem.");
+                                    return;
+                                  }
+                                  
+                                  const url = prompt(`Ingresa la URL para enlazar "${selectedText}":`);
+                                  if (!url) return;
+                                  
+                                  const linkHTML = `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline font-bold">${selectedText}</a>`;
+                                  const newContent = inputEl.value.substring(0, start) + linkHTML + inputEl.value.substring(end);
+                                  
+                                  const newItems = [...(block.items ?? [])];
+                                  newItems[itemIndex] = newContent;
+                                  updateBlock(index, 'items', newItems);
+                                }}
+                                className="text-text-3 hover:text-accent p-1 transition-colors text-lg"
+                                title="Selecciona un texto y presiona para enlazar"
+                              >
+                                🔗
+                              </button>
+
+                              <button 
+                                onClick={() => {
+                                  const newItems = (block.items ?? []).filter((_, i) => i !== itemIndex);
+                                  updateBlock(index, 'items', newItems);
+                                }}
+                                className="text-red-500 hover:text-red-600 p-1 font-bold text-lg"
+                                title="Eliminar ítem"
+                              >✕</button>
+                            </div>
+                          ))}
+                        </div>
+                        <Button 
+                          variant="secondary" size="sm" 
+                          onClick={() => {
+                            const newItems = [...(block.items ?? []), ''];
+                            updateBlock(index, 'items', newItems);
+                          }}
+                          className="text-xs font-semibold w-fit mt-2 border-border hover:border-accent"
+                        >+ Añadir ítem</Button>
+                      </div>
+                    )}
+
+                    {/* IMAGE */}
+                    {block.type === 'image' && (
                       <div className="space-y-2 bg-bg-1 p-3 rounded-lg border border-border">
                         {block.value ? (
                           <div className="relative w-full max-h-60 rounded overflow-hidden border border-border">
@@ -374,18 +449,15 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                             <button 
                               onClick={() => updateBlock(index, 'value', '')}
                               className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full text-xs px-2"
-                            >
-                              Eliminar Imagen
-                            </button>
+                            >Eliminar Imagen</button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-4">
                             <input 
-                              type="file" 
-                              accept="image/*"
+                              type="file" accept="image/*"
                               onChange={async (e) => {
                                 const file = e.target.files?.[0];
-                                if (!file || !slug) return alert('Asigna un título al post antes de subir imágenes internas.');
+                                if (!file || !slug) return alert('Asigna un título al post antes de subir imágenes.');
                                 const fileExt = file.name.split('.').pop();
                                 const fileName = `inline-${Math.random().toString(36).substring(2)}.${fileExt}`;
                                 const filePath = `${slug}/${fileName}`;
@@ -399,49 +471,79 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                               }}
                               className="text-xs text-text-3"
                             />
-                            <p className="text-[11px] text-text-4">Sube una imagen para este punto del artículo</p>
+                            <p className="text-[11px] text-text-4">Sube una imagen</p>
                           </div>
                         )}
                         <Input 
-                          placeholder="Pie de foto / Leyenda de la imagen (Opcional)..."
-                          value={block.content}
-                          onChange={(e) => updateBlock(index, 'content', e.target.value)}
-                          className="bg-bg-2 border-border text-xs"
+                          placeholder="Pie de foto / Leyenda de la imagen (Opcional)..." 
+                          value={block.content} 
+                          onChange={(e) => updateBlock(index, 'content', e.target.value)} 
+                          className="bg-bg-2 border-border text-xs" 
                         />
                       </div>
-                    ) : block.type === 'button' ? (
+                    )}
+
+                    {/* BUTTON */}
+                    {block.type === 'button' && (
                       <div className="flex flex-col gap-2 p-4 bg-bg-3 rounded-lg border border-dashed border-accent/50">
                         <label className="text-xs text-text-3 font-bold uppercase tracking-wider">Configuración del Botón 3D</label>
-                        <Input 
-                          placeholder="Texto del Botón (Ej: DESCARGAR WPT GLOBAL)"
-                          value={block.content || ''}
-                          onChange={(e) => updateBlock(index, 'content', e.target.value)}
-                          className="bg-bg-1 border-border font-extrabold text-text-1"
-                        />
-                        <Input 
-                          placeholder="URL del enlace (Ej: https://tracking...)"
-                          value={block.value || ''}
-                          onChange={(e) => updateBlock(index, 'value', e.target.value)}
-                          className="bg-bg-1 border-border text-xs font-mono text-accent"
+                        <Input placeholder="Texto del Botón (Ej: DESCARGAR WPT)" value={block.content || ''} onChange={(e) => updateBlock(index, 'content', e.target.value)} className="bg-bg-1 border-border font-extrabold text-text-1" />
+                        <Input placeholder="URL del enlace (Ej: https://tracking...)" value={block.value || ''} onChange={(e) => updateBlock(index, 'value', e.target.value)} className="bg-bg-1 border-border text-xs font-mono text-accent" />
+                      </div>
+                    )}
+
+                    {/* TEXTO ESTÁNDAR (p, h2, h3, callout, box) CON BARRA DE ENLACES */}
+                    {['p', 'h2', 'h3', 'callout', 'box'].includes(block.type) && (
+                      <div className="flex flex-col">
+                        {/* 🔥 MINI BARRA DE FORMATO ESTILO WORDPRESS */}
+                        <div className="flex gap-2 bg-bg-2/50 border border-b-0 border-border p-1.5 rounded-t-lg">
+                          <button
+                            onClick={() => {
+                              const textarea = document.getElementById(`textarea-${index}`) as HTMLTextAreaElement;
+                              if (!textarea) return;
+                              
+                              const start = textarea.selectionStart;
+                              const end = textarea.selectionEnd;
+                              const selectedText = textarea.value.substring(start, end);
+                              
+                              if (!selectedText) {
+                                alert("☝️ Primero selecciona con el mouse la palabra que quieres enlazar.");
+                                return;
+                              }
+                              
+                              const url = prompt(`Ingresa la URL para enlazar "${selectedText}":`);
+                              if (!url) return;
+                              
+                              const linkHTML = `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline font-bold">${selectedText}</a>`;
+                              const newContent = textarea.value.substring(0, start) + linkHTML + textarea.value.substring(end);
+                              
+                              updateBlock(index, 'content', newContent);
+                            }}
+                            className="flex items-center gap-1.5 text-[11px] uppercase font-bold bg-bg-1 hover:bg-accent/20 hover:text-accent text-text-3 px-3 py-1.5 rounded transition-colors border border-border"
+                            title="Selecciona un texto y haz clic aquí para hacerlo link"
+                          >
+                            🔗 Enlazar Selección
+                          </button>
+                        </div>
+
+                        <textarea
+                          id={`textarea-${index}`}
+                          className={`w-full bg-transparent border border-border focus:border-accent p-3 rounded-b-lg resize-none outline-none ${
+                            block.type === 'h2' ? 'text-2xl font-bold text-text-1' : 
+                            block.type === 'h3' ? 'text-xl font-semibold text-accent' : 
+                            block.type === 'callout' ? 'italic text-text-2 bg-bg-2' : 
+                            block.type === 'box' ? 'p-4 bg-bg-3 border-dashed' : 'text-base text-text-1'
+                          }`}
+                          placeholder={`Escribe aquí... (Selecciona texto y presiona "Enlazar")`}
+                          value={block.content}
+                          onChange={(e) => {
+                            e.target.style.height = 'auto';
+                            e.target.style.height = e.target.scrollHeight + 'px';
+                            updateBlock(index, 'content', e.target.value);
+                          }}
+                          rows={2}
                         />
                       </div>
-                    ) : (
-                      <textarea
-                        className={`w-full bg-transparent border-l-2 border-border focus:border-accent p-3 resize-none outline-none ${
-                          block.type === 'h2' ? 'text-2xl font-bold text-text-1' : 
-                          block.type === 'h3' ? 'text-xl font-semibold text-accent' : 
-                          block.type === 'callout' ? 'italic text-text-2 bg-bg-2 rounded' : 
-                          block.type === 'box' ? 'p-4 bg-bg-3 rounded-lg border border-dashed border-border' : 'text-base text-text-1'
-                        }`}
-                        placeholder={block.type === 'box' ? "Contenido dentro de la caja estilizada..." : `Escribe aquí el ${block.type}...`}
-                        value={block.content}
-                        onChange={(e) => {
-                          e.target.style.height = 'auto';
-                          e.target.style.height = e.target.scrollHeight + 'px';
-                          updateBlock(index, 'content', e.target.value);
-                        }}
-                        rows={1}
-                      />
                     )}
                   </div>
 
@@ -452,25 +554,19 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                       disabled={index === 0}
                       className="text-text-3 hover:text-accent hover:bg-accent/10 p-1.5 rounded disabled:opacity-20 disabled:hover:bg-transparent transition-colors text-xs"
                       title="Mover arriba"
-                    >
-                      ▲
-                    </button>
+                    >▲</button>
                     <button 
                       onClick={() => moveBlockDown(index)}
                       disabled={index === blocks.length - 1}
                       className="text-text-3 hover:text-accent hover:bg-accent/10 p-1.5 rounded disabled:opacity-20 disabled:hover:bg-transparent transition-colors text-xs"
                       title="Mover abajo"
-                    >
-                      ▼
-                    </button>
+                    >▼</button>
                     <div className="w-full h-px bg-border my-1" />
                     <button 
                       onClick={() => removeBlock(index)}
                       className="text-red-500 hover:bg-red-500/10 p-1.5 rounded transition-colors text-xs"
                       title="Eliminar bloque"
-                    >
-                      ✕
-                    </button>
+                    >✕</button>
                   </div>
                 </div>
               ))}
@@ -482,13 +578,14 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
               <Button variant="ghost" onClick={() => addBlock('h2')}>+ H2</Button>
               <Button variant="ghost" onClick={() => addBlock('callout')}>+ Callout</Button>
               <Button variant="ghost" onClick={() => addBlock('stat')}>+ Estadística</Button>
+              <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'list', content: '', items: [''] }])}>+ 📝 Lista</Button>
               <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'image', content: '', value: '' }])}>+ 📸 Imagen</Button>
               <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'box', content: '', value: 'gradient' }])}>+ 📦 Caja Especial</Button>
               <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'button', content: 'DESCARGAR WPT GLOBAL', value: 'https://tracking.wptpartners.com/visit/?bta=35660&nci=15036' }])}>+ 🔥 Botón CTA</Button>
             </div>
           </>
         ) : (
-          /* 👁️ VISTA 2: RENDERIZADO SIMULADO EN VIVO (Sharkania Ecosistema Layout) */
+          /* 👁️ VISTA 2: RENDERIZADO SIMULADO EN VIVO */
           <div className="mt-4 p-6 rounded-xl bg-[#0c0d10] border border-border max-w-[720px] mx-auto w-full shadow-2xl font-sans">
             {imageHero && (
               <div className="w-full max-h-[280px] overflow-hidden rounded-xl mb-6">
@@ -501,31 +598,30 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
 
             <div className="space-y-5">
               {blocks.map((block, i) => {
-                if (block.type === 'h2') return <h2 key={i} className="text-xl font-extrabold text-white tracking-tight mt-8 mb-3">{block.content}</h2>;
-                if (block.type === 'h3') return <h3 key={i} className="text-lg font-bold text-white mt-5 mb-2">{block.content}</h3>;
-                if (block.type === 'callout') return <div key={i} className="my-5 rounded-lg border border-accent/20 bg-accent/5 px-4 py-3.5"><p className="text-sm text-white font-medium leading-relaxed">{block.content}</p></div>;
-                if (block.type === 'stat') return <div key={i} className="my-5 rounded-xl border border-border bg-bg-2 px-4 py-4 flex items-center gap-4"><span className="text-3xl font-extrabold text-accent leading-none">{block.value}</span><p className="text-xs text-text-2 leading-snug">{block.content}</p></div>;
                 
-                // 🔥 NUEVO: Renderizado de Listas en la Vista Previa
+                // Usamos dangerouslySetInnerHTML para renderizar las etiquetas HTML (como <a>) creadas
+                if (block.type === 'h2') return <h2 key={i} className="text-xl font-extrabold text-white tracking-tight mt-8 mb-3" dangerouslySetInnerHTML={{ __html: block.content }} />;
+                if (block.type === 'h3') return <h3 key={i} className="text-lg font-bold text-white mt-5 mb-2" dangerouslySetInnerHTML={{ __html: block.content }} />;
+                if (block.type === 'p') return <p key={i} className="text-sm text-text-2 leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: block.content }} />;
+                if (block.type === 'callout') return <div key={i} className="my-5 rounded-lg border border-accent/20 bg-accent/5 px-4 py-3.5"><p className="text-sm text-white font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: block.content }} /></div>;
+                if (block.type === 'stat') return <div key={i} className="my-5 rounded-xl border border-border bg-bg-2 px-4 py-4 flex items-center gap-4"><span className="text-3xl font-extrabold text-accent leading-none">{block.value}</span><p className="text-xs text-text-2 leading-snug" dangerouslySetInnerHTML={{ __html: block.content }} /></div>;
+                
                 if (block.type === 'list') {
                   return (
                     <ul key={i} className="my-5 space-y-2 pl-5 list-disc marker:text-accent text-sm text-text-2">
                       {(block.items ?? []).map((item, j) => (
-                        <li key={j} className="pl-1 leading-relaxed">{item}</li>
+                        <li key={j} className="pl-1 leading-relaxed" dangerouslySetInnerHTML={{ __html: item }} />
                       ))}
                     </ul>
                   );
                 }
-
-                // Párrafos explícitos
-                if (block.type === 'p') return <p key={i} className="text-sm text-text-2 leading-relaxed mb-3">{block.content}</p>;
 
                 if (block.type === 'image') return (
                   <figure key={i} className="my-6">
                     <div className="overflow-hidden rounded-xl border border-border bg-bg-3">
                       <img src={block.value || 'https://placehold.co/600x340/111214/71717a?text=Carga+una+imagen+desde+el+editor'} alt="Inline" className="w-full h-auto max-h-80 object-contain" />
                     </div>
-                    {block.content && <figcaption className="text-center text-[11px] text-text-4 mt-2 font-mono">{block.content}</figcaption>}
+                    {block.content && <figcaption className="text-center text-[11px] text-text-4 mt-2 font-mono" dangerouslySetInnerHTML={{ __html: block.content }} />}
                   </figure>
                 );
 
@@ -534,26 +630,22 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                   if (block.value === "gradient") boxStyle = "bg-gradient-to-br from-bg-3 via-bg-2 to-accent/10 border-accent/30 shadow-[0_0_20px_rgba(34,211,238,0.05)]";
                   if (block.value === "shadow") boxStyle = "bg-bg-1 border-border/60 shadow-[0_20px_40px_rgba(0,0,0,0.6)]";
                   if (block.value === "3d") boxStyle = "bg-bg-3 border-t border-l border-white/10 border-b-[4px] border-r-[4px] border-black/80";
-                  return <div key={i} className={`my-5 p-4 rounded-xl border ${boxStyle}`}><p className="text-sm text-white leading-relaxed font-medium">{block.content}</p></div>;
+                  return <div key={i} className={`my-5 p-4 rounded-xl border ${boxStyle}`}><p className="text-sm text-white leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: block.content }} /></div>;
                 }
 
-                // Botón CTA 3D en Vista Previa Live
                 if (block.type === 'button') {
                   return (
                     <div key={i} className="my-10 flex justify-center">
                       <a 
-                        href={block.value || '#'} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
+                        href={block.value || '#'} target="_blank" rel="noopener noreferrer"
                         className="inline-block px-10 py-4 text-center font-extrabold text-white text-lg tracking-wider uppercase rounded-xl bg-gradient-to-r from-accent to-blue-600 shadow-[0_10px_30px_rgba(34,211,238,0.4)] hover:shadow-[0_15px_40px_rgba(34,211,238,0.6)] hover:-translate-y-1 transition-all duration-300 border-t border-t-white/20 border-b-[4px] border-b-black/50"
-                      >
-                        {block.content || 'CLIC AQUÍ'}
-                      </a>
+                        dangerouslySetInnerHTML={{ __html: block.content || 'CLIC AQUÍ' }}
+                      />
                     </div>
                   );
                 }
 
-                return <p key={i} className="text-sm text-text-2 leading-relaxed mb-3">{block.content}</p>;
+                return null;
               })}
             </div>
           </div>
@@ -563,7 +655,6 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
       {/* Columna Derecha: Metadatos */}
       <div className="w-80 flex flex-col gap-4 border-l border-border pl-6 overflow-y-auto pb-10">
         
-        {/* NUEVA SECCIÓN DE IMÁGENES */}
         <Card className="p-4 space-y-4 bg-bg-1 border-border">
           <h3 className="font-bold border-b border-border pb-2 text-text-1 flex items-center gap-2">
             <span className="text-lg">🖼️</span> Imágenes
@@ -573,16 +664,15 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
           {renderImageField('Redes Sociales (OG)', 'image_og', imageOg, setImageOg)}
           {renderImageField('Intermedia (Inline)', 'image_inline', imageInline, setImageInline)}
         </Card>
-{/* 🔥 NUEVO: BANNERS PERSONALIZADOS MULTIPLES */}
+
         <Card className="p-4 space-y-6 bg-bg-1 border-accent/30 shadow-[0_0_15px_rgba(34,211,238,0.05)]">
           <h3 className="font-bold border-b border-border pb-2 text-text-1 flex items-center gap-2">
             📢 Publicidad Exclusiva <span className="text-[10px] text-accent font-normal px-2 py-0.5 bg-accent/10 rounded-full">Opcional</span>
           </h3>
           <p className="text-[10px] text-text-4 leading-tight italic -mt-2">
-            Rellenar estos campos anula la publicidad global predeterminada (WPT/CoinPoker) y muestra la tuya solo en este artículo.
+            Rellenar estos campos anula la publicidad predeterminada y muestra la tuya solo en este artículo.
           </p>
 
-          {/* Banner MID */}
           <div className="p-3 bg-bg-2 border border-border rounded-lg space-y-3">
             <h4 className="text-[11px] font-mono uppercase text-accent font-bold">1. Banner Intermedio</h4>
             <div>
@@ -595,7 +685,6 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
             </div>
           </div>
 
-          {/* Banner FINAL */}
           <div className="p-3 bg-bg-2 border border-border rounded-lg space-y-3">
             <h4 className="text-[11px] font-mono uppercase text-accent font-bold">2. Banner Final (Cierre)</h4>
             <div>
@@ -608,6 +697,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
             </div>
           </div>
         </Card>
+
         <Card className="p-4 space-y-4 bg-bg-1 border-border">
           <h3 className="font-bold border-b border-border pb-2 text-text-1">Publicación</h3>
           
@@ -634,10 +724,9 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
               className="mt-1 bg-bg-2 border-border" 
               value={category} 
               onChange={(e) => setCategory(e.target.value)} 
-              placeholder="Ej: Estrategia de Clubes" 
-              list="existing-categories" // 🔥 Vinculamos la lista
+              placeholder="Ej: Estrategia" 
+              list="existing-categories"
             />
-            {/* 🔥 Lista invisible que el navegador usa para el autocompletado */}
             <datalist id="existing-categories">
               {existingCategories.map((cat, i) => (
                 <option key={i} value={cat} />
@@ -647,7 +736,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
 
           <div>
             <label className="text-xs text-text-3">Etiquetas (separadas por coma)</label>
-            <Input className="mt-1 bg-bg-2 border-border" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="GTO, Torneos, Variancia" />
+            <Input className="mt-1 bg-bg-2 border-border" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="GTO, Torneos" />
           </div>
 
           <Button 
