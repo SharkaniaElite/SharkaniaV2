@@ -186,7 +186,7 @@ export function TutorialClubGGPage() {
     <strong className="text-sk-text-1">Grupo de WhatsApp exclusivo para mejorar tu juego:</strong> 
     Te agregaremos al grupo de WhatsApp exclusivo de Latin Allin Póker para que puedas compartir manos y preguntar
     lo que quieras sobre estrategia y juego.
-    <em>(Sabemos lo importante que es la comunidad para crecer como jugadores)</em>.
+    <em>(Sabemos lo importante que es la comunidad para crecer como jugadores de póker)</em>.
   </span>
 </li>
                 <li className="flex items-start gap-3 text-sk-sm text-sk-text-2">
