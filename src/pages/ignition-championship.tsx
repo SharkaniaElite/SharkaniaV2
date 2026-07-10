@@ -153,7 +153,7 @@ export function IgnitionChampionshipPage() {
           return;
         }
 
-        // Si todo está ok, guardamos
+        // Si todo está ok, guardamos en la sesión
         await supabase.auth.updateUser({
           data: {
             ignition_league_player: true,
@@ -161,6 +161,14 @@ export function IgnitionChampionshipPage() {
             ignition_nickname: nickToLink
           }
         });
+
+        // 🔥 REPLICAMOS EL FIX AQUÍ: Guardamos también en la tabla profiles para ti
+        await supabase.from('profiles').update({
+          ignition_league_player: true,
+          ignition_email: emailToLink,
+          ignition_nickname: nickToLink,
+          ignition_status: 'verified' // <-- Queda validado automáticamente
+        }).eq('id', data.session.user.id);
 
         if (data.session?.user) {
           const profile = await getProfile(data.session.user.id);

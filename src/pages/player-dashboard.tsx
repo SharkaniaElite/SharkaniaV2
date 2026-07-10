@@ -507,7 +507,9 @@ export function PlayerDashboardPage() {
                         }
 
                         // 3. SI ESTÁ LIBRE, LO VINCULAMOS
-                        const { error } = await supabase.auth.updateUser({
+                        
+                        // A) Actualizamos la sesión del navegador para que el usuario vea el cambio
+                        const { error: authError } = await supabase.auth.updateUser({
                           data: {
                             ignition_league_player: true,
                             ignition_email: emailToLink,
@@ -515,7 +517,18 @@ export function PlayerDashboardPage() {
                           }
                         });
                         
-                        if (error) throw error;
+                        if (authError) throw authError;
+
+                        // B) 🔥 EL BUG ESTABA AQUÍ: Guardamos los datos en la tabla profiles para el Admin
+                        const { error: profileError } = await supabase.from('profiles').update({
+                          ignition_league_player: true,
+                          ignition_email: emailToLink,
+                          ignition_nickname: nickToLink,
+                          ignition_status: 'verified'
+                        }).eq('id', user.id);
+
+                        if (profileError) throw profileError;
+
                         alert("¡Cuenta de Ignition vinculada con éxito!");
                         window.location.reload();
                       } catch (e) {
