@@ -16,7 +16,7 @@ import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
   Image, Save, Eye, RefreshCw, Power, MessageCircle,
-  Zap, Star, Tv, Mail, Newspaper
+  Zap, Star, Tv, Mail, Newspaper, Upload
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -39,40 +39,64 @@ type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scor
 // ── Descripción de cada slot de banner ───────────────────
 
 const SLOT_INFO = {
-  coinpoker: {
-    title: "🔥 MAIN SPONSOR: CoinPoker",
-    description: "Este es el banner REY. Aparece primero en absolutamente todo el sitio web en ancho completo.",
-    desktop: { size: "1200×150 px", label: "Billboard Principal", hint: "Diseño apaisado de alta conversión." },
-    mobile:  { size: "600×200 px", label: "Header Mobile", hint: "Ajustado para vista de celular." },
+  top_global: {
+    title: "1. Top Global (Destacado Principal)",
+    description: "El banner REY. Aparece primero en todo el sitio web en ancho completo. Ideal para eventos, avisos importantes o sponsors rotativos.",
+    desktop: { size: "1440 × Max 150px", label: "Billboard Principal", hint: "Diseño apaisado de alta conversión." },
+    mobile:  { size: "800 × Max 200px", label: "Header Mobile", hint: "Ajustado para vista de celular." },
   },
-  super: {
-    title: "Super Banner Izquierdo (Ej. Latin Allin)",
-    description: "Aparece FIJO en la parte superior de TODAS las páginas, lado izquierdo.",
+  super_left: {
+    title: "2. Super Banner Izquierdo",
+    description: "Aparece FIJO debajo del Top Global en TODAS las páginas, lado izquierdo.",
     desktop: { size: "728×90 px", label: "Banner Izquierdo", hint: "Formato horizontal clásico (728x90)." },
     mobile:  { size: "320×100 px", label: "Mobile Banner", hint: "Se ajusta al ancho del dispositivo móvil." },
   },
-  super2: {
-    title: "Super Banner Derecho (Ej. Ignition)",
-    description: "Aparece FIJO en la parte superior de TODAS las páginas, lado derecho.",
+  super_right: {
+    title: "3. Super Banner Derecho",
+    description: "Aparece FIJO debajo del Top Global en TODAS las páginas, lado derecho.",
     desktop: { size: "728×90 px", label: "Banner Derecho", hint: "Formato horizontal clásico (728x90)." },
     mobile:  { size: "320×100 px", label: "Mobile Banner", hint: "Se ajusta al ancho del dispositivo móvil." },
   },
+  grid_1: {
+    title: "4. Home Grid - Sala 1 (Ej. CoinPoker)",
+    description: "Aparece solo en el Home, en la cuadrícula de banners.",
+    desktop: { size: "600×250 px", label: "Tarjeta Promocional", hint: "Diseño rectangular/cuadrado." },
+    mobile:  { size: "350×200 px", label: "Mobile Promocional", hint: "Formato para grilla 2x2 en celular." },
+  },
+  grid_2: {
+    title: "5. Home Grid - Sala 2 (Ej. WPT Global)",
+    description: "Aparece solo en el Home, en la cuadrícula de banners.",
+    desktop: { size: "600×250 px", label: "Tarjeta Promocional", hint: "Diseño rectangular/cuadrado." },
+    mobile:  { size: "350×200 px", label: "Mobile Promocional", hint: "Formato para grilla 2x2 en celular." },
+  },
+  grid_3: {
+    title: "6. Home Grid - Sala 3 (Ej. Ignition)",
+    description: "Aparece solo en el Home, en la cuadrícula de banners.",
+    desktop: { size: "600×250 px", label: "Tarjeta Promocional", hint: "Diseño rectangular/cuadrado." },
+    mobile:  { size: "350×200 px", label: "Mobile Promocional", hint: "Formato para grilla 2x2 en celular." },
+  },
+  grid_4: {
+    title: "7. Home Grid - Sala 4 (Ej. LatinAllin)",
+    description: "Aparece solo en el Home, en la cuadrícula de banners.",
+    desktop: { size: "600×250 px", label: "Tarjeta Promocional", hint: "Diseño rectangular/cuadrado." },
+    mobile:  { size: "350×200 px", label: "Mobile Promocional", hint: "Formato para grilla 2x2 en celular." },
+  },
   mid: {
-    title: "Banner Mid-Article",
+    title: "Banner Blog: Medio",
     description: "Aparece dentro del artículo después del 3er título H2.",
-    desktop: { size: "728×90 px", label: "Leaderboard horizontal", hint: "Formato estándar editorial. Máximo impacto sin interrumpir la lectura." },
-    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Se escala al ancho completo de la pantalla en móvil." },
+    desktop: { size: "728×90 px", label: "Leaderboard horizontal", hint: "Máximo impacto sin interrumpir la lectura." },
+    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Se escala al celular." },
   },
   final: {
-    title: "Banner Final de Artículo",
-    description: "Aparece al terminar el contenido del artículo, antes del CTA de Sharkania.",
-    desktop: { size: "870×200 px", label: "Wide banner", hint: "Zona de alta intención: el lector terminó el artículo." },
-    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Mismo banner en móvil al final del artículo." },
+    title: "Banner Blog: Final",
+    description: "Aparece al terminar el contenido del artículo.",
+    desktop: { size: "870×200 px", label: "Wide banner", hint: "Zona de alta intención." },
+    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Mismo banner en móvil." },
   },
   sidebar: {
     title: "Banner Sidebar",
     description: "Aparece flotando en la columna derecha en pantallas grandes.",
-    desktop: { size: "300×250 px", label: "Rectangle", hint: "Formato cuadrado/rectangular. Ideal para conversiones." },
+    desktop: { size: "300×250 px", label: "Rectangle", hint: "Ideal para conversiones." },
     mobile:  null,
   }
 } as const;
@@ -91,12 +115,43 @@ function BannerSlotEditor({
   onChange: (v: BannersConfig["slots"][SlotKey]) => void;
 }) {
   const info = SLOT_INFO[slotKey];
+  const [uploading, setUploading] = useState<string | null>(null);
 
-  const updateSide = (side: "desktop" | "mobile", field: keyof BannerConfig, val: string | number) => {
+  const updateSide = (side: "desktop" | "mobile", field: keyof import("../lib/api/site-settings").BannerConfig, val: string | number) => {
     const current = value[side] ?? {
       src: "", href: "", width: 0, height: 0, label: "",
     };
     onChange({ ...value, [side]: { ...current, [field]: val } });
+  };
+
+  // 🔥 NUEVO: Función para subir la imagen a Supabase Storage
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, side: "desktop" | "mobile", field: "src" | "us_src") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(`${side}-${field}`);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `banner-${slotKey}-${side}-${field}-${Date.now()}.${fileExt}`;
+
+      // Usamos el bucket de blog_images que ya sabemos que existe y es público
+      const { error: uploadError } = await supabase.storage
+        .from('blog_images')
+        .upload(`banners/${fileName}`, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Obtener la URL pública de la imagen recién subida
+      const { data } = supabase.storage.from('blog_images').getPublicUrl(`banners/${fileName}`);
+      
+      // Actualizar el valor del input automáticamente
+      updateSide(side, field, data.publicUrl);
+    } catch (err: any) {
+      alert("Error subiendo la imagen: " + err.message);
+    } finally {
+      setUploading(null);
+      if (e.target) e.target.value = "";
+    }
   };
 
   const resetSide = (side: "desktop" | "mobile") => {
@@ -190,13 +245,30 @@ function BannerSlotEditor({
                     URL de la imagen (src)
                     <span className="text-sk-text-4 normal-case ml-auto">{sideInfo.size}</span>
                   </label>
-                  <input
-                    type="url"
-                    value={banner?.src ?? ""}
-                    onChange={(e) => updateSide(side, "src", e.target.value)}
-                    placeholder={`https://wptpartners.ck-cdn.com/tn/serve/?cid=XXXXXX`}
-                    className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
-                  />
+                  
+                  {/* 🔥 NUEVO: Input Dual (URL o Subida) */}
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={banner?.src ?? ""}
+                      onChange={(e) => updateSide(side, "src", e.target.value)}
+                      placeholder={`https://wptpartners.ck-cdn.com/tn/serve/?cid=XXXXXX`}
+                      className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
+                    />
+                    <div className="relative shrink-0 w-10">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, side, "src")}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                        disabled={uploading === `${side}-src`}
+                        title="Subir imagen desde mi equipo"
+                      />
+                      <Button variant="secondary" size="sm" className="w-full h-full p-0 pointer-events-none flex items-center justify-center border-sk-border-3" isLoading={uploading === `${side}-src`}>
+                        {uploading !== `${side}-src` && <Upload size={14} className="text-sk-text-2" />}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -213,7 +285,6 @@ function BannerSlotEditor({
                   />
                 </div>
 
-                {/* 🔥 NUEVO: Entradas para texto y código de referidos personalizados */}
                 <div className="grid grid-cols-2 gap-3 mt-1">
                   <div>
                     <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">
@@ -248,13 +319,30 @@ function BannerSlotEditor({
                   <div className="space-y-3">
                     <div>
                       <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">Imagen USA (us_src)</label>
-                      <input
-                        type="url"
-                        value={banner?.us_src ?? ""}
-                        onChange={(e) => updateSide(side, "us_src", e.target.value)}
-                        placeholder="https://www.acrpoker.eu/..."
-                        className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
-                      />
+                      
+                      {/* 🔥 NUEVO: Input Dual USA (URL o Subida) */}
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={banner?.us_src ?? ""}
+                          onChange={(e) => updateSide(side, "us_src", e.target.value)}
+                          placeholder="https://www.acrpoker.eu/..."
+                          className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
+                        />
+                        <div className="relative shrink-0 w-10">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, side, "us_src")}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                            disabled={uploading === `${side}-us_src`}
+                            title="Subir imagen desde mi equipo"
+                          />
+                          <Button variant="secondary" size="sm" className="w-full h-full p-0 pointer-events-none flex items-center justify-center border-sk-border-3" isLoading={uploading === `${side}-us_src`}>
+                            {uploading !== `${side}-us_src` && <Upload size={14} className="text-sk-text-2" />}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                     <div>
                       <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">Link Afiliado USA (us_href)</label>

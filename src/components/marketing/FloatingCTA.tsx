@@ -7,6 +7,8 @@ import { useUserCountry } from "../../hooks/use-geo"; // 👈 El Radar
 import type { FloatingConfig } from "../../lib/api/site-settings";
 
 export function FloatingCTA() {
+  return null; // 🔥 Apagado temporalmente para mejorar SEO y UX móvil.
+  
   const location = useLocation();
   const countryCode = useUserCountry();
   const isUS = countryCode === "US"; // 🇺🇸 Condición mágica
@@ -94,10 +96,10 @@ export function FloatingCTA() {
   const baseLink        = config?.link        ?? WPT_PROMO.link;
 
   // Si es USA y el admin llenó el campo, lo usamos. Si no, fallback al default de USA
-  const title       = (isUS && config?.us_title) ? config.us_title : (isUS ? "Juega en Americas Cardroom" : baseTitle);
-  const description = (isUS && config?.us_description) ? config.us_description : (isUS ? "Jugadores de USA aceptados" : baseDescription);
-  const link        = (isUS && config?.us_link) ? config.us_link : (isUS ? "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom" : baseLink);
-  const image       = (isUS && config?.us_image) ? config.us_image : (isUS ? "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg" : baseImage);
+  const title       = (isUS && config?.us_title) ? config?.us_title : (isUS ? "Juega en Americas Cardroom" : baseTitle);
+  const description = (isUS && config?.us_description) ? config?.us_description : (isUS ? "Jugadores de USA aceptados" : baseDescription);
+  const link        = (isUS && config?.us_link) ? config?.us_link : (isUS ? "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom" : baseLink);
+  const image       = (isUS && config?.us_image) ? config?.us_image : (isUS ? "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg" : baseImage);
 
   return (
     <div className="fixed top-1/2 -translate-y-1/2 right-6 z-[100] animate-fade-in">

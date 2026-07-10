@@ -1,4 +1,3 @@
-// src/lib/api/site-settings.ts
 import { supabase } from "../supabase";
 
 // ── Types ─────────────────────────────────────────────────
@@ -11,8 +10,8 @@ export interface BannerConfig {
   label: string;
   us_src?: string;  
   us_href?: string; 
-  custom_text?: string; // 🔥 NUEVO: Texto previo ("Usa el código", "ID Club:", etc)
-  custom_code?: string; // 🔥 NUEVO: El código a mostrar ("SHARKANIA", "9424-8605")
+  custom_text?: string; 
+  custom_code?: string; 
 }
 
 export interface BannerSlotConfig {
@@ -38,9 +37,13 @@ export interface BannersConfig {
   bonusCode: string;
   floatingCta?: FloatingConfig;
   slots: {
-    coinpoker: BannerSlotConfig; // 🔥 MAIN SPONSOR
-    super: BannerSlotConfig; // Super Banner Izquierdo
-    super2: BannerSlotConfig; // 🔥 NUEVO: Super Banner Derecho
+    top_global: BannerSlotConfig;
+    super_left: BannerSlotConfig;
+    super_right: BannerSlotConfig;
+    grid_1: BannerSlotConfig;
+    grid_2: BannerSlotConfig;
+    grid_3: BannerSlotConfig;
+    grid_4: BannerSlotConfig;
     mid: BannerSlotConfig;
     final: BannerSlotConfig;
     sidebar: BannerSlotConfig;
@@ -52,99 +55,32 @@ export interface BannersConfig {
 export const DEFAULT_BANNERS: BannersConfig = {
   bonusCode: "FPHL",
   slots: {
-    // 🔥 NUEVO: COINPOKER MAIN SPONSOR
-    coinpoker: {
-      desktop: {
-        src: "/images/promos/hero-coinpoker.webp",
-        href: "https://record.coinpokeraffiliates.com/_ZnRTLL6Lwv7UOsjNOfgKeWNd7ZgqdRLk/1/",
-        width: 1200, height: 150,
-        label: "Billboard 1200x150",
-      },
-      mobile: {
-        src: "/images/promos/hero-coinpoker.webp",
-        href: "https://record.coinpokeraffiliates.com/_ZnRTLL6Lwv7UOsjNOfgKeWNd7ZgqdRLk/1/",
-        width: 600, height: 200,
-        label: "Mobile 600x200",
-      },
+    top_global: {
+      desktop: { src: "", href: "", width: 1200, height: 150, label: "Top Destacado" },
+      mobile: { src: "", href: "", width: 600, height: 200, label: "Top Destacado Mobile" },
     },
-    // 👇 NUEVO: Configuración por defecto del Super Banner
-    super: {
-      desktop: {
-        src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505259",
-        href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13409",
-        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
-        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
-        width: 1780, height: 121,
-        label: "Super Banner 1780x121",
-      },
-      mobile: {
-        src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505261",
-        href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13410",
-        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
-        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
-        width: 870, height: 200,
-        label: "Super Banner 870x200",
-      },
+    super_left: {
+      desktop: { src: "", href: "", width: 728, height: 90, label: "Banner Izquierdo" },
+      mobile: { src: "", href: "", width: 320, height: 100, label: "Mobile Izquierdo" },
     },
-    super2: {
-      desktop: {
-        src: "https://media.revenuenetwork.com/GIF/Ignition%20Poker/Spanish/Poker/728x90.jpg",
-        href: "https://record.revenuenetwork.com/_s_OAdmC6KUcClNpGDbJ6T1wYPd_vJ7Zw/1/",
-        width: 728, height: 90,
-        label: "Banner Derecho 728x90",
-      },
-      mobile: {
-        src: "https://media.revenuenetwork.com/GIF/Ignition%20Poker/Spanish/Poker/728x90.jpg",
-        href: "https://record.revenuenetwork.com/_s_OAdmC6KUcClNpGDbJ6T1wYPd_vJ7Zw/1/",
-        width: 320, height: 100,
-        label: "Mobile Banner 320x100",
-      },
+    super_right: {
+      desktop: { src: "", href: "", width: 728, height: 90, label: "Banner Derecho" },
+      mobile: { src: "", href: "", width: 320, height: 100, label: "Mobile Derecho" },
     },
+    grid_1: { desktop: null, mobile: null },
+    grid_2: { desktop: null, mobile: null },
+    grid_3: { desktop: null, mobile: null },
+    grid_4: { desktop: null, mobile: null },
     mid: {
-      desktop: {
-        src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505259",
-        href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13409",
-        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
-        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
-        width: 728, height: 90,
-        label: "Leaderboard 728×90",
-      },
-      mobile: {
-        src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505261",
-        href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13410",
-        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
-        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
-        width: 870, height: 200,
-        label: "Wide 870×200",
-      },
+      desktop: { src: "", href: "", width: 728, height: 90, label: "Leaderboard Blog" },
+      mobile: { src: "", href: "", width: 870, height: 200, label: "Wide Mobile" },
     },
     final: {
-      desktop: {
-        src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505261",
-        href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13410",
-        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
-        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
-        width: 870, height: 200,
-        label: "Wide 870×200",
-      },
-      mobile: {
-        src: "https://wptpartners.ck-cdn.com/tn/serve/?cid=505261",
-        href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13410",
-        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
-        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
-        width: 870, height: 200,
-        label: "Wide 870×200",
-      },
+      desktop: { src: "", href: "", width: 870, height: 200, label: "Wide Footer" },
+      mobile: { src: "", href: "", width: 870, height: 200, label: "Wide Mobile" },
     },
     sidebar: {
-      desktop: {
-        src: "https://central.ck-cdn.com/w-pt-partners/2026-03-17/300x250_0e7435e0.jpg",
-        href: "https://tracking.wptpartners.com/visit/?bta=35660&nci=13647",
-        us_src: "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg",
-        us_href: "https://go.wpnaffiliates.com/visit/?bta=236696&brand=americascardroom",
-        width: 300, height: 250,
-        label: "Rectangle 300×250",
-      },
+      desktop: { src: "", href: "", width: 300, height: 250, label: "Rectangle Desktop" },
       mobile: null,
     },
   },
