@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { useAuthStore } from "../stores/auth-store";
 import { Button } from "../components/ui/button";
-import { PlayCircle, Lock, MonitorPlay, ListVideo, Lightbulb, LayoutDashboard } from "lucide-react";
+import { PlayCircle, Lock, MonitorPlay, ListVideo, Lightbulb, LayoutDashboard, Settings } from "lucide-react";
 import { cn } from "../lib/cn";
 import { EmptyState } from "../components/ui/empty-state";
 import type { ProModule, ProVideo, ProSubscription } from "../types";
@@ -17,11 +17,18 @@ interface ModuleWithVideos extends ProModule {
 }
 
 export function ProAcademyDashboardPage() {
-  const { user } = useAuthStore();
-  // 🔥 Guardamos solo si el usuario hizo clic explícitamente
+  // 🔥 Extraemos también el 'profile' para leer el rol del usuario
+  const { user, profile } = useAuthStore();
   const [selectedVideo, setSelectedVideo] = useState<ProVideo | null>(null);
   const [isCinematic, setIsCinematic] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // 🛡️ VERIFICACIÓN DE ADMIN: Fuerza bruta con correos exactos por si falla la caché
+  const isAcademyAdmin = 
+    profile?.role === "super_admin" || 
+    profile?.role === "academy_admin" ||
+    user?.email === "andresduhau@gmail.com" ||
+    user?.email === "nicolas.afv@gmail.com";
 
   // 1. Verificar si el usuario tiene una suscripción activa
   const { data: subscription, isLoading: loadingSub } = useQuery({
@@ -62,15 +69,15 @@ export function ProAcademyDashboardPage() {
 
       return structured;
     },
-    enabled: !!subscription, // Solo buscamos si tiene suscripción activa
+    // 🔥 Si es Admin, cargamos los videos igual, aunque no tenga suscripción pagada
+    enabled: !!subscription || isAcademyAdmin, 
   });
 
-  // 🔥 ESTADO DERIVADO: El video activo es el que el usuario clickeó, 
-  // O, por defecto, el primer video del primer módulo disponible. ¡Sin useEffects!
   const activeVideo = selectedVideo ?? (modules?.find(m => m.videos.length > 0)?.videos[0] || null);
 
-  const isLoading = loadingSub || (!!subscription && loadingContent);
-  const hasAccess = !!subscription;
+  const isLoading = loadingSub || ((!!subscription || isAcademyAdmin) && loadingContent);
+  // 🔥 Si es Admin, tiene acceso por defecto
+  const hasAccess = !!subscription || isAcademyAdmin;
 
   // ── PANTALLA DE CARGA ──
   if (isLoading) {
@@ -129,7 +136,7 @@ export function ProAcademyDashboardPage() {
           {/* 🎬 ÁREA PRINCIPAL DE VIDEO */}
           <div className="flex-1 flex flex-col min-w-0">
             {/* Cabecera del reproductor */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-sk-accent/20 text-sk-accent flex items-center justify-center">
                   <MonitorPlay size={16} />
@@ -140,7 +147,15 @@ export function ProAcademyDashboardPage() {
                   </h1>
                 </div>
               </div>
-              <div className="flex gap-2">
+              
+              <div className="flex gap-2 items-center">
+                {/* 🔥 BOTÓN FORZADO: Visible para acceso rápido. La seguridad real está en la ruta. */}
+                <Link to="/admin/academy">
+                  <Button variant="ghost" size="sm" className="gap-2 text-sk-accent hover:text-sk-accent hover:bg-sk-accent/10 border border-sk-accent/30 mr-2">
+                    <Settings size={14} /> Gestionar Bóveda
+                  </Button>
+                </Link>
+
                 <Button 
                   variant={isCinematic ? "accent" : "secondary"} 
                   size="sm" 
