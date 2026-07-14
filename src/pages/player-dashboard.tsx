@@ -1,6 +1,6 @@
 // src/pages/player-dashboard.tsx
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { StatCard } from "../components/ui/stat-card";
 import { Button } from "../components/ui/button";
@@ -10,7 +10,7 @@ import { NicknameClaim } from "../components/admin/nickname-claim";
 import { useAuthStore } from "../stores/auth-store";
 import { updateProfile } from "../lib/api/auth";
 import { getFlag, getCountryName } from "../lib/countries";
-import { Settings, User, LogOut, Link as LinkIcon, Camera, Flame, Download, Gift, Copy, Users } from "lucide-react";
+import { Settings, User, LogOut, Link as LinkIcon, Camera, Flame, Download, Gift, Copy, Users, MonitorPlay, Presentation, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { PlayerStatsGrid } from "../components/players/player-stats-grid";
 import { EloChart } from "../components/players/elo-chart";
@@ -28,6 +28,11 @@ export function PlayerDashboardPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const ignitionPanelRef = useRef<HTMLDivElement>(null);
+
+  // 🔥 Verificamos si es uno de los dos correos administradores
+  const isAcademyAdminExact = 
+    user?.email === "andresduhau@gmail.com" || 
+    user?.email === "nicolas.afv@gmail.com";
 
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.display_name ?? "");
@@ -279,6 +284,33 @@ export function PlayerDashboardPage() {
             </div>
             <Button variant="ghost" size="sm" onClick={handleSignOut}><LogOut size={14} /> Cerrar Sesión</Button>
           </div>
+
+          {/* 🚀 BOTONES RÁPIDOS DE ADMIN (Solo para Andrés y Nicolás) */}
+          {isAcademyAdminExact && (
+            <div className="bg-sk-bg-3 border border-sk-accent/30 rounded-xl p-5 mb-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <ShieldCheck size={18} className="text-sk-accent" />
+                <h3 className="text-sk-sm font-bold text-sk-text-1 uppercase tracking-widest">Accesos de Administrador Academia LATINALLIN</h3>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link to="/masterclass-latinallin" className="flex-1">
+                  <Button variant="secondary" className="w-full justify-center border-sk-border-2 hover:border-white">
+                    <Presentation size={16} className="mr-2 text-sk-text-2" /> Página de Ventas
+                  </Button>
+                </Link>
+                <Link to="/pro-dashboard" className="flex-1">
+                  <Button variant="secondary" className="w-full justify-center border-sk-border-2 hover:border-white">
+                    <MonitorPlay size={16} className="mr-2 text-sk-accent" /> Academia
+                  </Button>
+                </Link>
+                <Link to="/admin/academy" className="flex-1">
+                  <Button variant="accent" className="w-full justify-center shadow-md">
+                    <Settings size={16} className="mr-2" /> Panel de Control
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
 
          {/* Profile card */}
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
