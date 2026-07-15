@@ -15,12 +15,12 @@ import { EmptyState } from "../components/ui/empty-state";
 import { useLeagueBySlug, useLeagueStandings } from "../hooks/use-leagues";
 import { useTournamentsByLeague } from "../hooks/use-tournaments";
 import { FlagIcon } from "../components/ui/flag-icon";
-import { ArrowLeft, Trophy, Crown, Download } from "lucide-react"; // 👈 Añadido Download
+import { ArrowLeft, Trophy, Crown, Download } from "lucide-react";
 import type { TournamentWithDetails } from "../types";
 import { cn } from "../lib/cn";
 import { SEOHead } from "../components/seo/seo-head";
 import { formatNumber } from "../lib/format";
-import Papa from "papaparse"; // 👈 Importamos PapaParse para el CSV
+import Papa from "papaparse";
 
 type Tab = "standings" | "ccp_standings" | "upcoming" | "history" | "info";
 
@@ -90,6 +90,10 @@ export function LeagueDetailPage() {
 
   const champion = standings && standings.length > 0 ? standings[0] : null;
 
+  // 🔥 BÚSQUEDA IMPLACABLE DE LA IMAGEN
+  const primaryClub = clubs.find(lc => lc.is_primary)?.clubs || clubs[0]?.clubs;
+  const bannerUrl = (league as any)?.image_url || (league as any)?.banner_url || (primaryClub as any)?.banner_url || (primaryClub as any)?.image_url;
+
   const isLatinAllin = clubs.some(
     (lc) => (lc.clubs as any)?.slug === "latin-allin-poker" || lc.clubs?.name.toLowerCase().includes("latin allin")
   );
@@ -115,11 +119,9 @@ export function LeagueDetailPage() {
     return acc;
   }, {} as Record<string, string>) || {};
 
-  // 🔥 FUNCIÓN PARA DESCARGAR CSV
   const handleDownloadCSV = () => {
     if (!standings || standings.length === 0) return;
 
-    // Preparamos los datos excluyendo el ELO
     const csvData = standings.map((s, index) => ({
       Posición: index + 1,
       Jugador: s.players?.nickname || "—",
@@ -129,15 +131,12 @@ export function LeagueDetailPage() {
       "Mejor Posición": s.best_position ? `${s.best_position}°` : "—",
     }));
 
-    // Generamos el CSV
     const csv = Papa.unparse(csvData);
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: "text/csv;charset=utf-8;" }); // BOM para Excel
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: "text/csv;charset=utf-8;" }); 
     
-    // Creamos enlace de descarga
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    // Usamos el slug de la liga para el nombre del archivo
     link.setAttribute("download", `ranking_${leagueSlug}.csv`); 
     document.body.appendChild(link);
     link.click();
@@ -160,43 +159,63 @@ export function LeagueDetailPage() {
             <ArrowLeft size={14} /> Volver a ligas
           </Link>
 
-          {/* Header */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
-            <div className="flex justify-between items-start mb-3">
-              <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
-                {league.name}
-              </h1>
-              <Badge variant={status.variant}>{status.label}</Badge>
-            </div>
-            {league.description && (
-              <p className="text-sk-sm text-sk-text-2 mb-4">{league.description}</p>
+          {/* 🔥 Header con Imagen de Fondo Arreglada */}
+          <div className="relative bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6 overflow-hidden min-h-[160px] flex flex-col justify-center shadow-md">
+            
+            {/* 1. Imagen de fondo (Opacidad limpia y pura, sin mix-blend) */}
+            {bannerUrl && (
+              <div 
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+                style={{ backgroundImage: `url('${bannerUrl}')`, opacity: 0.35 }}
+              />
             )}
-            <div className="flex items-center gap-3 flex-wrap mb-3">
-              {league.start_date && league.end_date && (
-                <span className="font-mono text-[11px] text-sk-text-2">
-                  📅 {league.start_date} — {league.end_date}
-                </span>
+            
+            {/* 2. Capa oscura para que las letras resalten */}
+            <div className="absolute inset-0 bg-gradient-to-r from-sk-bg-0/95 via-sk-bg-0/70 to-transparent z-10" />
+            
+            {/* 3. Contenido de la cabecera (por encima del fondo) */}
+            <div className="relative z-20">
+              <div className="flex justify-between items-start mb-3">
+                <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight drop-shadow-md">
+                  {league.name}
+                </h1>
+                <Badge variant={status.variant} className="shadow-sm">{status.label}</Badge>
+              </div>
+              
+              {league.description && (
+                <p className="text-sk-sm text-sk-text-2 mb-4 max-w-3xl drop-shadow-sm">{league.description}</p>
               )}
-            </div>
-            <div className="flex items-center gap-2 flex-wrap mb-3">
-              {clubs.filter(lc => lc.is_primary).map((lc) => (
-                <Link
-                  key={lc.clubs?.id}
-                  to={`/clubs/${(lc.clubs as any)?.slug ?? lc.clubs?.id}`}
-                  className="text-sk-xs text-sk-accent hover:opacity-80 transition-opacity"
-                >
-                  <FlagIcon countryCode={lc.clubs?.country_code ?? null} /> {lc.clubs?.name}
-                  {lc.is_primary && " ★"}
-                </Link>
-              ))}
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {rooms.map((r) => (
-                <Chip key={r}>{r}</Chip>
-              ))}
+              
+              <div className="flex items-center gap-3 flex-wrap mb-3 drop-shadow-sm">
+                {league.start_date && league.end_date && (
+                  <span className="font-mono text-[11px] text-sk-text-2">
+                    📅 {league.start_date} — {league.end_date}
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2 flex-wrap mb-3">
+                {clubs.filter(lc => lc.is_primary).map((lc) => (
+                  <Link
+                    key={lc.clubs?.id}
+                    to={`/clubs/${(lc.clubs as any)?.slug ?? lc.clubs?.id}`}
+                    className="text-sk-xs text-sk-accent hover:opacity-80 transition-opacity font-semibold drop-shadow-sm"
+                  >
+                    <FlagIcon countryCode={lc.clubs?.country_code ?? null} /> {lc.clubs?.name}
+                    {lc.is_primary && " ★"}
+                  </Link>
+                ))}
+              </div>
+              
+              <div className="flex gap-2 flex-wrap">
+                {rooms.map((r) => (
+                  <Chip key={r} className="shadow-sm border-white/10 bg-black/50">{r}</Chip>
+                ))}
+              </div>
             </div>
           </div>
 
+          {/* Campeón Finalizado */}
           {currentStatus === "finished" && champion && (
             <div className="bg-gradient-to-r from-sk-gold/10 via-sk-gold/5 to-transparent border border-sk-gold/30 rounded-xl p-6 mb-6 flex items-center gap-5 sm:gap-6 animate-in fade-in zoom-in-95 duration-500 shadow-[0_4px_30px_rgba(250,212,25,0.05)]">
               <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-full bg-sk-bg-0 border-2 border-sk-gold flex items-center justify-center shadow-[0_0_15px_rgba(250,212,25,0.3)] relative overflow-hidden">
@@ -223,6 +242,7 @@ export function LeagueDetailPage() {
             </div>
           )}
 
+          {/* Reglas de la liga */}
           {league.best_dates_to_count && league.total_dates && (
             <div className="flex items-center gap-3 bg-sk-gold/10 border border-sk-gold/20 text-sk-gold rounded-lg p-3.5 px-5 mb-6 text-sk-sm">
               <Trophy size={18} className="shrink-0" />
@@ -252,7 +272,7 @@ export function LeagueDetailPage() {
               ))}
             </div>
 
-            {/* 🔥 BOTÓN DE DESCARGA CSV (Solo visible en la tabla de posiciones principal) */}
+            {/* BOTÓN DE DESCARGA CSV */}
             {tab === "standings" && standings && standings.length > 0 && (
               <Button 
                 variant="secondary" 
