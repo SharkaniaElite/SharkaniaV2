@@ -12,6 +12,7 @@ interface IgnitionPlayer {
   ignition_nickname: string | null;
   ignition_email: string | null;
   created_at: string;
+  ignition_linked_at: string | null; // 🔥 Nueva columna
   ignition_password_sent: boolean;
 }
 
@@ -32,9 +33,9 @@ export function IgnitionClaimsTab() {
     setLoading(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, display_name, email, ignition_nickname, ignition_email, created_at, ignition_password_sent')
-      .eq('ignition_league_player', true) // Solo los que están en la liga
-      .order('created_at', { ascending: false });
+      .select('id, display_name, email, ignition_nickname, ignition_email, created_at, ignition_linked_at, ignition_password_sent')
+      .eq('ignition_league_player', true) 
+      .order('ignition_linked_at', { ascending: false }); // 🔥 Ordenamos: Vinculación más nueva arriba, más antigua abajo
 
     if (error) {
       console.error("Error fetching ignition players:", error);
@@ -57,9 +58,9 @@ export function IgnitionClaimsTab() {
 
   const handleSelectAll = () => {
     if (selectedIds.size === filteredPlayers.length) {
-      setSelectedIds(new Set()); // Deseleccionar todos
+      setSelectedIds(new Set()); 
     } else {
-      setSelectedIds(new Set(filteredPlayers.map(p => p.id))); // Seleccionar todos los filtrados
+      setSelectedIds(new Set(filteredPlayers.map(p => p.id))); 
     }
   };
 
@@ -98,10 +99,8 @@ export function IgnitionClaimsTab() {
     setMessage("");
 
     try {
-      // 1. Preparamos a los jugadores seleccionados
       const selectedPlayers = players.filter(p => selectedIds.has(p.id) && p.email);
 
-      // 2. Armamos el paquete para la cola de correos (Igual que en admin-broadcast)
       const queuePayload = selectedPlayers.map((u) => ({
         recipient_email: u.email,
         subject: subject,
@@ -110,11 +109,9 @@ export function IgnitionClaimsTab() {
         created_at: new Date().toISOString(),
       }));
 
-      // 3. Insertamos en email_queue
       const { error: insertErr } = await supabase.from("email_queue").insert(queuePayload);
       if (insertErr) throw insertErr;
 
-      // 4. Marcamos a los seleccionados como "Enviados" en tu base de datos
       const { error: updateErr } = await supabase
         .from('profiles')
         .update({ ignition_password_sent: true })
@@ -126,7 +123,7 @@ export function IgnitionClaimsTab() {
       setSubject('');
       setContent('');
       setSelectedIds(new Set());
-      await fetchPlayers(); // Recargamos la tabla para que pasen a "Ya Enviados"
+      await fetchPlayers();
 
     } catch (err: any) {
       console.error(err);
@@ -158,6 +155,28 @@ export function IgnitionClaimsTab() {
     } finally {
       setIsResetting(false);
     }
+  };
+
+  // Formateador de fecha simple (Día/Mes/Año)
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Formateador de fecha completo (Día/Mes/Año + Hora)
+  const formatDateTime = (dateStr: string | null) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (loading) {
@@ -264,13 +283,14 @@ export function IgnitionClaimsTab() {
                 <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3">Jugador / Email</th>
                 <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3">Ignition Nickname</th>
                 <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3 text-center">Estado Contraseña</th>
-                <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3 text-right">Vinculado el</th>
+                <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3 text-right">Creación Cuenta Sharkania</th>
+                <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3 text-right">Vinculación Ignition</th>
               </tr>
             </thead>
             <tbody>
               {filteredPlayers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-12 text-center text-sk-text-3">
+                  <td colSpan={6} className="p-12 text-center text-sk-text-3">
                     <AlertCircle size={32} className="mx-auto mb-3 opacity-50" />
                     No hay jugadores en este filtro.
                   </td>
@@ -310,8 +330,13 @@ export function IgnitionClaimsTab() {
                           </span>
                         )}
                       </td>
-                      <td className="p-4 text-sm text-sk-text-3 text-right">
-                        {new Date(player.created_at).toLocaleDateString()}
+                      {/* Fecha de creación de la cuenta (Solo Día/Mes/Año) */}
+                      <td className="p-4 text-xs text-sk-text-3 text-right font-mono">
+                        {formatDate(player.created_at)}
+                      </td>
+                      {/* Fecha y Hora exacta de la Vinculación */}
+                      <td className="p-4 text-xs text-sk-accent text-right font-mono font-bold">
+                        {formatDateTime(player.ignition_linked_at)}
                       </td>
                     </tr>
                   );
