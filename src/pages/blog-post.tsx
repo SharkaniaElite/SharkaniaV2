@@ -77,19 +77,13 @@ function PostSkeleton() {
 // ── Block Renderer ────────────────────────────────────────
 function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, alreadyLinked, post }: { block: BlogBlock; inlineImage: string | null; h2Index: number; postTitle: string; glossaryTerms: GlossaryTerm[]; alreadyLinked: Set<string>; post: BlogPost; }) {
   
-  // 🔥 Función auxiliar para renderizar enlaces HTML de forma segura
+  // 🔥 Función auxiliar para procesar texto (Markdown Links + Glosario automático)
   const renderSafeContent = (text: string) => {
-    if (text.includes('<a href=')) {
-      return <span dangerouslySetInnerHTML={{ __html: text }} />;
-    }
     return renderWithLinksAndGlossary(text, glossaryTerms, alreadyLinked);
   };
 
-  // 🔥 Función auxiliar específica para H2 (que usa renderWithLinks en vez de Glossary)
+  // 🔥 Función auxiliar específica para H2 (Solo Markdown Links, sin Glosario)
   const renderSafeH2 = (text: string) => {
-    if (text.includes('<a href=')) {
-      return <span dangerouslySetInnerHTML={{ __html: text }} />;
-    }
     return renderWithLinks(text);
   };
 

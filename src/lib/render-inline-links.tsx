@@ -74,15 +74,15 @@ function processMarkdownLinksToArray(text: string): (string | ReactNode)[] {
       parts.push(text.slice(lastIndex, match.index));
     }
 
-    const linkText = match[1];
-    const linkUrl = match[2];
+    const linkText = match[1] || "";
+    const linkUrl = match[2] || "";
 
     if (linkUrl.startsWith("/")) {
       parts.push(
         <Link
           key={`link-${match.index}`}
           to={linkUrl}
-          className="text-sk-accent hover:underline font-semibold"
+          className="text-sk-accent hover:underline font-bold"
         >
           {linkText}
         </Link>
@@ -94,7 +94,7 @@ function processMarkdownLinksToArray(text: string): (string | ReactNode)[] {
           href={linkUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sk-accent hover:underline font-semibold"
+          className="text-sk-accent hover:underline font-bold"
         >
           {linkText}
         </a>
@@ -153,7 +153,7 @@ function applyGlossaryLinks(
       alreadyLinked.add(term.slug);
 
       const before = text.slice(0, match.index);
-      const matched = match[1];
+      const matched = match[1] || "";
       const after = text.slice(match.index + matched.length);
 
       const result: ReactNode[] = [];

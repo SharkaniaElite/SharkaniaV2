@@ -3,6 +3,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 import { supabase } from '../../lib/supabase';
+import { renderWithLinks } from '../../lib/render-inline-links';
 
 interface Block {
   type: 'p' | 'h2' | 'h3' | 'callout' | 'stat' | 'list' | 'image' | 'box' | 'button';
@@ -405,8 +406,8 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                                   const url = prompt(`Ingresa la URL para enlazar "${selectedText}":`);
                                   if (!url) return;
                                   
-                                  const linkHTML = `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline font-bold">${selectedText}</a>`;
-                                  const newContent = inputEl.value.substring(0, start) + linkHTML + inputEl.value.substring(end);
+                                  const linkMarkdown = `[${selectedText}](${url})`;
+                                  const newContent = inputEl.value.substring(0, start) + linkMarkdown + inputEl.value.substring(end);
                                   
                                   const newItems = [...(block.items ?? [])];
                                   newItems[itemIndex] = newContent;
@@ -514,8 +515,8 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                               const url = prompt(`Ingresa la URL para enlazar "${selectedText}":`);
                               if (!url) return;
                               
-                              const linkHTML = `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline font-bold">${selectedText}</a>`;
-                              const newContent = textarea.value.substring(0, start) + linkHTML + textarea.value.substring(end);
+                              const linkMarkdown = `[${selectedText}](${url})`;
+                              const newContent = textarea.value.substring(0, start) + linkMarkdown + textarea.value.substring(end);
                               
                               updateBlock(index, 'content', newContent);
                             }}
@@ -599,18 +600,18 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
             <div className="space-y-5">
               {blocks.map((block, i) => {
                 
-                // Usamos dangerouslySetInnerHTML para renderizar las etiquetas HTML (como <a>) creadas
-                if (block.type === 'h2') return <h2 key={i} className="text-xl font-extrabold text-white tracking-tight mt-8 mb-3" dangerouslySetInnerHTML={{ __html: block.content }} />;
-                if (block.type === 'h3') return <h3 key={i} className="text-lg font-bold text-white mt-5 mb-2" dangerouslySetInnerHTML={{ __html: block.content }} />;
-                if (block.type === 'p') return <p key={i} className="text-sm text-text-2 leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: block.content }} />;
-                if (block.type === 'callout') return <div key={i} className="my-5 rounded-lg border border-accent/20 bg-accent/5 px-4 py-3.5"><p className="text-sm text-white font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: block.content }} /></div>;
-                if (block.type === 'stat') return <div key={i} className="my-5 rounded-xl border border-border bg-bg-2 px-4 py-4 flex items-center gap-4"><span className="text-3xl font-extrabold text-accent leading-none">{block.value}</span><p className="text-xs text-text-2 leading-snug" dangerouslySetInnerHTML={{ __html: block.content }} /></div>;
+                // Usamos renderWithLinks para procesar Markdown a nodos React seguros
+                if (block.type === 'h2') return <h2 key={i} className="text-xl font-extrabold text-white tracking-tight mt-8 mb-3">{renderWithLinks(block.content)}</h2>;
+                if (block.type === 'h3') return <h3 key={i} className="text-lg font-bold text-white mt-5 mb-2">{renderWithLinks(block.content)}</h3>;
+                if (block.type === 'p') return <p key={i} className="text-sm text-text-2 leading-relaxed mb-3">{renderWithLinks(block.content)}</p>;
+                if (block.type === 'callout') return <div key={i} className="my-5 rounded-lg border border-accent/20 bg-accent/5 px-4 py-3.5"><p className="text-sm text-white font-medium leading-relaxed">{renderWithLinks(block.content)}</p></div>;
+                if (block.type === 'stat') return <div key={i} className="my-5 rounded-xl border border-border bg-bg-2 px-4 py-4 flex items-center gap-4"><span className="text-3xl font-extrabold text-accent leading-none">{block.value}</span><p className="text-xs text-text-2 leading-snug">{renderWithLinks(block.content)}</p></div>;
                 
                 if (block.type === 'list') {
                   return (
                     <ul key={i} className="my-5 space-y-2 pl-5 list-disc marker:text-accent text-sm text-text-2">
                       {(block.items ?? []).map((item, j) => (
-                        <li key={j} className="pl-1 leading-relaxed" dangerouslySetInnerHTML={{ __html: item }} />
+                        <li key={j} className="pl-1 leading-relaxed">{renderWithLinks(item)}</li>
                       ))}
                     </ul>
                   );
@@ -621,7 +622,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                     <div className="overflow-hidden rounded-xl border border-border bg-bg-3">
                       <img src={block.value || 'https://placehold.co/600x340/111214/71717a?text=Carga+una+imagen+desde+el+editor'} alt="Inline" className="w-full h-auto max-h-80 object-contain" />
                     </div>
-                    {block.content && <figcaption className="text-center text-[11px] text-text-4 mt-2 font-mono" dangerouslySetInnerHTML={{ __html: block.content }} />}
+                    {block.content && <figcaption className="text-center text-[11px] text-text-4 mt-2 font-mono">{renderWithLinks(block.content)}</figcaption>}
                   </figure>
                 );
 
@@ -630,7 +631,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                   if (block.value === "gradient") boxStyle = "bg-gradient-to-br from-bg-3 via-bg-2 to-accent/10 border-accent/30 shadow-[0_0_20px_rgba(34,211,238,0.05)]";
                   if (block.value === "shadow") boxStyle = "bg-bg-1 border-border/60 shadow-[0_20px_40px_rgba(0,0,0,0.6)]";
                   if (block.value === "3d") boxStyle = "bg-bg-3 border-t border-l border-white/10 border-b-[4px] border-r-[4px] border-black/80";
-                  return <div key={i} className={`my-5 p-4 rounded-xl border ${boxStyle}`}><p className="text-sm text-white leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: block.content }} /></div>;
+                  return <div key={i} className={`my-5 p-4 rounded-xl border ${boxStyle}`}><p className="text-sm text-white leading-relaxed font-medium">{renderWithLinks(block.content)}</p></div>;
                 }
 
                 if (block.type === 'button') {
@@ -639,8 +640,9 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                       <a 
                         href={block.value || '#'} target="_blank" rel="noopener noreferrer"
                         className="inline-block px-10 py-4 text-center font-extrabold text-white text-lg tracking-wider uppercase rounded-xl bg-gradient-to-r from-accent to-blue-600 shadow-[0_10px_30px_rgba(34,211,238,0.4)] hover:shadow-[0_15px_40px_rgba(34,211,238,0.6)] hover:-translate-y-1 transition-all duration-300 border-t border-t-white/20 border-b-[4px] border-b-black/50"
-                        dangerouslySetInnerHTML={{ __html: block.content || 'CLIC AQUÍ' }}
-                      />
+                      >
+                        {renderWithLinks(block.content || 'CLIC AQUÍ')}
+                      </a>
                     </div>
                   );
                 }
