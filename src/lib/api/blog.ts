@@ -121,11 +121,68 @@ export async function deleteBlogPost(id: string): Promise<void> {
   const { error } = await supabase.from("blog_posts").delete().eq("id", id);
   if (error) throw error;
 }
-// 🔥 NUEVO: Función para registrar un visitante único
-export async function incrementPostView(postId: string): Promise<void> {
-  const { error } = await supabase.rpc("increment_post_views", { p_post_id: postId });
-  if (error) {
-    console.error("Error al registrar la visita:", error);
+
+
+// 🔥 CREDENCIALES DE POSTHOG
+const POSTHOG_API_KEY = import.meta.env.VITE_POSTHOG_PERSONAL_API_KEY; 
+const POSTHOG_PROJECT_ID = import.meta.env.VITE_POSTHOG_PROJECT_ID;
+const POSTHOG_HOST = "app.posthog.com"; 
+
+export async function syncBlogViewsFromPostHog() {
+  try {
+    // 1. Obtenemos todos los artículos publicados
+    const { data: posts, error: fetchError } = await supabase
+      .from('blog_posts')
+      .select('id, slug')
+      .eq('status', 'published'); // Cambia 'status' por 'published' si usas un booleano
+
+    if (fetchError || !posts) throw new Error("Error obteniendo posts: " + fetchError?.message);
+
+    let updatedCount = 0;
+
+    // 2. Consultamos a PostHog post por post
+    for (const post of posts) {
+      const pagePath = `/blog/${post.slug}`; 
+
+      // Construimos la URL de la API de PostHog para buscar "Pageviews únicos"
+      const posthogUrl = `https://${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/insights/trend/?events=[{"id":"$pageview","name":"$pageview","type":"events","math":"dau"}]&properties=[{"key":"$pathname","value":"${pagePath}","operator":"exact","type":"event"}]&date_from=all`;
+
+      const response = await fetch(posthogUrl, {
+        headers: {
+          'Authorization': `Bearer ${POSTHOG_API_KEY}`
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`Error consultando PostHog para ${pagePath}: ${response.statusText}`);
+        continue;
+      }
+
+      const data = await response.json();
+      
+      let totalUniqueViews = 0;
+      if (data.result && data.result.length > 0 && data.result[0].data) {
+          totalUniqueViews = data.result[0].data.reduce((a: number, b: number) => a + b, 0);
+      }
+
+      // 3. Guardamos el número exacto en Supabase
+      if (totalUniqueViews >= 0) {
+          const { error: updateError } = await supabase
+              .from('blog_posts')
+              .update({ unique_views: totalUniqueViews })
+              .eq('id', post.id);
+
+          if (!updateError) {
+              updatedCount++;
+          }
+      }
+    }
+
+    return { success: true, message: `✅ ¡Éxito! Se actualizaron las lecturas de ${updatedCount} artículos usando los datos de PostHog.` };
+
+  } catch (error: any) {
+    console.error("Error sincronizando visitas de PostHog:", error);
+    return { success: false, message: error.message };
   }
 }
 
