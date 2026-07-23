@@ -65,7 +65,7 @@ function PlayerRowComponent({ player, rank }: PlayerRowProps) {
 
             {/* Flag */}
             <div className="absolute -bottom-1 -right-1 shadow-sm">
-              <FlagIcon countryCode={player.country_code} size={11} />
+              <FlagIcon countryCode={player.profiles?.country_code || player.country_code} size={11} />
             </div>
           </div>
 
@@ -136,7 +136,8 @@ export const PlayerRow = memo(
       prev.player.elo_rating === next.player.elo_rating &&
       prev.player.total_tournaments === next.player.total_tournaments &&
       prev.player.total_cashes === next.player.total_cashes &&
-      prev.player.total_wins === next.player.total_wins
+      prev.player.total_wins === next.player.total_wins &&
+      prev.player.profiles?.country_code === next.player.profiles?.country_code // 🔥 Agregamos validación de país
     );
   }
 );

@@ -25,7 +25,8 @@ const BASE_PLAYER_SELECT = `
   profiles (
     id,
     avatar_url,
-    display_name
+    display_name,
+    country_code
   )
 `;
 
