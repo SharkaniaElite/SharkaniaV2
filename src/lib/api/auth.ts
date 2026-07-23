@@ -38,15 +38,31 @@ export async function signUp(
   });
   if (error) throw error;
 
-  // Si el trigger no escribe whatsapp/country_code, lo hacemos manualmente
-  if (data.user && (extra?.country_code || extra?.whatsapp)) {
-    await supabase
-      .from("profiles")
-      .update({
-        country_code: extra?.country_code ?? null,
-        whatsapp: extra?.whatsapp ?? null,
-      })
-      .eq("id", data.user.id);
+  // Si el trigger no escribe los datos a tiempo, forzamos la inyección manual
+  if (data.user) {
+    const updatePayload: any = {};
+    
+    // Inyectamos datos base
+    if (extra?.country_code) updatePayload.country_code = extra.country_code;
+    if (extra?.whatsapp) updatePayload.whatsapp = extra.whatsapp;
+    
+    // 🔥 Inyectamos explícitamente los datos de Ignition para que aparezcan en el panel
+    if (extra?.ignition_league_player) {
+      updatePayload.ignition_league_player = true;
+      updatePayload.ignition_email = extra.ignition_email ?? email;
+      updatePayload.ignition_nickname = extra.ignition_nickname;
+      updatePayload.ignition_status = 'verified';
+      updatePayload.ignition_linked_at = new Date().toISOString();
+      updatePayload.ignition_password_sent = false; // Los dejamos como pendientes
+    }
+
+    // Solo hacemos la actualización si hay algo que actualizar
+    if (Object.keys(updatePayload).length > 0) {
+      await supabase
+        .from("profiles")
+        .update(updatePayload)
+        .eq("id", data.user.id);
+    }
   }
 
   return data;
