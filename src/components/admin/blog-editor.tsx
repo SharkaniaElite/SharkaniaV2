@@ -42,6 +42,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
   // Estado de los bloques
   const [blocks, setBlocks] = useState<Block[]>([{ type: 'p', content: '' }]);
   const [status, setStatus] = useState('draft');
+  const [publishedAt, setPublishedAt] = useState(''); // 🔥 NUEVO ESTADO PARA FECHA
   const [loading, setLoading] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
 
@@ -74,6 +75,16 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
         setSeoTitle(data.seo_title || '');
         setSeoDescription(data.seo_description || '');
         setStatus(data.status || 'draft');
+        
+        // 🔥 CARGAR FECHA SI EXISTE (formateada para el input datetime-local)
+        if (data.published_at) {
+          const date = new Date(data.published_at);
+          // Ajustar huso horario local para evitar corrimientos visuales
+          const tzOffset = date.getTimezoneOffset() * 60000;
+          const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+          setPublishedAt(localISOTime);
+        }
+
         setBlocks(data.body || [{ type: 'p', content: '' }]);
         
         setImageHero(data.image_hero || '');
@@ -235,7 +246,8 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
       seo_description: seoDescription,
       status,
       published: status === 'published',
-      published_at: status === 'published' ? new Date().toISOString() : null,
+      // 🔥 USAR FECHA SELECCIONADA, SI NO, USAR AHORA
+      published_at: status === 'published' ? (publishedAt ? new Date(publishedAt).toISOString() : new Date().toISOString()) : null,
       body: cleanBlocks,
       read_time: readTime,
       image_hero: imageHero,
@@ -703,16 +715,30 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
         <Card className="p-4 space-y-4 bg-bg-1 border-border">
           <h3 className="font-bold border-b border-border pb-2 text-text-1">Publicación</h3>
           
-          <div>
-            <label className="text-xs text-text-3">Estado</label>
-            <select 
-              className="w-full bg-bg-2 border border-border p-2 rounded text-sm mt-1 text-text-1 focus:outline-none"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="draft">Borrador</option>
-              <option value="published">Publicado</option>
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-text-3">Estado</label>
+              <select 
+                className="w-full bg-bg-2 border border-border p-2 rounded text-sm mt-1 text-text-1 focus:outline-none"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="draft">Borrador</option>
+                <option value="published">Publicado</option>
+              </select>
+            </div>
+            
+            {status === 'published' && (
+              <div>
+                <label className="text-xs text-text-3">Fecha de Publicación</label>
+                <Input 
+                  type="datetime-local" 
+                  className="mt-1 bg-bg-2 border-border text-xs" 
+                  value={publishedAt} 
+                  onChange={(e) => setPublishedAt(e.target.value)} 
+                />
+              </div>
+            )}
           </div>
 
           <div>

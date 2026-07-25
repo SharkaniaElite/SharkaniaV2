@@ -31,8 +31,21 @@ export type AchievementRarity = "common" | "rare" | "epic" | "legendary";
 export type SubscriptionPlan = "club_pro" | "league_premium" | "player_pro";
 export type SubscriptionStatus = "active" | "cancelled" | "expired";
 export type CreditTransactionType = "purchase" | "reward" | "spend" | "adjustment" | "refund";
+export type TeleprompterType = "manual" | "champion_override"; // 🔥 Nuevo
 
 // ── Entities ──
+
+export interface TeleprompterItem {
+  id: string;
+  type: TeleprompterType;
+  text_content: string;
+  link_url: string | null;
+  emoji: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Profile {
   id: string;

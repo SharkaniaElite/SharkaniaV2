@@ -82,6 +82,7 @@ export interface CreateBlogPostInput {
   custom_banner_final_src?: string | null; // 🔥
   custom_banner_final_href?: string | null;// 🔥
   published?: boolean;
+  published_at?: string | null; // 🔥 NUEVO CAMPO ACEPTADO
 }
 
 export async function createBlogPost(input: CreateBlogPostInput): Promise<BlogPost> {
@@ -103,9 +104,13 @@ export async function updateBlogPost(
   input: Partial<CreateBlogPostInput>
 ): Promise<BlogPost> {
   const updates: Record<string, unknown> = { ...input };
-  if (input.published === true) {
+  
+  // Si lo marcan publicado, pero NO enviaron una fecha específica en el input, ponemos la fecha actual.
+  // De lo contrario, respetamos la que venga en updates.published_at
+  if (input.published === true && !input.published_at) {
     updates.published_at = new Date().toISOString();
   }
+
   const { data, error } = await supabase
     .from("blog_posts")
     .update(updates)

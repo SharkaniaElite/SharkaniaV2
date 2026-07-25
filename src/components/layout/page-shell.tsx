@@ -47,9 +47,12 @@ export function PageShell({ children }: PageShellProps) {
       <Navbar />
       <div style={{ height: "56px", flexShrink: 0 }} />
 
-      <div className="relative left-0 right-0 w-full z-[90] flex flex-col bg-sk-bg-0">
+      {/* 🌟 TICKER STICKY: Se queda pegado a 56px del tope (justo debajo del Navbar) */}
+      <div className="sticky top-[56px] left-0 right-0 w-full z-[90] shadow-md border-b border-sk-border-2 bg-sk-bg-2">
         <GlobalChampionsTicker />
+      </div>
 
+      <div className="relative left-0 right-0 w-full z-[80] flex flex-col bg-sk-bg-0">
         {/* 🔥 TOP GLOBAL BANNER */}
         {hasTopBanner && (
           <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 shadow-md flex justify-center py-3 relative z-[45]">

@@ -22,7 +22,7 @@ import { SEOHead } from "../components/seo/seo-head";
 import {
   getBannersConfig, saveBannersConfig,
   DEFAULT_BANNERS,
-  type BannersConfig, type BannerConfig,
+  type BannersConfig,
 } from "../lib/api/site-settings";
 
 import { MissionsAdminTab } from "../components/admin/missions-admin-tab";
@@ -32,10 +32,11 @@ import { syncAllUnifiedElos } from "../lib/api/elo-engine";
 import { AnalyticsTab } from "../components/admin/analytics-tab";
 import { BlogEditor } from "../components/admin/blog-editor"; // 🔥 Agregamos el CMS
 import { syncBlogViewsFromPostHog } from "../lib/api/blog"; // 🔥 Sincronización PostHog
+import { TeleprompterAdminTab } from "../components/admin/teleprompter-admin-tab"; // 🔥 Ticker
 
 // ── Tipos ─────────────────────────────────────────────────
 
-type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners" | "glossary" | "analytics" | "shark_tv" | "blog";
+type AdminTab = "overview" | "users" | "requests" | "missions" | "rooms" | "scoring" | "banners" | "glossary" | "analytics" | "shark_tv" | "blog" | "teleprompter";
 
 // ── Descripción de cada slot de banner ───────────────────
 
@@ -1043,6 +1044,7 @@ export function SuperAdminPage() {
     { key: "glossary",  label: "Glosario", badge: glossaryTerms?.length },
     { key: "shark_tv",  label: "SharkTV" },
     { key: "blog",      label: "Noticias/Blog" },
+    { key: "teleprompter", label: "Teleprompter" },
   ];
 
   return (
@@ -2223,6 +2225,15 @@ export function SuperAdminPage() {
             </div>
           )}
 
+          {/* ══ TELEPROMPTER ══ */}
+          {tab === "teleprompter" && (
+            <div className="h-full flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-sk-md font-bold text-sk-text-1">Gestión del Teleprompter</h2>
+              </div>
+              <TeleprompterAdminTab />
+            </div>
+          )}
       {entityForm && (
         <EntityForm
           isOpen={true}
@@ -2270,3 +2281,4 @@ function AdminTable({ headers, rows }: {
     </div>
   );
 }
+          

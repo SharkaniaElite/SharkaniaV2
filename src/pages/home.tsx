@@ -15,6 +15,7 @@ import { useBanners } from "../hooks/use-banners";
 import { TournamentCard } from "../components/calendar/tournament-card";
 import { TournamentDetailModal } from "../components/calendar/tournament-detail-modal";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
+import { InstagramFeed } from "../components/marketing/instagram-feed.tsx"; // 🔥 NUEVA IMPORTACIÓN
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -326,6 +327,9 @@ export function HomePage() {
           </RevealSection>
         </div>
       </section>
+
+      {/* 📸 FEED DE INSTAGRAM */}
+      <InstagramFeed />
 
       {/* 🔥 Modal Global de Torneos */}
       <TournamentDetailModal
