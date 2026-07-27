@@ -99,6 +99,10 @@ export async function getCompletedTournaments(options?: {
   
   let query = supabase.from("tournaments").select("*, leagues(id, name, slug), poker_rooms(name)", { count: "exact" });
 
+  // 🔥 FILTRO: Solo traer los que ya pasaron su hora de inicio, o los que fueron marcados explícitamente como completados/cancelados
+  const nowIso = new Date().toISOString();
+  query = query.or(`start_datetime.lte.${nowIso},status.in.(completed,cancelled)`);
+
   if (options?.clubId) {
     const { data: links } = await supabase.from("tournament_clubs").select("tournament_id").eq("club_id", options.clubId);
     const linkedIds = links?.map(l => l.tournament_id) || [];

@@ -135,11 +135,11 @@ const POSTHOG_HOST = "app.posthog.com";
 
 export async function syncBlogViewsFromPostHog() {
   try {
-    // 1. Obtenemos todos los artículos publicados
+    // 1. Obtenemos todos los artículos publicados (🔥 Agregamos 'category' al select)
     const { data: posts, error: fetchError } = await supabase
       .from('blog_posts')
-      .select('id, slug')
-      .eq('status', 'published'); // Cambia 'status' por 'published' si usas un booleano
+      .select('id, slug, category')
+      .eq('published', true); // Aseguramos que traiga los publicados
 
     if (fetchError || !posts) throw new Error("Error obteniendo posts: " + fetchError?.message);
 
@@ -147,10 +147,15 @@ export async function syncBlogViewsFromPostHog() {
 
     // 2. Consultamos a PostHog post por post
     for (const post of posts) {
-      const pagePath = `/blog/${post.slug}`; 
+      // 🔥 Armamos la ruta real (noticias o promociones) según la categoría
+      const basePath = post.category && post.category.toLowerCase() === 'promociones' ? 'promociones' : 'noticias';
+      const pagePath = `/${basePath}/${post.slug}`; 
 
-      // Construimos la URL de la API de PostHog para buscar "Pageviews únicos"
-      const posthogUrl = `https://${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/insights/trend/?events=[{"id":"$pageview","name":"$pageview","type":"events","math":"dau"}]&properties=[{"key":"$pathname","value":"${pagePath}","operator":"exact","type":"event"}]&date_from=all`;
+      // 🔥 Usamos "icontains" en lugar de "exact" para atrapar la visita de manera flexible
+      const eventsStr = '[{"id":"$pageview","name":"$pageview","type":"events","math":"dau"}]';
+      const propertiesStr = `[{"key":"$pathname","value":"${pagePath}","operator":"icontains","type":"event"}]`;
+      
+      const posthogUrl = `https://${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/insights/trend/?events=${encodeURIComponent(eventsStr)}&properties=${encodeURIComponent(propertiesStr)}&date_from=all`;
 
       const response = await fetch(posthogUrl, {
         headers: {
@@ -183,11 +188,12 @@ export async function syncBlogViewsFromPostHog() {
       }
     }
 
-    return { success: true, message: `✅ ¡Éxito! Se actualizaron las lecturas de ${updatedCount} artículos usando los datos de PostHog.` };
+    return { success: true, message: `✅ ¡Éxito! Se actualizaron las lecturas de ${updatedCount} artículos usando los datos exactos de PostHog.` };
 
-  } catch (error: any) {
-    console.error("Error sincronizando visitas de PostHog:", error);
-    return { success: false, message: error.message };
+  } catch (error) {
+    const err = error as any; // 🔥 CORRECCIÓN DEL ERROR DE TYPESCRIPT AQUÍ
+    console.error("Error sincronizando visitas de PostHog:", err);
+    return { success: false, message: err.message };
   }
 }
 

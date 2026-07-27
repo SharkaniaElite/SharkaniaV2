@@ -89,12 +89,17 @@ export function CalendarPage() {
   const historyTotalPages = Math.ceil(historyTotal / PAGE_SIZE);
 
   // History filtered by country (client-side since DB doesn't join on club.country_code easily)
-  const historyFiltered = countryFilter
-    ? historyTournaments.filter((t) => {
-        const clubData = t.clubs as any;
-        return clubData?.country_code === countryFilter;
-      })
-    : historyTournaments;
+  const historyFiltered = historyTournaments.filter((t) => {
+    // 🔥 Excluir los torneos que están en vivo o en registro tardío (esos deben verse solo en "Próximos")
+    if (t.status === "live" || t.status === "late_registration") return false;
+
+    // Filtro de país
+    if (countryFilter) {
+      const clubData = t.clubs as any;
+      if (clubData?.country_code !== countryFilter) return false;
+    }
+    return true;
+  });
 
   const liveCount = upcomingFiltered.filter((t) => t.status === "live").length;
 
