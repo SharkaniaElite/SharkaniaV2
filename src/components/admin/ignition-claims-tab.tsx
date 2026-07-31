@@ -99,10 +99,11 @@ export function IgnitionClaimsTab() {
     setMessage("");
 
     try {
-      const selectedPlayers = players.filter(p => selectedIds.has(p.id) && p.email);
+      // 🔥 Priorizamos enviar la clave al ignition_email si existe, sino usamos el principal
+      const selectedPlayers = players.filter(p => selectedIds.has(p.id) && (p.ignition_email || p.email));
 
       const queuePayload = selectedPlayers.map((u) => ({
-        recipient_email: u.email,
+        recipient_email: u.ignition_email || u.email,
         subject: subject,
         body_html: generatePasswordEmailHtml(u.display_name || u.ignition_nickname || "Jugador", content),
         status: "pending", 
@@ -312,7 +313,8 @@ export function IgnitionClaimsTab() {
                       </td>
                       <td className="p-4">
                         <div className="text-sm font-bold text-sk-text-1">{player.display_name || player.ignition_nickname}</div>
-                        <div className="text-xs text-sk-text-4 font-mono mt-0.5">{player.email}</div>
+                        {/* 🔥 Mostramos el ignition_email; si no tiene, mostramos el principal */}
+                        <div className="text-xs text-sk-text-4 font-mono mt-0.5">{player.ignition_email || player.email}</div>
                       </td>
                       <td className="p-4">
                         <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
