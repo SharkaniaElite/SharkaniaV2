@@ -248,7 +248,7 @@ export function IgnitionChampionshipPage() {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-500/10 border border-orange-500/30 px-3 py-1.5 rounded-full text-orange-400 font-mono text-xs uppercase tracking-widest font-bold">
               <Flame size={14} className="animate-pulse" />
-              Liga Oficial - Julio 2026
+              Liga Oficial - Agosto 2026
             </div>
             
             <h1 className="text-5xl sm:text-6xl font-black leading-tight tracking-tight">
@@ -257,9 +257,28 @@ export function IgnitionChampionshipPage() {
                 Liga Freeroll
               </span>
             </h1>
+
+            {/* 🔥 NUEVO: Logo Patrocinador */}
+            <div className="flex flex-col items-start gap-2 animate-in fade-in zoom-in duration-700 delay-200">
+              <span className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">
+                Liga Patrocinada por
+              </span>
+              <a 
+                href="https://record.revenuenetwork.com/_s_OAdmC6KUepsRaI0hkgHmNd7ZgqdRLk/1/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:scale-105 transition-transform duration-300 block"
+              >
+                <img 
+                  src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/logo-ignition-poker.png" 
+                  alt="Ignition Poker" 
+                  className="h-16 sm:h-20 object-contain drop-shadow-[0_0_20px_rgba(249,115,22,0.5)]" 
+                />
+              </a>
+            </div>
             
             <p className="text-lg text-gray-300 leading-relaxed max-w-lg">
-              Regístrate en Sharkania para recibir la contraseña exclusiva de nuestra liga de Julio. Juega los Jueves, elimina al host por una recompensa directa y suma puntos para los premios mensuales.
+              Regístrate en Sharkania para recibir la contraseña exclusiva de nuestra liga de Agosto. Juega los Jueves, elimina al host por una recompensa directa y suma puntos para los premios mensuales.
             </p>
 
             <div className="grid grid-cols-2 gap-4">
@@ -527,9 +546,23 @@ export function IgnitionChampionshipPage() {
               <h2 className="text-3xl md:text-4xl font-black text-white mb-4 uppercase tracking-tight">
                 Mucho más que una Liga
               </h2>
-              <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+              <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed mb-8">
                 Al jugar en Ignition Poker a través de Sharkania no solo participas por los premios garantizados de la liga, sino que también accedes a todos los beneficios nativos de la sala.
               </p>
+              
+              {/* 🔥 NUEVO: Banner Promocional Ignition 728x90 */}
+              <a 
+                href="https://record.revenuenetwork.com/_s_OAdmC6KUepsRaI0hkgHmNd7ZgqdRLk/1/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-block w-full max-w-[728px] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 shadow-lg hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] transition-all duration-300 group"
+              >
+                <img 
+                  src="https://media.revenuenetwork.com/GIF/Ignition%20Poker/Spanish/Poker/728x90.jpg" 
+                  alt="Ignition Poker Beneficios" 
+                  className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-500" 
+                />
+              </a>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
