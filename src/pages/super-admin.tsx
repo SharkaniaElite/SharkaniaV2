@@ -16,7 +16,7 @@ import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
   Image, Save, Eye, RefreshCw, Power, MessageCircle,
-  Zap, Star, Tv, Mail, Newspaper, Upload
+  Zap, Star, Tv, Mail, Newspaper, Upload, Copy
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -956,6 +956,42 @@ export function SuperAdminPage() {
     if (!confirm(`¿Eliminar "${name}"?`)) return;
     await deleteEntity(table, id);
     refresh();
+  };
+
+  const handleDuplicatePost = async (id: string, currentTitle: string) => {
+    if (!confirm(`¿Duplicar el artículo "${currentTitle}"?`)) return;
+    try {
+      // 1. Obtenemos todos los datos del artículo original
+      const { data: originalPost, error: fetchError } = await supabase
+        .from("blog_posts")
+        .select("*")
+        .eq("id", id)
+        .single();
+      
+      if (fetchError || !originalPost) throw new Error("No se pudo cargar el original.");
+
+      // 2. Limpiamos los IDs, fechas, vistas y preparamos la copia
+      const { id: _, created_at, published_at, unique_views, ...postData } = originalPost;
+      
+      const newTitle = `${postData.title} (Copia)`;
+      const newSlug = `${postData.slug}-copia-${Math.floor(Math.random() * 1000)}`;
+
+      // 3. Insertamos el nuevo artículo como borrador
+      const { error: insertError } = await supabase.from("blog_posts").insert([{
+        ...postData,
+        title: newTitle,
+        slug: newSlug,
+        status: "draft",
+        published: false
+      }]);
+
+      if (insertError) throw insertError;
+      
+      alert("✅ ¡Artículo duplicado con éxito como borrador!");
+      refresh(); // Recarga la tabla
+    } catch (error: any) {
+      alert("❌ Error al duplicar: " + error.message);
+    }
   };
 
   const handleSaveUser = async () => {
@@ -2198,6 +2234,7 @@ export function SuperAdminPage() {
                         </span>
                       ],
                       onEdit: () => setEditingBlogId(b.id),
+                      onDuplicate: () => handleDuplicatePost(b.id, b.title),
                       onDelete: () => handleDeleteEntity("blog_posts", b.id, b.title),
                     }))}
                   />
@@ -2253,7 +2290,7 @@ export function SuperAdminPage() {
 
 function AdminTable({ headers, rows }: {
   headers: string[];
-  rows: Array<{ id: string; cells: React.ReactNode[]; onEdit?: () => void; onDelete?: () => void }>;
+  rows: Array<{ id: string; cells: React.ReactNode[]; onEdit?: () => void; onDuplicate?: () => void; onDelete?: () => void }>;
 }) {
   return (
     <div className="border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-x-auto">
@@ -2271,6 +2308,7 @@ function AdminTable({ headers, rows }: {
               <td className="py-3 px-4 border-b border-sk-border-2">
                 <div className="flex gap-1">
                   {row.onEdit && <button onClick={row.onEdit} className="text-sk-text-2 hover:text-sk-accent transition-colors p-1" title="Editar"><Pencil size={13} /></button>}
+                  {row.onDuplicate && <button onClick={row.onDuplicate} className="text-sk-text-2 hover:text-sk-gold transition-colors p-1" title="Duplicar"><Copy size={13} /></button>}
                   {row.onDelete && <button onClick={row.onDelete} className="text-sk-text-2 hover:text-sk-red transition-colors p-1" title="Eliminar"><Trash2 size={13} /></button>}
                 </div>
               </td>
