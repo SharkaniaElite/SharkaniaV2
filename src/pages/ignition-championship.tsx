@@ -264,7 +264,7 @@ export function IgnitionChampionshipPage() {
                 Liga Patrocinada por
               </span>
               <a 
-                href="https://record.revenuenetwork.com/_s_OAdmC6KUepsRaI0hkgHmNd7ZgqdRLk/1/" 
+                href="https://record.revenuenetwork.com/_s_OAdmC6KUdsTNBL-wo7tGNd7ZgqdRLk/1/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="hover:scale-105 transition-transform duration-300 block"
@@ -337,7 +337,7 @@ export function IgnitionChampionshipPage() {
                 <div>
                   <h4 className="font-bold text-white">Descarga Ignition Poker</h4>
                   <p className="text-sm text-gray-400 mt-1">Crea tu cuenta en la sala si aún no la tienes utilizando nuestro enlace oficial.</p>
-                  <a href="https://record.revenuenetwork.com/_s_OAdmC6KUepsRaI0hkgHmNd7ZgqdRLk/1/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-orange-400 hover:text-orange-300 mt-2 font-semibold bg-orange-500/10 px-3 py-1.5 rounded border border-orange-500/20 transition-all hover:bg-orange-500/20">
+                  <a href="https://record.revenuenetwork.com/_s_OAdmC6KUdsTNBL-wo7tGNd7ZgqdRLk/1/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-orange-400 hover:text-orange-300 mt-2 font-semibold bg-orange-500/10 px-3 py-1.5 rounded border border-orange-500/20 transition-all hover:bg-orange-500/20">
                     <Download size={14} /> Crear cuenta en Ignition
                   </a>
                 </div>
@@ -552,7 +552,7 @@ export function IgnitionChampionshipPage() {
               
               {/* 🔥 NUEVO: Banner Promocional Ignition 728x90 */}
               <a 
-                href="https://record.revenuenetwork.com/_s_OAdmC6KUepsRaI0hkgHmNd7ZgqdRLk/1/" 
+                href="https://record.revenuenetwork.com/_s_OAdmC6KUdsTNBL-wo7tGNd7ZgqdRLk/1/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-block w-full max-w-[728px] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 shadow-lg hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] transition-all duration-300 group"
