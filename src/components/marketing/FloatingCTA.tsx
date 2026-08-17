@@ -43,10 +43,6 @@ export function FloatingCTA() {
 
   // 🛡️ Lógica de visibilidad y delays
   useEffect(() => {
-    // 🔥 ELIMINADO: Restricción para móviles. Ahora aparecerá en todos los dispositivos.
-    // const isMobile = window.innerWidth < 768;
-    // if (isMobile) return;
-
     const lastClosed = localStorage.getItem("wpt_cta_last_shown");
     const lastClicked = localStorage.getItem("wpt_cta_last_clicked");
     const now = Date.now();
@@ -100,14 +96,28 @@ export function FloatingCTA() {
   const image       = (isUS && config?.us_image) ? config?.us_image : (isUS ? "https://www.acrpoker.eu/wp-content/uploads/2023/05/1200x800px-Promo-Image-WelcomeBonus-2023-2.jpg" : baseImage);
 
   return (
-    <div className="fixed top-1/2 -translate-y-1/2 right-6 z-[100] animate-fade-in">
+    <div className="fixed top-1/2 -translate-y-1/2 right-3 md:right-8 z-[100] animate-fade-in">
       <div
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
-        className={`relative bg-sk-bg-2 border border-sk-border-2 rounded-2xl shadow-[0_10px_40px_-10px_rgba(34,211,238,0.15)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-sk-accent hover:shadow-[0_10px_40px_-10px_rgba(34,211,238,0.3)] hover:-translate-y-1 hover:bg-[linear-gradient(180deg,var(--sk-bg-2),var(--sk-bg-3)] overflow-hidden ${
-          expanded ? "w-[250px]" : "w-[180px]" // 🔥 Ajustado para que el texto tenga buen espacio
-        }`}
+        className={`relative bg-sk-bg-2 border-2 border-orange-500/60 rounded-2xl 
+          shadow-[0_0_25px_rgba(249,115,22,0.35)] 
+          hover:shadow-[0_0_40px_rgba(249,115,22,0.6)] 
+          hover:border-orange-400 
+          transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] 
+          hover:-translate-y-1 overflow-hidden group ${
+            expanded 
+              ? "w-[500px] md:w-[500px]"  /* 🔥 En la PC se expande a 360px para leer fácil */
+              : "w-[500px] md:w-[500px]"  /* 🔥 Por defecto en PC mide 260px (¡Mucho más grande!) */
+          }`}
       >
+        {/* Insignia / Badge flotante de atención */}
+        <div className="absolute top-2 left-2 z-40 bg-orange-600/90 backdrop-blur-md text-white text-[9px] md:text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-md pointer-events-none flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+          Promo
+        </div>
+
+        {/* Botón de Cierre (X) */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -115,7 +125,8 @@ export function FloatingCTA() {
             localStorage.setItem("wpt_cta_last_shown", String(Date.now()));
             setVisible(false);
           }}
-          className="absolute top-2 right-2 z-50 w-6 h-6 rounded-full bg-black/60 text-white text-xs flex items-center justify-center hover:bg-black"
+          className="absolute top-2 right-2 z-50 w-7 h-7 rounded-full bg-black/80 text-white text-xs font-bold flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
+          title="Cerrar"
         >
           ✕
         </button>
@@ -127,23 +138,39 @@ export function FloatingCTA() {
           className="block"
           onClick={() => localStorage.setItem("wpt_cta_last_clicked", String(Date.now()))}
         >
-          {/* 🔥 INVERTIDO: Ahora la imagen se muestra por defecto (!expanded) y el texto al pasar el mouse (expanded) */}
           {!expanded ? (
-            <img src={image} alt="Promo" className="w-full h-auto object-cover" />
+            <div className="relative overflow-hidden">
+              <img 
+                src={image} 
+                alt="Promo" 
+                className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2 md:p-3">
+                <span className="text-[10px] md:text-xs font-bold text-orange-300 uppercase tracking-wider flex items-center gap-1">
+                  Pasa el cursor para más detalles ➔
+                </span>
+              </div>
+            </div>
           ) : (
-            <div className="p-4">
-              <div className="text-sm font-semibold text-white mb-2">
-                🎁 {title}
+            <div className="p-4 md:p-5 bg-gradient-to-b from-[#111] to-[#0a0a0a]">
+              <div className="text-sm md:text-base font-bold text-white mb-2 flex items-center gap-2">
+                🎁 <span>{title}</span>
               </div>
               {location.pathname === "/ranking" ? (
-                <div className="text-xs text-white/80">
-                  🔥 {players} jugadores ya juegan
+                <div className="text-xs md:text-sm text-orange-400 font-semibold">
+                  🔥 {players} jugadores ya están participando
                 </div>
               ) : (
-                <div className="text-xs text-white/80 leading-relaxed">
+                <div className="text-xs md:text-sm text-gray-300 leading-relaxed font-sans">
                   {description}
                 </div>
               )}
+
+              <div className="mt-3 pt-3 border-t border-white/10 flex justify-end">
+                <span className="text-xs font-bold text-orange-400 group-hover:text-orange-300 uppercase tracking-widest flex items-center gap-1">
+                  Ir a la promoción ➔
+                </span>
+              </div>
             </div>
           )}
         </a>
