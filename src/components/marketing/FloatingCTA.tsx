@@ -107,8 +107,8 @@ export function FloatingCTA() {
           transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] 
           hover:-translate-y-1 overflow-hidden group ${
             expanded 
-              ? "w-[500px] md:w-[500px]"  /* 🔥 En la PC se expande a 360px para leer fácil */
-              : "w-[500px] md:w-[500px]"  /* 🔥 Por defecto en PC mide 260px (¡Mucho más grande!) */
+              ? "w-[90vw] max-w-[300px] md:max-w-none md:w-[500px]"  /* 🔥 Móvil: proporcional. PC: 500px */
+              : "w-[90vw] max-w-[300px] md:max-w-none md:w-[500px]"  /* 🔥 Móvil: proporcional. PC: 500px */
           }`}
       >
         {/* Insignia / Badge flotante de atención */}
