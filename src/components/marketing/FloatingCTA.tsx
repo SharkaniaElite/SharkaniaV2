@@ -7,8 +7,6 @@ import { useUserCountry } from "../../hooks/use-geo"; // 👈 El Radar
 import type { FloatingConfig } from "../../lib/api/site-settings";
 
 export function FloatingCTA() {
-  // return null; // 🔥 Encendido temporalmente.
-  
   const location = useLocation();
   const countryCode = useUserCountry();
   const isUS = countryCode === "US"; // 🇺🇸 Condición mágica
@@ -45,8 +43,9 @@ export function FloatingCTA() {
 
   // 🛡️ Lógica de visibilidad y delays
   useEffect(() => {
-    const isMobile = window.innerWidth < 768;
-    if (isMobile) return;
+    // 🔥 ELIMINADO: Restricción para móviles. Ahora aparecerá en todos los dispositivos.
+    // const isMobile = window.innerWidth < 768;
+    // if (isMobile) return;
 
     const lastClosed = localStorage.getItem("wpt_cta_last_shown");
     const lastClicked = localStorage.getItem("wpt_cta_last_clicked");
@@ -65,7 +64,6 @@ export function FloatingCTA() {
     const delay = config?.delay ?? WPT_PROMO.delay;
     const scrollTrigger = config?.scrollTrigger ?? WPT_PROMO.scrollTrigger;
 
-    // 👇 AQUÍ ESTÁ LA CORRECCIÓN DE TYPESCRIPT
     let timeoutId: ReturnType<typeof setTimeout>;
 
     if (location.pathname === "/ranking") {
@@ -107,7 +105,7 @@ export function FloatingCTA() {
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
         className={`relative bg-sk-bg-2 border border-sk-border-2 rounded-2xl shadow-[0_10px_40px_-10px_rgba(34,211,238,0.15)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-sk-accent hover:shadow-[0_10px_40px_-10px_rgba(34,211,238,0.3)] hover:-translate-y-1 hover:bg-[linear-gradient(180deg,var(--sk-bg-2),var(--sk-bg-3)] overflow-hidden ${
-          expanded ? "w-[300px]" : "w-[180px]"
+          expanded ? "w-[250px]" : "w-[180px]" // 🔥 Ajustado para que el texto tenga buen espacio
         }`}
       >
         <button
@@ -129,19 +127,20 @@ export function FloatingCTA() {
           className="block"
           onClick={() => localStorage.setItem("wpt_cta_last_clicked", String(Date.now()))}
         >
-          {expanded ? (
-            <img src={image} alt="Promo" className="w-full h-auto" />
+          {/* 🔥 INVERTIDO: Ahora la imagen se muestra por defecto (!expanded) y el texto al pasar el mouse (expanded) */}
+          {!expanded ? (
+            <img src={image} alt="Promo" className="w-full h-auto object-cover" />
           ) : (
-            <div className="p-3">
-              <div className="text-xs font-semibold text-white">
+            <div className="p-4">
+              <div className="text-sm font-semibold text-white mb-2">
                 🎁 {title}
               </div>
               {location.pathname === "/ranking" ? (
-                <div className="text-[11px] text-white/60">
+                <div className="text-xs text-white/80">
                   🔥 {players} jugadores ya juegan
                 </div>
               ) : (
-                <div className="text-[11px] text-white/60">
+                <div className="text-xs text-white/80 leading-relaxed">
                   {description}
                 </div>
               )}
