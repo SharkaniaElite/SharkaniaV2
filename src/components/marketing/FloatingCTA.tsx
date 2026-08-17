@@ -7,7 +7,7 @@ import { useUserCountry } from "../../hooks/use-geo"; // 👈 El Radar
 import type { FloatingConfig } from "../../lib/api/site-settings";
 
 export function FloatingCTA() {
-  return null; // 🔥 Apagado temporalmente para mejorar SEO y UX móvil.
+  // return null; // 🔥 Encendido temporalmente.
   
   const location = useLocation();
   const countryCode = useUserCountry();
