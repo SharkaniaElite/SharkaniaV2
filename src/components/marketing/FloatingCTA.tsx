@@ -100,6 +100,9 @@ export function FloatingCTA() {
       <div
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
+        onTouchStart={() => setExpanded(true)}
+        onTouchEnd={() => setExpanded(false)}
+        onTouchCancel={() => setExpanded(false)}
         className={`relative bg-sk-bg-2 border-2 border-orange-500/60 rounded-2xl 
           shadow-[0_0_25px_rgba(249,115,22,0.35)] 
           hover:shadow-[0_0_40px_rgba(249,115,22,0.6)] 
@@ -147,7 +150,10 @@ export function FloatingCTA() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2 md:p-3">
                 <span className="text-[10px] md:text-xs font-bold text-orange-300 uppercase tracking-wider flex items-center gap-1">
-                  Pasa el cursor para más detalles ➔
+                  {/* 🔥 Solo visible en celulares */}
+                  <span className="md:hidden">Mantén presionado para detalles ➔</span>
+                  {/* 🔥 Solo visible en PC */}
+                  <span className="hidden md:inline">Pasa el cursor para más detalles ➔</span>
                 </span>
               </div>
             </div>
