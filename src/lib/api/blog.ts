@@ -2,7 +2,7 @@
 import { supabase } from "../supabase";
 
 export interface BlogBlock {
-  type: "p" | "h2" | "h3" | "callout" | "stat" | "list" | "image" | "box" | "button";
+  type: "p" | "h2" | "h3" | "callout" | "stat" | "list" | "image" | "box" | "button" | "video";
   content?: string;
   value?: string;
   items?: string[];
@@ -195,5 +195,41 @@ export async function syncBlogViewsFromPostHog() {
     console.error("Error sincronizando visitas de PostHog:", err);
     return { success: false, message: err.message };
   }
+}
+
+// 🔥 FUNCIÓN PARA DUPLICAR UN ARTÍCULO EXISTENTE
+export async function duplicateBlogPost(id: string): Promise<BlogPost> {
+  // 1. Obtenemos el post original completo
+  const { data: original, error: fetchError } = await supabase
+    .from("blog_posts")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !original) throw new Error("Error al obtener el post original: " + fetchError?.message);
+
+  // 2. Extraemos los campos que NO queremos clonar (como el ID o fechas de creación)
+  const { id: _oldId, created_at: _createdAt, updated_at: _updatedAt, ...postData } = original;
+  
+  // 3. Armamos el nuevo post modificado
+  const newPost = {
+    ...postData,
+    title: `${original.title} (Copia)`,
+    slug: `${original.slug}-copia-${Date.now()}`, // Le agregamos un timestamp para que la URL sea única sí o sí
+    published: false, // Lo dejamos como borrador por seguridad
+    published_at: null,
+    unique_views: 0 // Reseteamos las vistas a cero
+  };
+
+  // 4. Lo guardamos en la base de datos
+  const { data: copy, error: insertError } = await supabase
+    .from("blog_posts")
+    .insert(newPost)
+    .select()
+    .single();
+
+  if (insertError) throw new Error("Error al duplicar el post: " + insertError.message);
+  
+  return copy as BlogPost;
 }
 

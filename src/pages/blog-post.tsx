@@ -166,6 +166,25 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
     );
   }
 
+  if (block.type === "video") {
+    return (
+      <figure className="my-10">
+        <div className="overflow-hidden rounded-xl border border-sk-border-2 bg-[#0a0a0a] shadow-lg">
+          <video 
+            controls 
+            controlsList="nodownload"
+            preload="metadata"
+            poster={block.content || undefined}
+            className="w-full h-auto object-contain max-h-[600px]"
+          >
+            <source src={block.value} />
+            Tu navegador no soporta la reproducción de video.
+          </video>
+        </div>
+      </figure>
+    );
+  }
+
   if (block.type === "button") {
     return (
       <div className="my-10 flex justify-center">

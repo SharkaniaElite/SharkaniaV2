@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { renderWithLinks } from '../../lib/render-inline-links';
 
 interface Block {
-  type: 'p' | 'h2' | 'h3' | 'callout' | 'stat' | 'list' | 'image' | 'box' | 'button';
+  type: 'p' | 'h2' | 'h3' | 'callout' | 'stat' | 'list' | 'image' | 'box' | 'button' | 'video';
   content: string;
   value?: string; 
   items?: string[];
@@ -354,6 +354,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                     <option value="image">📸 Imagen Interna</option>
                     <option value="box">📦 Caja Estilizada</option>
                     <option value="button">🔥 Botón CTA 3D</option>
+                    <option value="video">🎥 Video Nativo</option>
                   </select>
 
                   <div className="flex-1 flex flex-col gap-2">
@@ -505,6 +506,62 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                       </div>
                     )}
 
+                    {/* VIDEO */}
+                    {block.type === 'video' && (
+                      <div className="flex flex-col gap-3 p-4 bg-bg-1 rounded-lg border border-border">
+                        <div>
+                          <label className="text-xs text-text-3 font-bold uppercase tracking-wider mb-1 block">1. Archivo de Video</label>
+                          <div className="flex items-center gap-2">
+                            <Input placeholder="URL del video (.mp4, .webm) o sube uno..." value={block.value || ''} onChange={(e) => updateBlock(index, 'value', e.target.value)} className="bg-bg-2 border-border text-xs flex-1" />
+                            <div className="relative shrink-0">
+                              <input type="file" accept="video/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file || !slug) return alert('Asigna un título al post antes de subir videos.');
+                                  alert('Subiendo video... no cierres la ventana, esto puede tardar dependiendo de tu internet.');
+                                  const fileExt = file.name.split('.').pop();
+                                  const filePath = `${slug}/video-${Math.random().toString(36).substring(2)}.${fileExt}`;
+                                  const { error } = await supabase.storage.from('blog_images').upload(filePath, file);
+                                  if (error) return alert('Error al subir: ' + error.message);
+                                  const { data: urlData } = supabase.storage.from('blog_images').getPublicUrl(filePath);
+                                  updateBlock(index, 'value', urlData.publicUrl);
+                                }}
+                              />
+                              <Button variant="secondary" size="sm" type="button" className="pointer-events-none">Subir 📁</Button>
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-text-3 font-bold uppercase tracking-wider mb-1 block">2. Miniatura / Portada (Opcional)</label>
+                          <div className="flex items-center gap-2">
+                            <Input placeholder="Sube una imagen o deja vacío para usar el fotograma inicial..." value={block.content || ''} onChange={(e) => updateBlock(index, 'content', e.target.value)} className="bg-bg-2 border-border text-xs flex-1" />
+                            <div className="relative shrink-0">
+                              <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file || !slug) return alert('Asigna un título al post antes de subir miniaturas.');
+                                  const fileExt = file.name.split('.').pop();
+                                  const filePath = `${slug}/poster-${Math.random().toString(36).substring(2)}.${fileExt}`;
+                                  const { error } = await supabase.storage.from('blog_images').upload(filePath, file);
+                                  if (error) return alert('Error al subir: ' + error.message);
+                                  const { data: urlData } = supabase.storage.from('blog_images').getPublicUrl(filePath);
+                                  updateBlock(index, 'content', urlData.publicUrl);
+                                }}
+                              />
+                              <Button variant="secondary" size="sm" type="button" className="pointer-events-none">Subir 🖼️</Button>
+                            </div>
+                          </div>
+                        </div>
+                        {block.value && (
+                          <div className="mt-2 rounded overflow-hidden border border-border bg-black max-h-40">
+                            <video controls preload="metadata" poster={block.content || undefined} className="w-full h-auto max-h-40 object-contain">
+                              <source src={block.value} />
+                            </video>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* TEXTO ESTÁNDAR (p, h2, h3, callout, box) CON BARRA DE ENLACES */}
                     {['p', 'h2', 'h3', 'callout', 'box'].includes(block.type) && (
                       <div className="flex flex-col">
@@ -595,6 +652,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
               <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'image', content: '', value: '' }])}>+ 📸 Imagen</Button>
               <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'box', content: '', value: 'gradient' }])}>+ 📦 Caja Especial</Button>
               <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'button', content: 'DESCARGAR WPT GLOBAL', value: 'https://tracking.wptpartners.com/visit/?bta=35660&nci=15036' }])}>+ 🔥 Botón CTA</Button>
+              <Button variant="ghost" onClick={() => setBlocks([...blocks, { type: 'video', content: '', value: '' }])}>+ 🎥 Video</Button>
             </div>
           </>
         ) : (
@@ -644,6 +702,19 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
                   if (block.value === "shadow") boxStyle = "bg-bg-1 border-border/60 shadow-[0_20px_40px_rgba(0,0,0,0.6)]";
                   if (block.value === "3d") boxStyle = "bg-bg-3 border-t border-l border-white/10 border-b-[4px] border-r-[4px] border-black/80";
                   return <div key={i} className={`my-5 p-4 rounded-xl border ${boxStyle}`}><p className="text-sm text-white leading-relaxed font-medium">{renderWithLinks(block.content)}</p></div>;
+                }
+
+                if (block.type === 'video') {
+                  return (
+                    <figure key={i} className="my-8">
+                      <div className="overflow-hidden rounded-xl border border-border bg-black shadow-lg">
+                        <video controls preload="metadata" poster={block.content || undefined} className="w-full h-auto max-h-[500px] object-contain">
+                          <source src={block.value} />
+                          Tu navegador no soporta video.
+                        </video>
+                      </div>
+                    </figure>
+                  );
                 }
 
                 if (block.type === 'button') {
