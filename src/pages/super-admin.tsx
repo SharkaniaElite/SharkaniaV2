@@ -16,7 +16,7 @@ import {
   Check, X as XIcon, Plus, Trash2, Pencil,
   ExternalLink, Settings, AlertCircle,
   Image, Save, Eye, RefreshCw, Power, MessageCircle,
-  Zap, Star, Tv, Mail, Newspaper, Upload, Copy
+  Zap, Star, Tv, Mail, Newspaper, Upload, Copy, Flame
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import {
@@ -450,6 +450,35 @@ export function SuperAdminPage() {
   const [streamTitle, setStreamTitle] = useState("");
   const [streamDesc, setStreamDesc] = useState("");
   const [loadingStream, setLoadingStream] = useState(false);
+
+  // 🔥 Estados para Configuración del Club LatinAllin (Bad Beat Jackpot)
+  const [latinClubStats, setLatinClubStats] = useState({
+    usdToClp: 916,
+    bbjClp: 8594561,
+    lastUpdate: "26 de agosto de 2026 a las 09:00"
+  });
+  const [savingLatinStats, setSavingLatinStats] = useState(false);
+
+  useEffect(() => {
+    if (tab === "overview") {
+      supabase.from("site_settings").select("value").eq("key", "latin_club_stats").maybeSingle()
+        .then(({ data }) => {
+          if (data?.value) setLatinClubStats(prev => ({ ...prev, ...data.value }));
+        });
+    }
+  }, [tab]);
+
+  const handleSaveLatinStats = async () => {
+    setSavingLatinStats(true);
+    try {
+      const { error } = await supabase.from("site_settings").upsert({
+        key: "latin_club_stats",
+        value: latinClubStats
+      });
+      if (error) throw error;
+      alert("✅ Jackpot y datos de LatinAllin actualizados correctamente.");
+    } catch (e: any) { alert("❌ Error: " + e.message); } finally { setSavingLatinStats(false); }
+  };
 
   useEffect(() => {
     if (tab === "shark_tv") {
@@ -1168,6 +1197,34 @@ export function SuperAdminPage() {
                     Crear Boletín Semanal
                   </Button>
                 </div>
+              </div>
+
+              {/* 🔥 NUEVO PANEL: CONFIGURACIÓN BAD BEAT JACKPOT LATINALLIN */}
+              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Flame size={16} className="text-sk-red" />
+                  <h2 className="text-sk-md font-bold text-sk-text-1">Bad Beat Jackpot (LatinAllin)</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Monto BBJ en Pesos (CLP)</label>
+                    <input type="number" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-sk-accent focus:outline-none font-mono font-bold text-sk-gold" value={latinClubStats.bbjClp} onChange={e => setLatinClubStats({...latinClubStats, bbjClp: Number(e.target.value)})} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Dólar Actual (CLP) - Para calcular USD</label>
+                    <input type="number" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-sk-accent focus:outline-none" value={latinClubStats.usdToClp} onChange={e => setLatinClubStats({...latinClubStats, usdToClp: Number(e.target.value)})} />
+                    <span className="text-[10px] text-sk-text-4 mt-1 block">
+                      En la web pública saldrá como: <strong className="text-emerald-400 font-mono">${Math.round(latinClubStats.bbjClp / (latinClubStats.usdToClp || 1)).toLocaleString("en-US")} USD</strong>
+                    </span>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Última actualización (Texto libre)</label>
+                    <input type="text" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-sk-accent focus:outline-none" value={latinClubStats.lastUpdate} onChange={e => setLatinClubStats({...latinClubStats, lastUpdate: e.target.value})} placeholder="Ej: 26 de agosto a las 09:00" />
+                  </div>
+                </div>
+                <Button variant="accent" size="sm" onClick={handleSaveLatinStats} isLoading={savingLatinStats}>
+                  <Save size={14} className="mr-2" /> Actualizar Jackpot en Vivo
+                </Button>
               </div>
 
               {pendingTotal > 0 && (
