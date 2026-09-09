@@ -302,10 +302,14 @@ export function TutorialClubGGPage() {
         }
 
         if (result.user) {
-          await supabase.from("profiles").update({ 
-            latin_nickname: clubggNick.trim(),
-            latin_status: "pending"
-          }).eq("id", result.user.id);
+          // 🔥 LLAMAMOS AL NUEVO RPC PARA SALTAR EL BLOQUEO DE SEGURIDAD (RLS)
+          const { error: rpcError } = await supabase.rpc("update_latin_onboarding", {
+            p_user_id: result.user.id,
+            p_latin_nickname: clubggNick.trim(),
+            p_whatsapp: finalWhatsapp
+          });
+
+          if (rpcError) throw new Error("No se pudo registrar la solicitud: " + rpcError.message);
           
           if (result.session?.user) {
             const newProfile = await getProfile(result.session.user.id);
@@ -314,16 +318,15 @@ export function TutorialClubGGPage() {
           setSuccess("¡Cuenta creada y solicitud enviada! El cajero te contactará por WhatsApp.");
         }
       } else {
-        const updateData: any = { 
-          latin_nickname: clubggNick.trim(),
-          latin_status: "pending"
-        };
-        // Si no tenía whatsapp, se lo guardamos ahora
-        if (!profile?.whatsapp) {
-          updateData.whatsapp = finalWhatsapp;
-        }
+        // 🔥 LLAMAMOS AL MISMO RPC PARA USUARIOS EXISTENTES
+        const { error: rpcError } = await supabase.rpc("update_latin_onboarding", {
+          p_user_id: user!.id,
+          p_latin_nickname: clubggNick.trim(),
+          p_whatsapp: !profile?.whatsapp ? finalWhatsapp : null
+        });
 
-        await supabase.from("profiles").update(updateData).eq("id", user!.id);
+        if (rpcError) throw new Error("No se pudo actualizar la solicitud: " + rpcError.message);
+
         await refreshProfile();
         setSuccess("¡Solicitud enviada! El cajero te contactará a tu WhatsApp registrado.");
       }
