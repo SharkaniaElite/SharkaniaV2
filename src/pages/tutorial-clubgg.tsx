@@ -218,6 +218,7 @@ export function TutorialClubGGPage() {
   // 🔥 ESTADOS PARA EL TELÉFONO SEPARADO
   const [phonePrefix, setPhonePrefix] = useState("+56");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [existingAccount, setExistingAccount] = useState(false);
   
   const [countryCode, setCountryCode] = useState("");
   const [clubggNick, setClubggNick] = useState("");
@@ -297,8 +298,10 @@ export function TutorialClubGGPage() {
         }, captchaToken!);
 
         if (result.user && (!result.user.identities || result.user.identities.length === 0)) {
-          setError("Este email ya está registrado en Sharkania. Inicia sesión primero.");
-          setLoading(false); return;
+          // 🔥 Novedad: En lugar de un error de texto, activamos la vista especial
+          setExistingAccount(true);
+          setLoading(false); 
+          return;
         }
 
         if (result.user) {
@@ -551,6 +554,29 @@ export function TutorialClubGGPage() {
                   <h3 className="text-xl font-bold text-white mb-2">¡Tu solicitud está en proceso!</h3>
                   <p className="text-sk-sm text-sk-green">Tu nickname asociado es: <strong className="text-white">{profile.latin_nickname}</strong></p>
                   <p className="text-sk-sm text-sk-green mt-2">El cajero te hablará muy pronto a tu WhatsApp para coordinar tus primeras fichas.</p>
+                </div>
+              ) : existingAccount ? (
+                <div className="bg-sk-bg-1 border border-sk-accent/30 rounded-xl p-8 text-center space-y-4 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+                  <AlertCircle size={48} className="text-sk-accent mx-auto mb-2" />
+                  <h3 className="text-2xl font-black text-white">¡Ya tienes una cuenta!</h3>
+                  <p className="text-sk-sm text-sk-text-2">
+                    El correo <strong className="text-white">{email}</strong> ya está registrado en Sharkania.
+                  </p>
+                  <p className="text-sk-sm text-sk-text-3 mb-6">
+                    No necesitas registrarte de nuevo. Haz clic abajo para contactar al cajero por WhatsApp, indícale que ya tienes cuenta y dale tu Nickname de ClubGG para habilitarte.
+                  </p>
+                  <a 
+                    href={`https://wa.me/56977910256?text=Hola,%20ya%20tengo%20cuenta%20en%20Sharkania%20con%20el%20correo%20${email}%20y%20quiero%20entrar%20al%20club%20LatinAllinPoker.%20Mi%20nickname%20en%20ClubGG%20es:%20`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 px-6 rounded-lg transition-colors w-full shadow-lg"
+                  >
+                    <MessageCircle size={20} />
+                    Contactar Cajero por WhatsApp
+                  </a>
+                  <Button variant="ghost" className="w-full mt-4 text-sk-text-4" onClick={() => setExistingAccount(false)}>
+                    Volver al formulario
+                  </Button>
                 </div>
               ) : success ? (
                 <div className="bg-sk-green-dim border border-sk-green/30 rounded-xl p-8 text-center">
