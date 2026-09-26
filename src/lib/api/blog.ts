@@ -131,19 +131,26 @@ export async function deleteBlogPost(id: string): Promise<void> {
 // 🔥 CREDENCIALES DE POSTHOG
 const POSTHOG_API_KEY = import.meta.env.VITE_POSTHOG_PERSONAL_API_KEY; 
 const POSTHOG_PROJECT_ID = import.meta.env.VITE_POSTHOG_PROJECT_ID;
-const POSTHOG_HOST = "app.posthog.com"; 
+// Hacemos que tome el host real de tus variables (por si tu cuenta es EU o US)
+const POSTHOG_HOST = (import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "app.posthog.com").replace('https://', '').replace('http://', '');
 
 export async function syncBlogViewsFromPostHog() {
   try {
-    // 1. Obtenemos todos los artículos publicados (🔥 Agregamos 'category' al select)
+    // Validación de seguridad inicial
+    if (!POSTHOG_API_KEY || !POSTHOG_PROJECT_ID) {
+      return { success: false, message: "❌ Faltan credenciales de PostHog en tu archivo .env local o en Vercel/Cloudflare (VITE_POSTHOG_PERSONAL_API_KEY o VITE_POSTHOG_PROJECT_ID)." };
+    }
+
+    // 1. Obtenemos todos los artículos publicados
     const { data: posts, error: fetchError } = await supabase
       .from('blog_posts')
-      .select('id, slug, category')
-      .eq('published', true); // Aseguramos que traiga los publicados
+      .select('id, slug')
+      .eq('published', true); 
 
     if (fetchError || !posts) throw new Error("Error obteniendo posts: " + fetchError?.message);
 
     let updatedCount = 0;
+    let lastError = "";
 
     // 2. Consultamos a PostHog post por post
     for (const post of posts) {
@@ -161,9 +168,12 @@ export async function syncBlogViewsFromPostHog() {
         }
       });
 
+      // 🔥 MANEJO DE ERROR REAL: Ya no fallará en silencio
       if (!response.ok) {
-        console.warn(`Error consultando PostHog para ${pagePath}: ${response.statusText}`);
-        continue;
+        const errorText = await response.text();
+        lastError = `HTTP ${response.status}: ${errorText.substring(0, 80)}`;
+        console.warn(`PostHog Error en ${pagePath}:`, lastError);
+        continue; // Salta al siguiente pero guarda el error
       }
 
       const data = await response.json();
@@ -174,24 +184,30 @@ export async function syncBlogViewsFromPostHog() {
       }
 
       // 3. Guardamos el número exacto en Supabase
-      if (totalUniqueViews >= 0) {
-          const { error: updateError } = await supabase
-              .from('blog_posts')
-              .update({ unique_views: totalUniqueViews })
-              .eq('id', post.id);
+      const { error: updateError } = await supabase
+          .from('blog_posts')
+          .update({ unique_views: totalUniqueViews })
+          .eq('id', post.id);
 
-          if (!updateError) {
-              updatedCount++;
-          }
+      if (updateError) {
+          lastError = `Supabase Error: ${updateError.message}`;
+          console.error(lastError);
+      } else {
+          updatedCount++;
       }
+    }
+
+    // Si terminó procesando 0 pero hubo errores, te lo mostramos
+    if (updatedCount === 0 && lastError) {
+      return { success: false, message: `❌ La API de PostHog rechazó la conexión. Verifica tu Personal API Key. Error: ${lastError}` };
     }
 
     return { success: true, message: `✅ ¡Éxito! Se actualizaron las lecturas de ${updatedCount} artículos usando los datos exactos de PostHog.` };
 
   } catch (error) {
-    const err = error as any; // 🔥 CORRECCIÓN DEL ERROR DE TYPESCRIPT AQUÍ
-    console.error("Error sincronizando visitas de PostHog:", err);
-    return { success: false, message: err.message };
+    const err = error as any; 
+    console.error("Error crítico sincronizando visitas de PostHog:", err);
+    return { success: false, message: `❌ Error del sistema: ${err.message}` };
   }
 }
 
