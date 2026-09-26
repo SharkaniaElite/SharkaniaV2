@@ -147,11 +147,9 @@ export async function syncBlogViewsFromPostHog() {
 
     // 2. Consultamos a PostHog post por post
     for (const post of posts) {
-      // 🔥 Armamos la ruta real (noticias o promociones) según la categoría
-      const basePath = post.category && post.category.toLowerCase() === 'promociones' ? 'promociones' : 'noticias';
-      const pagePath = `/${basePath}/${post.slug}`; 
+      // 🔥 REPARACIÓN: Buscamos directamente el SLUG único para que atrape /blog, /noticias, etc.
+      const pagePath = `/${post.slug}`; 
 
-      // 🔥 Usamos "icontains" en lugar de "exact" para atrapar la visita de manera flexible
       const eventsStr = '[{"id":"$pageview","name":"$pageview","type":"events","math":"dau"}]';
       const propertiesStr = `[{"key":"$pathname","value":"${pagePath}","operator":"icontains","type":"event"}]`;
       
