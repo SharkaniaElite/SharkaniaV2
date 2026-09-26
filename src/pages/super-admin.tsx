@@ -673,7 +673,11 @@ export function SuperAdminPage() {
 
       // 2. Disparamos el Worker de Cloudflare inmediatamente
       try {
-        const workerRes = await fetch("https://sharkania-email-worker.duhauandres.workers.dev/");
+        const workerRes = await fetch("https://sharkania-email-worker.duhauandres.workers.dev/", {
+          headers: {
+            "X-Admin-Secret": "shark-admin-2026" // <-- Tu contraseña aquí
+          }
+        });
         const result = await workerRes.json();
         alert(`✅ Éxito: Se encolaron ${count} correos.\n🚀 Worker ejecutado: ${result.processed} procesados (${result.success} enviados, ${result.failed} fallidos).`);
       } catch (workerErr) {
@@ -759,7 +763,11 @@ export function SuperAdminPage() {
 
       // 2. Disparamos Worker
       try {
-        const workerRes = await fetch("https://sharkania-email-worker.duhauandres.workers.dev/");
+        const workerRes = await fetch("https://sharkania-email-worker.duhauandres.workers.dev/", {
+          headers: {
+            "X-Admin-Secret": "shark-admin-2026" // <-- Tu contraseña aquí
+          }
+        });
         const result = await workerRes.json();
         alert(`✅ Éxito: Se encolaron ${count} boletines.\n🚀 Worker: ${result.processed} procesados.`);
       } catch (workerErr) {
@@ -1208,7 +1216,7 @@ export function SuperAdminPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Monto BBJ en Pesos (CLP)</label>
-                    <input type="number" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-sk-accent focus:outline-none font-mono font-bold text-sk-gold" value={latinClubStats.bbjClp} onChange={e => setLatinClubStats({...latinClubStats, bbjClp: Number(e.target.value)})} />
+                    <input type="number" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm focus:border-sk-accent focus:outline-none font-mono font-bold text-sk-gold" value={latinClubStats.bbjClp} onChange={e => setLatinClubStats({...latinClubStats, bbjClp: Number(e.target.value)})} />
                   </div>
                   <div>
                     <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Dólar Actual (CLP) - Para calcular USD</label>
