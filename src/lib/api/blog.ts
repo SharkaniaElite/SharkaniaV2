@@ -127,20 +127,13 @@ export async function deleteBlogPost(id: string): Promise<void> {
   if (error) throw error;
 }
 
-
-// 🔥 CREDENCIALES DE POSTHOG
-const POSTHOG_API_KEY = import.meta.env.VITE_POSTHOG_PERSONAL_API_KEY; 
-const POSTHOG_PROJECT_ID = import.meta.env.VITE_POSTHOG_PROJECT_ID;
-// Hacemos que tome el host real de tus variables (por si tu cuenta es EU o US)
-const POSTHOG_HOST = (import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "app.posthog.com").replace('https://', '').replace('http://', '');
+// 🔥 CREDENCIALES DE POSTHOG (Blindadas contra comillas, seguras para producción)
+const POSTHOG_API_KEY = String(import.meta.env.VITE_POSTHOG_PERSONAL_API_KEY || "").replace(/['"]/g, '').trim(); 
+const POSTHOG_PROJECT_ID = String(import.meta.env.VITE_POSTHOG_PROJECT_ID || "").replace(/\D/g, ''); 
+const POSTHOG_HOST = String(import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "us.posthog.com").replace(/['"]/g, '').replace('https://', '').replace('http://', '').trim();
 
 export async function syncBlogViewsFromPostHog() {
   try {
-    // Validación de seguridad inicial
-    if (!POSTHOG_API_KEY || !POSTHOG_PROJECT_ID) {
-      return { success: false, message: "❌ Faltan credenciales de PostHog en tu archivo .env local o en Vercel/Cloudflare (VITE_POSTHOG_PERSONAL_API_KEY o VITE_POSTHOG_PROJECT_ID)." };
-    }
-
     // 1. Obtenemos todos los artículos publicados
     const { data: posts, error: fetchError } = await supabase
       .from('blog_posts')
@@ -152,35 +145,42 @@ export async function syncBlogViewsFromPostHog() {
     let updatedCount = 0;
     let lastError = "";
 
-    // 2. Consultamos a PostHog post por post
+    // 2. Consultamos a PostHog post por post usando HogQL (El motor más moderno y seguro)
     for (const post of posts) {
-      // 🔥 REPARACIÓN: Buscamos directamente el SLUG único para que atrape /blog, /noticias, etc.
       const pagePath = `/${post.slug}`; 
-
-      const eventsStr = '[{"id":"$pageview","name":"$pageview","type":"events","math":"dau"}]';
-      const propertiesStr = `[{"key":"$pathname","value":"${pagePath}","operator":"icontains","type":"event"}]`;
       
-      const posthogUrl = `https://${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/insights/trend/?events=${encodeURIComponent(eventsStr)}&properties=${encodeURIComponent(propertiesStr)}&date_from=all`;
+      // Usamos el endpoint de consultas directas (POST) para evitar errores 404 de URL
+      const posthogUrl = `https://${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/query/`;
 
       const response = await fetch(posthogUrl, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${POSTHOG_API_KEY}`
-        }
+          'Authorization': `Bearer ${POSTHOG_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: {
+            kind: "HogQLQuery",
+            // Cuenta usuarios únicos que hayan visitado la ruta de este artículo
+            query: `SELECT count(distinct person_id) FROM events WHERE event = '$pageview' AND properties.$pathname LIKE '%${pagePath}%'`
+          }
+        })
       });
 
-      // 🔥 MANEJO DE ERROR REAL: Ya no fallará en silencio
       if (!response.ok) {
         const errorText = await response.text();
-        lastError = `HTTP ${response.status}: ${errorText.substring(0, 80)}`;
+        // Si hay error, lo guardamos con todos los detalles de conexión
+        lastError = `HTTP ${response.status} | ID: ${POSTHOG_PROJECT_ID} | Host: ${POSTHOG_HOST} | Detalle: ${errorText.substring(0, 100)}`;
         console.warn(`PostHog Error en ${pagePath}:`, lastError);
-        continue; // Salta al siguiente pero guarda el error
+        continue; 
       }
 
       const data = await response.json();
       
+      // En HogQL, la respuesta viene dentro de un array de resultados
       let totalUniqueViews = 0;
-      if (data.result && data.result.length > 0 && data.result[0].data) {
-          totalUniqueViews = data.result[0].data.reduce((a: number, b: number) => a + b, 0);
+      if (data.results && data.results.length > 0) {
+          totalUniqueViews = Number(data.results[0][0]) || 0;
       }
 
       // 3. Guardamos el número exacto en Supabase
@@ -197,12 +197,11 @@ export async function syncBlogViewsFromPostHog() {
       }
     }
 
-    // Si terminó procesando 0 pero hubo errores, te lo mostramos
     if (updatedCount === 0 && lastError) {
-      return { success: false, message: `❌ La API de PostHog rechazó la conexión. Verifica tu Personal API Key. Error: ${lastError}` };
+      return { success: false, message: `❌ Error de conexión: ${lastError}` };
     }
 
-    return { success: true, message: `✅ ¡Éxito! Se actualizaron las lecturas de ${updatedCount} artículos usando los datos exactos de PostHog.` };
+    return { success: true, message: `✅ ¡Éxito! Se actualizaron las lecturas de ${updatedCount} artículos (Visitantes Únicos reales).` };
 
   } catch (error) {
     const err = error as any; 
