@@ -31,7 +31,7 @@ import { IgnitionClaimsTab } from "../components/admin/ignition-claims-tab"; // 
 import { syncAllUnifiedElos } from "../lib/api/elo-engine";
 import { AnalyticsTab } from "../components/admin/analytics-tab";
 import { BlogEditor } from "../components/admin/blog-editor"; // 🔥 Agregamos el CMS
-import { syncBlogViewsFromPostHog } from "../lib/api/blog"; // 🔥 Sincronización PostHog
+import { syncBlogViewsFromPostHog, generateBlogEmbeddings } from "../lib/api/blog"; // 🔥 Sincronización e IA
 import { TeleprompterAdminTab } from "../components/admin/teleprompter-admin-tab"; // 🔥 Ticker
 
 // ── Tipos ─────────────────────────────────────────────────
@@ -931,6 +931,7 @@ export function SuperAdminPage() {
   // 🔥 Estado para manejar si estamos viendo la lista o editando un artículo en el CMS
   const [editingBlogId, setEditingBlogId] = useState<string | "new" | null>(null);
   const [isSyncingViews, setIsSyncingViews] = useState(false); // 🔥 Estado para PostHog
+  const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false); // 🔥 Estado para RAG
 
   const handleLoadBanners = async () => {
     if (bannersConfig) return; 
@@ -2256,6 +2257,25 @@ export function SuperAdminPage() {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                     <h2 className="text-sk-md font-bold text-sk-text-1">Gestión de Noticias y Blog ({blogPostsAdmin?.length ?? 0})</h2>
                     <div className="flex gap-2">
+                      {/* 🔥 BOTÓN RAG - EMBEDDINGS */}
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={async () => {
+                          setIsGeneratingEmbeddings(true);
+                          const res = await generateBlogEmbeddings();
+                          alert(res.message);
+                          setIsGeneratingEmbeddings(false);
+                        }}
+                        isLoading={isGeneratingEmbeddings}
+                        className="border-sk-purple/50 text-sk-purple hover:border-sk-purple hover:bg-sk-purple/10 transition-colors"
+                        title="Convertir artículos a vectores IA para el Shark-Bot"
+                      >
+                        <Zap size={14} className={isGeneratingEmbeddings ? "mr-2 animate-pulse text-sk-accent" : "mr-2"} />
+                        Generar IA
+                      </Button>
+
+                      {/* BOTÓN POSTHOG */}
                       <Button 
                         variant="secondary" 
                         size="sm" 
@@ -2263,16 +2283,16 @@ export function SuperAdminPage() {
                           setIsSyncingViews(true);
                           const res = await syncBlogViewsFromPostHog();
                           alert(res.message);
-                          refresh(); // Recarga la tabla para mostrar los nuevos números
+                          refresh(); 
                           setIsSyncingViews(false);
                         }}
                         isLoading={isSyncingViews}
                         className="border-sk-gold/50 text-sk-gold hover:border-sk-gold hover:bg-sk-gold/10 transition-colors"
-                        title="Traer lecturas únicas exactas desde PostHog"
                       >
-                        {isSyncingViews ? <RefreshCw size={14} className="mr-2 animate-spin" /> : <RefreshCw size={14} className="mr-2" />}
+                        <RefreshCw size={14} className={isSyncingViews ? "mr-2 animate-spin" : "mr-2"} />
                         Sincronizar Visitas
                       </Button>
+
                       <Button variant="accent" size="sm" onClick={() => setEditingBlogId("new")}>
                         <Plus size={14} className="mr-1" /> Nuevo Artículo
                       </Button>
