@@ -240,6 +240,44 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
         ogType = "article";
       }
     } 
+    // Glosario: el título y la descripción deben existir en el HTML inicial,
+    // no depender de que el navegador ejecute SEOHead después de cargar React.
+    else if (/^\\/glosario\\/[^/]+\\/?$/.test(path)) {
+      const termSlug = canonicalPath.slice('/glosario/'.length);
+      const data: any = await fetchJson(
+        `glossary_terms?select=term,short_definition&slug=eq.${encodeURIComponent(termSlug)}&is_active=eq.true&limit=1`, key,
+      );
+      if (Array.isArray(data) && data.length === 0) {
+        return new Response('Término no encontrado', {
+          status: 404,
+          headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex' },
+        });
+      }
+      if (Array.isArray(data) && data[0]) {
+        title = `${data[0].term} — Glosario de Poker | Sharkania`;
+        description = data[0].short_definition || `Definición de ${data[0].term} en el glosario de póker de Sharkania.`;
+        ogType = 'article';
+      }
+    }
+    // Las fichas de liga tampoco deben heredar los metadatos de la portada.
+    else if (/^\\/leagues\\/[^/]+\\/?$/.test(path)) {
+      const leagueSlug = canonicalPath.slice('/leagues/'.length);
+      const data: any = await fetchJson(
+        `leagues?select=name,description&slug=eq.${encodeURIComponent(leagueSlug)}&is_demo=eq.false&limit=1`, key,
+      );
+      if (Array.isArray(data) && data.length === 0) {
+        return new Response('Liga no encontrada', {
+          status: 404,
+          headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex' },
+        });
+      }
+      if (Array.isArray(data) && data[0]) {
+        title = `${data[0].name} — Liga de Poker | Sharkania`;
+        description = data[0].description
+          ? String(data[0].description).slice(0, 180)
+          : `Resultados, torneos y ranking de ${data[0].name} en Sharkania.`;
+      }
+    }
     // Perfiles de Jugadores
     else if (path.startsWith('/ranking/') && path !== '/ranking/') {
       const playerSlug = path.replace('/ranking/', '').replace(/\/$/, '').split('/')[0];
