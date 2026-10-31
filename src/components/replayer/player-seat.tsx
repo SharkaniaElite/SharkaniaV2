@@ -39,7 +39,7 @@ const POS_CFG: Record<string, { color: string; bg: string; glow: string }> = {
 
 function initials(name: string): string {
   const p = name.trim().split(/[\s_\-.]+/);
-  if (p.length >= 2) return (p[0][0] + p[1][0]).toUpperCase();
+  if (p.length >= 2) return ((p[0]?.[0] ?? '') + (p[1]?.[0] ?? '')).toUpperCase();
   return name.slice(0, 2).toUpperCase();
 }
 
