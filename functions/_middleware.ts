@@ -64,7 +64,7 @@ function escapeSeoText(value: unknown): string {
 }
 
 function seoLink(prefix: string, slug: unknown): string {
-  return prefix + encodeURIComponent(String(slug ?? ""));
+  return escapeSeoText(prefix + encodeURIComponent(String(slug ?? "")));
 }
 
 function postCategoryPrefix(category: unknown): string {
