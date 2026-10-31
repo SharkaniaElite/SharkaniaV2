@@ -280,10 +280,10 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   let ogType = "website";
 
   // 2. Lógica de ruteo para buscar los datos exactos en Supabase
-  if (PAGE_META[path]) {
-    title = PAGE_META[path].title;
-    description = PAGE_META[path].desc;
-    image = `${SITE_URL}/og/page/${path.replace('/', '') || 'ranking'}`;
+  if (PAGE_META[canonicalPath]) {
+    title = PAGE_META[canonicalPath].title;
+    description = PAGE_META[canonicalPath].desc;
+    image = `${SITE_URL}/og/page/${canonicalPath.replace('/', '') || 'ranking'}`;
   } else {
     // Rutas dinámicas (Noticias, Blog, Promociones)
     const POST_PREFIXES = ['/blog/', '/noticias/', '/promociones/'];
