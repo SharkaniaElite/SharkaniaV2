@@ -128,3 +128,18 @@ test("hand view counting requires a session and prevents public counter inflatio
   assert.match(privateRls, /ENABLE ROW LEVEL SECURITY/);
   assert.match(app, /path="\/tools\/replayer\/h\/:id"/);
 });
+
+test("shared hand ownership is assigned server-side and browser writes are limited", () => {
+  const sql = readFileSync(
+    "supabase/migrations/20261031153006_secure_shared_hands_author_ownership_and_column_privileges_20261031.sql", "utf8"
+  );
+  const replayer = readFileSync("src/lib/replayer-engine.ts", "utf8");
+  assert.ok(sql.includes("ALTER COLUMN created_by SET DEFAULT auth.uid()"));
+  assert.ok(sql.includes("created_by = (SELECT auth.uid())"));
+  assert.ok(sql.includes('CREATE POLICY "Shared hands: insert only signed-in owner"'));
+  assert.ok(sql.includes("REVOKE ALL PRIVILEGES ON TABLE public.shared_hands"));
+  assert.ok(sql.includes("GRANT INSERT (hand_data, hand_summary)"));
+  assert.ok(sql.includes("GRANT SELECT ON TABLE public.shared_hands TO anon, authenticated"));
+  assert.ok(replayer.includes('.insert({ hand_data: hand, hand_summary: summary })'));
+  assert.ok(replayer.includes('supabase.rpc("increment_hand_views", { hand_id: id })'));
+});
