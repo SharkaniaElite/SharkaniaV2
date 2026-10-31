@@ -137,12 +137,20 @@ export async function syncBlogViewsFromPostHog(): Promise<{ success: boolean; me
     }
     const response = await fetch("/api/sync-blog-views", {
       method: "POST",
-      headers: { Authorization: `Bearer ${session.access_token}` },
+      headers: { Authorization: `Bearer ${session.access_token}`, Accept: "application/json" },
     });
-    const result = await response.json() as { success: boolean; message: string };
-    return result;
-  } catch {
-    return { success: false, message: "No se pudo conectar al servicio de sincronización." };
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      return { success: false, message: `El servidor devolvió HTTP ${response.status} sin JSON. No se confirmó la sincronización.` };
+    }
+    const result = await response.json() as { success?: boolean; message?: string };
+    return {
+      success: response.ok && result.success === true,
+      message: result.message || `Sincronización no completada (HTTP ${response.status}).`,
+    };
+  } catch (err) {
+    console.error("Error contacting blog sync endpoint", err instanceof Error ? err.name : "unknown");
+    return { success: false, message: "No se pudo completar la conexión con el servidor de sincronización." };
   }
 }
 
