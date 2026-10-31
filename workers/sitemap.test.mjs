@@ -9,7 +9,7 @@ const sample = {
   clubs: [{ slug: "osorno-poker", updated_at: "2026-10-17T00:00:00Z" }],
   leagues: [{ slug: "liga-octubre", updated_at: "2026-10-19T00:00:00Z" }],
   players: [{ slug: "jugador-1", updated_at: "2026-10-20T00:00:00Z" }],
-  tournaments: [{ id: "00000000-0000-4000-8000-000000000001", updated_at: "2026-10-18T00:00:00Z" }],
+  tournaments: [{ slug: "torneo-club-osorno", updated_at: "2026-10-18T00:00:00Z" }],
 };
 
 function mockFetch(input) {
@@ -31,7 +31,8 @@ test("publishes all eligible public sections with valid canonical routes", async
   assert.match(xml, /\/glosario\/turn<\/loc>/);
   assert.match(xml, /\/leagues\/liga-octubre<\/loc>/);
   assert.match(xml, /\/ranking\/jugador-1<\/loc>/);
-  assert.match(xml, /\/tournament\/00000000-0000-4000-8000-000000000001<\/loc>/);
+  assert.match(xml, /\/tournament\/torneo-club-osorno<\/loc>/);
+  assert.doesNotMatch(xml, /\/tournament\/00000000-0000-4000-8000-000000000001<\/loc>/);
   assert.doesNotMatch(xml, /sharkania\.com\/academy<\/loc>/);
   assert.doesNotMatch(xml, /sharkania\.com\/shark-tv<\/loc>/);
   assert.doesNotMatch(xml, /sharkania\.com\/tools\/quiz<\/loc>/);

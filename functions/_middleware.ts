@@ -136,6 +136,24 @@ async function buildVisibleSeoHtml(path: string, key: string): Promise<string> {
         "</h1><p>" + escapeSeoText(terms[0].short_definition) + "</p><section class='my-5'>" +
         escapeSeoText(terms[0].full_definition) + "</section></article>";
     }
+  } else if (/^\/tournament\/[^/]+$/.test(path)) {
+    const slug = path.slice("/tournament/".length);
+    const entries = await fetchJson(
+      "tournaments?select=name,description,start_datetime,game_type,currency,buy_in,results_uploaded&is_demo=eq.false&slug=eq." +
+      encodeURIComponent(slug) + "&limit=1", key,
+    );
+    if (Array.isArray(entries) && entries[0]) {
+      const tournament = entries[0];
+      const details = [
+        tournament.start_datetime ? "Fecha: " + String(tournament.start_datetime).slice(0, 10) : "",
+        tournament.game_type ? "Modalidad: " + tournament.game_type : "",
+        tournament.buy_in != null ? "Entrada: " + tournament.buy_in + " " + (tournament.currency || "") : "",
+      ].filter(Boolean);
+      content = "<article><h1 class='text-3xl font-bold mb-5'>" + escapeSeoText(tournament.name) +
+        "</h1><p class='text-lg my-4'>" + escapeSeoText(tournament.description) +
+        "</p><ul>" + details.map(detail => "<li>" + escapeSeoText(detail) + "</li>").join("") +
+        "</ul></article>";
+    }
   } else if (path === "/clubs" || path === "/leagues") {
     const isClub = path === "/clubs";
     const query = isClub
@@ -181,6 +199,28 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   const path = url.pathname;
   let canonicalPath = path === '/' ? '/' : path.replace(/\/$/, '');
   const isPrivate = /^\/(?:admin(?:\/|$)|dashboard(?:\/|$)|login(?:\/|$)|register(?:\/|$)|welcome(?:\/|$)|update-password(?:\/|$)|forgot-password(?:\/|$)|tools\/(?:quiz|calculadora-icm|simulador-elo|calculadora-banca|replayer)(?:\/|$))/.test(path);
+  // URLs con UUID de los sitemaps anteriores: redirigir al slug y mantener query.
+  const legacyUuid = canonicalPath.match(/^\/tournament\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
+  if (request.method === 'GET' && legacyUuid) {
+    const rows = await fetchJson(
+      "tournaments?select=slug&id=eq." + encodeURIComponent(legacyUuid[1]) +
+      "&is_demo=eq.false&limit=1",
+      env.SUPABASE_ANON_KEY,
+    );
+    if (Array.isArray(rows) && rows[0]?.slug) {
+      const target = new URL(SITE_URL + "/tournament/" + encodeURIComponent(rows[0].slug));
+      target.search = url.search;
+      return Response.redirect(target.toString(), 301);
+    }
+    if (Array.isArray(rows)) {
+      return new Response("Torneo no encontrado", {
+        status: 404, headers: { "content-type": "text/plain; charset=utf-8", "x-robots-tag": "noindex" },
+      });
+    }
+    return new Response("Datos temporalmente no disponibles", {
+      status: 503, headers: { "Retry-After": "300", "Cache-Control": "no-store" },
+    });
+  }
   if (request.method === 'GET' && (path === '/academy' || path === '/shark-tv')) {
     return Response.redirect(`${SITE_URL}${path === '/academy' ? '/academia' : '/tv'}`, 301);
   }
@@ -276,6 +316,26 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
         description = data[0].description
           ? String(data[0].description).slice(0, 180)
           : `Resultados, torneos y ranking de ${data[0].name} en Sharkania.`;
+      }
+    }
+    // Torneos: metadatos y HTML visibles desde la primera respuesta HTTP.
+    else if (canonicalPath.startsWith('/tournament/') && canonicalPath.slice('/tournament/'.length).length > 0 && canonicalPath.split('/').length === 3) {
+      const tournamentSlug = canonicalPath.slice('/tournament/'.length);
+      const data: any = await fetchJson(
+        "tournaments?select=name,description,results_uploaded&slug=eq." +
+        encodeURIComponent(tournamentSlug) + "&is_demo=eq.false&limit=1", key,
+      );
+      if (Array.isArray(data) && data.length === 0) {
+        return new Response("Torneo no encontrado", {
+          status: 404, headers: { "content-type": "text/plain; charset=utf-8", "x-robots-tag": "noindex" },
+        });
+      }
+      if (Array.isArray(data) && data[0]) {
+        title = data[0].name + " — " + (data[0].results_uploaded ? "Resultados" : "Torneo") + " | Sharkania";
+        description = data[0].description
+          ? String(data[0].description).slice(0, 180)
+          : "Información, resultados y calendario del torneo " + data[0].name + " en Sharkania.";
+        ogType = "article";
       }
     }
     // Perfiles de Jugadores
