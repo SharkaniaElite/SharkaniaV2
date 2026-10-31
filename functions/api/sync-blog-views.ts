@@ -2,7 +2,6 @@
 interface Env {
   SUPABASE_URL: string;
   SUPABASE_ANON_KEY: string;
-  VITE_POSTHOG_PERSONAL_API_KEY?: string; // Temporary rollback-only fallback, remove after live verification.
   POSTHOG_PERSONAL_API_KEY?: string;
   VITE_POSTHOG_PROJECT_ID?: string;
   POSTHOG_PROJECT_ID?: string;
@@ -30,7 +29,7 @@ export const onRequestPost = async ({ request, env }: FunctionContext): Promise<
     return json({ success: false, message: "No autorizado para sincronizar visitas." }, 403);
   }
 
-  const posthogKey = env.POSTHOG_PERSONAL_API_KEY || env.VITE_POSTHOG_PERSONAL_API_KEY;
+  const posthogKey = env.POSTHOG_PERSONAL_API_KEY;
   const projectId = env.POSTHOG_PROJECT_ID || env.VITE_POSTHOG_PROJECT_ID;
   // Use the PostHog query API host, never the public SDK ingestion host (us.i.posthog.com).
   const host = (env.POSTHOG_HOST || "us.posthog.com")
