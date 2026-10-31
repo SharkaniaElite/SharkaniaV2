@@ -217,7 +217,7 @@ test("retired real-money checkout is absent while the Shark Coins shop remains",
 
 test("academy lesson progress uses least-privilege column grants", () => {
   const sql = readFileSync(
-    "supabase/migrations/20261031174751_restrict_academy_lesson_progress_columns_20261031.sql",
+    "supabase/migrations/20261031175040_restrict_academy_lesson_progress_columns_20261031.sql",
     "utf8"
   );
   const api = readFileSync("src/lib/api/academy.ts", "utf8");
