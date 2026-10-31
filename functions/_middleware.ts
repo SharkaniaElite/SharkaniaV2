@@ -52,6 +52,15 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   const url = new URL(request.url);
   const path = url.pathname;
 
+  // HTTP 410 evita que las URLs retiradas se interpreten como páginas válidas
+  // por el fallback SPA (un origen habitual de errores Soft 404).
+  if (/^\/(?:lap-admin(?:\/.*)?|masterclass-latinallin|pro-dashboard|admin\/academy)\/?$/.test(path)) {
+    return new Response(
+      '<!doctype html><html lang="es"><meta charset="utf-8"><title>Página retirada | Sharkania</title><meta name="robots" content="noindex"><main><h1>Esta sección ya no está disponible</h1><p><a href="/">Volver a Sharkania</a></p></main></html>',
+      { status: 410, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300", "x-robots-tag": "noindex" } },
+    );
+  }
+
   // 1. Obtener el index.html generado por Vite
   const response = await next();
 
