@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { transform } from "esbuild";
 
 const handler = readFileSync("supabase/functions/admin-email-confirmations/index.ts", "utf8");
-const migration = readFileSync("supabase/migrations/20261031195046_admin_email_verification_reminder_limits.sql", "utf8");
+const migration = readFileSync("supabase/migrations/20261031195701_admin_email_verification_reminder_limits.sql", "utf8");
 const adminPage = readFileSync("src/pages/super-admin.tsx", "utf8");
 const config = readFileSync("supabase/config.toml", "utf8");
 
