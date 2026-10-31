@@ -79,7 +79,7 @@ function getSeatPositions(n: number): { top: number; left: number }[] {
       { top: 76, left: 96 },
     ],
   };
-  return pos[n] ?? pos[6];
+  return pos[n] ?? pos[6] ?? [];
 }
 
 function fmtPot(n: number): string {
@@ -104,7 +104,7 @@ export function PokerTable({ state, className = "" }: PokerTableProps) {
   const activeIdx = currentStreet
     && currentActionIndex >= 0
     && currentActionIndex < currentStreet.actions.length
-    ? currentStreet.actions[currentActionIndex].playerIndex
+    ? currentStreet.actions[currentActionIndex]?.playerIndex ?? -1
     : -1;
 
   const lastActions = players.map((_, idx) => {

@@ -11,7 +11,6 @@ export function FlagIcon({
   countryCode,
   size = 18,
   className,
-  showCode = false,
 }: FlagIconProps) {
   if (!countryCode) {
     return <span className={className}>🌍</span>;

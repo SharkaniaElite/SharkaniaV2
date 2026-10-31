@@ -24,7 +24,7 @@ type PlayerMission = {
 };
 
 export function MissionsPanel() {
-  const { user, refreshProfile } = useAuthStore();
+  const { user } = useAuthStore();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [playerProgress, setPlayerProgress] = useState<Record<string, PlayerMission>>({});
   const [loading, setLoading] = useState(true);

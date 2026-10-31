@@ -140,7 +140,7 @@ export function MissionsAdminTab() {
               <Check size={16} className="mr-2" /> Aprobar
             </Button>
             <Button 
-              variant="outline" 
+              variant="secondary" 
               onClick={() => handleReject(mission.id)}
               disabled={processingId !== null}
               className="flex-1 md:w-40 border-sk-red/30 text-sk-red hover:bg-sk-red/10"

@@ -74,7 +74,7 @@ export function EloChart({ history, isLoading }: EloChartProps) {
               color: "#fafafa",
             }}
             labelStyle={{ color: "#a1a1aa" }}
-            formatter={(value: number) => [`${value}`, "ELO"]}
+            formatter={(value) => [String(value ?? ""), "ELO"]}
           />
           <Line
             type="monotone"
