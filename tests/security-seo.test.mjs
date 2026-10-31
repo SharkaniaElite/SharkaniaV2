@@ -93,3 +93,23 @@ test("PostHog sync performs a single atomic authorized RPC without per-post PATC
   assert.match(api, /response\.headers\.get\("content-type"\)/);
   assert.match(api, /response\.ok && result\.success === true/);
 });
+
+test("privileged reward functions enforce server-side verification and mission scope", () => {
+  const base = "supabase/migrations/";
+  const missions = readFileSync(base + "20261031145349_enforce_verified_auto_mission_claims_only_20261031.sql", "utf8");
+  const permissions = readFileSync(base + "20261031145511_secure_manual_mission_requests_and_private_evidence_20261031.sql", "utf8");
+  const academy = readFileSync(base + "20261031145750_validate_academy_quizzes_and_serialize_rewards_20261031.sql", "utf8");
+  const rows = readFileSync(base + "20261031145859_secure_academy_reward_tables_against_client_bypass_20261031.sql", "utf8");
+  assert.match(missions, /validation_type = 'auto'/);
+  assert.match(missions, /Esta misión requiere revisión administrativa/);
+  assert.match(permissions, /status='pending'/);
+  assert.match(permissions, /validation_type='manual'/);
+  assert.doesNotMatch(permissions, /CREATE POLICY "Permitir lectura publica"/);
+  assert.match(academy, /quiz_failed/);
+  assert.match(academy, /module_locked/);
+  assert.match(academy, /FOR UPDATE/);
+  assert.match(academy, /WHERE id = p_player_mission_id AND status = 'pending'/);
+  assert.match(rows, /guard_academy_lesson_rewards/);
+  assert.match(rows, /REVOKE INSERT,UPDATE,DELETE ON public\.academy_user_modules/);
+  assert.match(rows, /REVOKE DELETE ON public\.academy_user_lessons/);
+});
