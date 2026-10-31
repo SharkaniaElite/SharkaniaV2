@@ -90,6 +90,8 @@ test("three standalone promotion landings and an existing news article stay HTTP
   for (const slug of ["freeroll-diario", "ignition-bonus", "coinpoker"]) {
     const response = await middleware(makeContext("/promociones/" + slug));
     assert.equal(response.status, 200, slug);
+    const withSlash = await middleware(makeContext("/promociones/" + slug + "/"));
+    assert.equal(withSlash.status, 200, slug + " with trailing slash");
   }
   const news = await middleware(makeContext("/noticias/valid-news"));
   assert.equal(news.status, 200);
