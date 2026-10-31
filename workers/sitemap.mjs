@@ -67,7 +67,7 @@ export async function buildSitemap(key, fetcher = fetch) {
     fetchAll("clubs", "slug,updated_at", { is_approved: "eq.true", is_demo: "eq.false" }, key, fetcher),
     fetchAll("leagues", "slug,updated_at", { is_demo: "eq.false" }, key, fetcher),
     fetchAll("players", "slug,updated_at", { is_demo: "eq.false", total_tournaments: "gte.10" }, key, fetcher),
-    fetchAll("tournaments", "id,updated_at", { is_demo: "eq.false", results_uploaded: "eq.true" }, key, fetcher),
+    fetchAll("tournaments", "slug,updated_at", { is_demo: "eq.false", results_uploaded: "eq.true" }, key, fetcher),
   ]);
 
   const urls = new Map();
@@ -86,8 +86,8 @@ export async function buildSitemap(key, fetcher = fetch) {
   for (const club of clubs) if (club.slug) add(`/clubs/${encodeURIComponent(club.slug)}`, club.updated_at);
   for (const league of leagues) if (league.slug) add(`/leagues/${encodeURIComponent(league.slug)}`, league.updated_at);
   for (const player of players) if (player.slug) add(`/ranking/${encodeURIComponent(player.slug)}`, player.updated_at);
-  // The actual React Router path is /tournament/:id (UUID), not a tournament slug.
-  for (const t of tournaments) if (t.id) add(`/tournament/${encodeURIComponent(t.id)}`, t.updated_at);
+  // React Router uses :id as a parameter name, but the detail page resolves by slug.
+  for (const t of tournaments) if (t.slug) add(`/tournament/${encodeURIComponent(t.slug)}`, t.updated_at);
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${Array.from(urls, ([path, lastmod]) => xmlUrl(path, lastmod)).join("\n")}\n</urlset>\n`;
 }
