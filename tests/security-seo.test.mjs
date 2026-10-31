@@ -143,3 +143,17 @@ test("shared hand ownership is assigned server-side and browser writes are limit
   assert.ok(replayer.includes('.insert({ hand_data: hand, hand_summary: summary })'));
   assert.ok(replayer.includes('supabase.rpc("increment_hand_views", { hand_id: id })'));
 });
+
+test("replayer uses authenticated share RPC rather than publicly selecting hand data", () => {
+  const migration=readFileSync("supabase/migrations/20261031154647_prepare_private_shared_hand_lookup_and_strong_ids_20261031.sql","utf8");
+  const replayer=readFileSync("src/lib/replayer-engine.ts","utf8");
+  const load=replayer.slice(replayer.indexOf("export async function loadHandFromShare"),replayer.indexOf("// ── Mantener compatibilidad"));
+  assert.match(migration,/ALTER COLUMN id SET DEFAULT/);
+  assert.match(migration,/SECURITY DEFINER/);
+  assert.match(migration,/auth.uid\(\)/);
+  assert.match(migration,/REVOKE EXECUTE ON FUNCTION public\.get_shared_hand/);
+  assert.match(migration,/GRANT EXECUTE ON FUNCTION public\.get_shared_hand\(text\)\s+TO authenticated, service_role/);
+  assert.match(load,/supabase\.rpc\("get_shared_hand", \{ p_hand_id: id \}\)/);
+  assert.doesNotMatch(load,/\.from\("shared_hands"\)/);
+  assert.match(load,/increment_hand_views/);
+});
