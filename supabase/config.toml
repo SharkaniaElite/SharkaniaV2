@@ -1,6 +1,6 @@
 [functions.posthog-stats]
 enabled = true
-verify_jwt = false
+verify_jwt = false # Auth and super_admin role are explicitly verified inside index.ts
 import_map = "./functions/posthog-stats/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx

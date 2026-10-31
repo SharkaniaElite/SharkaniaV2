@@ -241,3 +241,19 @@ test("web database roles cannot truncate tables or create triggers", () => {
   assert.doesNotMatch(sql, /REVOKE (?:SELECT|INSERT|UPDATE|DELETE)/);
   assert.doesNotMatch(sql, /DROP TABLE|TRUNCATE TABLE|DELETE FROM/);
 });
+
+test("PostHog privileged stats require an active super-admin session before vendor queries", () => {
+  const source = readFileSync("supabase/functions/posthog-stats/index.ts", "utf8");
+  assert.match(source, /req\.headers\.get\("Authorization"\)/);
+  assert.match(source, /\/auth\/v1\/user/);
+  assert.match(source, /\/rest\/v1\/rpc\/is_super_admin/);
+  assert.match(source, /isAdmin !== true/);
+  assert.match(source, /json\(401,/);
+  assert.match(source, /json\(403,/);
+  assert.match(source, /https:\/\/us\.posthog\.com\/api\/projects/);
+  assert.doesNotMatch(source, /https:\/\/us\.i\.posthog\.com\/api\/projects/);
+  assert.match(source, /Object\.hasOwn\(rangeMap, requestedRange\)/);
+  assert.ok(source.indexOf("isAdmin !== true") < source.indexOf("posthogResponse = await fetch("));
+  const config = readFileSync("supabase/config.toml", "utf8");
+  assert.match(config, /\[functions\.posthog-stats\]/);
+});
