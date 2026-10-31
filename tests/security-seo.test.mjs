@@ -41,3 +41,11 @@ test("new article slugs handle accents without renaming existing posts", () => {
   assert.match(editor, /\.normalize\('NFD'\)/);
   assert.equal("Póker y estrategia".normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-"), "poker-y-estrategia");
 });
+
+test("signup never trusts a browser-selected role or marks Ignition verified", () => {
+  const src = readFileSync("src/lib/api/auth.ts", "utf8");
+  assert.match(src, /_requestedRole: UserRole/);
+  assert.doesNotMatch(src, /\n\s*role,\s*\n/);
+  assert.doesNotMatch(src, /updatePayload\.ignition_status\s*=\s*['"]verified/);
+  assert.doesNotMatch(src, /updatePayload\.ignition_linked_at\s*=/);
+});
