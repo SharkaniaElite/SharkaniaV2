@@ -244,14 +244,14 @@ export function RoomProfilerPage() {
           {started && !finished && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <h2 className="text-sk-xl sm:text-2xl font-extrabold text-sk-text-1 mb-2 leading-tight">
-                {QUESTIONS[currentQ].title}
+                {QUESTIONS[currentQ]?.title}
               </h2>
               <p className="text-sk-sm text-sk-text-3 mb-8">
-                {QUESTIONS[currentQ].subtitle}
+                {QUESTIONS[currentQ]?.subtitle}
               </p>
 
               <div className="space-y-3">
-                {QUESTIONS[currentQ].answers.map((answer, idx) => {
+                {(QUESTIONS[currentQ]?.answers ?? []).map((answer, idx) => {
                   const Icon = answer.icon;
                   return (
                     <button

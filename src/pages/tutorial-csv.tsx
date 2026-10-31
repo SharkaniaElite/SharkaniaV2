@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
-import { FileSpreadsheet, CheckCircle2, AlertTriangle, ArrowLeft, Download } from "lucide-react";
+import { FileSpreadsheet, CheckCircle2, AlertTriangle, ArrowLeft } from "lucide-react";
 
 export function TutorialCsvPage() {
   return (

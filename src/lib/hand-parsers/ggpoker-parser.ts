@@ -15,7 +15,6 @@ import type {
   GameType,
   TableSize,
   Street,
-  ActionType,
   HandResult,
 } from "../../types/replayer";
 import { assignPositions } from "../replayer-engine";
@@ -85,9 +84,12 @@ function splitHands(text: string): string[] {
 function parseSingleHand(text: string): HandHistory | null {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   if (lines.length < 5) return null;
+  const headerLine = lines[0];
+  const tableLine = lines[1];
+  if (!headerLine || !tableLine) return null;
 
   // Line 1: Poker Hand #RC4259572857: Hold'em No Limit ($0.01/$0.02) - 2026/01/31 16:14:54
-  const headerMatch = lines[0].match(
+  const headerMatch = headerLine.match(
     /Poker Hand #([^:]+):\s*(.*?)\s*\(([^/]+)\/([^)]+)\)\s*-\s*(.*)/
   );
   if (!headerMatch) return null;
@@ -97,6 +99,8 @@ function parseSingleHand(text: string): HandHistory | null {
   const sbStr = headerMatch[3];
   const bbStr = headerMatch[4];
   const timestamp = headerMatch[5];
+  // Malformed or truncated imported headers must not create invalid hands.
+  if (!handNumber || !gameStr || !sbStr || !bbStr || !timestamp) return null;
 
   const smallBlind = parseAmount(sbStr);
   const bigBlind = parseAmount(bbStr);
@@ -107,15 +111,14 @@ function parseSingleHand(text: string): HandHistory | null {
   else if (gameStr.includes("Omaha")) gameType = "PLO";
   else if (gameStr.includes("6+") || gameStr.includes("Short")) gameType = "6+";
 
-  const isTournament = gameStr.includes("Tournament") || lines[0].includes("Tournament");
+  const isTournament = gameStr.includes("Tournament") || headerLine.includes("Tournament");
 
   // Line 2: Table 'RushAndCash1118015' 6-max Seat #1 is the button
-  const tableMatch = lines[1].match(
+  const tableMatch = tableLine.match(
     /Table '([^']+)'\s+(\d+)-max\s+Seat #(\d+) is the button/
   );
   const tableName = tableMatch?.[1] ?? "Unknown";
-  const tableSize = (tableMatch ? parseInt(tableMatch[2]) : 6) as TableSize;
-  const buttonSeat = tableMatch ? parseInt(tableMatch[3]) : 1;
+  const buttonSeat = parseInt(tableMatch?.[3] ?? "1", 10);
 
   // Parse seats: Seat N: PlayerName ($X.XX in chips)
   const players: PlayerState[] = [];
@@ -123,12 +126,12 @@ function parseSingleHand(text: string): HandHistory | null {
   let lineIdx = 2;
 
   while (lineIdx < lines.length) {
-    const seatMatch = lines[lineIdx].match(
+    const seatMatch = (lines[lineIdx] ?? "").match(
       /Seat (\d+): (.+?) \([$]?([\d.]+)\s+in chips\)/
     );
-    if (!seatMatch) break;
+    if (!seatMatch?.[1] || !seatMatch[2] || !seatMatch[3]) break;
 
-    const seatNum = parseInt(seatMatch[1]);
+    const seatNum = parseInt(seatMatch[1], 10);
     const name = seatMatch[2].trim();
     const stack = parseFloat(seatMatch[3]);
 
@@ -217,14 +220,15 @@ function parseSingleHand(text: string): HandHistory | null {
       // "raises $0.03 to $0.05" — we want the "to" amount
       const toMatch = actionStr.match(/to\s+[$]?([\d.]+)/);
       const raiseMatch = actionStr.match(/raises\s+[$]?([\d.]+)/);
-      const amount = toMatch ? parseAmount(toMatch[1]) : (raiseMatch ? parseAmount(raiseMatch[1]) : 0);
+      const amount = toMatch?.[1] ? parseAmount(toMatch[1]) : (raiseMatch?.[1] ? parseAmount(raiseMatch[1]) : 0);
       return { playerIndex, type: isAllIn ? "all-in" : "raise", amount, isAllIn, street: currentStreet };
     }
     if (actionStr.startsWith("shows")) {
       const cardsMatch = actionStr.match(/\[([^\]]+)\]/);
-      if (cardsMatch) {
+      if (cardsMatch?.[1]) {
         const cards = parseCardList(cardsMatch[1]);
-        players[playerIndex].holeCards = cards;
+        const player = players[playerIndex];
+        if (player) player.holeCards = cards;
         result.showdownHands.push({
           playerIndex,
           cards,
@@ -243,15 +247,17 @@ function parseSingleHand(text: string): HandHistory | null {
   // Continue parsing from where we left off
   for (; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx];
+    if (!line) continue;
 
     // Dealt to Hero [2h 5c]
     if (line.startsWith("Dealt to ")) {
       const dealtMatch = line.match(/Dealt to (.+?)\s*(\[([^\]]+)\])?$/);
-      if (dealtMatch) {
+      if (dealtMatch?.[1]) {
         const name = dealtMatch[1].trim();
         const pidx = findPlayer(name);
         if (pidx >= 0 && dealtMatch[3]) {
-          players[pidx].holeCards = parseCardList(dealtMatch[3]);
+          const player = players[pidx];
+          if (player) player.holeCards = parseCardList(dealtMatch[3]);
         }
       }
       continue;
@@ -270,7 +276,7 @@ function parseSingleHand(text: string): HandHistory | null {
       currentActions = [];
       currentStreet = "flop";
       const cardsMatch = line.match(/\[([^\]]+)\]/);
-      if (cardsMatch) currentCommunityCards = parseCardList(cardsMatch[1]);
+      if (cardsMatch?.[1]) currentCommunityCards = parseCardList(cardsMatch[1]);
       continue;
     }
 
@@ -280,7 +286,7 @@ function parseSingleHand(text: string): HandHistory | null {
       currentActions = [];
       currentStreet = "turn";
       const allCards = line.match(/\[([^\]]+)\]\s*\[([^\]]+)\]/);
-      if (allCards) {
+      if (allCards?.[1] && allCards[2]) {
         currentCommunityCards = [...parseCardList(allCards[1]), ...parseCardList(allCards[2])];
       }
       continue;
@@ -292,7 +298,7 @@ function parseSingleHand(text: string): HandHistory | null {
       currentActions = [];
       currentStreet = "river";
       const allCards = line.match(/\[([^\]]+)\]\s*\[([^\]]+)\]/);
-      if (allCards) {
+      if (allCards?.[1] && allCards[2]) {
         currentCommunityCards = [...parseCardList(allCards[1]), ...parseCardList(allCards[2])];
       }
       continue;
@@ -322,7 +328,7 @@ function parseSingleHand(text: string): HandHistory | null {
     // "PlayerName collected $X.XX from pot"
     if (line.includes("collected") && line.includes("from pot")) {
       const collectMatch = line.match(/^(.+?) collected \$?([\d.]+) from/);
-      if (collectMatch) {
+      if (collectMatch?.[1] && collectMatch[2]) {
         const pidx = findPlayer(collectMatch[1].trim());
         if (pidx >= 0) {
           result.winners.push({
@@ -358,7 +364,7 @@ function parseSingleHand(text: string): HandHistory | null {
   }
 
   // Determine currency
-  const currency = lines[0].includes("$") ? "USD" : lines[0].includes("€") ? "EUR" : "chips";
+  const currency = headerLine.includes("$") ? "USD" : headerLine.includes("€") ? "EUR" : "chips";
 
   const hand: HandHistory = {
     id: crypto.randomUUID(),

@@ -10,7 +10,8 @@ import type { ShopProduct } from "../../types";
 
 interface FeaturePaywallProps {
   featureKey: string;
-  // May be rendered as a standalone upsell without protected content.\n  children?: React.ReactNode;
+  // May be rendered as a standalone upsell without protected content.
+  children?: React.ReactNode;
   freePreview?: React.ReactNode;
   title?: string;
   description?: string;
