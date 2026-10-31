@@ -298,7 +298,7 @@ test("email queue blocks browser roles at SQL GRANT layer as well as RLS", () =>
 });
 
 test("club applications are pending-only and rate-limited at the database INSERT layer", () => {
-  const sql = readFileSync("supabase/migrations/20261031191705_guard_club_registration_submissions_20261031.sql", "utf8");
+  const sql = readFileSync("supabase/migrations/20261031192103_guard_club_registration_submissions_20261031.sql", "utf8");
   assert.match(sql, /BEFORE INSERT ON public\.club_registration_requests/);
   assert.match(sql, /NEW\.user_id IS DISTINCT FROM v_actor/);
   assert.match(sql, /NEW\.status IS DISTINCT FROM 'pending'::public\.request_status/);
