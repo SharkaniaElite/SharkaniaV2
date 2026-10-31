@@ -232,7 +232,7 @@ test("academy lesson progress uses least-privilege column grants", () => {
 
 test("web database roles cannot truncate tables or create triggers", () => {
   const sql = readFileSync(
-    "supabase/migrations/20261031175418_revoke_web_roles_destructive_table_privileges_20261031.sql",
+    "supabase/migrations/20261031175603_revoke_web_roles_destructive_table_privileges_20261031.sql",
     "utf8"
   );
   assert.match(sql, /c\.relkind IN \('r', 'p'\)/);
