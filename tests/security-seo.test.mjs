@@ -296,3 +296,18 @@ test("email queue blocks browser roles at SQL GRANT layer as well as RLS", () =>
   assert.match(sql, /FROM PUBLIC, anon, authenticated/);
   assert.doesNotMatch(sql, /(?:REVOKE[^;]*FROM service_role|DELETE FROM public\.email_queue|DROP TABLE)/);
 });
+
+test("club applications are pending-only and rate-limited at the database INSERT layer", () => {
+  const sql = readFileSync("supabase/migrations/20261031192103_guard_club_registration_submissions_20261031.sql", "utf8");
+  assert.match(sql, /BEFORE INSERT ON public\.club_registration_requests/);
+  assert.match(sql, /NEW\.user_id IS DISTINCT FROM v_actor/);
+  assert.match(sql, /NEW\.status IS DISTINCT FROM 'pending'::public\.request_status/);
+  assert.match(sql, /NEW\.admin_notes IS NOT NULL OR NEW\.resolved_at IS NOT NULL/);
+  assert.match(sql, /NEW\.created_at := pg_catalog\.now\(\)/);
+  assert.match(sql, /pg_catalog\.pg_advisory_xact_lock\(742831, pg_catalog\.hashtext\(v_actor::text\)\)/);
+  assert.match(sql, /v_recent >= 3/);
+  assert.match(sql, /v_pending >= 2/);
+  assert.match(sql, /SET search_path TO ''/);
+  assert.doesNotMatch(sql, /(?:UPDATE|DELETE|TRUNCATE) public\.club_registration_requests/);
+  assert.doesNotMatch(sql, /GRANT .* TO (?:anon|authenticated)/);
+});
