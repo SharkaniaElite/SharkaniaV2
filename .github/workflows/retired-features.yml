@@ -1,0 +1,21 @@
+name: Validate retired feature cleanup
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify preserved core paths and removed references
+        run: node --test tests/retired-features.test.mjs
+      - name: Validate Vite bundle and imports
+        run: npx vite build
