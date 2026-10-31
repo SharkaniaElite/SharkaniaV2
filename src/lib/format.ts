@@ -8,7 +8,7 @@ export function formatElo(elo: number): string {
   return Math.round(elo).toLocaleString("en-US");
 }
 
-export function formatCurrency(amount: number, currency: string = "USD"): string {
+export function formatCurrency(amount: number, _currency: string = "USD"): string {
   if (amount === 0) return "FREE";
   return `$${amount.toLocaleString("en-US", { minimumFractionDigits: amount % 1 === 0 ? 0 : 2 })}`;
 }
