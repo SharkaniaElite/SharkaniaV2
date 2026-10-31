@@ -230,9 +230,14 @@ export function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                autoComplete="new-password"
+                aria-describedby="register-password-hint"
                 className={inputClass}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Contraseña única y segura"
               />
+              <p id="register-password-hint" className="text-sk-xs text-sk-text-3 mt-1.5">
+                Usa una contraseña única, idealmente de 16 caracteres o más. Por seguridad, no se permiten contraseñas comunes o filtradas.
+              </p>
             </div>
 
             <div>

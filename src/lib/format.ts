@@ -36,6 +36,18 @@ export function calcRoi(prizeWon: number, buyInsSpent: number): number {
 export function translateAuthError(message: string): string {
   const msg = message.toLowerCase();
   
+  // Supabase Auth rejects common/leaked passwords with HTTP 422. Give the
+  // user an actionable explanation instead of the generic unexpected error.
+  if (
+    msg.includes("known to be weak") ||
+    msg.includes("weak and easy to guess") ||
+    msg.includes("weak_password") ||
+    msg.includes("known to be leaked") ||
+    msg.includes("found in a data breach") ||
+    msg.includes("password has been compromised")
+  ) {
+    return "Esta contraseña es demasiado común, fácil de adivinar o ha sido filtrada. Elige una contraseña nueva y única, idealmente de 16 caracteres o más.";
+  }
   if (msg.includes("invalid login credentials")) return "Email o contraseña incorrectos.";
   if (msg.includes("user already registered")) return "Este correo ya está registrado.";
   if (msg.includes("password should be at least 6 characters")) return "La contraseña debe tener al menos 6 caracteres.";
