@@ -127,7 +127,7 @@ async function buildVisibleSeoHtml(path: string, key: string): Promise<string> {
           seoLink("/glosario/", term.slug) + "'>" + escapeSeoText(term.term) +
           "</a></dt><dd>" + escapeSeoText(term.short_definition) + "</dd></div>").join("") + "</dl>";
     }
-    else if (canonicalPath.startsWith('/glosario/') && canonicalPath.slice('/glosario/'.length).length > 0 && canonicalPath.split('/').length === 3) {
+  } else if (/^\/glosario\/[^/]+$/.test(path)) {
     const slug = path.slice("/glosario/".length);
     const terms = await fetchJson("glossary_terms?select=term,short_definition,full_definition&is_active=eq.true&slug=eq." +
       encodeURIComponent(slug) + "&limit=1", key);
@@ -149,7 +149,7 @@ async function buildVisibleSeoHtml(path: string, key: string): Promise<string> {
           seoLink(path + "/", item.slug) + "'>" + escapeSeoText(item.name) + "</a></h2><p>" +
           escapeSeoText(item.description).slice(0, 1800) + "</p></article>").join("") + "</section>";
     }
-    else if (canonicalPath.startsWith('/leagues/') && canonicalPath.slice('/leagues/'.length).length > 0 && canonicalPath.split('/').length === 3) {
+  } else if (/^\/(?:clubs|leagues)\/[^/]+$/.test(path)) {
     const isClub = path.startsWith("/clubs/");
     const slug = path.split("/")[2];
     const query = (isClub ? "clubs" : "leagues") + "?select=name,description&slug=eq." +
@@ -242,7 +242,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
     } 
     // Glosario: el título y la descripción deben existir en el HTML inicial,
     // no depender de que el navegador ejecute SEOHead después de cargar React.
-    else if (/^\\/glosario\\/[^/]+\\/?$/.test(path)) {
+    else if (canonicalPath.startsWith('/glosario/') && canonicalPath.slice('/glosario/'.length).length > 0 && canonicalPath.split('/').length === 3) {
       const termSlug = canonicalPath.slice('/glosario/'.length);
       const data: any = await fetchJson(
         `glossary_terms?select=term,short_definition&slug=eq.${encodeURIComponent(termSlug)}&is_active=eq.true&limit=1`, key,
@@ -260,7 +260,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
       }
     }
     // Las fichas de liga tampoco deben heredar los metadatos de la portada.
-    else if (/^\\/leagues\\/[^/]+\\/?$/.test(path)) {
+    else if (canonicalPath.startsWith('/leagues/') && canonicalPath.slice('/leagues/'.length).length > 0 && canonicalPath.split('/').length === 3) {
       const leagueSlug = canonicalPath.slice('/leagues/'.length);
       const data: any = await fetchJson(
         `leagues?select=name,description&slug=eq.${encodeURIComponent(leagueSlug)}&is_demo=eq.false&limit=1`, key,
