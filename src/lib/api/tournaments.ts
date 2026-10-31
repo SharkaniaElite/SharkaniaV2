@@ -138,7 +138,14 @@ export async function getTournamentById(id: string): Promise<TournamentWithDetai
 
 export async function getTournamentBySlug(slug: string): Promise<TournamentWithDetails | null> {
   const { data, error } = await supabase.from("tournaments").select("*, leagues(id, name, slug), poker_rooms(name)").eq("slug", slug).single();
-  if (error) return error.code === "PGRST116" ? null : (function() { throw error; })();
+  if (error) {
+    if (error.code === "PGRST116") {
+      // Preserve existing links that used the tournament UUID while canonical links use slugs.
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+      return isUuid ? getTournamentById(slug) : null;
+    }
+    throw error;
+  }
   if (!data) return null;
   const attached = await attachClubsToTournaments([data]);
   return attached[0] || null;
