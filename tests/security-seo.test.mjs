@@ -261,7 +261,7 @@ test("PostHog privileged stats require an active super-admin session before vend
 test("Ignition onboarding waits for login and only creates pending links", () => {
   const page = readFileSync("src/pages/ignition-championship.tsx", "utf8");
   const auth = readFileSync("src/lib/api/auth.ts", "utf8");
-  const migration = readFileSync("supabase/migrations/20261031180919_record_ignition_signup_as_pending_20261031.sql", "utf8");
+  const migration = readFileSync("supabase/migrations/20261031181112_record_ignition_signup_as_pending_20261031.sql", "utf8");
   assert.equal((page.match(/check_ignition_duplicate/g) || []).length, 1);
   assert.ok(page.indexOf("signInWithPassword") < page.indexOf('supabase.rpc("check_ignition_duplicate"'));
   assert.match(page, /if \(duplicateError\) throw duplicateError/);
