@@ -270,3 +270,33 @@ test("untrusted or invalid winner amounts cannot mint chips at completion", () =
     assert.deepEqual(done.players.map(p => p.currentStack), prior.players.map(p => p.currentStack));
   }
 });
+
+test("untrusted action chip amounts cannot corrupt stacks or pots", () => {
+  const original = ggpokerParser.parse(handText)[0];
+  assert.ok(original);
+  for (const corruptedValue of [Number.NaN, Number.POSITIVE_INFINITY, -10]) {
+    for (const type of ["post-sb", "post-bb", "raise", "call", "bet", "return-uncalled"]) {
+      const hand = {
+        ...original,
+        streets: original.streets.map(street => ({
+          ...street,
+          actions: street.actions.map(a => ({ ...a })),
+        })),
+      };
+      const action = hand.streets.flatMap(s => s.actions).find(a => a.type === type);
+      if (!action) continue;
+      action.amount = corruptedValue;
+      let state = initReplayState(hand);
+      for (let i = 0; i < getTotalSteps(hand); i++) state = stepForward(state);
+      for (const player of state.players) {
+        assert.ok(Number.isFinite(player.currentStack), type + " stack must be finite");
+        assert.ok(Number.isFinite(player.totalInvested), type + " contributions must be finite");
+        assert.ok(player.currentStack >= 0, type + " must not overdraft stack");
+        assert.ok(player.totalInvested >= 0, type + " must not create negative bets");
+      }
+      assert.ok(Number.isFinite(state.pot.totalPot), type + " total must be finite");
+      assert.ok(state.pot.totalPot >= 0, type + " pot must not be negative");
+      approximately(state.pot.totalPot, state.players.reduce((n, p) => n + p.totalInvested, 0));
+    }
+  }
+});

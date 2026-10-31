@@ -113,6 +113,10 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
   // Skip that action rather than crashing the entire replay.
   if (!player) return state;
 
+  // Imported/shared JSON is untrusted at runtime despite its TypeScript type.
+  // Ignore negative, infinite and NaN chip amounts before stack math.
+  const amount = Number.isFinite(action.amount) ? Math.max(0, action.amount) : 0;
+
   switch (action.type) {
     case "fold":
       player.isFolded = true;
@@ -123,7 +127,7 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
       break;
 
     case "call": {
-      const toCall = Math.min(action.amount, player.currentStack);
+      const toCall = Math.min(amount, player.currentStack);
       player.currentStack -= toCall;
       player.currentBet += toCall;
       player.totalInvested += toCall;
@@ -137,8 +141,8 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
       // total amount "to" on this street, including chips already posted
       // by this player (for example, their blind or an earlier raise).
       const extraChips = action.type === "raise"
-        ? Math.max(0, action.amount - player.currentBet)
-        : action.amount;
+        ? Math.max(0, amount - player.currentBet)
+        : amount;
       const betAmount = Math.min(Math.max(0, extraChips), player.currentStack);
       player.currentStack -= betAmount;
       player.currentBet += betAmount;
@@ -161,7 +165,7 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
       // An unmatched wager is returned to the bettor; it never forms part
       // of the final contestable pot. Clamp malformed imported amounts.
       const refund = Math.min(
-        Math.max(0, action.amount), player.currentBet, player.totalInvested
+        Math.max(0, amount), player.currentBet, player.totalInvested
       );
       player.currentStack += refund;
       player.currentBet -= refund;
@@ -171,7 +175,7 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
     }
 
     case "post-sb": {
-      const sb = Math.min(action.amount, player.currentStack);
+      const sb = Math.min(amount, player.currentStack);
       player.currentStack -= sb;
       player.currentBet = sb;
       player.totalInvested += sb;
@@ -179,7 +183,7 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
     }
 
     case "post-bb": {
-      const bb = Math.min(action.amount, player.currentStack);
+      const bb = Math.min(amount, player.currentStack);
       player.currentStack -= bb;
       player.currentBet = bb;
       player.totalInvested += bb;
@@ -187,7 +191,7 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
     }
 
     case "post-ante": {
-      const ante = Math.min(action.amount, player.currentStack);
+      const ante = Math.min(amount, player.currentStack);
       player.currentStack -= ante;
       player.totalInvested += ante;
       break;
