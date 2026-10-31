@@ -121,8 +121,9 @@ function PotSparkline({ points }: { points: number[] }) {
     return `${x},${y}`;
   });
 
-  const lastX = parseFloat(coords[coords.length - 1].split(",")[0]);
-  const lastY = parseFloat(coords[coords.length - 1].split(",")[1]);
+  const [lastXStr = "0", lastYStr = "0"] = (coords.at(-1) ?? "0,0").split(",");
+  const lastX = Number(lastXStr);
+  const lastY = Number(lastYStr);
 
   return (
     <svg
@@ -574,7 +575,7 @@ export function ReplayControls({
 
 // ── Helpers de estilos ────────────────────────────────────
 
-function btnStyle(variant: "ghost", disabled?: boolean): React.CSSProperties {
+function btnStyle(_variant: "ghost", disabled?: boolean): React.CSSProperties {
   return {
     display: "flex",
     alignItems: "center",
