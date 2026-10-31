@@ -202,7 +202,7 @@ test("academy paid unlock writes one debit and relies on the ledger trigger", ()
 test("retired real-money checkout is absent while the Shark Coins shop remains", () => {
   const config = readFileSync("supabase/config.toml", "utf8");
   const migration = readFileSync(
-    "supabase/migrations/20261031162226_remove_legacy_cash_topup_rpc_20261031.sql",
+    "supabase/migrations/20261031162543_remove_legacy_cash_topup_rpc_20261031.sql",
     "utf8"
   );
   const shop = readFileSync("src/lib/api/shop.ts", "utf8");
