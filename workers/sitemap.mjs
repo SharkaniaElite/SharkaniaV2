@@ -11,6 +11,9 @@ const PUBLIC_PAGES = [
   "/clubs", "/leagues", "/blog", "/glosario", "/tv", "/academia",
   "/compare", "/tools", "/tools/perfilador-salas", "/sistema-elo",
   "/tutorial-csv", "/shop", "/terms", "/privacy",
+  // Evergreen how-to guides are public, indexable React routes.
+  "/como-jugar-en-clubgg", "/tutorial-ignition",
+  "/tutorial-ignition-deposit", "/tutorial-coinpoker",
 ];
 
 function xmlEscape(value) {

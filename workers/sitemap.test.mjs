@@ -75,3 +75,21 @@ test("returns retryable 503 rather than a cacheable 200 when Supabase fails", as
     globalThis.caches = originalCaches;
   }
 });
+
+test("includes public evergreen poker tutorials and matches React Router", async () => {
+  const xml = await buildSitemap("test-key", mockFetch);
+  const app = (await import("node:fs")).readFileSync("src/App.tsx", "utf8");
+  for (const path of [
+    "/como-jugar-en-clubgg",
+    "/tutorial-ignition",
+    "/tutorial-ignition-deposit",
+    "/tutorial-coinpoker",
+  ]) {
+    assert.match(app, new RegExp('path="' + path + '"'));
+    assert.ok(xml.includes("<loc>https://sharkania.com" + path + "</loc>"), path);
+  }
+  // Private flows and premium authenticated tools remain excluded.
+  for (const privatePath of ["/dashboard", "/login", "/register", "/tools/replayer"]) {
+    assert.ok(!xml.includes("<loc>https://sharkania.com" + privatePath + "</loc>"), privatePath);
+  }
+});
