@@ -157,3 +157,14 @@ test("replayer uses authenticated share RPC rather than publicly selecting hand 
   assert.doesNotMatch(load,/\.from\("shared_hands"\)/);
   assert.match(load,/increment_hand_views/);
 });
+
+test("shared hand table is not enumerable and exact-ID retrieval remains authenticated", () => {
+  const file = readFileSync("supabase/migrations/20261031155504_restrict_shared_hands_table_read_to_owner_20261031.sql","utf8");
+  const replayer = readFileSync("src/lib/replayer-engine.ts","utf8");
+  assert.ok(file.includes('DROP POLICY IF EXISTS "Shared hands: public read"'));
+  assert.ok(file.includes('CREATE POLICY "Shared hands: owner-only SELECT"'));
+  assert.ok(file.includes("created_by = (SELECT auth.uid())"));
+  assert.ok(file.includes("REVOKE SELECT ON TABLE public.shared_hands FROM PUBLIC, anon"));
+  assert.ok(file.includes("GRANT SELECT ON TABLE public.shared_hands TO authenticated"));
+  assert.ok(replayer.includes('supabase.rpc("get_shared_hand", { p_hand_id: id })'));
+});
