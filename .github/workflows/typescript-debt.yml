@@ -1,4 +1,4 @@
-name: TypeScript debt baseline
+name: TypeScript strict validation
 on:
   pull_request:
     branches: [main]
@@ -28,9 +28,9 @@ jobs:
             echo "::error::TypeScript failed without recognized diagnostics"
             exit "$code"
           fi
-          # Baseline after PR #22; decrease this number when further errors are fixed.
-          if [ "$diagnostics" -gt 61 ]; then
-            echo "::error::TypeScript debt regressed: $diagnostics > 61"
+          # Zero-error policy after the GG parser and replayer remediation.
+          if [ "$diagnostics" -gt 0 ]; then
+            echo "::error::TypeScript diagnostics must be zero: $diagnostics"
             exit 1
           fi
       - uses: actions/upload-artifact@v4
