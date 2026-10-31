@@ -39,26 +39,26 @@ function emailContent(displayName: string, actionLink: string): {
   const name = escapeHtml(displayName.trim().slice(0, 80) || "jugador");
   const link = escapeHtml(actionLink);
   const subject = "Te falta un paso: confirma tu cuenta de Sharkania";
-  const body_html = \`<!doctype html>
+  const body_html = `<!doctype html>
 <html lang="es"><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:32px 12px;background:#090d12;color:#e7edf5;font-family:Arial,Helvetica,sans-serif">
   <div style="max-width:560px;margin:0 auto;border:1px solid #26303b;border-radius:14px;background:#121820;padding:32px">
     <div style="font-size:20px;font-weight:800;color:#22d3ee;margin-bottom:24px">🦈 SHARKANIA</div>
     <div style="font-size:12px;letter-spacing:2px;color:#fbbf24;font-weight:bold">TU REGISTRO ESTÁ CASI LISTO</div>
     <h1 style="font-size:28px;line-height:1.2;color:#fff;margin:12px 0 22px">Solo falta confirmar tu correo</h1>
-    <p style="font-size:16px;line-height:1.7">Hola, <strong>\${name}</strong>:</p>
+    <p style="font-size:16px;line-height:1.7">Hola, <strong>${name}</strong>:</p>
     <p style="font-size:16px;line-height:1.7">Tu cuenta de Sharkania ya está creada, pero <strong>todavía no has confirmado tu dirección de correo electrónico</strong>.</p>
     <p style="font-size:16px;line-height:1.7">Completa este último paso para iniciar sesión y explorar tu perfil, el ranking ELO, las ligas y los torneos disponibles.</p>
-    <p style="margin:30px 0"><a href="\${link}" style="display:inline-block;background:#22d3ee;color:#071219;font-size:15px;font-weight:800;text-decoration:none;padding:16px 24px;border-radius:8px">CONFIRMAR MI CUENTA</a></p>
+    <p style="margin:30px 0"><a href="${link}" style="display:inline-block;background:#22d3ee;color:#071219;font-size:15px;font-weight:800;text-decoration:none;padding:16px 24px;border-radius:8px">CONFIRMAR MI CUENTA</a></p>
     <p style="color:#9aa8b7;font-size:13px;line-height:1.6">El enlace es personal, de un solo uso y expira por seguridad. Si caduca, puedes solicitar uno nuevo.</p>
     <hr style="border:0;border-top:1px solid #26303b;margin:28px 0">
     <p style="color:#9aa8b7;font-size:12px;line-height:1.6">Si no creaste una cuenta en Sharkania, puedes ignorar este mensaje. Nunca te pediremos tu contraseña por correo.</p>
   </div>
-</body></html>\`;
+</body></html>`;
   const body_text = [
     "SHARKANIA — Tu registro está casi listo",
     "",
-    \`Hola, \${displayName.trim().slice(0, 80) || "jugador"}:\`,
+    `Hola, ${displayName.trim().slice(0, 80) || "jugador"}:`,
     "",
     "Tu cuenta de Sharkania ya está creada, pero todavía no has confirmado tu dirección de correo electrónico.",
     "Completa este último paso para iniciar sesión y explorar tu perfil, el ranking ELO, las ligas y los torneos disponibles.",
