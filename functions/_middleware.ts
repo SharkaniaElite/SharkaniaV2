@@ -55,7 +55,8 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   const { request, next, env } = context;
   const url = new URL(request.url);
   const path = url.pathname;
-  const canonicalPath = path === '/' ? '/' : path.replace(/\/$/, '');
+  let canonicalPath = path === '/' ? '/' : path.replace(/\/$/, '');
+  const isPrivate = /^\/(?:admin(?:\/|$)|dashboard(?:\/|$)|login(?:\/|$)|register(?:\/|$)|welcome(?:\/|$)|update-password(?:\/|$)|forgot-password(?:\/|$)|tools\/(?:quiz|calculadora-icm|simulador-elo|calculadora-banca|replayer)(?:\/|$))/.test(path);
   if (request.method === 'GET' && (path === '/academy' || path === '/shark-tv')) {
     return Response.redirect(`${SITE_URL}${path === '/academy' ? '/academia' : '/tv'}`, 301);
   }
@@ -98,12 +99,15 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
 
     if (matchedPrefix && path.length > matchedPrefix.length) {
       const slug = path.replace(matchedPrefix, '').replace(/\/$/, '');
-      const data: any = await fetchJson(`blog_posts?slug=eq.${encodeURIComponent(slug)}&select=title,excerpt,image_og,image_thumbnail&published=eq.true&limit=1`, key);
+      const data: any = await fetchJson(`blog_posts?slug=eq.${encodeURIComponent(slug)}&select=title,excerpt,image_og,image_thumbnail,category&published=eq.true&limit=1`, key);
       
       if (matchedPrefix === '/blog/' && Array.isArray(data) && data.length === 0) {
         return new Response('Artículo no encontrado', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex' } });
       }
       if (data && data[0]) {
+        const postCategory = String(data[0].category || '').toLowerCase();
+        const prefix = postCategory === 'noticias' ? '/noticias/' : postCategory === 'promociones' ? '/promociones/' : '/blog/';
+        canonicalPath = `${prefix}${slug}`;
         title = `${data[0].title} — Sharkania`;
         description = data[0].excerpt;
         const imgPath = data[0].image_og || data[0].image_thumbnail || '/og-default.png';
@@ -147,6 +151,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   return new HTMLRewriter()
     .on('title', { element(e: Element) { e.setInnerContent(title) } })
     .on('meta[name="description"]', { element(e: Element) { e.setAttribute("content", description) } })
+    .on('meta[name="robots"]', { element(e: Element) { e.setAttribute('content', isPrivate ? 'noindex, nofollow' : 'index, follow') } })
     .on('meta[property="og:title"]', { element(e: Element) { e.setAttribute("content", title) } })
     .on('meta[property="og:description"]', { element(e: Element) { e.setAttribute("content", description) } })
     .on('meta[property="og:image"]', { element(e: Element) { e.setAttribute("content", image) } })
