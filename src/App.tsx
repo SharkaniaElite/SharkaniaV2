@@ -252,6 +252,8 @@ export function App() {
               />
 
 
+              <Route
+                path="/admin/broadcast"
                 element={
                   <ProtectedRoute requiredRole={["super_admin"]}>
                     <AdminBroadcastPage />
