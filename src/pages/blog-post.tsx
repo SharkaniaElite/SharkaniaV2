@@ -14,6 +14,7 @@ import { TableOfContents, slugify } from "../components/blog/table-of-contents";
 import { RelatedPosts } from "../components/blog/related-posts";
 import { useAuthStore } from "../stores/auth-store";
 import { claimBlogReward } from "../lib/api/players";
+import { supabase } from "../lib/supabase";
 
 // Importaciones para interceptar las landings dinámicas
 import { PromoFreerollPage } from "./promo-freeroll";
@@ -278,6 +279,24 @@ export default function BlogPostPage() {
     return () => clearInterval(timer);
   }, [isAuthenticated, timeLeft, claimed]);
 
+  // El tiempo de lectura se registra en el servidor y cada artículo puede premiarse una sola vez.
+  useEffect(() => {
+    if (!post?.id || !user?.id) {
+      setClaimed(false);
+      return;
+    }
+    let cancelled = false;
+    async function initStudy() {
+      const id = post!.id;
+      await supabase.rpc("start_blog_study", { p_post_id: id });
+      const { data } = await supabase.from("blog_reward_claims")
+        .select("post_id").eq("user_id", user!.id).eq("post_id", id).maybeSingle();
+      if (!cancelled) setClaimed(!!data);
+    }
+    void initStudy();
+    return () => { cancelled = true; };
+  }, [post?.id, user?.id]);
+
   // 4. Referencia y Hook de Scroll
   const rewardBoxRef = useRef<HTMLDivElement>(null);
 
@@ -304,10 +323,11 @@ export default function BlogPostPage() {
     
     setIsClaiming(true);
     try {
-      await claimBlogReward(user.id, REWARD_AMOUNT, XP_REWARD);
+      await claimBlogReward(post!.id);
       await refreshProfile(); 
       setClaimed(true);
     } catch (error) {
+      if (error instanceof Error && error.message === "already_claimed") setClaimed(true);
       console.error("Error reclamando recompensa", error);
     } finally {
       setIsClaiming(false);
