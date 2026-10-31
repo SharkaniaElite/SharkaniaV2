@@ -21,10 +21,20 @@ jobs:
           npx tsc -b --pretty false > type-errors.log 2>&1
           code=$?
           echo "TypeScript exit code: $code"
-          echo "TypeScript diagnostics: $(grep -c 'error TS[0-9]' type-errors.log || true)"
+          diagnostics=$(grep -c 'error TS[0-9]' type-errors.log || true)
+          echo "TypeScript diagnostics: $diagnostics"
           grep -E 'error TS[0-9]' type-errors.log | head -n 120 || true
-          exit 0
+          if [ "$code" -ne 0 ] && [ "$diagnostics" -eq 0 ]; then
+            echo "::error::TypeScript failed without recognized diagnostics"
+            exit "$code"
+          fi
+          # Baseline after PR #22; decrease this number when further errors are fixed.
+          if [ "$diagnostics" -gt 61 ]; then
+            echo "::error::TypeScript debt regressed: $diagnostics > 61"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: typescript-diagnostics
           path: type-errors.log
