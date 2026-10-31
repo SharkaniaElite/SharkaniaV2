@@ -113,3 +113,18 @@ test("privileged reward functions enforce server-side verification and mission s
   assert.match(rows, /REVOKE INSERT,UPDATE,DELETE ON public\.academy_user_modules/);
   assert.match(rows, /REVOKE DELETE ON public\.academy_user_lessons/);
 });
+
+test("hand view counting requires a session and prevents public counter inflation", () => {
+  const base = "supabase/migrations/";
+  const migration = readFileSync(base+"20261031151248_throttle_authenticated_shared_hand_views_once_per_day_20261031.sql","utf8");
+  const privateRls = readFileSync(base+"20261031151554_enforce_rls_internal_hand_view_counter_20261031.sql","utf8");
+  const app = readFileSync("src/App.tsx","utf8");
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS private\.hand_view_cooldowns/);
+  assert.match(migration, /v_viewer IS NULL/);
+  assert.match(migration, /ON CONFLICT ON CONSTRAINT hand_view_cooldowns_pkey/);
+  assert.match(migration, /interval '24 hours'/);
+  assert.match(migration, /REVOKE EXECUTE ON FUNCTION public\.increment_hand_views\(text\) FROM PUBLIC, anon, authenticated/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.increment_hand_views\(text\) TO authenticated, service_role/);
+  assert.match(privateRls, /ENABLE ROW LEVEL SECURITY/);
+  assert.match(app, /path="\/tools\/replayer\/h\/:id"/);
+});
