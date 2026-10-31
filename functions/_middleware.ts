@@ -36,6 +36,7 @@ const PAGE_META: Record<string, { title: string, desc: string }> = {
 };
 
 async function fetchJson(path: string, key: string) {
+  if (!key) return null;
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
       headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Accept': 'application/json' },
@@ -62,7 +63,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   }
 
   const key = env.SUPABASE_ANON_KEY;
-  if (!key) return response; // Si falta la key de entorno, servimos la web normal
+  // Los metadatos de rutas estáticas deben funcionar incluso si Supabase está inactivo.
 
   // Valores por defecto
   let title = PAGE_META['/'].title;
