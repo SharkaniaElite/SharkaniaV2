@@ -94,7 +94,7 @@ export type ActionType =
 export interface Action {
   playerIndex: number;     // index into HandHistory.players
   type: ActionType;
-  amount: number;          // 0 for fold/check/muck, bet/raise amount for others
+  amount: number;          // call/bet = extra chips; raise = target total ("to") for this street
   isAllIn: boolean;
   street: Street;
 }
