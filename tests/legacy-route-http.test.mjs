@@ -15,8 +15,20 @@ const compiled = typescript.transpileModule(source, {
 function loadMiddleware(fetchMock) {
   const exports = {};
   class MockHTMLRewriter {
-    on() { return this; }
-    transform(response) { return response; }
+    on(selector, handlers) {
+      if (selector === 'meta[property="og:image"]') this.onOgImage = handlers.element;
+      return this;
+    }
+    transform(response) {
+      if (this.onOgImage) {
+        this.onOgImage({
+          setAttribute(name, value) {
+            if (name === "content") response.headers.set("x-test-og-image", value);
+          },
+        });
+      }
+      return response;
+    }
   }
   runInNewContext(compiled, {
     exports, Response, URL, Headers, fetch: fetchMock, HTMLRewriter: MockHTMLRewriter,
@@ -90,6 +102,7 @@ test("three standalone promotion landings and an existing news article stay HTTP
   for (const slug of ["freeroll-diario", "ignition-bonus", "coinpoker"]) {
     const response = await middleware(makeContext("/promociones/" + slug));
     assert.equal(response.status, 200, slug);
+    assert.equal(response.headers.get("x-test-og-image"), "https://sharkania.com/og-default.png?v=2", slug + " OG image");
     const withSlash = await middleware(makeContext("/promociones/" + slug + "/"));
     assert.equal(withSlash.status, 200, slug + " with trailing slash");
   }

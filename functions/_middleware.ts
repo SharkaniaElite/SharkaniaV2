@@ -283,7 +283,10 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   if (PAGE_META[canonicalPath]) {
     title = PAGE_META[canonicalPath].title;
     description = PAGE_META[canonicalPath].desc;
-    image = `${SITE_URL}/og/page/${canonicalPath.replace('/', '') || 'ranking'}`;
+    // Las páginas estáticas anidadas no tienen un asset /og/page/{seccion}/{slug}.
+    image = canonicalPath.slice(1).includes('/')
+      ? `${SITE_URL}/og-default.png?v=2`
+      : `${SITE_URL}/og/page/${canonicalPath.replace('/', '') || 'ranking'}`;
   } else {
     // Rutas dinámicas (Noticias, Blog, Promociones)
     const POST_PREFIXES = ['/blog/', '/noticias/', '/promociones/'];
