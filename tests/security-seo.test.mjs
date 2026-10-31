@@ -10,6 +10,11 @@ test("personal PostHog API token is never referenced by a browser module", () =>
   assert.match(fn, /rpc\/is_super_admin/);
   assert.match(fn, /Authorization/);
   assert.match(fn, /return json\(\{ success: false, message: "No autorizado/);
+  assert.match(fn, /env\.POSTHOG_PERSONAL_API_KEY \|\| env\.VITE_POSTHOG_PERSONAL_API_KEY/);
+  assert.doesNotMatch(fn, /env\.VITE_PUBLIC_POSTHOG_HOST/);
+  assert.match(fn, /"us\.posthog\.com"/);
+  assert.match(fn, /if \(paths\.length === 0\)/);
+  assert.match(fn, /no se modificaron las estadísticas/);
 });
 
 test("every page has a canonical URL from the request route, with no hidden SEO text", () => {
