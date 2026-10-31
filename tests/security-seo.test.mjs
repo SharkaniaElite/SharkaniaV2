@@ -275,7 +275,7 @@ test("Ignition onboarding waits for login and only creates pending links", () =>
 });
 
 test("verified Ignition and WPT identities are immutable to normal profile owners", () => {
-  const sql = readFileSync("supabase/migrations/20261031182018_lock_verified_poker_identity_columns_20261031.sql", "utf8");
+  const sql = readFileSync("supabase/migrations/20261031182236_lock_verified_poker_identity_columns_20261031.sql", "utf8");
   assert.match(sql, /CREATE OR REPLACE FUNCTION public\.guard_profile_privileged_mutations\(\)/);
   assert.match(sql, /current_user IN \('anon', 'authenticated'\)/);
   assert.match(sql, /AND NOT public\.is_super_admin\(\)/);
