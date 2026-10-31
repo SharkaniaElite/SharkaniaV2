@@ -273,3 +273,19 @@ test("Ignition onboarding waits for login and only creates pending links", () =>
   assert.match(migration, /NEW\.raw_user_meta_data ->> 'ignition_league_player'/);
   assert.match(migration, /role[\s\S]*'player'::public\.user_role/);
 });
+
+test("verified Ignition and WPT identities are immutable to normal profile owners", () => {
+  const sql = readFileSync("supabase/migrations/20261031182236_lock_verified_poker_identity_columns_20261031.sql", "utf8");
+  assert.match(sql, /CREATE OR REPLACE FUNCTION public\.guard_profile_privileged_mutations\(\)/);
+  assert.match(sql, /current_user IN \('anon', 'authenticated'\)/);
+  assert.match(sql, /AND NOT public\.is_super_admin\(\)/);
+  assert.match(sql, /OLD\.ignition_status = 'verified'/);
+  assert.match(sql, /NEW\.ignition_email IS DISTINCT FROM OLD\.ignition_email/);
+  assert.match(sql, /NEW\.ignition_nickname IS DISTINCT FROM OLD\.ignition_nickname/);
+  assert.match(sql, /NEW\.ignition_league_player IS DISTINCT FROM OLD\.ignition_league_player/);
+  assert.match(sql, /OLD\.wpt_status = 'verified'/);
+  assert.match(sql, /NEW\.wpt_nickname IS DISTINCT FROM OLD\.wpt_nickname/);
+  assert.match(sql, /NEW\.ignition_status = 'pending'/);
+  assert.match(sql, /NEW\.wpt_status = 'pending'/);
+  assert.doesNotMatch(sql, /(?:UPDATE|DELETE|TRUNCATE) public\.profiles/);
+});
