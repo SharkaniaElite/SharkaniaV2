@@ -206,6 +206,40 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
   };
 }
 
+// The recorded "collected" amounts are net amounts paid by the room.
+// Never invent rake, distribute unreported winnings, or mutate the original
+// hand. The pot remains the historical contributed pot for replay display.
+// A difference between contributions and payouts may be rake/jackpot/fees.
+function finishReplay(state: ReplayState): ReplayState {
+  if (state.isFinished) return state;
+  const winners = state.hand.result?.winners;
+  if (!winners?.length) return { ...state, isFinished: true };
+
+  let totalAwarded = 0;
+  for (const winner of winners) {
+    if (!Number.isInteger(winner.playerIndex) ||
+        winner.playerIndex < 0 ||
+        winner.playerIndex >= state.players.length ||
+        !Number.isFinite(winner.amount) ||
+        winner.amount < 0) {
+      return { ...state, isFinished: true };
+    }
+    totalAwarded += winner.amount;
+  }
+
+  // Malformed or duplicate collection records must not create chips.
+  if (!Number.isFinite(totalAwarded) || totalAwarded > state.pot.totalPot + 1e-6) {
+    return { ...state, isFinished: true };
+  }
+
+  const players = state.players.map((player) => ({ ...player }));
+  for (const winner of winners) {
+    const player = players[winner.playerIndex];
+    if (player) player.currentStack = Math.round((player.currentStack + winner.amount) * 1e8) / 1e8;
+  }
+  return { ...state, players, isFinished: true };
+}
+
 // ── Step forward one action ──────────────────────────────
 
 export function stepForward(state: ReplayState): ReplayState {
@@ -253,7 +287,7 @@ export function stepForward(state: ReplayState): ReplayState {
   }
 
   // Hand is finished
-  return { ...state, isFinished: true };
+  return finishReplay(state);
 }
 
 // ── Step backward one action ─────────────────────────────
@@ -305,7 +339,7 @@ export function goToStep(hand: HandHistory, targetStep: number): ReplayState {
     }
   }
 
-  return { ...current, isFinished: true };
+  return finishReplay(current);
 }
 
 // ── Get total step count ─────────────────────────────────
