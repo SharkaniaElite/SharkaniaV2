@@ -35,6 +35,9 @@ const PAGE_META: Record<string, { title: string, desc: string }> = {
   '/tv': { title: 'Shark TV | Sharkania', desc: 'Clases, análisis de manos y contenido audiovisual de poker.' },
   '/noticias': { title: 'Noticias y Novedades | Sharkania', desc: 'Mantente al día con la actualidad del circuito.' },
   '/promociones': { title: 'Promociones Exclusivas | Sharkania', desc: 'Bonos de bienvenida, freerolls y beneficios exclusivos.' },
+  '/promociones/freeroll-diario': { title: 'Freeroll Diario | Sharkania', desc: 'Información sobre el freeroll diario para jugadores de póker.' },
+  '/promociones/ignition-bonus': { title: 'Bono de Ignition Poker | Sharkania', desc: 'Información y condiciones de la promoción de Ignition Poker.' },
+  '/promociones/coinpoker': { title: 'Promoción CoinPoker | Sharkania', desc: 'Información de las promociones de CoinPoker en Sharkania.' },
   '/tools': { title: 'Herramientas de Poker | Sharkania', desc: 'Calculadora ICM, simulador ELO, calculadora de bankroll y más.' },
   '/sistema-elo': { title: 'Sistema ELO para Poker | Sharkania', desc: 'Cómo funciona el sistema de rating ELO adaptado al poker.' },
 };
@@ -199,6 +202,30 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   const path = url.pathname;
   let canonicalPath = path === '/' ? '/' : path.replace(/\/$/, '');
   const isPrivate = /^\/(?:admin(?:\/|$)|dashboard(?:\/|$)|login(?:\/|$)|register(?:\/|$)|welcome(?:\/|$)|update-password(?:\/|$)|forgot-password(?:\/|$)|tools\/(?:quiz|calculadora-icm|simulador-elo|calculadora-banca|replayer)(?:\/|$))/.test(path);
+  // /jugador/:slug fue una ruta antigua y hoy React la confunde con un artículo.
+  // Sólo redirigir cuando el jugador realmente existe; no enviar URL retiradas al blog.
+  const legacyPlayer = canonicalPath.match(/^\/jugador\/([^/]+)$/i);
+  if ((request.method === 'GET' || request.method === 'HEAD') && legacyPlayer) {
+    const rows = await fetchJson(
+      "players?select=slug&slug=eq." + encodeURIComponent(legacyPlayer[1]) +
+      "&is_demo=eq.false&limit=1",
+      env.SUPABASE_ANON_KEY,
+    );
+    if (Array.isArray(rows) && rows[0]?.slug) {
+      const target = new URL(SITE_URL + "/ranking/" + encodeURIComponent(rows[0].slug));
+      target.search = url.search;
+      return Response.redirect(target.toString(), 301);
+    }
+    if (Array.isArray(rows)) {
+      return new Response(request.method === 'HEAD' ? null : 'Jugador no encontrado', {
+        status: 404,
+        headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex', 'cache-control': 'public, max-age=300' },
+      });
+    }
+    return new Response(null, {
+      status: 503, headers: { 'Retry-After': '300', 'Cache-Control': 'no-store' },
+    });
+  }
   // URLs con UUID de los sitemaps anteriores: redirigir al slug y mantener query.
   const legacyUuid = canonicalPath.match(/^\/tournament\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
   if (request.method === 'GET' && legacyUuid) {
@@ -266,8 +293,15 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
       const slug = path.replace(matchedPrefix, '').replace(/\/$/, '');
       const data: any = await fetchJson(`blog_posts?slug=eq.${encodeURIComponent(slug)}&select=title,excerpt,image_og,image_thumbnail,category&published=eq.true&limit=1`, key);
       
-      if (matchedPrefix === '/blog/' && Array.isArray(data) && data.length === 0) {
+      // Una URL publicada de noticias/promociones inexistente tampoco debe responder
+      // como la portada (200) ni terminar redirigida a /blog por el cliente.
+      if (Array.isArray(data) && data.length === 0) {
         return new Response('Artículo no encontrado', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex' } });
+      }
+      if (!Array.isArray(data)) {
+        return new Response('Datos temporalmente no disponibles', {
+          status: 503, headers: { 'Retry-After': '300', 'Cache-Control': 'no-store' },
+        });
       }
       if (data && data[0]) {
         const postCategory = String(data[0].category || '').toLowerCase();
