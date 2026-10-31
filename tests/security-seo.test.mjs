@@ -63,3 +63,12 @@ test("signup never trusts a browser-selected role or marks Ignition verified", (
   assert.doesNotMatch(src, /updatePayload\.ignition_status\s*=\s*['"]verified/);
   assert.doesNotMatch(src, /updatePayload\.ignition_linked_at\s*=/);
 });
+
+test("club signup never inserts arbitrary email messages from the browser", () => {
+  const src = readFileSync("src/pages/register.tsx", "utf8");
+  assert.doesNotMatch(src, /\.from\(["']email_queue["']\)/);
+  assert.doesNotMatch(src, /sharkania-email-worker\.duhauandres\.workers\.dev/);
+  assert.match(src, /registration_type: regType === "club"/);
+  const auth = readFileSync("src/lib/api/auth.ts", "utf8");
+  assert.match(auth, /registration_type: extra\?\.registration_type === "club"/);
+});
