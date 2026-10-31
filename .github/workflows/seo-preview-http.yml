@@ -1,0 +1,38 @@
+name: HTTP smoke test for SEO previews
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/seo-preview-http.yml"
+      - "functions/_middleware.ts"
+  workflow_dispatch:
+    inputs:
+      preview_url:
+        description: "Cloudflare Pages preview base URL"
+        required: false
+        default: "https://6d39f7d3.sharkaniav2.pages.dev"
+permissions:
+  contents: read
+jobs:
+  verify-raw-html:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'feat/seo-visible-html-fallback-2026-10-31'
+    runs-on: ubuntu-latest
+    env:
+      PREVIEW_URL: ${{ inputs.preview_url || 'https://6d39f7d3.sharkaniav2.pages.dev' }}
+    steps:
+      - name: Read raw HTTP, without running JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          for route in /blog /glosario /blog/clubes-calendario-publico-retienen-3x-jugadores; do
+            name="${route//\//_}"
+            status=$(curl -sSL --retry 2 --max-time 25 -D "headers${name}.txt" -o "page${name}.html" -w '%{http_code}' "${PREVIEW_URL}${route}")
+            echo "Route: ${route}; HTTP: ${status}; HTML bytes: $(wc -c < "page${name}.html")"
+            test "${status}" = "200"
+            grep -qi 'x-robots-tag: noindex' "headers${name}.txt"
+            grep -q 'Contenido público de Sharkania' "page${name}.html"
+            grep -q '<h1' "page${name}.html"
+          done
+          grep -q '/blog/' page_blog.html
+          grep -q '<article>' page_blog_clubes-calendario-publico-retienen-3x-jugadores.html
+          echo 'Preview HTML smoke test passed.'

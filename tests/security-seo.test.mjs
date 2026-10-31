@@ -41,3 +41,17 @@ test("new article slugs handle accents without renaming existing posts", () => {
   assert.match(editor, /\.normalize\('NFD'\)/);
   assert.equal("Póker y estrategia".normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-"), "poker-y-estrategia");
 });
+
+test("server HTML fallback is public-only, escaped, and not invisible SEO content", () => {
+  const middleware = readFileSync("functions/_middleware.ts", "utf8");
+  assert.match(middleware, /async function buildVisibleSeoHtml/);
+  assert.match(middleware, /escapeSeoText\(post\.title\)/);
+  assert.match(middleware, /escapeSeoText\(item\.description\)/);
+  assert.match(middleware, /escapeSeoText\(prefix \+ encodeURIComponent/);
+  assert.match(middleware, /'glossary_terms\?|glossary_terms\?/);
+  assert.match(middleware, /\.on\('#root'/);
+  assert.match(middleware, /!isPrivate \? await buildVisibleSeoHtml/);
+  assert.doesNotMatch(middleware, /display:none|id="seo-content"/);
+  const main = readFileSync("src/main.tsx", "utf8");
+  assert.match(main, /createRoot\(rootElement\)/);
+});
