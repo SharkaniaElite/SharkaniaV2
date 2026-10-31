@@ -311,3 +311,19 @@ test("club applications are pending-only and rate-limited at the database INSERT
   assert.doesNotMatch(sql, /(?:UPDATE|DELETE|TRUNCATE) public\.club_registration_requests/);
   assert.doesNotMatch(sql, /GRANT .* TO (?:anon|authenticated)/);
 });
+
+
+test("server HTML exposes unique glossary and league metadata without requiring JavaScript", () => {
+  const middleware = readFileSync("functions/_middleware.ts", "utf8");
+  assert.match(middleware, /canonicalPath\\.startsWith\\('\\/glosario\\/'\\)/);
+  assert.match(middleware, /glossary_terms\\?select=term,short_definition/);
+  assert.match(middleware, /is_active=eq\\.true&limit=1/);
+  assert.match(middleware, /data\\[0\\]\\.term} — Glosario de Poker/);
+  assert.match(middleware, /description = data\\[0\\]\\.short_definition/);
+  assert.match(middleware, /Término no encontrado/);
+  assert.match(middleware, /canonicalPath\\.startsWith\\('\\/leagues\\/'\\)/);
+  assert.match(middleware, /leagues\\?select=name,description/);
+  assert.match(middleware, /data\\[0\\]\\.name} — Liga de Poker/);
+  assert.match(middleware, /Liga no encontrada/);
+  assert.match(middleware, /link\\[rel="canonical"\\]/);
+});
