@@ -411,6 +411,9 @@ export function SuperAdminPage() {
   const [editingUser, setEditingUser]     = useState(false);
   const [userEditData, setUserEditData]   = useState<Record<string, string>>({});
   const [savingUser, setSavingUser]       = useState(false);
+  const [resendingConfirmationId, setResendingConfirmationId] = useState<string | null>(null);
+  const [confirmationMessage, setConfirmationMessage] = useState("");
+
   const [claimSearch, setClaimSearch]     = useState("");
   const [claimResults, setClaimResults]   = useState<any[]>([]);
   const [claimSearching, setClaimSearching] = useState(false);
@@ -910,6 +913,47 @@ export function SuperAdminPage() {
     enabled: tab === "users",
   });
 
+  // Confirmation is an Auth property, not a profile field: fetch it from the
+  // privileged Edge Function with the current super-admin JWT.
+  const {
+    data: emailConfirmations,
+    isLoading: loadingEmailConfirmations,
+    isError: emailConfirmationsError,
+    refetch: refetchEmailConfirmations,
+  } = useQuery({
+    queryKey: ["admin-email-confirmations"],
+    queryFn: async (): Promise<Record<string, boolean>> => {
+      const { data, error } = await supabase.functions.invoke<{
+        statuses: Record<string, boolean>;
+      }>("admin-email-confirmations", { body: { action: "list" } });
+      if (error || !data?.statuses) throw new Error("No se pudo consultar Supabase Auth.");
+      return data.statuses;
+    },
+    enabled: tab === "users",
+    staleTime: 30_000,
+  });
+
+  const handleResendConfirmation = async (user: Record<string, any>) => {
+    if (!confirm(`¿Enviar un nuevo enlace de confirmación a ${user.email}?`)) return;
+    setResendingConfirmationId(user.id);
+    setConfirmationMessage("");
+    try {
+      const { data, error } = await supabase.functions.invoke<{ success?: boolean }>(
+        "admin-email-confirmations",
+        { body: { action: "resend", userId: user.id } }
+      );
+      if (error || !data?.success) {
+        throw new Error("No se pudo encolar el mensaje. Solo se permite un recordatorio por hora y dos por día.");
+      }
+      setConfirmationMessage("Recordatorio en cola. Sharkania lo enviará mediante su servicio de correos.");
+      await refetchEmailConfirmations();
+    } catch (error) {
+      setConfirmationMessage(error instanceof Error ? error.message : "No se pudo reenviar la confirmación.");
+    } finally {
+      setResendingConfirmationId(null);
+    }
+  };
+
   const { data: selectedUserPlayers, refetch: refetchSelectedUserPlayers } = useQuery({
     queryKey: ["admin-user-players", selectedUser?.id],
     queryFn: async () => {
@@ -1302,7 +1346,17 @@ export function SuperAdminPage() {
           {tab === "users" && (
             <div className="flex gap-6 min-h-[600px]">
               <div className={`flex flex-col gap-2 overflow-y-auto ${selectedUser ? "w-72 shrink-0" : "w-full"}`}>
-                <h2 className="text-sk-md font-bold text-sk-text-1 mb-2">Usuarios ({profiles?.length ?? 0})</h2>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <h2 className="text-sk-md font-bold text-sk-text-1">Usuarios ({profiles?.length ?? 0})</h2>
+                  {emailConfirmations && (
+                    <span className="text-sk-xs font-semibold text-sk-gold">
+                      {Object.values(emailConfirmations).filter((confirmed) => !confirmed).length} sin confirmar
+                    </span>
+                  )}
+                </div>
+                {emailConfirmationsError && (
+                  <p role="alert" className="text-sk-xs text-sk-red mb-2">No se pudo consultar el estado de confirmación.</p>
+                )}
                 {(profiles ?? []).map((p) => (
                   <button key={p.id} onClick={() => { setSelectedUser(p); setEditingUser(false); setClaimSearch(""); setClaimResults([]); }}
                     className={cn("w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all", selectedUser?.id === p.id ? "bg-sk-accent-dim border-sk-accent" : "bg-sk-bg-2 border-sk-border-2 hover:border-sk-border-3")}>
@@ -1313,7 +1367,16 @@ export function SuperAdminPage() {
                       <p className="text-sk-sm font-semibold text-sk-text-1 truncate">{p.display_name ?? "—"}</p>
                       <p className="text-[11px] text-sk-text-3 truncate">{p.email}</p>
                     </div>
-                    <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0", p.role === "super_admin" ? "bg-sk-red-dim text-sk-red" : p.role === "club_admin" ? "bg-sk-accent-dim text-sk-accent" : "bg-sk-bg-4 text-sk-text-3")}>{p.role}</span>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded", p.role === "super_admin" ? "bg-sk-red-dim text-sk-red" : p.role === "club_admin" ? "bg-sk-accent-dim text-sk-accent" : "bg-sk-bg-4 text-sk-text-3")}>{p.role}</span>
+                      {emailConfirmations?.[p.id] === true ? (
+                        <span className="text-[10px] font-semibold text-sk-green">✓ Confirmada</span>
+                      ) : emailConfirmations?.[p.id] === false ? (
+                        <span className="text-[10px] font-semibold text-sk-gold">● Sin confirmar</span>
+                      ) : (
+                        <span className="text-[10px] text-sk-text-3">{loadingEmailConfirmations ? "Consultando..." : "Estado desconocido"}</span>
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -1336,6 +1399,35 @@ export function SuperAdminPage() {
                       <Button variant="ghost" size="sm" onClick={() => setSelectedUser(null)}><XIcon size={13} /></Button>
                     </div>
                   </div>
+                  <div className="mb-5 rounded-lg border border-sk-border-2 bg-sk-bg-3 p-4">
+                    <div className="flex flex-wrap justify-between items-center gap-3">
+                      <div>
+                        <p className="text-[10px] font-mono uppercase tracking-wide text-sk-text-3 mb-1">Confirmación de correo</p>
+                        {emailConfirmations?.[selectedUser.id] === true ? (
+                          <p className="text-sk-sm font-semibold text-sk-green">✓ Email confirmado en Supabase Auth</p>
+                        ) : emailConfirmations?.[selectedUser.id] === false ? (
+                          <p className="text-sk-sm font-semibold text-sk-gold">● El jugador aún no confirmó su cuenta</p>
+                        ) : (
+                          <p className="text-sk-sm text-sk-text-3">{loadingEmailConfirmations ? "Consultando estado..." : "No se pudo determinar el estado"}</p>
+                        )}
+                      </div>
+                      {emailConfirmations?.[selectedUser.id] === false && (
+                        <Button
+                          variant="secondary" size="sm"
+                          isLoading={resendingConfirmationId === selectedUser.id}
+                          disabled={resendingConfirmationId !== null}
+                          onClick={() => handleResendConfirmation(selectedUser)}
+                        >
+                          <Mail size={14} /> Reenviar confirmación
+                        </Button>
+                      )}
+                    </div>
+                    {confirmationMessage && <p role="status" className="text-sk-xs text-sk-text-2 mt-3">{confirmationMessage}</p>}
+                    <p className="text-[11px] text-sk-text-3 mt-2">
+                      Recordatorio personalizado con enlace seguro. Máximo uno por hora y dos por día.
+                    </p>
+                  </div>
+
                   {editingUser ? (
                     <div className="space-y-3 mb-6 p-4 bg-sk-bg-3 rounded-lg border border-sk-border-2">
                       {[{ key: "display_name", label: "Nombre", placeholder: "Nombre completo" }, { key: "email", label: "Email", placeholder: "correo@ejemplo.com" }, { key: "whatsapp", label: "WhatsApp", placeholder: "56 9 1234 5678" }, { key: "country_code", label: "País (2 letras)", placeholder: "CL" }].map((f) => (
