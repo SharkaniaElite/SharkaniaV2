@@ -210,7 +210,7 @@ test("retired real-money checkout is absent while the Shark Coins shop remains",
   assert.equal(existsSync("supabase/functions/lemonsqueezy-webhook/index.ts"), false);
   assert.equal(existsSync("supabase/functions/lemonsqueezy-webhook/deno.json"), false);
   assert.equal(existsSync("supabase/functions/lemonsqueezy-webhook/.npmrc"), false);
-  assert.match(migration, /DROP FUNCTION IF EXISTS public\\.add_credits_to_user\\(uuid, integer, text\\)/);
-  assert.match(shop, /supabase\\.rpc\\("spend_credits"/);
+  assert.match(migration, /DROP FUNCTION IF EXISTS public\.add_credits_to_user\(uuid, integer, text\)/);
+  assert.match(shop, /supabase\.rpc\("spend_credits"/);
   assert.match(shop, /getSharkCoinsBalance/);
 });
