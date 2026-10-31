@@ -326,7 +326,7 @@ function parseSingleHand(text: string): HandHistory | null {
     }
 
     // "PlayerName collected $X.XX from pot"
-    if (line.includes("collected") && line.includes("from pot")) {
+    if (line.includes("collected") && /\bfrom (?:the )?(?:(?:main|side) )?pot\b/i.test(line)) {
       const collectMatch = line.match(/^(.+?) collected \$?([\d.]+) from/);
       if (collectMatch?.[1] && collectMatch[2]) {
         const pidx = findPlayer(collectMatch[1].trim());
