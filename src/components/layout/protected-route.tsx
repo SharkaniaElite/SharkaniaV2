@@ -32,7 +32,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     );
   }
 
-  if (requiredRole && profile && !requiredRole.includes(profile.role)) {
+  if (requiredRole && (!profile || !requiredRole.includes(profile.role))) {
     return <Navigate to="/" replace />;
   }
 

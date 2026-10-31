@@ -127,86 +127,22 @@ export async function deleteBlogPost(id: string): Promise<void> {
   if (error) throw error;
 }
 
-// 🔥 CREDENCIALES DE POSTHOG (Blindadas contra comillas, seguras para producción)
-const POSTHOG_API_KEY = String(import.meta.env.VITE_POSTHOG_PERSONAL_API_KEY || "").replace(/['"]/g, '').trim(); 
-const POSTHOG_PROJECT_ID = String(import.meta.env.VITE_POSTHOG_PROJECT_ID || "").replace(/\D/g, ''); 
-const POSTHOG_HOST = String(import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "us.posthog.com").replace(/['"]/g, '').replace('https://', '').replace('http://', '').trim();
-
-export async function syncBlogViewsFromPostHog() {
+// La clave personal de PostHog nunca debe estar en el bundle Vite.
+// La consulta se realiza en Cloudflare Pages Functions con autorización del servidor.
+export async function syncBlogViewsFromPostHog(): Promise<{ success: boolean; message: string }> {
   try {
-    // 1. Obtenemos todos los artículos publicados
-    const { data: posts, error: fetchError } = await supabase
-      .from('blog_posts')
-      .select('id, slug')
-      .eq('published', true); 
-
-    if (fetchError || !posts) throw new Error("Error obteniendo posts: " + fetchError?.message);
-
-    let updatedCount = 0;
-    let lastError = "";
-
-    // 2. Consultamos a PostHog post por post usando HogQL (El motor más moderno y seguro)
-    for (const post of posts) {
-      const pagePath = `/${post.slug}`; 
-      
-      // Usamos el endpoint de consultas directas (POST) para evitar errores 404 de URL
-      const posthogUrl = `https://${POSTHOG_HOST}/api/projects/${POSTHOG_PROJECT_ID}/query/`;
-
-      const response = await fetch(posthogUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${POSTHOG_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          query: {
-            kind: "HogQLQuery",
-            // Cuenta usuarios únicos que hayan visitado la ruta de este artículo
-            query: `SELECT count(distinct person_id) FROM events WHERE event = '$pageview' AND properties.$pathname LIKE '%${pagePath}%'`
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        // Si hay error, lo guardamos con todos los detalles de conexión
-        lastError = `HTTP ${response.status} | ID: ${POSTHOG_PROJECT_ID} | Host: ${POSTHOG_HOST} | Detalle: ${errorText.substring(0, 100)}`;
-        console.warn(`PostHog Error en ${pagePath}:`, lastError);
-        continue; 
-      }
-
-      const data = await response.json();
-      
-      // En HogQL, la respuesta viene dentro de un array de resultados
-      let totalUniqueViews = 0;
-      if (data.results && data.results.length > 0) {
-          totalUniqueViews = Number(data.results[0][0]) || 0;
-      }
-
-      // 3. Guardamos el número exacto en Supabase
-      const { error: updateError } = await supabase
-          .from('blog_posts')
-          .update({ unique_views: totalUniqueViews })
-          .eq('id', post.id);
-
-      if (updateError) {
-          lastError = `Supabase Error: ${updateError.message}`;
-          console.error(lastError);
-      } else {
-          updatedCount++;
-      }
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error || !session?.access_token) {
+      return { success: false, message: "Debes iniciar sesión para sincronizar visitas." };
     }
-
-    if (updatedCount === 0 && lastError) {
-      return { success: false, message: `❌ Error de conexión: ${lastError}` };
-    }
-
-    return { success: true, message: `✅ ¡Éxito! Se actualizaron las lecturas de ${updatedCount} artículos (Visitantes Únicos reales).` };
-
-  } catch (error) {
-    const err = error as any; 
-    console.error("Error crítico sincronizando visitas de PostHog:", err);
-    return { success: false, message: `❌ Error del sistema: ${err.message}` };
+    const response = await fetch("/api/sync-blog-views", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    const result = await response.json() as { success: boolean; message: string };
+    return result;
+  } catch {
+    return { success: false, message: "No se pudo conectar al servicio de sincronización." };
   }
 }
 

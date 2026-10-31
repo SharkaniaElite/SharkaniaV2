@@ -290,16 +290,10 @@ export async function getUnifiedTournamentResults(
 /**
  * Recompensa al usuario con Shark Coins y XP por leer un artículo.
  */
-export async function claimBlogReward(
-  userId: string,
-  amount: number = 10,
-  xpAmount: number = 50
-): Promise<void> {
-  const { error } = await supabase.rpc("claim_blog_reward", {
-    p_user_id: userId,
-    p_amount: amount,
-    p_xp_amount: xpAmount,
+export async function claimBlogReward(postId: string): Promise<void> {
+  const { data, error } = await supabase.rpc("claim_blog_reward_secure", {
+    p_post_id: postId,
   });
-
   if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || "Recompensa no disponible");
 }
