@@ -1,6 +1,6 @@
 // src/pages/player-dashboard.tsx
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { StatCard } from "../components/ui/stat-card";
 import { Button } from "../components/ui/button";
