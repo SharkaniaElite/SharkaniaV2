@@ -208,3 +208,65 @@ test("folded dead money stays in the main pot; side pot excludes short all-in pl
   approximately(state.players[3].totalInvested, 0.20);
   approximately(state.players.reduce((sum, p) => sum + p.totalInvested, 0), state.pot.totalPot);
 });
+
+test("reported GG winners receive their recorded net payouts only at showdown completion", () => {
+  const hand = ggpokerParser.parse(threeWayHand)[0];
+  assert.ok(hand?.result);
+  const steps = getTotalSteps(hand);
+  let state = initReplayState(hand);
+  for (let i = 0; i < steps; i++) state = stepForward(state);
+  assert.equal(state.isFinished, false);
+  approximately(state.players[0].currentStack, 0);
+  approximately(state.players[1].currentStack, 0);
+  approximately(state.players[2].currentStack, 1);
+
+  const done = stepForward(state);
+  assert.equal(done.isFinished, true);
+  approximately(done.players[0].currentStack, 1.50);
+  approximately(done.players[1].currentStack, 1.00);
+  approximately(done.players[2].currentStack, 1.00);
+  // Keep the historical pot visible on the table instead of counting it twice.
+  approximately(done.pot.totalPot, 2.50);
+  assert.equal(stepForward(done), done); // payout can never be applied twice
+
+  const direct = goToStep(hand, steps);
+  assert.equal(direct.isFinished, true);
+  assert.deepEqual(direct.players.map(p => p.currentStack), done.players.map(p => p.currentStack));
+  const rewound = stepBackward(done);
+  assert.equal(rewound.isFinished, false);
+  approximately(rewound.players[0].currentStack, 0);
+  const afterLastAction = stepForward(rewound);
+  assert.equal(afterLastAction.isFinished, false);
+  approximately(stepForward(afterLastAction).players[0].currentStack, 1.50);
+});
+
+test("cash-game rake is not invented as winnings: only actual collected net amount is credited", () => {
+  const hand = ggpokerParser.parse(
+    handText.replace("Hero collected $0.60 from pot", "Hero collected $0.58 from pot")
+  )[0];
+  assert.ok(hand);
+  const completed = goToStep(hand, getTotalSteps(hand));
+  assert.equal(completed.isFinished, true);
+  approximately(completed.pot.totalPot, 0.60);
+  approximately(completed.players[0].currentStack, 2.28);
+  approximately(completed.players[1].currentStack, 1.70);
+  // Exactly $0.02 remains unawarded; the engine does not guess its reason.
+  approximately(completed.players.reduce((sum, p) => sum + p.currentStack, 0), 3.98);
+});
+
+test("untrusted or invalid winner amounts cannot mint chips at completion", () => {
+  const original = ggpokerParser.parse(handText)[0];
+  assert.ok(original);
+  for (const invalid of [
+    { playerIndex: 7, amount: 0.60, potType: "main" },
+    { playerIndex: 0, amount: 50, potType: "main" },
+    { playerIndex: 0, amount: -3, potType: "main" },
+  ]) {
+    const hand = { ...original, result: { winners: [invalid], showdownHands: [] } };
+    const prior = stepForward(goToStep(hand, getTotalSteps(hand) - 1));
+    assert.equal(prior.isFinished, false);
+    const done = goToStep(hand, getTotalSteps(hand));
+    assert.equal(done.isFinished, true);
+    assert.deepEqual(done.players.map(p => p.currentStack), prior.players.map(p => p.currentStack));
+  }
+});
