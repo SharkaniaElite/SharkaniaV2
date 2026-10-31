@@ -182,3 +182,19 @@ test("hand replay guards missing seats and malformed street/action arrays withou
   assert.ok(engine.includes("if (player) player.position"));
   assert.ok(paywall.includes("children?: React.ReactNode"));
 });
+
+test("academy paid unlock writes one debit and relies on the ledger trigger", () => {
+  const sql = readFileSync(
+    "supabase/migrations/20261031160943_fix_academy_single_coin_debit_20261031.sql",
+    "utf8"
+  );
+  assert.match(sql, /CREATE OR REPLACE FUNCTION public\.academy_unlock_module/);
+  assert.match(sql, /SECURITY DEFINER\s+SET search_path TO ''/);
+  assert.match(sql, /auth\.uid\(\)\) IS DISTINCT FROM p_user_id/);
+  assert.match(sql, /FROM public\.profiles WHERE id = p_user_id FOR UPDATE/);
+  assert.match(sql, /COALESCE\(v_balance, 0\) < v_module\.price_coins/);
+  assert.equal((sql.match(/INSERT INTO public\.credit_transactions/g) || []).length, 1);
+  assert.match(sql, /-v_module\.price_coins, 'spend', 'academy_module'/);
+  assert.doesNotMatch(sql, /UPDATE\s+(?:public\.)?profiles\s+SET\s+shark_coins_balance/i);
+  assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.academy_unlock_module\(uuid, uuid\) FROM PUBLIC, anon/);
+});
