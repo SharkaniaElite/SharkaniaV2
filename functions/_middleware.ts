@@ -3,6 +3,7 @@ interface Element {
   setInnerContent(content: string, options?: { html?: boolean }): this;
   setAttribute(name: string, value: string): this;
   append(content: string, options?: { html?: boolean }): this;
+  prepend(content: string, options?: { html?: boolean }): this;
 }
 
 declare class HTMLRewriter {
@@ -51,6 +52,129 @@ async function fetchJson(path: string, key: string) {
   }
 }
 
+
+/**
+ * Visible, server-fetched HTML for public content. React's createRoot() replaces this
+ * initial markup when JS starts; search engines can read it without JS.
+ * Never inject raw CMS HTML, user-submitted links, or non-public Supabase rows.
+ */
+function escapeSeoText(value: unknown): string {
+  return String(value ?? "").replace(/[&<>"']/g, (char) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" } as Record<string, string>)[char] || "");
+}
+
+function seoLink(prefix: string, slug: unknown): string {
+  return prefix + encodeURIComponent(String(slug ?? ""));
+}
+
+function postCategoryPrefix(category: unknown): string {
+  const label = String(category ?? "").trim().toLowerCase();
+  return label === "noticias" ? "/noticias/" : label === "promociones" ? "/promociones/" : "/blog/";
+}
+
+function articleBodyAsHtml(raw: unknown): string {
+  if (!Array.isArray(raw)) return "";
+  return raw.slice(0, 220).map((item: unknown) => {
+    if (!item || typeof item !== "object") return "";
+    const block = item as { type?: unknown; content?: unknown; items?: unknown };
+    const content = escapeSeoText(block.content).slice(0, 12000);
+    switch (block.type) {
+      case "h2": return "<h2 class='text-xl font-bold mt-8 mb-3'>" + content + "</h2>";
+      case "h3": return "<h3 class='text-lg font-semibold mt-6 mb-2'>" + content + "</h3>";
+      case "p": return "<p class='my-4'>" + content + "</p>";
+      case "callout": return "<blockquote class='my-4 border-l-2 pl-4'>" + content + "</blockquote>";
+      case "stat": return "<p class='my-4'>" + content + "</p>";
+      case "list":
+        return "<ul class='list-disc ml-6 my-4'>" +
+          (Array.isArray(block.items) ? block.items.slice(0, 40).map((x: unknown) => "<li>" + escapeSeoText(x).slice(0, 3000) + "</li>").join("") : "") +
+          "</ul>";
+      default: return "";
+    }
+  }).join("");
+}
+
+async function buildVisibleSeoHtml(path: string, key: string): Promise<string> {
+  if (!key) return "";
+  let content = "";
+  if (path === "/blog" || path === "/noticias" || path === "/promociones") {
+    const list = await fetchJson("blog_posts?select=slug,title,excerpt,category&published=eq.true&order=published_at.desc&limit=150", key);
+    if (Array.isArray(list)) {
+      const matches = list.filter((post) => {
+        const prefix = postCategoryPrefix(post.category);
+        return path === "/blog" ? prefix === "/blog/" : prefix === path + "/";
+      });
+      const heading = path === "/blog" ? "Artículos y estrategias de póker" : path === "/noticias" ? "Noticias de póker" : "Promociones de póker";
+      content = "<h1 class='text-3xl font-bold mb-6'>" + heading + "</h1><section>" +
+        matches.map(post => "<article class='my-6'><h2 class='text-xl font-semibold'><a href='" +
+          seoLink(postCategoryPrefix(post.category), post.slug) + "'>" + escapeSeoText(post.title) +
+          "</a></h2><p>" + escapeSeoText(post.excerpt).slice(0, 1600) + "</p></article>").join("") + "</section>";
+    }
+  } else if (/^\/(?:blog|noticias|promociones)\/[^/]+$/.test(path)) {
+    const slug = path.split("/")[2];
+    const posts = await fetchJson("blog_posts?select=slug,title,excerpt,body,category&published=eq.true&slug=eq." +
+      encodeURIComponent(slug) + "&limit=1", key);
+    if (Array.isArray(posts) && posts[0]) {
+      const post = posts[0];
+      content = "<article><h1 class='text-3xl font-bold mb-5'>" + escapeSeoText(post.title) +
+        "</h1><p class='text-lg my-4'>" + escapeSeoText(post.excerpt) + "</p>" +
+        articleBodyAsHtml(post.body) + "</article>";
+    }
+  } else if (path === "/glosario") {
+    const terms = await fetchJson("glossary_terms?select=term,slug,short_definition&is_active=eq.true&order=term.asc&limit=250", key);
+    if (Array.isArray(terms)) {
+      content = "<h1 class='text-3xl font-bold mb-6'>Glosario de póker</h1><dl>" +
+        terms.map(term => "<div class='my-5'><dt class='font-bold'><a href='" +
+          seoLink("/glosario/", term.slug) + "'>" + escapeSeoText(term.term) +
+          "</a></dt><dd>" + escapeSeoText(term.short_definition) + "</dd></div>").join("") + "</dl>";
+    }
+  } else if (/^\/glosario\/[^/]+$/.test(path)) {
+    const slug = path.slice("/glosario/".length);
+    const terms = await fetchJson("glossary_terms?select=term,short_definition,full_definition&is_active=eq.true&slug=eq." +
+      encodeURIComponent(slug) + "&limit=1", key);
+    if (Array.isArray(terms) && terms[0]) {
+      content = "<article><h1 class='text-3xl font-bold mb-5'>" + escapeSeoText(terms[0].term) +
+        "</h1><p>" + escapeSeoText(terms[0].short_definition) + "</p><section class='my-5'>" +
+        escapeSeoText(terms[0].full_definition) + "</section></article>";
+    }
+  } else if (path === "/clubs" || path === "/leagues") {
+    const isClub = path === "/clubs";
+    const query = isClub
+      ? "clubs?select=slug,name,description&is_approved=eq.true&is_demo=eq.false&order=name.asc&limit=150"
+      : "leagues?select=slug,name,description&is_demo=eq.false&order=name.asc&limit=150";
+    const list = await fetchJson(query, key);
+    if (Array.isArray(list)) {
+      content = "<h1 class='text-3xl font-bold mb-6'>" +
+        (isClub ? "Clubes de póker" : "Ligas de póker") + "</h1><section>" +
+        list.map(item => "<article class='my-5'><h2 class='text-xl font-semibold'><a href='" +
+          seoLink(path + "/", item.slug) + "'>" + escapeSeoText(item.name) + "</a></h2><p>" +
+          escapeSeoText(item.description).slice(0, 1800) + "</p></article>").join("") + "</section>";
+    }
+  } else if (/^\/(?:clubs|leagues)\/[^/]+$/.test(path)) {
+    const isClub = path.startsWith("/clubs/");
+    const slug = path.split("/")[2];
+    const query = (isClub ? "clubs" : "leagues") + "?select=name,description&slug=eq." +
+      encodeURIComponent(slug) + (isClub ? "&is_approved=eq.true" : "&is_demo=eq.false") + "&limit=1";
+    const items = await fetchJson(query, key);
+    if (Array.isArray(items) && items[0]) {
+      content = "<article><h1 class='text-3xl font-bold mb-5'>" +
+        escapeSeoText(items[0].name) + "</h1><p>" + escapeSeoText(items[0].description) + "</p></article>";
+    }
+  } else if (/^\/ranking\/[^/]+$/.test(path)) {
+    const slug = path.slice("/ranking/".length);
+    const players = await fetchJson("players?select=nickname,elo_rating,total_tournaments&slug=eq." +
+      encodeURIComponent(slug) + "&is_demo=eq.false&limit=1", key);
+    if (Array.isArray(players) && players[0]) {
+      content = "<article><h1 class='text-3xl font-bold mb-5'>" +
+        escapeSeoText(players[0].nickname) + " — Perfil de jugador</h1><p>ELO: " +
+        escapeSeoText(players[0].elo_rating) + ". Torneos jugados: " +
+        escapeSeoText(players[0].total_tournaments) + ".</p></article>";
+    }
+  }
+  return content
+    ? "<main class='pt-24 pb-16 max-w-4xl mx-auto px-6 leading-relaxed text-sk-text-1' aria-label='Contenido público de Sharkania'>" + content + "</main>"
+    : "";
+}
+
 export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (context) => {
   const { request, next, env } = context;
   const url = new URL(request.url);
@@ -80,6 +204,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   }
 
   const key = env.SUPABASE_ANON_KEY;
+  const visibleSeoHtml = !isPrivate ? await buildVisibleSeoHtml(canonicalPath, key) : '';
 
   // Valores por defecto
   let title = PAGE_META['/'].title;
@@ -161,6 +286,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
     .on('meta[name="twitter:description"]', { element(e: Element) { e.setAttribute("content", description) } })
     .on('meta[name="twitter:image"]', { element(e: Element) { e.setAttribute("content", image) } })
     .on('link[rel="canonical"]', { element(e: Element) { e.setAttribute('href', `${SITE_URL}${canonicalPath}`) } })
+    .on('#root', { element(e: Element) { if (visibleSeoHtml) e.prepend(visibleSeoHtml, { html: true }) } })
     .transform(response);
 
   // Las reglas de public/_headers NO se aplican a respuestas de Pages Functions.
