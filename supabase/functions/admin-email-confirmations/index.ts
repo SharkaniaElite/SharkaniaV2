@@ -148,6 +148,7 @@ serve(async (request) => {
       const { data: generated, error: generateError } = await privileged.auth.admin.generateLink({
         type: "magiclink",
         email: target.email,
+        options: { redirectTo: "https://sharkania.com/welcome" },
       });
       const actionLink = generated?.properties?.action_link;
       const expectedOrigin = new URL(url).origin;
