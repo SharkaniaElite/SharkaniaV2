@@ -15,7 +15,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: node --test tests/security-seo.test.mjs
+      - run: node --test tests/*.test.mjs
       - run: npx vite build
       - name: Compile Cloudflare Pages Functions (catch syntax and bundling failures)
         run: npx --yes wrangler@4 pages functions build --outdir=.tmp-cloudflare-functions
