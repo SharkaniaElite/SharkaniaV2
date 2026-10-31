@@ -235,7 +235,9 @@ test("reported GG winners receive their recorded net payouts only at showdown co
   const rewound = stepBackward(done);
   assert.equal(rewound.isFinished, false);
   approximately(rewound.players[0].currentStack, 0);
-  approximately(stepForward(rewound).players[0].currentStack, 1.50);
+  const afterLastAction = stepForward(rewound);
+  assert.equal(afterLastAction.isFinished, false);
+  approximately(stepForward(afterLastAction).players[0].currentStack, 1.50);
 });
 
 test("cash-game rake is not invented as winnings: only actual collected net amount is credited", () => {
@@ -261,7 +263,8 @@ test("untrusted or invalid winner amounts cannot mint chips at completion", () =
     { playerIndex: 0, amount: -3, potType: "main" },
   ]) {
     const hand = { ...original, result: { winners: [invalid], showdownHands: [] } };
-    const prior = goToStep(hand, getTotalSteps(hand) - 1);
+    const prior = stepForward(goToStep(hand, getTotalSteps(hand) - 1));
+    assert.equal(prior.isFinished, false);
     const done = goToStep(hand, getTotalSteps(hand));
     assert.equal(done.isFinished, true);
     assert.deepEqual(done.players.map(p => p.currentStack), prior.players.map(p => p.currentStack));
