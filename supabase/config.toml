@@ -8,3 +8,11 @@ entrypoint = "./functions/posthog-stats/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/posthog-stats/*.html" ]
+
+# Gateway auth disabled for publishable-key compatibility; the handler checks
+# auth.getUser(token), is_super_admin() and rate-limits before each operation.
+[functions.admin-email-confirmations]
+enabled = true
+verify_jwt = false
+import_map = "./functions/admin-email-confirmations/deno.json"
+entrypoint = "./functions/admin-email-confirmations/index.ts"
