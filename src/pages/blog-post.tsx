@@ -219,7 +219,6 @@ export default function BlogPostPage() {
   // Gamificación y Minería
   const { user, isAuthenticated, refreshProfile } = useAuthStore();
   const REWARD_AMOUNT = 10;
-  const XP_REWARD = 50;
   const [initialTime, setInitialTime] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
