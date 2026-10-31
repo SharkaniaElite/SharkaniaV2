@@ -6,7 +6,7 @@ export async function signUp(
   email: string,
   password: string,
   displayName: string,
-  role: UserRole = "player",
+  _requestedRole: UserRole = "player",
   // 🔥 1. ACTUALIZAMOS EL TIPADO DE EXTRA PARA ACEPTAR IGNITION
   extra?: { 
     country_code?: string; 
@@ -14,6 +14,10 @@ export async function signUp(
     ignition_league_player?: boolean;
     ignition_email?: string;
     ignition_nickname?: string;
+    registration_type?: "player" | "club";
+    club_name?: string;
+    club_country_code?: string;
+    club_description?: string;
   },
   captchaToken?: string // 🛡️ AÑADIDO: Token de Turnstile
 ) {
@@ -25,14 +29,18 @@ export async function signUp(
       captchaToken, // 🛡️ ENVIADO A SUPABASE AUTH
       data: {
         display_name: displayName,
-        role,
-        // Supabase trigger leerá estos campos para poblar profiles
+        // El rol NO se toma del navegador. El trigger de Auth asigna player.
         country_code: extra?.country_code ?? null,
         whatsapp: extra?.whatsapp ?? null,
         // 🔥 2. PASAMOS LOS DATOS PARA QUE SE GUARDEN EN USER_METADATA DE SUPABASE
         ignition_league_player: extra?.ignition_league_player ?? null,
         ignition_email: extra?.ignition_email ?? null,
         ignition_nickname: extra?.ignition_nickname ?? null,
+        // Supabase Auth registra la solicitud (sin otorgar rol privilegiado).
+        registration_type: extra?.registration_type === "club" ? "club" : "player",
+        club_name: extra?.registration_type === "club" ? extra.club_name : null,
+        club_country_code: extra?.registration_type === "club" ? extra.club_country_code : null,
+        club_description: extra?.registration_type === "club" ? extra.club_description : null,
       },
     },
   });
@@ -51,9 +59,7 @@ export async function signUp(
       updatePayload.ignition_league_player = true;
       updatePayload.ignition_email = extra.ignition_email ?? email;
       updatePayload.ignition_nickname = extra.ignition_nickname;
-      updatePayload.ignition_status = 'verified';
-      updatePayload.ignition_linked_at = new Date().toISOString();
-      updatePayload.ignition_password_sent = false; // Los dejamos como pendientes
+      // La verificación de Ignition exige revisión del administrador.
     }
 
     // Solo hacemos la actualización si hay algo que actualizar
