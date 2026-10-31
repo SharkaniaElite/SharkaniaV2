@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock, ArrowRight } from "lucide-react";
-import { getBlogPosts, formatBlogDate, type BlogPost } from "../../lib/api/blog";
+import { getBlogPosts, type BlogPost } from "../../lib/api/blog";
 
 interface RelatedPostsProps {
   currentSlug: string;
