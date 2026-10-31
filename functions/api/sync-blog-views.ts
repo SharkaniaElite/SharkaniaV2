@@ -2,11 +2,10 @@
 interface Env {
   SUPABASE_URL: string;
   SUPABASE_ANON_KEY: string;
-  VITE_POSTHOG_PERSONAL_API_KEY?: string; // Existing Cloudflare binding; move to unprefixed secret after rotation.
+  VITE_POSTHOG_PERSONAL_API_KEY?: string; // Temporary rollback-only fallback, remove after live verification.
   POSTHOG_PERSONAL_API_KEY?: string;
   VITE_POSTHOG_PROJECT_ID?: string;
   POSTHOG_PROJECT_ID?: string;
-  VITE_PUBLIC_POSTHOG_HOST?: string;
   POSTHOG_HOST?: string;
 }
 type FunctionContext = { request: Request; env: Env };
@@ -33,9 +32,10 @@ export const onRequestPost = async ({ request, env }: FunctionContext): Promise<
 
   const posthogKey = env.POSTHOG_PERSONAL_API_KEY || env.VITE_POSTHOG_PERSONAL_API_KEY;
   const projectId = env.POSTHOG_PROJECT_ID || env.VITE_POSTHOG_PROJECT_ID;
-  const host = (env.POSTHOG_HOST || env.VITE_PUBLIC_POSTHOG_HOST || "us.posthog.com")
+  // Use the PostHog query API host, never the public SDK ingestion host (us.i.posthog.com).
+  const host = (env.POSTHOG_HOST || "us.posthog.com")
     .replace(/^https?:\/\//, "").replace(/\/$/, "");
-  if (!posthogKey || !projectId || !/^\d+$/.test(projectId) || !/^(us|eu|us-assets|eu-assets)\.posthog\.com$/.test(host)) {
+  if (!posthogKey || !projectId || !/^\d+$/.test(projectId) || !/^(us|eu)\.posthog\.com$/.test(host)) {
     return json({ success: false, message: "Falta configurar el acceso seguro a PostHog." }, 503);
   }
 
@@ -57,7 +57,14 @@ export const onRequestPost = async ({ request, env }: FunctionContext): Promise<
     });
     if (!queryResponse.ok) throw new Error(`posthog_${queryResponse.status}`);
     const aggregate = await queryResponse.json() as { results?: unknown[][] };
-    const paths = Array.isArray(aggregate.results) ? aggregate.results : [];
+    if (!Array.isArray(aggregate.results)) {
+      throw new Error("posthog_invalid_response");
+    }
+    const paths = aggregate.results;
+    // Never overwrite valid stored visit counts with zero if PostHog returns no results.
+    if (paths.length === 0) {
+      return json({ success: false, message: "PostHog no devolvió visitas; no se modificaron las estadísticas." }, 422);
+    }
     const views = new Map<string, number>();
     for (const row of paths) {
       if (!Array.isArray(row) || typeof row[0] !== "string") continue;
