@@ -22,6 +22,9 @@ test("every page has a canonical URL from the request route, with no hidden SEO 
   assert.match(source, /'\/shark-tv'/);
   assert.match(source, /status: 410/);
   assert.match(source, /status: 404/);
+  assert.match(source, /url\.hostname\.endsWith\("\.pages\.dev"\)/);
+  assert.match(source, /headers\.set\("X-Robots-Tag", "noindex"\)/);
+  assert.match(source, /headers\.set\("X-Frame-Options", "SAMEORIGIN"\)/);
 });
 
 test("staff access fails closed while core routes and academy remain intact", () => {
