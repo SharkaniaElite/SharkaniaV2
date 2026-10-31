@@ -148,7 +148,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   }
 
   // 3. INYECTAR METADATOS AL VUELO: Reemplazamos las etiquetas del index.html
-  return new HTMLRewriter()
+  const rewritten = new HTMLRewriter()
     .on('title', { element(e: Element) { e.setInnerContent(title) } })
     .on('meta[name="description"]', { element(e: Element) { e.setAttribute("content", description) } })
     .on('meta[name="robots"]', { element(e: Element) { e.setAttribute('content', isPrivate ? 'noindex, nofollow' : 'index, follow') } })
@@ -162,4 +162,21 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
     .on('meta[name="twitter:image"]', { element(e: Element) { e.setAttribute("content", image) } })
     .on('link[rel="canonical"]', { element(e: Element) { e.setAttribute('href', `${SITE_URL}${canonicalPath}`) } })
     .transform(response);
+
+  // Las reglas de public/_headers NO se aplican a respuestas de Pages Functions.
+  // Deben añadirse al HTML transformado sin perder el streaming del body.
+  const headers = new Headers(rewritten.headers);
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Frame-Options", "SAMEORIGIN");
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+  if (isPrivate || url.hostname.endsWith(".pages.dev")) {
+    headers.set("X-Robots-Tag", "noindex");
+  }
+  return new Response(rewritten.body, {
+    status: rewritten.status,
+    statusText: rewritten.statusText,
+    headers,
+  });
 };
