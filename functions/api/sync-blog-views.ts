@@ -63,8 +63,9 @@ export const onRequestPost = async ({ request, env }: FunctionContext): Promise<
     const views = new Map<string, number>();
     for (const row of paths) {
       if (!Array.isArray(row) || typeof row[0] !== "string") continue;
-      const pathname = row[0].replace(/\\/$/, "");
-      if (!/^\\/(?:blog|noticias|promociones)\\/[^/?#]+$/.test(pathname)) continue;
+      const pathname = row[0].endsWith("/") ? row[0].slice(0, -1) : row[0];
+      const parts = pathname.split("/");
+      if (parts.length !== 3 || parts[0] !== "" || !["blog", "noticias", "promociones"].includes(parts[1] ?? "")) continue;
       let slug: string;
       try {
         slug = decodeURIComponent(pathname.split("/").pop() || "");
