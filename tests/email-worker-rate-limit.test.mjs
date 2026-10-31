@@ -14,7 +14,7 @@ async function executeQueue(messages, { rejectOnce = false } = {}) {
   const attempts = new Map();
   let scheduled;
   globalThis.fetch = async (url, config) => {
-    if (String(url).includes("/rest/v1/email_queue?")) {
+    if (String(url).includes("/rest/v1/email_queue?status=eq.pending")) {
       return new Response(JSON.stringify(messages), { status: 200 });
     }
     if (String(url).includes("api.resend.com")) {
