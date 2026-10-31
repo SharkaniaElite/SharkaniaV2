@@ -306,7 +306,7 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
               onChange={(e) => {
                 setTitle(e.target.value);
                 if (!postId && slug === '') {
-                   setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
+                   setSlug(e.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
                 }
               }}
             />
