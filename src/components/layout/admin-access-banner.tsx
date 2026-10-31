@@ -1,7 +1,7 @@
 // src/components/layout/admin-access-banner.tsx
 import { Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth-store";
-import { Settings, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 
 /**
  * Floating admin access button that appears for club_admin and super_admin users.
