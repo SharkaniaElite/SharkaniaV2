@@ -289,3 +289,10 @@ test("verified Ignition and WPT identities are immutable to normal profile owner
   assert.match(sql, /NEW\.wpt_status = 'pending'/);
   assert.doesNotMatch(sql, /(?:UPDATE|DELETE|TRUNCATE) public\.profiles/);
 });
+
+test("email queue blocks browser roles at SQL GRANT layer as well as RLS", () => {
+  const sql = readFileSync("supabase/migrations/20261031190504_restrict_email_queue_browser_dml_20261031.sql", "utf8");
+  assert.match(sql, /REVOKE SELECT, INSERT, UPDATE, DELETE ON TABLE public\.email_queue/);
+  assert.match(sql, /FROM PUBLIC, anon, authenticated/);
+  assert.doesNotMatch(sql, /(?:REVOKE[^;]*FROM service_role|DELETE FROM public\.email_queue|DROP TABLE)/);
+});
