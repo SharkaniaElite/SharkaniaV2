@@ -352,22 +352,20 @@ export async function saveHandForShare(hand: HandHistory): Promise<string> {
 }
 
 export async function loadHandFromShare(id: string): Promise<HandHistory | null> {
-  const { data, error } = await supabase
-    .from("shared_hands")
-    .select("hand_data")
-    .eq("id", id)
-    .single();
-
+  // An exact-ID RPC avoids exposing the whole shared_hands table to clients.
+  // The database requires an authenticated session and returns only hand_data.
+  const { data, error } = await supabase.rpc("get_shared_hand", { p_hand_id: id });
   if (error || !data) return null;
+  const hand = data as HandHistory;
+  if (!hand.config || !Array.isArray(hand.players) || !Array.isArray(hand.streets)) return null;
 
-  // Incrementar contador de vistas — sin bloquear ni crashear
+  // Incrementar contador de vistas, sin bloquear la reproducción.
   try {
     await supabase.rpc("increment_hand_views", { hand_id: id });
   } catch {
-    // silencioso — las vistas no son críticas
+    // La estadística no es crítica para abrir la mano.
   }
 
-  const hand = data.hand_data as HandHistory;
   assignPositions(hand);
   return hand;
 }
