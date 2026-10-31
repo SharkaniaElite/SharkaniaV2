@@ -204,7 +204,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   if (request.method === 'GET' && legacyUuid) {
     const rows = await fetchJson(
       "tournaments?select=slug&id=eq." + encodeURIComponent(legacyUuid[1]) +
-      "&is_demo=eq.false&results_uploaded=eq.true&limit=1",
+      "&is_demo=eq.false&limit=1",
       env.SUPABASE_ANON_KEY,
     );
     if (Array.isArray(rows) && rows[0]?.slug) {
