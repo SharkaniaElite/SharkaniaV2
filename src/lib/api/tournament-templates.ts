@@ -167,10 +167,14 @@ export async function importCalendarFromCSV(
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const lineNum = i + 2; // +2 for header + 0-index
+    if (!row || !row.template_name?.trim() || !row.date?.trim()) {
+      errors.push(`Línea ${lineNum}: faltan datos de plantilla o fecha`);
+      continue;
+    }
 
     // Find template by name (case-insensitive)
     const template = templates.find(
-      (t) => t.name.toLowerCase().trim() === row.template_name.toLowerCase().trim()
+      (t) => t.club_id === clubId && t.name.toLowerCase().trim() === row.template_name.toLowerCase().trim()
     );
 
     if (!template) {
