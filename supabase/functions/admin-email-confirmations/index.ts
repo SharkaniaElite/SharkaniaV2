@@ -28,9 +28,10 @@ function json(status: number, payload: Record<string, unknown>, origin: string |
 }
 
 function escapeHtml(raw: string): string {
-  return raw.replace(/[&<>"']/g, (char) => (
-    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] ?? char
-  ));
+  const entities: Record<string, string> = {
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  };
+  return raw.replace(/[&<>"']/g, (char) => entities[char] ?? char);
 }
 
 function emailContent(displayName: string, actionLink: string): {
