@@ -112,3 +112,99 @@ test("backward and absolute-step navigation agree at street boundaries", () => {
   approximately(directFlop.pot.totalPot, 0.40);
   assert.equal(getTotalSteps(hand), 9);
 });
+
+
+// All-in raise and call metadata must retain how much was actually invested.
+// The $1 unmatched portion of the biggest stack is returned and excluded.
+const threeWayHand = [
+  "Poker Hand #RC778: Hold'em No Limit ($0.01/$0.02) - 2026/10/31 20:01:00",
+  "Table 'RushAndCash778' 6-max Seat #3 is the button",
+  "Seat 1: A ($0.50 in chips)",
+  "Seat 2: B ($1 in chips)",
+  "Seat 3: C ($2 in chips)",
+  "A: posts small blind $0.01",
+  "B: posts big blind $0.02",
+  "*** HOLE CARDS ***",
+  "C: raises $1.98 to $2 and is all-in",
+  "A: calls $0.49 and is all-in",
+  "B: calls $0.98 and is all-in",
+  "Uncalled bet ($1.00) returned to C",
+  "*** SHOWDOWN ***",
+  "A: shows [Ah As]",
+  "B: shows [Kh Ks]",
+  "A collected $1.50 from main pot",
+  "B collected $1.00 from side pot",
+  "*** SUMMARY ***",
+].join("\n");
+
+test("three-way GG all-in separates main and side pots and refunds the uncalled bet", () => {
+  const hand = ggpokerParser.parse(threeWayHand)[0];
+  assert.ok(hand);
+  const actions = hand.streets[0].actions;
+  assert.deepEqual(actions.map((a) => a.type), [
+    "post-sb", "post-bb", "raise", "call", "call", "return-uncalled",
+  ]);
+  assert.equal(actions[2].isAllIn, true);
+  assert.equal(actions[3].isAllIn, true);
+  assert.equal(actions[4].isAllIn, true);
+  assert.deepEqual(hand.result.winners.map((w) => w.potType), ["main", "side"]);
+
+  let state = initReplayState(hand);
+  for (let i = 0; i < actions.length - 1; i++) state = stepForward(state);
+  approximately(state.pot.totalPot, 3.50);
+
+  state = stepForward(state);
+  approximately(state.pot.totalPot, 2.50);
+  approximately(state.pot.mainPot, 1.50);
+  assert.equal(state.pot.sidePots.length, 1);
+  approximately(state.pot.sidePots[0].amount, 1.00);
+  assert.deepEqual(state.pot.sidePots[0].eligiblePlayers, [1, 2]);
+  approximately(state.players[0].currentStack, 0);
+  approximately(state.players[1].currentStack, 0);
+  approximately(state.players[2].currentStack, 1);
+  assert.equal(state.players[2].isAllIn, false);
+  approximately(state.players.reduce((sum, p) => sum + p.totalInvested, 0), state.pot.totalPot);
+
+  const rewind = stepBackward(state);
+  approximately(rewind.pot.totalPot, 3.50);
+  const restore = stepForward(rewind);
+  approximately(restore.pot.totalPot, 2.50);
+});
+
+const foldedDeadMoneyHand = [
+  "Poker Hand #RC779: Hold'em No Limit ($0.01/$0.02) - 2026/10/31 20:02:00",
+  "Table 'RushAndCash779' 6-max Seat #3 is the button",
+  "Seat 1: A ($0.50 in chips)",
+  "Seat 2: B ($1 in chips)",
+  "Seat 3: C ($2 in chips)",
+  "Seat 4: D ($1.50 in chips)",
+  "A: posts small blind $0.01",
+  "B: posts big blind $0.02",
+  "*** HOLE CARDS ***",
+  "C: raises $0.18 to $0.20",
+  "D: calls $0.20",
+  "A: raises $0.49 to $0.50 and is all-in",
+  "B: raises $0.98 to $1 and is all-in",
+  "C: calls $0.80",
+  "D: folds",
+  "*** SHOWDOWN ***",
+  "A: shows [Ah As]",
+  "B: shows [Kh Ks]",
+  "B collected $2.70 from main pot",
+  "*** SUMMARY ***",
+].join("\n");
+
+test("folded dead money stays in the main pot; side pot excludes short all-in player", () => {
+  const hand = ggpokerParser.parse(foldedDeadMoneyHand)[0];
+  assert.ok(hand);
+  let state = initReplayState(hand);
+  for (let i = 0; i < hand.streets[0].actions.length; i++) state = stepForward(state);
+  approximately(state.pot.totalPot, 2.70);
+  approximately(state.pot.mainPot, 1.70);
+  assert.equal(state.pot.sidePots.length, 1);
+  approximately(state.pot.sidePots[0].amount, 1.00);
+  assert.deepEqual(state.pot.sidePots[0].eligiblePlayers, [1, 2]);
+  assert.equal(state.players[3].isFolded, true);
+  approximately(state.players[3].totalInvested, 0.20);
+  approximately(state.players.reduce((sum, p) => sum + p.totalInvested, 0), state.pot.totalPot);
+});
