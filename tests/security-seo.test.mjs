@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 
 test("personal PostHog API token is never referenced by a browser module", () => {
   const source = readFileSync("src/lib/api/blog.ts", "utf8");
@@ -197,4 +197,20 @@ test("academy paid unlock writes one debit and relies on the ledger trigger", ()
   assert.match(sql, /-v_module\.price_coins, 'spend', 'academy_module'/);
   assert.doesNotMatch(sql, /UPDATE\s+(?:public\.)?profiles\s+SET\s+shark_coins_balance/i);
   assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.academy_unlock_module\(uuid, uuid\) FROM PUBLIC, anon/);
+});
+
+test("retired real-money checkout is absent while the Shark Coins shop remains", () => {
+  const config = readFileSync("supabase/config.toml", "utf8");
+  const migration = readFileSync(
+    "supabase/migrations/20261031162226_remove_legacy_cash_topup_rpc_20261031.sql",
+    "utf8"
+  );
+  const shop = readFileSync("src/lib/api/shop.ts", "utf8");
+  assert.doesNotMatch(config, /lemonsqueezy/i);
+  assert.equal(existsSync("supabase/functions/lemonsqueezy-webhook/index.ts"), false);
+  assert.equal(existsSync("supabase/functions/lemonsqueezy-webhook/deno.json"), false);
+  assert.equal(existsSync("supabase/functions/lemonsqueezy-webhook/.npmrc"), false);
+  assert.match(migration, /DROP FUNCTION IF EXISTS public\\.add_credits_to_user\\(uuid, integer, text\\)/);
+  assert.match(shop, /supabase\\.rpc\\("spend_credits"/);
+  assert.match(shop, /getSharkCoinsBalance/);
 });
