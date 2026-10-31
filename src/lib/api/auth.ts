@@ -14,6 +14,10 @@ export async function signUp(
     ignition_league_player?: boolean;
     ignition_email?: string;
     ignition_nickname?: string;
+    registration_type?: "player" | "club";
+    club_name?: string;
+    club_country_code?: string;
+    club_description?: string;
   },
   captchaToken?: string // 🛡️ AÑADIDO: Token de Turnstile
 ) {
@@ -32,6 +36,11 @@ export async function signUp(
         ignition_league_player: extra?.ignition_league_player ?? null,
         ignition_email: extra?.ignition_email ?? null,
         ignition_nickname: extra?.ignition_nickname ?? null,
+        // Supabase Auth registra la solicitud (sin otorgar rol privilegiado).
+        registration_type: extra?.registration_type === "club" ? "club" : "player",
+        club_name: extra?.registration_type === "club" ? extra.club_name : null,
+        club_country_code: extra?.registration_type === "club" ? extra.club_country_code : null,
+        club_description: extra?.registration_type === "club" ? extra.club_description : null,
       },
     },
   });
