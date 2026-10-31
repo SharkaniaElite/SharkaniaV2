@@ -121,7 +121,7 @@ function PotSparkline({ points }: { points: number[] }) {
     return `${x},${y}`;
   });
 
-  const [lastXStr = "0", lastYStr = "0"] = (coords.at(-1) ?? "0,0").split(",");
+  const [lastXStr = "0", lastYStr = "0"] = (coords[coords.length - 1] ?? "0,0").split(",");
   const lastX = Number(lastXStr);
   const lastY = Number(lastYStr);
 
