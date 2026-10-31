@@ -1,5 +1,6 @@
 // src/components/seo/seo-head.tsx
 import { useEffect } from "react";
+import { getCanonicalUrl } from "../../lib/seo-canonical";
 
 interface SEOHeadProps {
   title: string;
@@ -30,7 +31,7 @@ function setMetaTag(property: string, content: string, isName = false) {
 export function SEOHead({
   title,
   description = DEFAULT_DESCRIPTION,
-  path = "",
+  path,
   ogImage = DEFAULT_OG_IMAGE,
   ogType = "website",
   noIndex = false,
@@ -38,7 +39,8 @@ export function SEOHead({
   const fullTitle = title === "Inicio"
     ? `${SITE_NAME} — Plataforma Global de Poker Competitivo`
     : `${title} | ${SITE_NAME}`;
-  const fullUrl = `${SITE_URL}${path}`;
+  // Explicit paths win; pages that omit path use their actual browser route.
+  const fullUrl = getCanonicalUrl(path);
 
   useEffect(() => {
     // Title
