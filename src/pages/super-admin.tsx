@@ -618,7 +618,7 @@ export function SuperAdminPage() {
     }
   };
 
-  // 🔥 NUEVO: Función para Enviar Correos a Jugadores de Ignition y Disparar el Worker
+  // Encolar correos de Ignition para envío transaccional programado
   const handleSendIgnitionEmails = async () => {
     if (!ignitionEmailSubject.trim() || !ignEmailPassword.trim()) {
       alert("El asunto y la contraseña son obligatorios.");
@@ -674,19 +674,9 @@ export function SuperAdminPage() {
 
       if (error) throw error;
 
-      // 2. Disparamos el Worker de Cloudflare inmediatamente
-      try {
-        const workerRes = await fetch("https://sharkania-email-worker.duhauandres.workers.dev/", {
-          headers: {
-            "X-Admin-Secret": "shark-admin-2026" // <-- Tu contraseña aquí
-          }
-        });
-        const result = await workerRes.json();
-        alert(`✅ Éxito: Se encolaron ${count} correos.\n🚀 Worker ejecutado: ${result.processed} procesados (${result.success} enviados, ${result.failed} fallidos).`);
-      } catch (workerErr) {
-        console.error("Error al contactar al worker:", workerErr);
-        alert(`✅ Éxito: Se encolaron ${count} correos.\n⚠️ Nota: No pudimos leer la respuesta del Worker en tiempo real, pero si el script programado (Cron) está activo, se enviarán pronto.`);
-      }
+      // The protected queue RPC has already enqueued these messages.
+      // Cloudflare Cron processes them automatically every ten minutes.
+      alert(`✅ Se encolaron ${count} correos de Ignition. El envío se realizará automáticamente en el próximo ciclo de correos (cada 10 minutos).`);
 
       setIgnEmailPassword(""); // Limpiamos solo la contraseña por seguridad
       setShowIgnitionEmailModal(false);
@@ -764,18 +754,7 @@ export function SuperAdminPage() {
 
       if (error) throw error;
 
-      // 2. Disparamos Worker
-      try {
-        const workerRes = await fetch("https://sharkania-email-worker.duhauandres.workers.dev/", {
-          headers: {
-            "X-Admin-Secret": "shark-admin-2026" // <-- Tu contraseña aquí
-          }
-        });
-        const result = await workerRes.json();
-        alert(`✅ Éxito: Se encolaron ${count} boletines.\n🚀 Worker: ${result.processed} procesados.`);
-      } catch (workerErr) {
-        alert(`✅ Éxito: Se encolaron ${count} boletines. Se enviarán en breve por el Cron.`);
-      }
+      alert(`✅ Se encolaron ${count} boletines. El servicio de correos los procesará automáticamente (cada 10 minutos).`);
 
       setShowNewsletterModal(false);
     } catch (e: any) {
