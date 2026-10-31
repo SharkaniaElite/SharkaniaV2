@@ -29,6 +29,9 @@ const PAGE_META: Record<string, { title: string, desc: string }> = {
   '/leagues': { title: 'Ligas de Poker | Sharkania', desc: 'Ligas de poker competitivo con sistema de puntos y rankings.' },
   '/compare': { title: 'Comparador de Jugadores | Sharkania', desc: 'Compara estadísticas: ELO, ITM%, ROI, torneos y evolución.' },
   '/blog': { title: 'Blog — Estrategia & Análisis | Sharkania', desc: 'Estrategia, GTO, ICM y análisis del ecosistema de clubes privados.' },
+  '/academia': { title: 'Academia de Poker | Sharkania', desc: 'Aprende estrategia de poker con lecciones, módulos y herramientas de estudio.' },
+  '/glosario': { title: 'Glosario de Poker | Sharkania', desc: 'Terminología y conceptos esenciales del poker en español.' },
+  '/tv': { title: 'Shark TV | Sharkania', desc: 'Clases, análisis de manos y contenido audiovisual de poker.' },
   '/noticias': { title: 'Noticias y Novedades | Sharkania', desc: 'Mantente al día con la actualidad del circuito.' },
   '/promociones': { title: 'Promociones Exclusivas | Sharkania', desc: 'Bonos de bienvenida, freerolls y beneficios exclusivos.' },
   '/tools': { title: 'Herramientas de Poker | Sharkania', desc: 'Calculadora ICM, simulador ELO, calculadora de bankroll y más.' },
@@ -36,6 +39,7 @@ const PAGE_META: Record<string, { title: string, desc: string }> = {
 };
 
 async function fetchJson(path: string, key: string) {
+  if (!key) return null;
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
       headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Accept': 'application/json' },
@@ -51,6 +55,10 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   const { request, next, env } = context;
   const url = new URL(request.url);
   const path = url.pathname;
+  const canonicalPath = path === '/' ? '/' : path.replace(/\/$/, '');
+  if (request.method === 'GET' && (path === '/academy' || path === '/shark-tv')) {
+    return Response.redirect(`${SITE_URL}${path === '/academy' ? '/academia' : '/tv'}`, 301);
+  }
 
   // HTTP 410 evita que las URLs retiradas se interpreten como páginas válidas
   // por el fallback SPA (un origen habitual de errores Soft 404).
@@ -71,7 +79,6 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   }
 
   const key = env.SUPABASE_ANON_KEY;
-  if (!key) return response; // Si falta la key de entorno, servimos la web normal
 
   // Valores por defecto
   let title = PAGE_META['/'].title;
@@ -93,6 +100,9 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
       const slug = path.replace(matchedPrefix, '').replace(/\/$/, '');
       const data: any = await fetchJson(`blog_posts?slug=eq.${encodeURIComponent(slug)}&select=title,excerpt,image_og,image_thumbnail&published=eq.true&limit=1`, key);
       
+      if (matchedPrefix === '/blog/' && Array.isArray(data) && data.length === 0) {
+        return new Response('Artículo no encontrado', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex' } });
+      }
       if (data && data[0]) {
         title = `${data[0].title} — Sharkania`;
         description = data[0].excerpt;
@@ -106,6 +116,9 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
       const playerSlug = path.replace('/ranking/', '').replace(/\/$/, '').split('/')[0];
       const data: any = await fetchJson(`players?slug=eq.${encodeURIComponent(playerSlug)}&select=nickname,elo_rating,total_tournaments&limit=1`, key);
       
+      if (Array.isArray(data) && data.length === 0) {
+        return new Response('Jugador no encontrado', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex' } });
+      }
       if (data && data[0]) {
         const elo = Math.round(Number(data[0].elo_rating));
         title = `${data[0].nickname} — ELO ${elo} | Sharkania`;
@@ -119,6 +132,9 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
       const clubSlug = path.replace('/clubs/', '').replace(/\/$/, '').split('/')[0];
       const data: any = await fetchJson(`clubs?slug=eq.${encodeURIComponent(clubSlug)}&select=name,description&is_approved=eq.true&limit=1`, key);
       
+      if (Array.isArray(data) && data.length === 0) {
+        return new Response('Club no encontrado', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex' } });
+      }
       if (data && data[0]) {
         title = `${data[0].name} — Club de Poker | Sharkania`;
         description = data[0].description || `Club de poker competitivo ${data[0].name}. Rankings y estadísticas.`;
@@ -134,15 +150,11 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
     .on('meta[property="og:title"]', { element(e: Element) { e.setAttribute("content", title) } })
     .on('meta[property="og:description"]', { element(e: Element) { e.setAttribute("content", description) } })
     .on('meta[property="og:image"]', { element(e: Element) { e.setAttribute("content", image) } })
-    .on('meta[property="og:url"]', { element(e: Element) { e.setAttribute("content", `${SITE_URL}${path}`) } })
+    .on('meta[property="og:url"]', { element(e: Element) { e.setAttribute("content", `${SITE_URL}${canonicalPath}`) } })
     .on('meta[property="og:type"]', { element(e: Element) { e.setAttribute("content", ogType) } })
     .on('meta[name="twitter:title"]', { element(e: Element) { e.setAttribute("content", title) } })
     .on('meta[name="twitter:description"]', { element(e: Element) { e.setAttribute("content", description) } })
     .on('meta[name="twitter:image"]', { element(e: Element) { e.setAttribute("content", image) } })
-    .on('body', { 
-        element(e: Element) { 
-            e.append(`<div style="display:none;" id="seo-content"><h1>${title}</h1><p>${description}</p></div>`, { html: true }) 
-        } 
-    })
+    .on('link[rel="canonical"]', { element(e: Element) { e.setAttribute('href', `${SITE_URL}${canonicalPath}`) } })
     .transform(response);
 };
