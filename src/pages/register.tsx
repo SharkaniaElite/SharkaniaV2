@@ -5,7 +5,6 @@ import { Turnstile } from "@marsidev/react-turnstile";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import { Button } from "../components/ui/button";
 import { signUp } from "../lib/api/auth";
-import { supabase } from "../lib/supabase";
 import { useAuthStore } from "../stores/auth-store";
 import { getProfile } from "../lib/api/auth";
 import { translateAuthError } from "../lib/format";
@@ -99,6 +98,10 @@ export function RegisterPage() {
       const result = await signUp(email, password, displayName, "player", {
         country_code: finalCountry,
         whatsapp,
+        registration_type: regType === "club" ? "club" : "player",
+        club_name: regType === "club" ? clubName : undefined,
+        club_country_code: regType === "club" ? finalClubCountry : undefined,
+        club_description: regType === "club" ? clubDescription : undefined,
       }, captchaToken);
 
       // 🛡️ Detectar email duplicado: Supabase retorna user con identities vacío
@@ -110,30 +113,10 @@ export function RegisterPage() {
         return;
       }
 
-      // 📧 INTEGRACIÓN CON MOTOR DE CORREOS (Solo para notificar solicitudes de Club)
-      if (result.user && regType === "club") {
-        await supabase.from("email_queue").insert({
-          recipient_email: email,
-          subject: "Solicitud de Club Recibida - Sharkania",
-          body_html: `<div style="font-family:sans-serif;padding:20px;color:#333;">
-                <h2 style="color:#0ea5e9;">Hola ${displayName}</h2>
-                <p>Hemos recibido tu solicitud para registrar el club <strong>${clubName}</strong>.</p>
-                <p>Un administrador de Sharkania revisará los datos y te contactará pronto.</p>
-               </div>`
-        });
-
-        fetch("https://sharkania-email-worker.duhauandres.workers.dev/").catch(() => {});
-      }
-
+      // La solicitud de club y su email se crean en el trigger seguro de Auth,
+      // incluso cuando la confirmación de correo todavía no creó una sesión.
       if (regType === "club" && result.user) {
-        await supabase.rpc("create_club_registration_request", {
-          p_user_id: result.user.id,
-          p_club_name: clubName,
-          p_country_code: finalClubCountry,
-          p_description: clubDescription || null,
-          p_whatsapp: whatsapp,
-        });
-        setSuccess("¡Cuenta creada! Tu solicitud de club ha sido enviada. Un administrador la revisará pronto.");
+        setSuccess("¡Cuenta creada! Tu solicitud de club está en revisión. Revisa tu email para confirmar tu cuenta.");
       } else if (result.session?.user) {
         const profile = await getProfile(result.session.user.id);
         useAuthStore.setState({
