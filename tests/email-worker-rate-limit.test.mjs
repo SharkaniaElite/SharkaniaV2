@@ -27,7 +27,7 @@ async function executeQueue(messages, { rejectOnce = false } = {}) {
     }
     if (String(url).includes("/rest/v1/email_queue?id=")) {
       patchStatuses.push(JSON.parse(config.body).status);
-      return new Response("{}", { status: 204 });
+      return new Response(null, { status: 204 });
     }
     throw new Error("Unexpected URL " + url);
   };
