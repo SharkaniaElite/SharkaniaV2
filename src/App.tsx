@@ -7,12 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "./stores/auth-store";
 import { ProtectedRoute } from "./components/layout/protected-route";
 // 🔥 NUEVAS IMPORTACIONES PARA LA CONTABILIDAD
-import { AccountingShell } from "./components/layout/accounting-shell";
-import { LapUploadPage } from "./pages/lap-upload";
-import { LapTransactionsPage } from "./pages/lap-transactions";
-import { LapPlayersPage } from "./pages/lap-players";
-import { LapAgentsPage } from "./pages/lap-agents";
-import { LapLiquidationsPage } from "./pages/lap-liquidations";
 import { ScrollToTop } from "./components/layout/scroll-to-top";
 import { FloatingCTA } from "./components/marketing/FloatingCTA";
 import { Spinner } from "./components/ui/spinner";
@@ -24,9 +18,6 @@ import { TutorialClubGGPage } from "./pages/tutorial-clubgg";
 import { PromotionsPage } from "./pages/promotions";
 import { SharkTvPage } from "./pages/shark-tv";
 import { HandReviewPage } from "./pages/hand-review";
-import { LapPromotionsPage } from "./pages/lap-promotions";
-import { LapDashboardPage } from "./pages/lap-dashboard";
-import { LapBackingPage } from "./pages/lap-backing";
 import { AdminBroadcastPage } from "./pages/admin-broadcast";
 import { IgnitionChampionshipPage } from "./pages/ignition-championship";
 import { TutorialIgnitionPage } from "./pages/tutorial-ignition";
@@ -77,9 +68,6 @@ const PromoFreerollPage = lazy(() => import("./pages/promo-freeroll").then(m => 
 const PromoIgnitionBonusPage = lazy(() => import("./pages/promo-ignition-bonus").then(m => ({ default: m.PromoIgnitionBonusPage })));
 const PromoCoinPokerPage = lazy(() => import("./pages/promo-coinpoker").then(m => ({ default: m.PromoCoinPokerPage })));
 const TutorialCoinPokerPage = lazy(() => import("./pages/tutorial-coinpoker").then(m => ({ default: m.TutorialCoinPokerPage })));
-const LatinAllinProPage = lazy(() => import("./pages/latin-allin-pro").then(m => ({ default: m.LatinAllinProPage }))); // 🔥 NUEVA PÁGINA PRO
-const AcademyAdminPage = lazy(() => import("./pages/academy-admin").then(m => ({ default: m.AcademyAdminPage }))); // 🔥 PANEL ADMIN DE LA ACADEMIA
-const ProAcademyDashboardPage = lazy(() => import("./pages/pro-academy-dashboard").then(m => ({ default: m.ProAcademyDashboardPage }))); // 🔥 BÓVEDA PRO
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -161,7 +149,6 @@ export function App() {
               <Route path="/noticias" element={<NoticiasPage />} />
               <Route path="/mindev" element={<PromoMindevPage />} />
               <Route path="/fullnuts" element={<PromoFullnutsPage />} />
-              <Route path="/masterclass-latinallin" element={<LatinAllinProPage />} /> {/* 🔥 NUEVA RUTA PRO */}
               {/* SharkTV */}
               <Route path="/tv" element={<SharkTvPage />} />
               <Route path="/tv/:id" element={<HandReviewPage />} />
@@ -264,25 +251,6 @@ export function App() {
                 }
               />
 
-              {/* 🔥 NUEVO: Panel de Administración de la Academia PRO */}
-              <Route
-                path="/admin/academy"
-                element={
-                  <ProtectedRoute requiredRole={["academy_admin", "super_admin"]}>
-                    <AcademyAdminPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 🔥 NUEVO: El Reproductor / "Netflix" de Latin Allin */}
-              <Route
-                path="/pro-dashboard"
-                element={
-                  <ProtectedRoute>
-                    <ProAcademyDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
 
               <Route
                 path="/admin/broadcast"
@@ -293,20 +261,6 @@ export function App() {
                 }
               />
 
-              {/* 💼 BACKOFFICE FINANCIERO (Solo Admins Autorizados) */}
-<Route path="/lap-admin" element={<AccountingShell />}>
-  {/* Esta ruta es la que carga automáticamente al entrar a /lap-admin */}
-  <Route index element={<LapDashboardPage />} />
-  
-  {/* Las sub-rutas no deben empezar con / para no romper la jerarquía */}
-  <Route path="upload" element={<LapUploadPage />} />
-  <Route path="backing" element={<LapBackingPage />} />
-  <Route path="transactions" element={<LapTransactionsPage />} />
-  <Route path="players" element={<LapPlayersPage />} />
-  <Route path="liquidations" element={<LapLiquidationsPage />} />
-  <Route path="promotions" element={<LapPromotionsPage />} />
-  <Route path="agents" element={<LapAgentsPage />} />
-</Route>
 </Routes>
           </Suspense>
 
