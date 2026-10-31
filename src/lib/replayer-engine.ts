@@ -99,7 +99,13 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
 
     case "bet":
     case "raise": {
-      const betAmount = Math.min(action.amount, player.currentStack);
+      // Bets contribute the stated amount. A raise is recorded as the
+      // total amount "to" on this street, including chips already posted
+      // by this player (for example, their blind or an earlier raise).
+      const extraChips = action.type === "raise"
+        ? Math.max(0, action.amount - player.currentBet)
+        : action.amount;
+      const betAmount = Math.min(Math.max(0, extraChips), player.currentStack);
       player.currentStack -= betAmount;
       player.currentBet += betAmount;
       player.totalInvested += betAmount;
@@ -232,15 +238,9 @@ export function goToStep(hand: HandHistory, targetStep: number): ReplayState {
 
     // Entering a new street counts as a step (community cards reveal)
     if (si > 0) {
-      if (step === targetStep) {
-        return {
-          ...current,
-          currentStreetIndex: si,
-          currentActionIndex: -1,
-          communityCards: street.communityCards,
-          players: current.players.map((p) => ({ ...p, currentBet: 0 })),
-        };
-      }
+      // The transition itself is the NEXT step. At the previous index,
+      // keep the final action of the preceding street visible.
+      if (step === targetStep) return current;
       step++;
       current = {
         ...current,
