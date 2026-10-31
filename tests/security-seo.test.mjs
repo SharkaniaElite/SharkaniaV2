@@ -331,3 +331,26 @@ test("server HTML exposes unique glossary and league metadata without requiring 
     assert.ok(middleware.includes(snippet), `Missing server SEO safeguard: ${snippet}`);
   }
 });
+
+
+test("tournament sitemap and legacy URLs resolve to canonical slugs", () => {
+  const middleware = readFileSync("functions/_middleware.ts", "utf8");
+  const api = readFileSync("src/lib/api/tournaments.ts", "utf8");
+  const worker = readFileSync("workers/sitemap.mjs", "utf8");
+  for (const snippet of [
+    "legacyUuid = canonicalPath.match",
+    "target.search = url.search",
+    "Response.redirect(target.toString(), 301)",
+    "status: 404",
+    "status: 503",
+    "tournaments?select=name,description,results_uploaded",
+    "escapeSeoText(tournament.description)",
+    "Torneo no encontrado",
+  ]) {
+    assert.ok(middleware.includes(snippet), `Missing tournament SEO safeguard: ${snippet}`);
+  }
+  assert.ok(worker.includes('fetchAll("tournaments", "slug,updated_at"'));
+  assert.ok(worker.includes("if (t.slug) add"));
+  assert.ok(!worker.includes("if (t.id) add"));
+  assert.ok(api.includes("return isUuid ? getTournamentById(slug) : null"));
+});
