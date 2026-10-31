@@ -229,3 +229,15 @@ test("academy lesson progress uses least-privilege column grants", () => {
   assert.match(api, /\.update\(\{ quiz_attempts: existing\.quiz_attempts \+ 1, quiz_last_answers: answers \}\)/);
   assert.match(api, /\.rpc\("academy_complete_lesson"/);
 });
+
+test("web database roles cannot truncate tables or create triggers", () => {
+  const sql = readFileSync(
+    "supabase/migrations/20261031175603_revoke_web_roles_destructive_table_privileges_20261031.sql",
+    "utf8"
+  );
+  assert.match(sql, /c\.relkind IN \('r', 'p'\)/);
+  assert.match(sql, /REVOKE TRUNCATE, REFERENCES, TRIGGER ON TABLE %I\.%I FROM PUBLIC, anon, authenticated/);
+  assert.match(sql, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public/);
+  assert.doesNotMatch(sql, /REVOKE (?:SELECT|INSERT|UPDATE|DELETE)/);
+  assert.doesNotMatch(sql, /DROP TABLE|TRUNCATE TABLE|DELETE FROM/);
+});
