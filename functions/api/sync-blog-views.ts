@@ -40,11 +40,6 @@ export const onRequestPost = async ({ request, env }: FunctionContext): Promise<
   }
 
   try {
-    const postsResponse = await fetch(`${base}/rest/v1/blog_posts?select=id,slug&published=eq.true&limit=1000`, { headers: apiHeaders });
-    if (!postsResponse.ok) throw new Error("read_posts");
-    const posts = await postsResponse.json() as Array<{ id: string; slug: string }>;
-    if (!Array.isArray(posts)) throw new Error("invalid_posts");
-
     const queryResponse = await fetch(`https://${host}/api/projects/${projectId}/query/`, {
       method: "POST",
       headers: { Authorization: `Bearer ${posthogKey}`, "Content-Type": "application/json" },
@@ -68,37 +63,48 @@ export const onRequestPost = async ({ request, env }: FunctionContext): Promise<
     const views = new Map<string, number>();
     for (const row of paths) {
       if (!Array.isArray(row) || typeof row[0] !== "string") continue;
-      const pathname = row[0].replace(/\/$/, "");
-      const slug = pathname.split("/").pop();
-      if (!slug) continue;
-      views.set(slug, (views.get(slug) || 0) + (Math.max(0, Number(row[1])) || 0));
+      const pathname = row[0].replace(/\\/$/, "");
+      if (!/^\\/(?:blog|noticias|promociones)\\/[^/?#]+$/.test(pathname)) continue;
+      let slug: string;
+      try {
+        slug = decodeURIComponent(pathname.split("/").pop() || "");
+      } catch {
+        continue;
+      }
+      if (!slug || slug.length > 240) continue;
+      const count = Number(row[1]);
+      if (!Number.isSafeInteger(count) || count < 0 || count > 999999999) continue;
+      views.set(slug, (views.get(slug) || 0) + count);
     }
 
-    let updated = 0;
-    let failures = 0;
-    for (let i = 0; i < posts.length; i += 5) {
-      const batch = posts.slice(i, i + 5);
-      const results = await Promise.all(batch.map(async post => {
-        if (!post.slug) return false;
-        const res = await fetch(`${base}/rest/v1/blog_posts?id=eq.${encodeURIComponent(post.id)}`, {
-          method: "PATCH",
-          headers: { ...apiHeaders, "Content-Type": "application/json", Prefer: "return=representation" },
-          body: JSON.stringify({ unique_views: views.get(post.slug) || 0 }),
-        });
-        if (!res.ok) return false;
-        const payload = await res.json().catch(() => []);
-        return Array.isArray(payload) && payload.length === 1;
-      }));
-      updated += results.filter(Boolean).length;
-      failures += results.filter(x => !x).length;
+    if (views.size === 0) {
+      return json({ success: false, message: "PostHog no devolvió visitas válidas; no se modificó el blog." }, 422);
     }
 
+    // One server-verified RPC updates all articles atomically. 66 individual PATCH
+    // calls exceeded the 50-subrequest limit of Cloudflare Workers Free.
+    // The SQL function never lowers existing counters and validates super_admin.
+    const syncResponse = await fetch(`${base}/rest/v1/rpc/sync_blog_unique_views`, {
+      method: "POST",
+      headers: { ...apiHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({ p_views: Object.fromEntries(views) }),
+    });
+    if (!syncResponse.ok) {
+      console.error("Blog view RPC failed", syncResponse.status);
+      return json({ success: false, message: `Supabase rechazó la actualización de visitas (HTTP ${syncResponse.status}).` }, 502);
+    }
+    const outcome = await syncResponse.json() as { success?: boolean; updated?: number; supplied?: number };
+    if (!outcome?.success || typeof outcome.updated !== "number") {
+      throw new Error("unexpected_sync_rpc_response");
+    }
     return json({
-      success: failures === 0,
-      message: failures
-        ? `Se actualizaron ${updated} artículos, pero ${failures} no pudieron guardarse.`
-        : `Se actualizaron las visitas de ${updated} artículos correctamente.`,
-    }, failures ? 207 : 200);
+      success: true,
+      message: outcome.updated
+        ? `Visitas sincronizadas: ${outcome.updated} artículos actualizados; el historial anterior se conserva.`
+        : `Sincronización correcta. No había visitas nuevas para actualizar; los contadores existentes se conservan.`,
+      updated: outcome.updated,
+      supplied: outcome.supplied,
+    });
   } catch (err) {
     console.error("PostHog views synchronization failed:", err instanceof Error ? err.message : "unknown");
     return json({ success: false, message: "Error temporal al sincronizar estadísticas." }, 502);
