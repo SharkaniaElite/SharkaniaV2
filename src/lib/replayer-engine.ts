@@ -8,7 +8,6 @@ import type {
   HandHistory,
   ReplayState,
   PlayerState,
-  PotInfo,
   Action,
   Card,
   CardString,
@@ -20,8 +19,8 @@ import type {
 
 export function parseCard(str: string): Card | null {
   if (str.length < 2) return null;
-  const rank = str[0].toUpperCase() as Rank;
-  const suit = str[1].toLowerCase() as Suit;
+  const rank = str.charAt(0).toUpperCase() as Rank;
+  const suit = str.charAt(1).toLowerCase() as Suit;
   if (!"23456789TJQKA".includes(rank)) return null;
   if (!"shdc".includes(suit)) return null;
   return { rank, suit };
@@ -74,6 +73,9 @@ export function initReplayState(hand: HandHistory): ReplayState {
 function applyAction(state: ReplayState, action: Action): ReplayState {
   const players = state.players.map((p) => ({ ...p }));
   const player = players[action.playerIndex];
+  // A malformed imported hand can refer to a seat that does not exist.
+  // Skip that action rather than crashing the entire replay.
+  if (!player) return state;
   const pot = { ...state.pot };
 
   switch (action.type) {
@@ -169,11 +171,13 @@ export function stepForward(state: ReplayState): ReplayState {
   if (!hand.streets.length) return { ...state, isFinished: true };
 
   const currentStreet = hand.streets[currentStreetIndex];
+  if (!currentStreet) return { ...state, isFinished: true };
   const nextActionIndex = currentActionIndex + 1;
 
   // Still have actions in this street
   if (nextActionIndex < currentStreet.actions.length) {
     const action = currentStreet.actions[nextActionIndex];
+    if (!action) return { ...state, isFinished: true };
     const newState = applyAction(state, action);
     return {
       ...newState,
@@ -185,6 +189,7 @@ export function stepForward(state: ReplayState): ReplayState {
   const nextStreetIndex = currentStreetIndex + 1;
   if (nextStreetIndex < hand.streets.length) {
     const nextStreet = hand.streets[nextStreetIndex];
+    if (!nextStreet) return { ...state, isFinished: true };
 
     // Reset current bets for new street
     const players = state.players.map((p) => ({
@@ -223,6 +228,7 @@ export function goToStep(hand: HandHistory, targetStep: number): ReplayState {
 
   for (let si = 0; si < hand.streets.length; si++) {
     const street = hand.streets[si];
+    if (!street) continue;
 
     // Entering a new street counts as a step (community cards reveal)
     if (si > 0) {
@@ -247,7 +253,9 @@ export function goToStep(hand: HandHistory, targetStep: number): ReplayState {
 
     for (let ai = 0; ai < street.actions.length; ai++) {
       if (step === targetStep) return current;
-      current = applyAction(current, street.actions[ai]);
+      const action = street.actions[ai];
+      if (!action) continue;
+      current = applyAction(current, action);
       current = {
         ...current,
         currentStreetIndex: si,
@@ -266,7 +274,7 @@ export function getTotalSteps(hand: HandHistory): number {
   let count = 0;
   for (let si = 0; si < hand.streets.length; si++) {
     if (si > 0) count++; // street transition
-    count += hand.streets[si].actions.length;
+    count += hand.streets[si]?.actions.length ?? 0;
   }
   return count;
 }
@@ -279,7 +287,7 @@ export function getTotalStepIndex(state: ReplayState): number {
 
   for (let si = 0; si < currentStreetIndex; si++) {
     if (si > 0) step++; // street transition
-    step += hand.streets[si].actions.length;
+    step += hand.streets[si]?.actions.length ?? 0;
   }
 
   if (currentStreetIndex > 0) step++; // current street transition
@@ -507,7 +515,7 @@ export function decodeHandFromURL(encoded: string): HandHistory | null {
 // ── Position assignment ──────────────────────────────────
 
 export function assignPositions(hand: HandHistory): void {
-  const { players, config } = hand;
+  const { players } = hand;
   const n = players.length;
   const dealerIdx = players.findIndex((p) => p.isDealer);
   if (dealerIdx === -1) return;
@@ -516,7 +524,8 @@ export function assignPositions(hand: HandHistory): void {
 
   for (let i = 0; i < n; i++) {
     const offset = (i - dealerIdx + n) % n;
-    players[i].position = positionNames[offset] ?? null;
+    const player = players[i];
+    if (player) player.position = positionNames[offset] ?? null;
   }
 }
 
