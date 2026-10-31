@@ -214,3 +214,18 @@ test("retired real-money checkout is absent while the Shark Coins shop remains",
   assert.match(shop, /supabase\.rpc\("spend_credits"/);
   assert.match(shop, /getSharkCoinsBalance/);
 });
+
+test("academy lesson progress uses least-privilege column grants", () => {
+  const sql = readFileSync(
+    "supabase/migrations/20261031175040_restrict_academy_lesson_progress_columns_20261031.sql",
+    "utf8"
+  );
+  const api = readFileSync("src/lib/api/academy.ts", "utf8");
+  assert.match(sql, /REVOKE INSERT, UPDATE, TRUNCATE, REFERENCES, TRIGGER[\s\S]*?ON TABLE public\.academy_user_lessons[\s\S]*?FROM PUBLIC, anon, authenticated/);
+  assert.match(sql, /GRANT INSERT \(user_id, lesson_id, started_at, quiz_attempts, quiz_last_answers\)/);
+  assert.match(sql, /GRANT UPDATE \(quiz_attempts, quiz_last_answers\)/);
+  assert.doesNotMatch(sql, /GRANT (?:INSERT|UPDATE) \([^)]*(?:quiz_passed|completed_at|xp_earned|coins_earned)/);
+  assert.match(api, /ignoreDuplicates: true/);
+  assert.match(api, /\.update\(\{ quiz_attempts: existing\.quiz_attempts \+ 1, quiz_last_answers: answers \}\)/);
+  assert.match(api, /\.rpc\("academy_complete_lesson"/);
+});
