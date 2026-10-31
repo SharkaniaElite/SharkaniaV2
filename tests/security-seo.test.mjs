@@ -10,7 +10,8 @@ test("personal PostHog API token is never referenced by a browser module", () =>
   assert.match(fn, /rpc\/is_super_admin/);
   assert.match(fn, /Authorization/);
   assert.match(fn, /return json\(\{ success: false, message: "No autorizado/);
-  assert.match(fn, /env\.POSTHOG_PERSONAL_API_KEY \|\| env\.VITE_POSTHOG_PERSONAL_API_KEY/);
+  assert.match(fn, /const posthogKey = env\.POSTHOG_PERSONAL_API_KEY;/);
+  assert.doesNotMatch(fn, /VITE_POSTHOG_PERSONAL_API_KEY/);
   assert.doesNotMatch(fn, /env\.VITE_PUBLIC_POSTHOG_HOST/);
   assert.match(fn, /"us\.posthog\.com"/);
   assert.match(fn, /if \(paths\.length === 0\)/);
