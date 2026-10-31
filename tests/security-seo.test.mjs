@@ -311,3 +311,23 @@ test("club applications are pending-only and rate-limited at the database INSERT
   assert.doesNotMatch(sql, /(?:UPDATE|DELETE|TRUNCATE) public\.club_registration_requests/);
   assert.doesNotMatch(sql, /GRANT .* TO (?:anon|authenticated)/);
 });
+
+
+test("server HTML exposes unique glossary and league metadata without requiring JavaScript", () => {
+  const middleware = readFileSync("functions/_middleware.ts", "utf8");
+  for (const snippet of [
+    "canonicalPath.startsWith('/glosario/')",
+    "glossary_terms?select=term,short_definition",
+    "is_active=eq.true&limit=1",
+    "data[0].term} — Glosario de Poker",
+    "description = data[0].short_definition",
+    "Término no encontrado",
+    "canonicalPath.startsWith('/leagues/')",
+    "leagues?select=name,description",
+    "data[0].name} — Liga de Poker",
+    "Liga no encontrada",
+    "link[rel=\"canonical\"]",
+  ]) {
+    assert.ok(middleware.includes(snippet), `Missing server SEO safeguard: ${snippet}`);
+  }
+});
