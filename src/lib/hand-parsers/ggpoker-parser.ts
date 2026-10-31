@@ -210,18 +210,18 @@ function parseSingleHand(text: string): HandHistory | null {
     }
     if (actionStr.startsWith("calls")) {
       const amount = parseAmount(actionStr.replace("calls", "").replace("and is all-in", ""));
-      return { playerIndex, type: isAllIn ? "all-in" : "call", amount, isAllIn, street: currentStreet };
+      return { playerIndex, type: "call", amount, isAllIn, street: currentStreet };
     }
     if (actionStr.startsWith("bets")) {
       const amount = parseAmount(actionStr.replace("bets", "").replace("and is all-in", ""));
-      return { playerIndex, type: isAllIn ? "all-in" : "bet", amount, isAllIn, street: currentStreet };
+      return { playerIndex, type: "bet", amount, isAllIn, street: currentStreet };
     }
     if (actionStr.startsWith("raises")) {
       // "raises $0.03 to $0.05" — we want the "to" amount
       const toMatch = actionStr.match(/to\s+[$]?([\d.]+)/);
       const raiseMatch = actionStr.match(/raises\s+[$]?([\d.]+)/);
       const amount = toMatch?.[1] ? parseAmount(toMatch[1]) : (raiseMatch?.[1] ? parseAmount(raiseMatch[1]) : 0);
-      return { playerIndex, type: isAllIn ? "all-in" : "raise", amount, isAllIn, street: currentStreet };
+      return { playerIndex, type: "raise", amount, isAllIn, street: currentStreet };
     }
     if (actionStr.startsWith("shows")) {
       const cardsMatch = actionStr.match(/\[([^\]]+)\]/);
@@ -326,7 +326,7 @@ function parseSingleHand(text: string): HandHistory | null {
     }
 
     // "PlayerName collected $X.XX from pot"
-    if (line.includes("collected") && line.includes("from pot")) {
+    if (line.includes("collected") && /\bfrom (?:the )?(?:(?:main|side) )?pot\b/i.test(line)) {
       const collectMatch = line.match(/^(.+?) collected \$?([\d.]+) from/);
       if (collectMatch?.[1] && collectMatch[2]) {
         const pidx = findPlayer(collectMatch[1].trim());
@@ -334,16 +334,30 @@ function parseSingleHand(text: string): HandHistory | null {
           result.winners.push({
             playerIndex: pidx,
             amount: parseFloat(collectMatch[2]),
-            potType: "main",
+            potType: /\bfrom (?:the )?side pot\b/i.test(line) ? "side" : "main",
           });
         }
       }
       continue;
     }
 
-    // "Uncalled bet ($X) returned to PlayerName"
+    // "Uncalled bet ($X) returned to PlayerName" is a real stack/pot
+    // movement and must be recorded before the summary or showdown.
     if (line.startsWith("Uncalled bet")) {
-      continue; // Skip — engine handles this
+      const uncalled = line.match(/^Uncalled bet \(([^)]+)\) returned to (.+)$/i);
+      if (uncalled?.[1] && uncalled[2]) {
+        const pidx = findPlayer(uncalled[2].trim());
+        if (pidx >= 0) {
+          currentActions.push({
+            playerIndex: pidx,
+            type: "return-uncalled",
+            amount: parseAmount(uncalled[1]),
+            isAllIn: false,
+            street: currentStreet,
+          });
+        }
+      }
+      continue;
     }
 
     // Skip summary/board lines

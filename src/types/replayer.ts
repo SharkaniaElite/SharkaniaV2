@@ -89,12 +89,13 @@ export type ActionType =
   | "post-bb"
   | "post-ante"
   | "show"
-  | "muck";
+  | "muck"
+  | "return-uncalled";
 
 export interface Action {
   playerIndex: number;     // index into HandHistory.players
   type: ActionType;
-  amount: number;          // call/bet = extra chips; raise = target total ("to") for this street
+  amount: number;          // call/bet = extra chips; raise = target total ("to"); refund = returned chips
   isAllIn: boolean;
   street: Street;
 }

@@ -68,6 +68,42 @@ export function initReplayState(hand: HandHistory): ReplayState {
   };
 }
 
+// Build mutually exclusive pots from each player's cumulative contribution.
+// Folded chips stay in the pot but folded players are never eligible to win.
+// Adjacent levels with identical eligible players are merged, so dead money
+// from a shorter folded stack remains in the MAIN pot rather than a fake side pot.
+function calculatePots(players: PlayerState[]): ReplayState["pot"] {
+  const round = (value: number) => Math.round(value * 1e8) / 1e8;
+  const invested = players.map((p) => round(Math.max(0, p.totalInvested)));
+  const levels = [...new Set(invested.filter((amount) => amount > 0))].sort((a, b) => a - b);
+  const pots: { amount: number; eligiblePlayers: number[] }[] = [];
+  let previousLevel = 0;
+
+  for (const level of levels) {
+    const contributors = invested
+      .map((amount, i) => amount >= level ? i : -1)
+      .filter((index) => index !== -1);
+    const eligiblePlayers = contributors.filter((index) => !players[index]?.isFolded);
+    const amount = round((level - previousLevel) * contributors.length);
+    const previousPot = pots[pots.length - 1];
+
+    if (previousPot &&
+        previousPot.eligiblePlayers.length === eligiblePlayers.length &&
+        previousPot.eligiblePlayers.every((index, i) => index === eligiblePlayers[i])) {
+      previousPot.amount = round(previousPot.amount + amount);
+    } else if (amount > 0) {
+      pots.push({ amount, eligiblePlayers });
+    }
+    previousLevel = level;
+  }
+
+  return {
+    mainPot: pots[0]?.amount ?? 0,
+    sidePots: pots.slice(1),
+    totalPot: round(invested.reduce((sum, amount) => sum + amount, 0)),
+  };
+}
+
 // ── Apply a single action ────────────────────────────────
 
 function applyAction(state: ReplayState, action: Action): ReplayState {
@@ -76,7 +112,6 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
   // A malformed imported hand can refer to a seat that does not exist.
   // Skip that action rather than crashing the entire replay.
   if (!player) return state;
-  const pot = { ...state.pot };
 
   switch (action.type) {
     case "fold":
@@ -92,7 +127,6 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
       player.currentStack -= toCall;
       player.currentBet += toCall;
       player.totalInvested += toCall;
-      pot.totalPot += toCall;
       if (player.currentStack === 0) player.isAllIn = true;
       break;
     }
@@ -109,18 +143,30 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
       player.currentStack -= betAmount;
       player.currentBet += betAmount;
       player.totalInvested += betAmount;
-      pot.totalPot += betAmount;
       if (player.currentStack === 0 || action.isAllIn) player.isAllIn = true;
       break;
     }
 
     case "all-in": {
+      // Retain compatibility with old URL-shared hands which use this type.
       const allInAmount = player.currentStack;
       player.currentBet += allInAmount;
       player.totalInvested += allInAmount;
-      pot.totalPot += allInAmount;
       player.currentStack = 0;
       player.isAllIn = true;
+      break;
+    }
+
+    case "return-uncalled": {
+      // An unmatched wager is returned to the bettor; it never forms part
+      // of the final contestable pot. Clamp malformed imported amounts.
+      const refund = Math.min(
+        Math.max(0, action.amount), player.currentBet, player.totalInvested
+      );
+      player.currentStack += refund;
+      player.currentBet -= refund;
+      player.totalInvested -= refund;
+      if (player.currentStack > 0) player.isAllIn = false;
       break;
     }
 
@@ -129,7 +175,6 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
       player.currentStack -= sb;
       player.currentBet = sb;
       player.totalInvested += sb;
-      pot.totalPot += sb;
       break;
     }
 
@@ -138,7 +183,6 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
       player.currentStack -= bb;
       player.currentBet = bb;
       player.totalInvested += bb;
-      pot.totalPot += bb;
       break;
     }
 
@@ -146,7 +190,6 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
       const ante = Math.min(action.amount, player.currentStack);
       player.currentStack -= ante;
       player.totalInvested += ante;
-      pot.totalPot += ante;
       break;
     }
 
@@ -156,13 +199,10 @@ function applyAction(state: ReplayState, action: Action): ReplayState {
       break;
   }
 
-  // Recalculate main pot (simplified — no side pot calculation yet)
-  pot.mainPot = pot.totalPot;
-
   return {
     ...state,
     players,
-    pot,
+    pot: calculatePots(players),
   };
 }
 
@@ -313,6 +353,7 @@ export function getActionDescription(action: Action, players: PlayerState[]): st
     case "post-bb": return `${name} posts BB ${formatAmount(action.amount)}`;
     case "post-ante": return `${name} posts ante ${formatAmount(action.amount)}`;
     case "show": return `${name} shows`;
+    case "return-uncalled": return `${name} gets ${formatAmount(action.amount)} returned`;
     case "muck": return `${name} mucks`;
     default: return `${name} acts`;
   }
