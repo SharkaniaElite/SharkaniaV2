@@ -21,3 +21,11 @@
 - CI: comprobaciones existentes de seguridad y SEO; test nuevo impide reintroducir los archivos/config de Lemon Squeezy.
 - SQL: verificar que `to_regprocedure('public.add_credits_to_user(uuid,integer,text)') IS NULL` tras migrar.
 - Cloudflare: verificar publicación de main; la limpieza es de backend y configuración, no modifica el reproductor ni el ranking.
+
+## Limpieza DNS confirmada en Cloudflare
+
+En la zona `sharkania.com`, se retiraron **tres** CNAME Easy DKIM de una identidad AWS SES abandonada (nombres largos `<token>._domainkey.sharkania.com` apuntando a `<token>.dkim.amazonses.com`). La API DNS confirmó tres eliminaciones exitosas.
+
+**No borrar los registros de Resend aunque contengan `amazonses.com`:** Resend utiliza `send.sharkania.com` MX hacia `feedback-smtp.sa-east-1.amazonses.com` y el TXT SPF `include:amazonses.com`. También mantiene su propio TXT `resend._domainkey.sharkania.com`, distinto de los tres CNAME heredados. Se verificó después de limpiar que existen los tres registros necesarios y que no quedan CNAME Easy DKIM antiguos. Permanecen los tres MX de entrada de Cloudflare y el TXT DMARC.
+
+Referencia: configuración de Resend y documentación AWS SES Easy DKIM. Esta limpieza no cancela una cuenta AWS ni modifica ningún recurso remoto fuera de Cloudflare.
