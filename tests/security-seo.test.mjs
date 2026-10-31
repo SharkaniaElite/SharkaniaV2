@@ -168,3 +168,17 @@ test("shared hand table is not enumerable and exact-ID retrieval remains authent
   assert.ok(file.includes("GRANT SELECT ON TABLE public.shared_hands TO authenticated"));
   assert.ok(replayer.includes('supabase.rpc("get_shared_hand", { p_hand_id: id })'));
 });
+
+test("hand replay guards missing seats and malformed street/action arrays without skipping TypeScript checking", () => {
+  const engine=readFileSync("src/lib/replayer-engine.ts","utf8");
+  const paywall=readFileSync("src/components/shop/feature-paywall.tsx","utf8");
+  assert.ok(engine.includes("if (!player) return state"));
+  assert.ok(engine.includes("if (!currentStreet) return { ...state, isFinished: true }"));
+  assert.ok(engine.includes("if (!action) return { ...state, isFinished: true }"));
+  assert.ok(engine.includes("if (!nextStreet) return { ...state, isFinished: true }"));
+  assert.ok(engine.includes("if (!street) continue"));
+  assert.ok(engine.includes("if (!action) continue"));
+  assert.ok(engine.includes("hand.streets[si]?.actions.length ?? 0"));
+  assert.ok(engine.includes("if (player) player.position"));
+  assert.ok(paywall.includes("children?: React.ReactNode"));
+});
