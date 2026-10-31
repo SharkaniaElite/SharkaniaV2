@@ -104,25 +104,7 @@ export function IgnitionChampionshipPage() {
       const emailToLink = email.trim();
       const nickToLink = displayName.trim();
 
-      // 1. CONSULTAMOS AL GUARDIA DE SEGURIDAD ANTES DE HACER NADA
-      const { data: isDuplicate, error: rpcError } = await supabase.rpc("check_ignition_duplicate", {
-        p_email: isExistingUser ? null : emailToLink, 
-        p_nickname: nickToLink,
-        p_user_id: null
-      });
-
-      if (rpcError) throw rpcError;
-
-      if (isDuplicate) {
-        setError("⚠️ El Nickname o Correo de Ignition ingresado ya se encuentra vinculado a otra cuenta en Sharkania.");
-        setLoading(false);
-        if (!isExistingUser) {
-          turnstileRef.current?.reset();
-          setCaptchaToken(null);
-        }
-        return;
-      }
-
+      // Duplicate checks require a valid session: run after login, not before it.
       if (isExistingUser) {
         // FLUJO 1: LOGIN
         const { data, error: loginError } = await supabase.auth.signInWithPassword({
@@ -140,11 +122,13 @@ export function IgnitionChampionshipPage() {
         }
 
         // Validamos una vez más pasando el User ID real por si acaso
-        const { data: doubleCheckDuplicate } = await supabase.rpc("check_ignition_duplicate", {
+        const { data: doubleCheckDuplicate, error: duplicateError } = await supabase.rpc("check_ignition_duplicate", {
           p_email: emailToLink, 
           p_nickname: nickToLink,
           p_user_id: data.session.user.id
         });
+
+        if (duplicateError) throw duplicateError;
 
         if (doubleCheckDuplicate) {
           setError("⚠️ Tu usuario de Ignition ya fue reclamado por otra cuenta. Si es un error, contacta a soporte.");
@@ -153,22 +137,26 @@ export function IgnitionChampionshipPage() {
           return;
         }
 
-        // Si todo está ok, guardamos en la sesión
-        await supabase.auth.updateUser({
+        // Record a pending request; only administrators can verify an Ignition player.
+        const { error: linkError } = await supabase.from('profiles').update({
+          ignition_league_player: true,
+          ignition_email: emailToLink,
+          ignition_nickname: nickToLink,
+          ignition_status: 'pending'
+        }).eq('id', data.session.user.id);
+        if (linkError) {
+          await supabase.auth.signOut();
+          throw linkError;
+        }
+
+        const { error: metadataError } = await supabase.auth.updateUser({
           data: {
             ignition_league_player: true,
             ignition_email: emailToLink,
             ignition_nickname: nickToLink
           }
         });
-
-        // 🔥 REPLICAMOS EL FIX AQUÍ: Guardamos también en la tabla profiles para ti
-        await supabase.from('profiles').update({
-          ignition_league_player: true,
-          ignition_email: emailToLink,
-          ignition_nickname: nickToLink,
-          ignition_status: 'verified' // <-- Queda validado automáticamente
-        }).eq('id', data.session.user.id);
+        if (metadataError) throw metadataError;
 
         if (data.session?.user) {
           const profile = await getProfile(data.session.user.id);
