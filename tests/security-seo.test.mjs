@@ -77,3 +77,18 @@ test("club signup never inserts arbitrary email messages from the browser", () =
   const auth = readFileSync("src/lib/api/auth.ts", "utf8");
   assert.match(auth, /registration_type: extra\?\.registration_type === "club"/);
 });
+
+test("PostHog sync performs a single atomic authorized RPC without per-post PATCH calls", () => {
+  const fn = readFileSync("functions/api/sync-blog-views.ts", "utf8");
+  const db = readFileSync("supabase/migrations/20261031_secure_batch_blog_views.sql", "utf8");
+  const api = readFileSync("src/lib/api/blog.ts", "utf8");
+  assert.match(fn, /rpc\/sync_blog_unique_views/);
+  assert.match(fn, /Object\.fromEntries\(views\)/);
+  assert.doesNotMatch(fn, /method: "PATCH"/);
+  assert.doesNotMatch(fn, /for \(let i = 0; i < posts\.length/);
+  assert.match(db, /public\.is_super_admin\(\)/);
+  assert.match(db, /GREATEST\(COALESCE\(b\.unique_views, 0\), v\.visits\)/);
+  assert.match(db, /REVOKE EXECUTE ON FUNCTION public\.sync_blog_unique_views\(jsonb\)/);
+  assert.match(api, /response\.headers\.get\("content-type"\)/);
+  assert.match(api, /response\.ok && result\.success === true/);
+});
