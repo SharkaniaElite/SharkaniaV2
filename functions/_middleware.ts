@@ -130,10 +130,6 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
     .on('meta[name="twitter:title"]', { element(e: Element) { e.setAttribute("content", title) } })
     .on('meta[name="twitter:description"]', { element(e: Element) { e.setAttribute("content", description) } })
     .on('meta[name="twitter:image"]', { element(e: Element) { e.setAttribute("content", image) } })
-    .on('body', { 
-        element(e: Element) { 
-            e.append(`<div style="display:none;" id="seo-content"><h1>${title}</h1><p>${description}</p></div>`, { html: true }) 
-        } 
-    })
+    .on('link[rel="canonical"]', { element(e: Element) { e.setAttribute("href", `${SITE_URL}${path === '/' ? '/' : path.replace(/\\/$/, '')}`) } })
     .transform(response);
 };
