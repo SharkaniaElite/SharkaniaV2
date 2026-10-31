@@ -47,7 +47,7 @@ export async function signUp(
   if (error) throw error;
 
   // Si el trigger no escribe los datos a tiempo, forzamos la inyección manual
-  if (data.user) {
+  if (data.user && data.session) {
     const updatePayload: any = {};
     
     // Inyectamos datos base
