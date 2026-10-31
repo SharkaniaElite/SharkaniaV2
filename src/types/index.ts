@@ -66,6 +66,10 @@ export interface Profile {
   wpt_nickname?: string | null;
   wpt_status?: "none" | "pending" | "verified" | "rejected";
   wpt_verified_at?: string | null;
+  ignition_league_player?: boolean | null;
+  ignition_email?: string | null;
+  ignition_nickname?: string | null;
+  ignition_status?: "none" | "pending" | "verified" | "rejected" | null;
   // Beneficios LatinAllinPoker (ClubGG)
   latin_nickname?: string | null;
   latin_status?: "none" | "pending" | "contacted" | "rejected";
