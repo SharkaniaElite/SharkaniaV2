@@ -43,7 +43,8 @@ export function PlayerDashboardPage() {
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
   // 🔥 Estados para la vinculación de Ignition Poker
-  const isIgnitionLinked = user?.user_metadata?.ignition_league_player === true;
+  const hasIgnitionRequest = user?.user_metadata?.ignition_league_player === true || profile?.ignition_league_player === true;
+  const isIgnitionLinked = profile?.ignition_status === 'verified';
   const [ignitionEmail, setIgnitionEmail] = useState(user?.user_metadata?.ignition_email ?? "");
   const [ignitionNickname, setIgnitionNickname] = useState(user?.user_metadata?.ignition_nickname ?? "");
   const [isSubmittingIgnition, setIsSubmittingIgnition] = useState(false);
@@ -340,10 +341,11 @@ export function PlayerDashboardPage() {
                       if (!wptInput.trim()) return;
                       setIsSubmittingWpt(true);
                       try {
-                        await supabase.from("profiles").update({ 
-                          wpt_nickname: wptInput.trim(), 
-                          wpt_status: "pending" 
+                        const { error: requestError } = await supabase.from("profiles").update({
+                          wpt_nickname: wptInput.trim(),
+                          wpt_status: "pending"
                         }).eq("id", user.id);
+                        if (requestError) throw requestError;
                         alert("Validación WPT enviada al administrador.");
                         setTimeout(() => window.location.reload(), 1500);
                       } catch (e) {
@@ -396,9 +398,9 @@ export function PlayerDashboardPage() {
                 )}
               </div>
 
-              {isIgnitionLinked ? (
+              {(isIgnitionLinked || hasIgnitionRequest) ? (
                 <div className="flex flex-col items-start lg:items-end bg-black/30 p-3 rounded-lg border border-white/5 w-full lg:w-auto">
-                  <Badge variant="green">¡Vinculado a Ignition!</Badge>
+                  <Badge variant={isIgnitionLinked ? 'green' : 'orange'}>{isIgnitionLinked ? '¡Vinculado a Ignition!' : 'Solicitud en revisión'}</Badge>
                   <div className="mt-2 space-y-1">
                     <p className="text-[11px] text-sk-text-3 font-mono flex justify-between gap-4">
                       <span>Email:</span> <strong className="text-white">{user?.user_metadata?.ignition_email}</strong>
@@ -480,12 +482,12 @@ export function PlayerDashboardPage() {
                           ignition_league_player: true,
                           ignition_email: emailToLink,
                           ignition_nickname: nickToLink,
-                          ignition_status: 'verified'
+                          ignition_status: 'pending'
                         }).eq('id', user.id);
 
                         if (profileError) throw profileError;
 
-                        alert("¡Cuenta de Ignition vinculada con éxito!");
+                        alert("Solicitud de vinculación enviada. Quedará pendiente de verificación administrativa.");
                         window.location.reload();
                       } catch (e) {
                         console.error(e);
