@@ -71,26 +71,45 @@ export async function getAllTournaments(): Promise<TournamentWithDetails[]> {
   return await attachClubsToTournaments(rows);
 }
 
+// Club membership can exceed both PostgREST's 1,000-row default and URL-size
+// limits. Query primary events and linked co-host events in safe batches.
 export async function getTournamentsByClub(clubId: string, publicOnly = false): Promise<TournamentWithDetails[]> {
-  // Esta función es la que usa el CLUB ADMIN y la Unión CCP
-  const { data: links } = await supabase.from("tournament_clubs").select("tournament_id").eq("club_id", clubId);
-  const linkedIds = links?.map(l => l.tournament_id) || [];
+  const linkRows = await fetchAllTournamentPages(
+    supabase.from("tournament_clubs")
+      .select("tournament_id")
+      .eq("club_id", clubId)
+      .order("tournament_id", { ascending: true }),
+  );
+  const linkedIds = [...new Set(linkRows.map(link => link.tournament_id as string))];
 
-  let query = supabase.from("tournaments").select("*, leagues(id, name, slug), poker_rooms(name)");
+  const publicFilter = (query: any) => publicOnly
+    ? query.or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`)
+    : query;
 
-  if (linkedIds.length > 0) {
-    query = query.or(`club_id.eq.${clubId},id.in.(${linkedIds.join(',')})`);
-  } else {
-    query = query.eq("club_id", clubId);
+  const primary = await fetchAllTournamentPages(
+    publicFilter(supabase.from("tournaments")
+      .select("*, leagues(id, name, slug), poker_rooms(name)")
+      .eq("club_id", clubId))
+      .order("start_datetime", { ascending: false }),
+  );
+
+  const byId = new Map<string, any>(primary.map(t => [t.id, t]));
+  // 120 UUIDs per query avoids 40 kB URLs when CCP shares >1,000 tournaments.
+  const batchSize = 120;
+  for (let offset = 0; offset < linkedIds.length; offset += batchSize) {
+    const ids = linkedIds.slice(offset, offset + batchSize).filter(id => !byId.has(id));
+    if (!ids.length) continue;
+    const linked = await fetchAllTournamentPages(
+      publicFilter(supabase.from("tournaments")
+        .select("*, leagues(id, name, slug), poker_rooms(name)")
+        .in("id", ids))
+        .order("start_datetime", { ascending: false }),
+    );
+    for (const tournament of linked) byId.set(tournament.id, tournament);
   }
-
-  // Club administrators still receive all records; public club pages only receive
-  // published results or events within the seven-day grace window.
-  if (publicOnly) {
-    query = query.or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`);
-  }
-
-  const rows = await fetchAllTournamentPages(query.order("start_datetime", { ascending: false }));
+  const rows = [...byId.values()].sort(
+    (a, b) => new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime(),
+  );
   const attached = await attachClubsToTournaments(rows);
   return publicOnly ? attached.filter(t => isPublicTournamentVisible(t)) : attached;
 }
@@ -128,10 +147,15 @@ export async function getCompletedTournaments(options?: {
     .or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`);
 
   if (options?.clubId) {
-    const { data: links } = await supabase.from("tournament_clubs").select("tournament_id").eq("club_id", options.clubId);
-    const linkedIds = links?.map(l => l.tournament_id) || [];
-    if (linkedIds.length > 0) query = query.or(`club_id.eq.${options.clubId},id.in.(${linkedIds.join(',')})`);
-    else query = query.eq("club_id", options.clubId);
+    // Club filtering must include co-hosted tournaments without long IN URLs,
+    // and pagination must happen AFTER filtering the complete club membership.
+    const clubTournaments = await getTournamentsByClub(options.clubId, true);
+    const matches = clubTournaments.filter(t =>
+      new Date(t.start_datetime).toISOString() <= nowIso
+      && (!options.leagueId || t.league_id === options.leagueId)
+      && (!options.roomId || t.room_id === options.roomId),
+    );
+    return { data: matches.slice(from, to + 1), count: matches.length };
   }
 
   if (options?.leagueId) query = query.eq("league_id", options.leagueId);
