@@ -124,8 +124,10 @@ export function TournamentDetailPage() {
   return (
     <PageShell>
       <SEOHead
-  title={`${cleanName(tournament.name)} — Resultados`}
-  description={`Resultados del torneo ${cleanName(tournament.name)}. Posiciones, premios y cambios de ELO.`}
+  title={`${cleanName(tournament.name)} — ${tournament.results_uploaded ? "Resultados" : "Torneo"}`}
+  description={tournament.results_uploaded
+    ? `Resultados del torneo ${cleanName(tournament.name)}. Posiciones, premios y cambios de ELO.`
+    : `Información del torneo ${cleanName(tournament.name)}. Los resultados están pendientes de carga.`}
   path={`/tournament/${tournament.slug}`} // 👈 ¡El toque maestro!
 />
       <div className="pt-20 pb-16">

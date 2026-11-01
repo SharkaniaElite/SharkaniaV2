@@ -1,3 +1,5 @@
+import { getTournamentLifecyclePhase } from "../src/lib/tournament-lifecycle";
+
 // 🛡️ Declaraciones nativas de Cloudflare para satisfacer a TypeScript y ESLint
 interface Element {
   setInnerContent(content: string, options?: { html?: boolean }): this;
@@ -228,19 +230,19 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   }
   // URLs con UUID de los sitemaps anteriores: redirigir al slug y mantener query.
   const legacyUuid = canonicalPath.match(/^\/tournament\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
-  if (request.method === 'GET' && legacyUuid) {
+  if ((request.method === 'GET' || request.method === 'HEAD') && legacyUuid) {
     const rows = await fetchJson(
-      "tournaments?select=slug&id=eq." + encodeURIComponent(legacyUuid[1]) +
+      "tournaments?select=slug,results_uploaded,start_datetime,status&id=eq." + encodeURIComponent(legacyUuid[1]) +
       "&is_demo=eq.false&limit=1",
       env.SUPABASE_ANON_KEY,
     );
-    if (Array.isArray(rows) && rows[0]?.slug) {
+    if (Array.isArray(rows) && rows[0]?.slug && getTournamentLifecyclePhase(rows[0]) !== "archived") {
       const target = new URL(SITE_URL + "/tournament/" + encodeURIComponent(rows[0].slug));
       target.search = url.search;
       return Response.redirect(target.toString(), 301);
     }
     if (Array.isArray(rows)) {
-      return new Response("Torneo no encontrado", {
+      return new Response(request.method === 'HEAD' ? null : "Torneo no encontrado", {
         status: 404, headers: { "content-type": "text/plain; charset=utf-8", "x-robots-tag": "noindex" },
       });
     }
@@ -259,6 +261,28 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
       '<!doctype html><html lang="es"><meta charset="utf-8"><title>Página retirada | Sharkania</title><meta name="robots" content="noindex"><main><h1>Esta sección ya no está disponible</h1><p><a href="/">Volver a Sharkania</a></p></main></html>',
       { status: 410, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300", "x-robots-tag": "noindex" } },
     );
+  }
+
+  // Direct public URLs follow the same seven-day lifecycle as the calendars.
+  // Admin URLs are untouched; upstream failures must not masquerade as 404.
+  const publicTournamentMatch = canonicalPath.match(/^\/tournament\/([^/]+)$/i);
+  let publicTournamentRecord: any = null;
+  if ((request.method === 'GET' || request.method === 'HEAD') && publicTournamentMatch) {
+    const rows: any = await fetchJson(
+      "tournaments?select=slug,name,description,results_uploaded,start_datetime,status&slug=eq." +
+      encodeURIComponent(publicTournamentMatch[1]) + "&is_demo=eq.false&limit=1",
+      env.SUPABASE_ANON_KEY,
+    );
+    if (!Array.isArray(rows)) {
+      return new Response(null, { status: 503, headers: { "Retry-After": "300", "Cache-Control": "no-store" } });
+    }
+    if (!rows[0] || getTournamentLifecyclePhase(rows[0]) === "archived") {
+      return new Response(request.method === 'HEAD' ? null : "Torneo no disponible", {
+        status: 404,
+        headers: { "content-type": "text/plain; charset=utf-8", "x-robots-tag": "noindex", "cache-control": "public, max-age=0, must-revalidate" },
+      });
+    }
+    publicTournamentRecord = rows[0];
   }
 
   // 1. Obtener el index.html generado por Vite
@@ -358,10 +382,12 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
     // Torneos: metadatos y HTML visibles desde la primera respuesta HTTP.
     else if (canonicalPath.startsWith('/tournament/') && canonicalPath.slice('/tournament/'.length).length > 0 && canonicalPath.split('/').length === 3) {
       const tournamentSlug = canonicalPath.slice('/tournament/'.length);
-      const data: any = await fetchJson(
-        "tournaments?select=name,description,results_uploaded&slug=eq." +
-        encodeURIComponent(tournamentSlug) + "&is_demo=eq.false&limit=1", key,
-      );
+      const data: any = publicTournamentRecord
+        ? [publicTournamentRecord]
+        : await fetchJson(
+          "tournaments?select=name,description,results_uploaded&slug=eq." +
+          encodeURIComponent(tournamentSlug) + "&is_demo=eq.false&limit=1", key,
+        );
       if (Array.isArray(data) && data.length === 0) {
         return new Response("Torneo no encontrado", {
           status: 404, headers: { "content-type": "text/plain; charset=utf-8", "x-robots-tag": "noindex" },
@@ -411,7 +437,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   const rewritten = new HTMLRewriter()
     .on('title', { element(e: Element) { e.setInnerContent(title) } })
     .on('meta[name="description"]', { element(e: Element) { e.setAttribute("content", description) } })
-    .on('meta[name="robots"]', { element(e: Element) { e.setAttribute('content', isPrivate ? 'noindex, nofollow' : 'index, follow') } })
+    .on('meta[name="robots"]', { element(e: Element) { e.setAttribute('content', isPrivate || (publicTournamentRecord && !publicTournamentRecord.results_uploaded) ? 'noindex, nofollow' : 'index, follow') } })
     .on('meta[property="og:title"]', { element(e: Element) { e.setAttribute("content", title) } })
     .on('meta[property="og:description"]', { element(e: Element) { e.setAttribute("content", description) } })
     .on('meta[property="og:image"]', { element(e: Element) { e.setAttribute("content", image) } })
@@ -432,7 +458,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
   headers.set("Cache-Control", "public, max-age=0, must-revalidate");
-  if (isPrivate || url.hostname.endsWith(".pages.dev")) {
+  if (isPrivate || url.hostname.endsWith(".pages.dev") || (publicTournamentRecord && !publicTournamentRecord.results_uploaded)) {
     headers.set("X-Robots-Tag", "noindex");
   }
   return new Response(rewritten.body, {

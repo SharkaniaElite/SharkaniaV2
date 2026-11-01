@@ -38,18 +38,18 @@ export function useAllTournaments() {
   });
 }
 
-export function useTournamentsByClub(clubId: string) {
+export function useTournamentsByClub(clubId: string, publicOnly = false) {
   return useQuery({
-    queryKey: ["tournaments", "club", clubId],
-    queryFn: () => getTournamentsByClub(clubId),
+    queryKey: ["tournaments", "club", clubId, publicOnly],
+    queryFn: () => getTournamentsByClub(clubId, publicOnly),
     enabled: !!clubId,
   });
 }
 
-export function useTournamentsByLeague(leagueId: string) {
+export function useTournamentsByLeague(leagueId: string, publicOnly = false) {
   return useQuery({
-    queryKey: ["tournaments", "league", leagueId],
-    queryFn: () => getTournamentsByLeague(leagueId),
+    queryKey: ["tournaments", "league", leagueId, publicOnly],
+    queryFn: () => getTournamentsByLeague(leagueId, publicOnly),
     enabled: !!leagueId,
   });
 }

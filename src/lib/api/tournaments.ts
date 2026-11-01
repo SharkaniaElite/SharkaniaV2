@@ -1,5 +1,6 @@
 // src/lib/api/tournaments.ts
 import { supabase } from "../supabase";
+import { isPublicTournamentVisible, publicTournamentCutoffIso } from "../tournament-lifecycle";
 import type {
   TournamentWithDetails,
   TournamentResultWithPlayer,
@@ -44,20 +45,33 @@ async function attachClubsToTournaments(tournaments: any[]): Promise<TournamentW
   });
 }
 
+// Read beyond PostgREST's default 1,000-row limit. Admins must be able to
+// recover every archived event (CCP already has more than 1,000 tournaments).
+async function fetchAllTournamentPages(query: any): Promise<any[]> {
+  const pageSize = 500;
+  const rows: any[] = [];
+  for (let offset = 0; offset < 5000; offset += pageSize) {
+    const { data, error } = await query.range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const batch: any[] = data ?? [];
+    rows.push(...batch);
+    if (batch.length < pageSize) return rows;
+  }
+  throw new Error("Se alcanzó el límite de paginación de torneos (5000).");
+}
+
 // ── 1. GETTERS (ADMIN & WEB) ──
 
 export async function getAllTournaments(): Promise<TournamentWithDetails[]> {
   // Esta función es la que usa el SUPER ADMIN
-  const { data, error } = await supabase
-    .from("tournaments")
+  const query = supabase.from("tournaments")
     .select("*, leagues(id, name, slug), poker_rooms(name)")
     .order("start_datetime", { ascending: false });
-    
-  if (error) throw error;
-  return await attachClubsToTournaments(data || []);
+  const rows = await fetchAllTournamentPages(query);
+  return await attachClubsToTournaments(rows);
 }
 
-export async function getTournamentsByClub(clubId: string): Promise<TournamentWithDetails[]> {
+export async function getTournamentsByClub(clubId: string, publicOnly = false): Promise<TournamentWithDetails[]> {
   // Esta función es la que usa el CLUB ADMIN y la Unión CCP
   const { data: links } = await supabase.from("tournament_clubs").select("tournament_id").eq("club_id", clubId);
   const linkedIds = links?.map(l => l.tournament_id) || [];
@@ -70,16 +84,24 @@ export async function getTournamentsByClub(clubId: string): Promise<TournamentWi
     query = query.eq("club_id", clubId);
   }
 
-  const { data, error } = await query.order("start_datetime", { ascending: false });
-  if (error) throw error;
-  return await attachClubsToTournaments(data || []);
+  // Club administrators still receive all records; public club pages only receive
+  // published results or events within the seven-day grace window.
+  if (publicOnly) {
+    query = query.or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`);
+  }
+
+  const rows = await fetchAllTournamentPages(query.order("start_datetime", { ascending: false }));
+  const attached = await attachClubsToTournaments(rows);
+  return publicOnly ? attached.filter(t => isPublicTournamentVisible(t)) : attached;
 }
 
 export async function getUpcomingTournaments(): Promise<TournamentWithDetails[]> {
   const { data, error } = await supabase
     .from("tournaments")
     .select("*, leagues(id, name, slug), poker_rooms(name)")
-    .in("status", ["scheduled", "live", "late_registration"]);
+    .in("status", ["scheduled", "live", "late_registration"])
+    // Avoid the PostgREST first-1000 cap swallowing future tournaments with old schedules.
+    .gte("start_datetime", publicTournamentCutoffIso());
 
   if (error) throw error;
   const attached = await attachClubsToTournaments(data || []);
@@ -99,9 +121,11 @@ export async function getCompletedTournaments(options?: {
   
   let query = supabase.from("tournaments").select("*, leagues(id, name, slug), poker_rooms(name)", { count: "exact" });
 
-  // 🔥 FILTRO: Solo traer los que ya pasaron su hora de inicio, o los que fueron marcados explícitamente como completados/cancelados
+  // Database-side filtering is critical: apply it BEFORE pagination and exact count.
+  // Results are permanent; events without results expire after seven days.
   const nowIso = new Date().toISOString();
-  query = query.or(`start_datetime.lte.${nowIso},status.in.(completed,cancelled)`);
+  query = query.lte("start_datetime", nowIso)
+    .or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`);
 
   if (options?.clubId) {
     const { data: links } = await supabase.from("tournament_clubs").select("tournament_id").eq("club_id", options.clubId);
@@ -122,10 +146,14 @@ export async function getCompletedTournaments(options?: {
 
 // ── GETTERS SIMPLES ──
 
-export async function getTournamentsByLeague(leagueId: string): Promise<TournamentWithDetails[]> {
-  const { data, error } = await supabase.from("tournaments").select("*, leagues(id, name, slug), poker_rooms(name)").eq("league_id", leagueId).order("start_datetime", { ascending: false });
-  if (error) throw error;
-  return await attachClubsToTournaments(data || []);
+export async function getTournamentsByLeague(leagueId: string, publicOnly = false): Promise<TournamentWithDetails[]> {
+  let query = supabase.from("tournaments").select("*, leagues(id, name, slug), poker_rooms(name)").eq("league_id", leagueId);
+  if (publicOnly) {
+    query = query.or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`);
+  }
+  const rows = await fetchAllTournamentPages(query.order("start_datetime", { ascending: false }));
+  const attached = await attachClubsToTournaments(rows);
+  return publicOnly ? attached.filter(t => isPublicTournamentVisible(t)) : attached;
 }
 
 export async function getTournamentById(id: string): Promise<TournamentWithDetails | null> {
@@ -148,7 +176,9 @@ export async function getTournamentBySlug(slug: string): Promise<TournamentWithD
   }
   if (!data) return null;
   const attached = await attachClubsToTournaments([data]);
-  return attached[0] || null;
+  const tournament = attached[0] || null;
+  // Direct navigation must follow the same public visibility rule as calendars.
+  return tournament && isPublicTournamentVisible(tournament) ? tournament : null;
 }
 
 export async function getTournamentResults(tournamentId: string): Promise<TournamentResultWithPlayer[]> {
