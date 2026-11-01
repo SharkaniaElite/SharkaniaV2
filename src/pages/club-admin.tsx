@@ -44,6 +44,7 @@ export function ClubAdminPage() {
   const [duplicatingLeague, setDuplicatingLeague] = useState<string | null>(null);
   const [selectedTournamentIds, setSelectedTournamentIds] = useState<string[]>([]);
   const [tournamentView, setTournamentView] = useState<"all" | "upcoming" | "pending" | "archived" | "results">("upcoming");
+  const [tournamentPage, setTournamentPage] = useState(1);
 
   const handleDuplicateLeague = async (l: League) => {
     const newName = window.prompt(
@@ -293,6 +294,7 @@ export function ClubAdminPage() {
     setSelectedClubId(clubId);
     setSelectedTournamentIds([]);
     setTournamentView("upcoming");
+    setTournamentPage(1);
     setEditTournament(undefined);
     setEditLeague(undefined);
     setUploadTournament(null);
@@ -309,6 +311,10 @@ export function ClubAdminPage() {
   const pendingCount = tournamentPhases.filter(t => t.phase === "pending").length;
   const archivedCount = tournamentPhases.filter(t => t.phase === "archived").length;
   const visibleAdminTournaments = tournamentPhases.filter(t => tournamentView === "all" || t.phase === tournamentView);
+  const tournamentPageSize = 50;
+  const tournamentPageCount = Math.max(1, Math.ceil(visibleAdminTournaments.length / tournamentPageSize));
+  const currentTournamentPage = Math.min(tournamentPage, tournamentPageCount);
+  const pagedAdminTournaments = visibleAdminTournaments.slice((currentTournamentPage - 1) * tournamentPageSize, currentTournamentPage * tournamentPageSize);
 
   const TABS: { key: TabKey; label: string }[] = [
     { key: "templates", label: "Plantillas" },
@@ -422,7 +428,7 @@ export function ClubAdminPage() {
                   { key: "all", label: `Todos (${tournamentPhases.length})` },
                 ] as const).map(view => (
                   <button key={view.key} type="button"
-                    onClick={() => { setTournamentView(view.key); setSelectedTournamentIds([]); }}
+                    onClick={() => { setTournamentView(view.key); setTournamentPage(1); setSelectedTournamentIds([]); }}
                     className={cn("rounded-md border px-3 py-1.5 text-sk-xs font-semibold transition-colors",
                       tournamentView === view.key
                         ? "border-sk-accent text-sk-accent bg-sk-accent/10"
@@ -462,7 +468,7 @@ export function ClubAdminPage() {
                       ))}
                     </tr></thead>
                     <tbody>
-                      {visibleAdminTournaments.map(({ tournament: t, phase }) => {
+                      {pagedAdminTournaments.map(({ tournament: t, phase }) => {
                         const isScheduled = t.status === "scheduled" && !t.results_uploaded;
                         const isSelected = selectedTournamentIds.includes(t.id);
                         return (
@@ -498,6 +504,17 @@ export function ClubAdminPage() {
                       })}
                     </tbody>
                   </table>
+                  {tournamentPageCount > 1 && (
+                    <div className="flex items-center justify-between gap-3 border-t border-sk-border-2 p-3 text-sk-xs text-sk-text-2">
+                      <span>Página {currentTournamentPage} de {tournamentPageCount} · {visibleAdminTournaments.length} torneos</span>
+                      <div className="flex gap-2">
+                        <button type="button" className="rounded border border-sk-border-2 px-3 py-1 disabled:opacity-40"
+                          disabled={currentTournamentPage <= 1} onClick={() => setTournamentPage(p => Math.max(1, p-1))}>Anterior</button>
+                        <button type="button" className="rounded border border-sk-border-2 px-3 py-1 disabled:opacity-40"
+                          disabled={currentTournamentPage >= tournamentPageCount} onClick={() => setTournamentPage(p => Math.min(tournamentPageCount, p+1))}>Siguiente</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
