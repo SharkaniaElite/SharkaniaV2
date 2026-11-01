@@ -19,6 +19,7 @@ import { supabase } from "../lib/supabase";
 import { deleteTournamentSafe, getTournamentsByClub } from "../lib/api/tournaments"; // 👈 Agregamos getTournamentsByClub
 import { duplicateLeague } from "../lib/api/leagues";
 import { formatCurrency } from "../lib/format";
+import { getTournamentLifecyclePhase } from "../lib/tournament-lifecycle";
 import { cn } from "../lib/cn";
 import { Plus, Trash2, Pencil, Save, ChevronDown, Copy } from "lucide-react";
 import type { TournamentWithDetails, Tournament, League } from "../types";
@@ -42,6 +43,7 @@ export function ClubAdminPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [duplicatingLeague, setDuplicatingLeague] = useState<string | null>(null);
   const [selectedTournamentIds, setSelectedTournamentIds] = useState<string[]>([]);
+  const [tournamentView, setTournamentView] = useState<"all" | "upcoming" | "pending" | "archived" | "results">("upcoming");
 
   const handleDuplicateLeague = async (l: League) => {
     const newName = window.prompt(
@@ -290,6 +292,7 @@ export function ClubAdminPage() {
   const handleClubChange = (clubId: string) => {
     setSelectedClubId(clubId);
     setSelectedTournamentIds([]);
+    setTournamentView("upcoming");
     setEditTournament(undefined);
     setEditLeague(undefined);
     setUploadTournament(null);
@@ -300,8 +303,12 @@ export function ClubAdminPage() {
   if (isLoading) return <PageShell><div className="pt-20 min-h-screen flex items-center justify-center"><Spinner size="lg" /></div></PageShell>;
   if (!adminClubs?.length) return <PageShell><div className="pt-20 pb-16"><div className="max-w-[900px] mx-auto px-6"><EmptyState icon="🏛️" title="No eres admin de ningún club" /></div></div></PageShell>;
 
-  const completedCount = tournaments?.filter((t) => t.status === "completed").length ?? 0;
-  const upcomingCount = tournaments?.filter((t) => ["scheduled", "live", "late_registration"].includes(t.status)).length ?? 0;
+  const tournamentPhases = (tournaments ?? []).map(t => ({ tournament: t, phase: getTournamentLifecyclePhase(t) }));
+  const completedCount = tournamentPhases.filter(t => t.phase === "results").length;
+  const upcomingCount = tournamentPhases.filter(t => t.phase === "upcoming").length;
+  const pendingCount = tournamentPhases.filter(t => t.phase === "pending").length;
+  const archivedCount = tournamentPhases.filter(t => t.phase === "archived").length;
+  const visibleAdminTournaments = tournamentPhases.filter(t => tournamentView === "all" || t.phase === tournamentView);
 
   const TABS: { key: TabKey; label: string }[] = [
     { key: "templates", label: "Plantillas" },
@@ -406,6 +413,32 @@ export function ClubAdminPage() {
                 <Button variant="accent" size="sm" onClick={() => setEditTournament(null)}><Plus size={14} /> Crear Torneo</Button>
               </div>
 
+              <div className="mb-4 flex flex-wrap gap-2" aria-label="Filtrar torneos del club">
+                {([
+                  { key: "upcoming", label: `Programados (${upcomingCount})` },
+                  { key: "pending", label: `Pendientes (${pendingCount})` },
+                  { key: "results", label: `Con resultados (${completedCount})` },
+                  { key: "archived", label: `Archivados (${archivedCount})` },
+                  { key: "all", label: `Todos (${tournamentPhases.length})` },
+                ] as const).map(view => (
+                  <button key={view.key} type="button"
+                    onClick={() => { setTournamentView(view.key); setSelectedTournamentIds([]); }}
+                    className={cn("rounded-md border px-3 py-1.5 text-sk-xs font-semibold transition-colors",
+                      tournamentView === view.key
+                        ? "border-sk-accent text-sk-accent bg-sk-accent/10"
+                        : "border-sk-border-2 text-sk-text-2 hover:text-sk-text-1")}
+                  >
+                    {view.label}
+                  </button>
+                ))}
+              </div>
+              {tournamentView === "archived" && (
+                <p className="mb-4 text-sk-xs text-sk-text-3">
+                  Torneos sin resultados ocultos del sitio público después de siete días.
+                  Puedes subir sus resultados o reprogramarlos. Ningún registro se elimina.
+                </p>
+              )}
+
               {scheduledTournaments.length > 0 && (
                 <div className="mb-4">
                   <BulkDeleteBar
@@ -418,8 +451,8 @@ export function ClubAdminPage() {
                 </div>
               )}
 
-              {!(tournaments ?? []).length ? (
-                <EmptyState icon="📅" title="Sin torneos" action={<Button variant="accent" size="sm" onClick={() => setEditTournament(null)}>Crear Torneo</Button>} />
+              {!visibleAdminTournaments.length ? (
+                <EmptyState icon="📅" title="Sin torneos en esta categoría" action={<Button variant="accent" size="sm" onClick={() => setEditTournament(null)}>Crear Torneo</Button>} />
               ) : (
                 <div className="border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-x-auto">
                   <table className="w-full border-collapse text-sk-sm">
@@ -429,7 +462,7 @@ export function ClubAdminPage() {
                       ))}
                     </tr></thead>
                     <tbody>
-                      {(tournaments ?? []).map((t) => {
+                      {visibleAdminTournaments.map(({ tournament: t, phase }) => {
                         const isScheduled = t.status === "scheduled" && !t.results_uploaded;
                         const isSelected = selectedTournamentIds.includes(t.id);
                         return (
@@ -449,7 +482,7 @@ export function ClubAdminPage() {
                             <td className="py-3 px-4 border-b border-sk-border-2 font-mono text-sk-xs text-sk-text-2">{new Date(t.start_datetime).toLocaleDateString("es-CL")}</td>
                             <td className="py-3 px-4 border-b border-sk-border-2 font-mono text-sk-text-1">{formatCurrency(t.buy_in)}</td>
                             <td className="py-3 px-4 border-b border-sk-border-2 font-mono text-sk-gold font-bold">{t.guaranteed_prize ? formatCurrency(t.guaranteed_prize) : "—"}</td>
-                            <td className="py-3 px-4 border-b border-sk-border-2"><Badge variant={t.status === "completed" ? "muted" : t.status === "live" ? "live" : "accent"}>{t.status}</Badge></td>
+                            <td className="py-3 px-4 border-b border-sk-border-2"><Badge variant={phase === "results" || phase === "archived" ? "muted" : t.status === "live" ? "live" : "accent"}>{phase === "archived" ? (t.status === "cancelled" ? "Cancelado" : "Archivado") : phase === "pending" ? "Pendiente resultados" : phase === "results" ? "Resultados" : t.status}</Badge></td>
                             <td className="py-3 px-4 border-b border-sk-border-2">{t.results_uploaded ? <Button variant="secondary" size="xs" onClick={() => setEditResultsTournament(t)}>Ver / Editar</Button> : <Button variant="accent" size="xs" onClick={() => setUploadTournament(t)}>Subir</Button>}</td>
                             <td className="py-3 px-4 border-b border-sk-border-2">
                               <div className="flex gap-1 justify-end">
