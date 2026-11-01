@@ -84,6 +84,7 @@ export function CalendarPage() {
     leagueId: leagueFilter || undefined,
   });
 
+  // Sólo resultados históricos permanentes y eventos recientes pendientes (7 días).
   const historyTournaments = historyData?.data ?? [];
   const historyTotal = historyData?.count ?? 0;
   const historyTotalPages = Math.ceil(historyTotal / PAGE_SIZE);
@@ -499,7 +500,7 @@ export function CalendarPage() {
                                     Resultados →
                                   </Link>
                                 ) : (
-                                  <span className="text-sk-text-4 text-[11px]">Sin resultados</span>
+                                  <span className="text-sk-gold text-[11px]">Resultados pendientes · máximo 7 días</span>
                                 )}
                               </td>
                             </tr>
