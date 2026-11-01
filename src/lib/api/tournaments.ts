@@ -1,5 +1,6 @@
 // src/lib/api/tournaments.ts
 import { supabase } from "../supabase";
+import { isPublicTournamentVisible, publicTournamentCutoffIso } from "../tournament-lifecycle";
 import type {
   TournamentWithDetails,
   TournamentResultWithPlayer,
@@ -57,7 +58,7 @@ export async function getAllTournaments(): Promise<TournamentWithDetails[]> {
   return await attachClubsToTournaments(data || []);
 }
 
-export async function getTournamentsByClub(clubId: string): Promise<TournamentWithDetails[]> {
+export async function getTournamentsByClub(clubId: string, publicOnly = false): Promise<TournamentWithDetails[]> {
   // Esta función es la que usa el CLUB ADMIN y la Unión CCP
   const { data: links } = await supabase.from("tournament_clubs").select("tournament_id").eq("club_id", clubId);
   const linkedIds = links?.map(l => l.tournament_id) || [];
@@ -70,16 +71,25 @@ export async function getTournamentsByClub(clubId: string): Promise<TournamentWi
     query = query.eq("club_id", clubId);
   }
 
+  // Club administrators still receive all records; public club pages only receive
+  // published results or events within the seven-day grace window.
+  if (publicOnly) {
+    query = query.or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`);
+  }
+
   const { data, error } = await query.order("start_datetime", { ascending: false });
   if (error) throw error;
-  return await attachClubsToTournaments(data || []);
+  const attached = await attachClubsToTournaments(data || []);
+  return publicOnly ? attached.filter(t => isPublicTournamentVisible(t)) : attached;
 }
 
 export async function getUpcomingTournaments(): Promise<TournamentWithDetails[]> {
   const { data, error } = await supabase
     .from("tournaments")
     .select("*, leagues(id, name, slug), poker_rooms(name)")
-    .in("status", ["scheduled", "live", "late_registration"]);
+    .in("status", ["scheduled", "live", "late_registration"])
+    // Avoid the PostgREST first-1000 cap swallowing future tournaments with old schedules.
+    .gte("start_datetime", publicTournamentCutoffIso());
 
   if (error) throw error;
   const attached = await attachClubsToTournaments(data || []);
@@ -99,9 +109,11 @@ export async function getCompletedTournaments(options?: {
   
   let query = supabase.from("tournaments").select("*, leagues(id, name, slug), poker_rooms(name)", { count: "exact" });
 
-  // 🔥 FILTRO: Solo traer los que ya pasaron su hora de inicio, o los que fueron marcados explícitamente como completados/cancelados
+  // Database-side filtering is critical: apply it BEFORE pagination and exact count.
+  // Results are permanent; events without results expire after seven days.
   const nowIso = new Date().toISOString();
-  query = query.or(`start_datetime.lte.${nowIso},status.in.(completed,cancelled)`);
+  query = query.lte("start_datetime", nowIso)
+    .or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`);
 
   if (options?.clubId) {
     const { data: links } = await supabase.from("tournament_clubs").select("tournament_id").eq("club_id", options.clubId);
@@ -122,10 +134,15 @@ export async function getCompletedTournaments(options?: {
 
 // ── GETTERS SIMPLES ──
 
-export async function getTournamentsByLeague(leagueId: string): Promise<TournamentWithDetails[]> {
-  const { data, error } = await supabase.from("tournaments").select("*, leagues(id, name, slug), poker_rooms(name)").eq("league_id", leagueId).order("start_datetime", { ascending: false });
+export async function getTournamentsByLeague(leagueId: string, publicOnly = false): Promise<TournamentWithDetails[]> {
+  let query = supabase.from("tournaments").select("*, leagues(id, name, slug), poker_rooms(name)").eq("league_id", leagueId);
+  if (publicOnly) {
+    query = query.or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`);
+  }
+  const { data, error } = await query.order("start_datetime", { ascending: false });
   if (error) throw error;
-  return await attachClubsToTournaments(data || []);
+  const attached = await attachClubsToTournaments(data || []);
+  return publicOnly ? attached.filter(t => isPublicTournamentVisible(t)) : attached;
 }
 
 export async function getTournamentById(id: string): Promise<TournamentWithDetails | null> {
@@ -148,7 +165,9 @@ export async function getTournamentBySlug(slug: string): Promise<TournamentWithD
   }
   if (!data) return null;
   const attached = await attachClubsToTournaments([data]);
-  return attached[0] || null;
+  const tournament = attached[0] || null;
+  // Direct navigation must follow the same public visibility rule as calendars.
+  return tournament && isPublicTournamentVisible(tournament) ? tournament : null;
 }
 
 export async function getTournamentResults(tournamentId: string): Promise<TournamentResultWithPlayer[]> {
