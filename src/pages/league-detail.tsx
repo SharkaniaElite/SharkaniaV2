@@ -34,7 +34,7 @@ export function LeagueDetailPage() {
   const { leagueSlug } = useParams<{ leagueSlug: string }>();
   const { data: league, isLoading } = useLeagueBySlug(leagueSlug);
   const { data: standings, isLoading: standingsLoading } = useLeagueStandings(league?.id);
-  const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByLeague(league?.id ?? '');
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByLeague(league?.id ?? '', true);
   const [tab, setTab] = useState<Tab>("standings");
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
@@ -111,7 +111,7 @@ export function LeagueDetailPage() {
     .sort((a, b) => new Date(a.start_datetime || 0).getTime() - new Date(b.start_datetime || 0).getTime());
 
   const completed = (tournaments ?? [])
-    .filter(t => ["completed", "cancelled"].includes(t.status))
+    .filter(t => t.results_uploaded || (t.status === "completed" && !t.results_uploaded))
     .sort((a, b) => new Date(b.start_datetime || 0).getTime() - new Date(a.start_datetime || 0).getTime());
 
   const playersMap = standings?.reduce((acc, st) => {
