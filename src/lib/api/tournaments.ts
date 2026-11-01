@@ -45,17 +45,30 @@ async function attachClubsToTournaments(tournaments: any[]): Promise<TournamentW
   });
 }
 
+// Read beyond PostgREST's default 1,000-row limit. Admins must be able to
+// recover every archived event (CCP already has more than 1,000 tournaments).
+async function fetchAllTournamentPages(query: any): Promise<any[]> {
+  const pageSize = 500;
+  const rows: any[] = [];
+  for (let offset = 0; offset < 5000; offset += pageSize) {
+    const { data, error } = await query.range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const batch: any[] = data ?? [];
+    rows.push(...batch);
+    if (batch.length < pageSize) return rows;
+  }
+  throw new Error("Se alcanzó el límite de paginación de torneos (5000).");
+}
+
 // ── 1. GETTERS (ADMIN & WEB) ──
 
 export async function getAllTournaments(): Promise<TournamentWithDetails[]> {
   // Esta función es la que usa el SUPER ADMIN
-  const { data, error } = await supabase
-    .from("tournaments")
+  const query = supabase.from("tournaments")
     .select("*, leagues(id, name, slug), poker_rooms(name)")
     .order("start_datetime", { ascending: false });
-    
-  if (error) throw error;
-  return await attachClubsToTournaments(data || []);
+  const rows = await fetchAllTournamentPages(query);
+  return await attachClubsToTournaments(rows);
 }
 
 export async function getTournamentsByClub(clubId: string, publicOnly = false): Promise<TournamentWithDetails[]> {
@@ -77,9 +90,8 @@ export async function getTournamentsByClub(clubId: string, publicOnly = false): 
     query = query.or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`);
   }
 
-  const { data, error } = await query.order("start_datetime", { ascending: false });
-  if (error) throw error;
-  const attached = await attachClubsToTournaments(data || []);
+  const rows = await fetchAllTournamentPages(query.order("start_datetime", { ascending: false }));
+  const attached = await attachClubsToTournaments(rows);
   return publicOnly ? attached.filter(t => isPublicTournamentVisible(t)) : attached;
 }
 
@@ -139,9 +151,8 @@ export async function getTournamentsByLeague(leagueId: string, publicOnly = fals
   if (publicOnly) {
     query = query.or(`results_uploaded.eq.true,and(start_datetime.gte.${publicTournamentCutoffIso()},status.neq.cancelled)`);
   }
-  const { data, error } = await query.order("start_datetime", { ascending: false });
-  if (error) throw error;
-  const attached = await attachClubsToTournaments(data || []);
+  const rows = await fetchAllTournamentPages(query.order("start_datetime", { ascending: false }));
+  const attached = await attachClubsToTournaments(rows);
   return publicOnly ? attached.filter(t => isPublicTournamentVisible(t)) : attached;
 }
 
