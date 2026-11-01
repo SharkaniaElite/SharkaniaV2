@@ -221,8 +221,9 @@ export function IgnitionChampionshipPage() {
     <PageShell>
       <div className="min-h-screen bg-[#0a0a0a] text-white relative font-sans pt-20">
         <SEOHead 
-          title="Sharkania Ignition Championship"
-          description="Participa en la liga exclusiva de Sharkania en Ignition Poker. $150 GTD cada jueves, Free Buy-in."
+          title="Liga SHARKANIA Noviembre 2026 en Ignition Poker"
+          description="Liga SHARKANIA desde el 5 de noviembre: $100 USD garantizados por fecha, buy-in $3,30, reentry y registro tardío de 60 minutos. Bounty al host y ranking mensual." 
+          path="/ignition"
         />
 
         {/* Efectos visuales de fondo */}
@@ -236,13 +237,13 @@ export function IgnitionChampionshipPage() {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-500/10 border border-orange-500/30 px-3 py-1.5 rounded-full text-orange-400 font-mono text-xs uppercase tracking-widest font-bold">
               <Flame size={14} className="animate-pulse" />
-              Liga Oficial - Agosto 2026
+              Liga SHARKANIA · Noviembre 2026
             </div>
             
             <h1 className="text-5xl sm:text-6xl font-black leading-tight tracking-tight">
-              SHARKANIA <br/>
+              LIGA <br/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">
-                Liga Freeroll
+                SHARKANIA
               </span>
             </h1>
 
@@ -266,38 +267,60 @@ export function IgnitionChampionshipPage() {
             </div>
             
             <p className="text-lg text-gray-300 leading-relaxed max-w-lg">
-              Regístrate en Sharkania para recibir la contraseña exclusiva de nuestra liga de Agosto. Juega los Jueves, elimina al host por una recompensa directa y suma puntos para los premios mensuales.
+              La Liga SHARKANIA comienza el jueves 5 de noviembre de 2026 en Ignition Poker.
+              Cada jueves compite por un pozo garantizado de US$100, participa del bounty al host
+              y suma puntos para los premios mensuales. Regístrate para recibir la contraseña de acceso.
             </p>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-black/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm hover:border-orange-500/50 transition-colors">
                 <div className="text-orange-500 mb-2"><Trophy size={24} /></div>
-                <p className="text-xs font-mono text-gray-500 uppercase mb-1">Pozo Semanal</p>
-                <p className="text-xl font-bold text-white">$150 USD</p>
-                <p className="text-xs text-gray-400 mt-1">En Tickets de Torneo</p>
+                <p className="text-xs font-mono text-gray-500 uppercase mb-1">Garantizado por fecha</p>
+                <p className="text-xl font-bold text-white">US$100 GTD</p>
+                <p className="text-xs text-gray-400 mt-1">Pozo de premios del torneo</p>
               </div>
               <div className="bg-black/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm hover:border-red-500/50 transition-colors">
                 <div className="text-red-500 mb-2"><Gamepad2 size={24} /></div>
-                <p className="text-xs font-mono text-gray-500 uppercase mb-1">Buy-in / Rebuy</p>
-                <p className="text-xl font-bold text-white">FREE / $2 USD</p>
-                <p className="text-xs text-gray-400 mt-1">Turbo (60 min recompra)</p>
+                <p className="text-xs font-mono text-gray-500 uppercase mb-1">Buy-in / Reentry</p>
+                <p className="text-xl font-bold text-white">US$3,30</p>
+                <p className="text-xs text-gray-400 mt-1">Reentry y registro tardío: 60 min</p>
               </div>
             </div>
 
-            {/* NUEVA TABLA DE PREMIOS */}
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
+              <p className="text-xs font-mono font-bold uppercase tracking-widest text-orange-300 mb-2">
+                Fechas de noviembre de 2026
+              </p>
+              <div className="grid grid-cols-4 gap-2 text-center text-sm font-bold">
+                {["Jue 5", "Jue 12", "Jue 19", "Jue 26"].map(fecha => (
+                  <span key={fecha} className="rounded-lg border border-orange-500/25 bg-orange-500/10 py-2 text-orange-100">{fecha}</span>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-gray-400">
+                El horario de inicio y la estructura de pagos se informarán en el lobby de Ignition Poker.
+              </p>
+              <Link to="/leagues/liga-sharkania-noviembre-2026" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-orange-400 hover:text-orange-300">
+                Ver ranking y fechas de la Liga SHARKANIA <ChevronRight size={16} />
+              </Link>
+            </div>
+
+            {/* Premios por fecha y ranking mensual */}
             <div className="mt-8 bg-gradient-to-br from-orange-950/40 to-black border border-orange-500/30 rounded-xl p-6 shadow-lg">
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                  <div>
                    <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2 uppercase tracking-wide">
-                     <Trophy className="text-orange-500" size={16} /> PREMIOS EN CADA FECHA (Jueves)
+                     <Trophy className="text-orange-500" size={16} /> PREMIOS POR FECHA (Jueves)
                    </h3>
+                   <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 p-4 mb-3">
+                     <p className="text-2xl font-black text-white">US$100 garantizados</p>
+                     <p className="mt-1 text-xs text-gray-300">
+                       Pozo de premios del torneo. La distribución por posiciones se determina según la estructura publicada por Ignition Poker.
+                     </p>
+                   </div>
                    <ul className="space-y-2 text-sm text-gray-300">
-                     <li className="flex justify-between border-b border-white/5 pb-1"><span>1° Lugar</span> <span className="font-bold text-orange-400">Ticket $55</span></li>
-                     <li className="flex justify-between border-b border-white/5 pb-1"><span>2° Lugar</span> <span className="font-bold text-orange-400">Ticket $33</span></li>
-                     <li className="flex justify-between border-b border-white/5 pb-1"><span>3° Lugar</span> <span className="font-bold text-orange-400">Ticket $22</span></li>
-                     <li className="flex justify-between border-b border-white/5 pb-1"><span>4° Lugar</span> <span className="font-bold text-orange-400">Ticket $11</span></li>
-                     <li className="flex justify-between border-b border-white/5 pb-1"><span>5° Lugar</span> <span className="font-bold text-orange-400">Ticket $5.50</span></li>
-                     <li className="flex justify-between pt-1 text-red-400 font-bold"><span>¡Bounty al Host!</span> <span>Ticket $22</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-2"><span>Buy-in</span> <span className="font-bold text-orange-400">US$3,30</span></li>
+                     <li className="flex justify-between border-b border-white/5 pb-2"><span>Registro tardío y reentry</span> <span className="font-bold text-orange-400">60 minutos</span></li>
+                     <li className="flex justify-between pt-1 text-red-400 font-bold"><span>¡Bounty al host!</span> <span>Ticket US$22</span></li>
                    </ul>
                  </div>
                  
@@ -311,7 +334,7 @@ export function IgnitionChampionshipPage() {
                      <li className="flex justify-between border-b border-white/5 pb-1"><span>3° de la Liga</span> <span className="font-bold text-red-400">$162 TT para el $200.000 GTD</span></li>
                    </ul>
                    <p className="text-[10px] text-gray-500 mt-3 leading-tight">
-                     * El ranking suma tus mejores resultados en los 4 torneos del mes. Debes estar registrado en Sharkania para calificar.
+                     * El ranking suma los resultados de las cuatro fechas de noviembre. Debes estar registrado y vinculado en Sharkania para calificar.
                    </p>
                  </div>
                </div>
@@ -342,8 +365,8 @@ export function IgnitionChampionshipPage() {
               <div className="flex gap-4 items-start">
                 <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold shrink-0">3</div>
                 <div>
-                  <h4 className="font-bold text-white">Recibe la Contraseña</h4>
-                  <p className="text-sm text-gray-400 mt-1">Cada Jueves te enviaremos la contraseña al correo con el que te registres. ¡Asegúrate de revisar la carpeta de spam!</p>
+                  <h4 className="font-bold text-white">Recibe el acceso a la liga</h4>
+                  <p className="text-sm text-gray-400 mt-1">Cada jueves recibirás la información de acceso al torneo en el correo registrado. Revisa también la carpeta de spam.</p>
                 </div>
               </div>
             </div>

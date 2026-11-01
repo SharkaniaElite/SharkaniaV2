@@ -380,10 +380,10 @@ export function PlayerDashboardPage() {
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="lg:max-w-md">
                 <h2 className="text-sk-md font-bold text-white flex items-center gap-2 mb-1">
-                  <Flame size={18} className="text-orange-500" /> SHARKANIA LIGA FREEROLL
+                  <Flame size={18} className="text-orange-500" /> Liga SHARKANIA
                 </h2>
                 <p className="text-sk-sm text-sk-text-3">
-                  Vincula tu <strong className="text-orange-400">Email y Nickname</strong> de Ignition Póker para participar por el ranking y recibir las contraseñas de los torneos gratuitos. (Si no tienes tu cuenta vinculada, no podremos acreditar tus premios ni saber tus posiciones en cada torneo, recuerda que en Ignition Póker todos son anónimos al momento de jugar)
+                  Vincula tu <strong className="text-orange-400">Email y Nickname</strong> de Ignition Póker para participar en la Liga SHARKANIA: buy-in US$3,30, US$100 garantizados por fecha, reentry y registro tardío durante 60 minutos. Recibirás el acceso a los torneos y podrás sumar puntos para el ranking mensual. La vinculación es necesaria para acreditar tus posiciones y premios.
                 </p>
 
                 {!isIgnitionLinked && (
