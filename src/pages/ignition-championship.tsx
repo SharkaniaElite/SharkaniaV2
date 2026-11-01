@@ -1,5 +1,5 @@
 // src/pages/ignition-championship.tsx
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Turnstile } from "@marsidev/react-turnstile";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
@@ -73,12 +73,6 @@ export function IgnitionChampionshipPage() {
 
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/dashboard?highlight=ignition");
-    }
-  }, [isAuthenticated, navigate]);
 
   const inputClass = "w-full bg-black/40 border border-orange-500/30 rounded-md py-3 px-4 text-sk-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-orange-500 focus:shadow-[0_0_15px_rgba(249,115,22,0.3)] transition-all";
   const labelClass = "font-mono text-[11px] font-bold uppercase tracking-widest text-orange-200/80 mb-2 block";
@@ -377,6 +371,25 @@ export function IgnitionChampionshipPage() {
             <div className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-red-600 rounded-2xl blur-xl opacity-20 animate-pulse" />
             <div className="bg-[#111] border border-white/10 rounded-2xl p-6 sm:p-8 relative shadow-2xl">
               
+              {isAuthenticated ? (
+                <div className="py-8 text-center">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/15 text-orange-400">
+                    <Trophy size={28} />
+                  </div>
+                  <h2 className="mb-3 text-2xl font-bold text-white">Ya eres parte de Sharkania</h2>
+                  <p className="mb-6 text-sm leading-relaxed text-gray-400">
+                    Consulta aquí todas las bases de la Liga SHARKANIA. Para vincular tu
+                    correo y nickname de Ignition, revisar tu solicitud o actualizar tus datos,
+                    ingresa a tu panel.
+                  </p>
+                  <Link to="/dashboard?highlight=ignition" className="inline-block">
+                    <Button size="lg" className="bg-gradient-to-r from-orange-500 to-red-600 border-none font-bold text-white">
+                      Ir a mi panel de Ignition <ChevronRight size={16} className="ml-2" />
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <>
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-white mb-4">Paso 2: Vinculación</h2>
                 
@@ -545,6 +558,8 @@ export function IgnitionChampionshipPage() {
                     {isExistingUser ? "Iniciar Sesión y Vincular" : "Registrarse y Participar"}
                   </Button>
                 </form>
+              )}
+                </>
               )}
             </div>
           </div>
