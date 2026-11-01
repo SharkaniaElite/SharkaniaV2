@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const migration = readFileSync("supabase/migrations/20261101231500_auto_link_ccp_latin_allin_tournaments.sql", "utf8");
+const migration = readFileSync("supabase/migrations/20261101230327_auto_link_ccp_latin_allin_tournaments_20261101.sql", "utf8");
 const api = readFileSync("src/lib/api/tournaments.ts", "utf8");
 const form = readFileSync("src/components/admin/tournament-form.tsx", "utf8");
 
