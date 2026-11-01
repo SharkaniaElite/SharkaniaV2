@@ -81,12 +81,14 @@ export function TournamentForm({
   const [error, setError] = useState("");
 
   // 🔥 NUEVO: Estados para los co-organizadores
-  const [allClubs, setAllClubs] = useState<{id: string, name: string}[]>([]);
+  const [allClubs, setAllClubs] = useState<{id: string, name: string, slug: string}[]>([]);
   const [coHostIds, setCoHostIds] = useState<string[]>([]);
+  const isCircuitoChileno = allClubs.some(c => c.id === clubId && c.slug === "ccp");
+  const latinAllinClubId = allClubs.find(c => c.slug === "latin-allin-poker")?.id;
 
   useEffect(() => {
     if (isOpen) {
-      supabase.from("clubs").select("id, name").eq("is_approved", true).order("name")
+      supabase.from("clubs").select("id, name, slug").eq("is_approved", true).order("name")
         .then(({data}) => { if (data) setAllClubs(data); });
     }
   }, [isOpen]);
@@ -179,14 +181,24 @@ export function TournamentForm({
 
       // 🔥 Sincronización de tabla puente de clubes
       if (savedTournamentId) {
-        await supabase.from("tournament_clubs").delete().eq("tournament_id", savedTournamentId);
-        
+        const { error: clearError } = await supabase.from("tournament_clubs")
+          .delete().eq("tournament_id", savedTournamentId);
+        if (clearError) throw clearError;
+
+        // Circuito Chileno and Latin Allin share ONE tournament record.
+        // The DB trigger enforces this for template-created tournaments too.
+        const sharedCoHostIds = [...new Set([
+          ...coHostIds,
+          ...(isCircuitoChileno && latinAllinClubId ? [latinAllinClubId] : []),
+        ])].filter(id => id !== clubId);
         const tcPayload = [
           { tournament_id: savedTournamentId, club_id: clubId, is_primary: true },
-          ...coHostIds.map(cid => ({ tournament_id: savedTournamentId, club_id: cid, is_primary: false }))
+          ...sharedCoHostIds.map(cid => ({ tournament_id: savedTournamentId, club_id: cid, is_primary: false })),
         ];
-        
-        await supabase.from("tournament_clubs").insert(tcPayload);
+        // Upsert because the DB trigger may have already linked Latin Allin.
+        const { error: linkError } = await supabase.from("tournament_clubs")
+          .upsert(tcPayload, { onConflict: "tournament_id,club_id" });
+        if (linkError) throw linkError;
       }
 
       onSaved();
@@ -212,19 +224,26 @@ export function TournamentForm({
         {/* 🔥 NUEVO UI: Selector de Co-Organizadores */}
         <div>
           <label className={labelClass}>Clubes Co-Organizadores (Opcional)</label>
+          {isCircuitoChileno && (
+            <p className="mb-2 text-sk-xs text-sk-accent">
+              Latin Allin Póker se vincula automáticamente a todos los torneos del Circuito Chileno.
+              Los horarios y resultados son compartidos; no se duplican.
+            </p>
+          )}
           <div className="max-h-24 overflow-y-auto bg-sk-bg-0 border border-sk-border-2 rounded-md p-2 space-y-1.5">
             {allClubs.filter(c => c.id !== clubId).map(c => (
               <label key={c.id} className="flex items-center gap-2 text-sk-sm text-sk-text-2 cursor-pointer hover:text-sk-text-1">
                 <input 
                   type="checkbox" 
                   className="accent-sk-accent bg-sk-bg-3 border-sk-border-2 rounded-sm"
-                  checked={coHostIds.includes(c.id)}
+                  checked={(isCircuitoChileno && c.slug === "latin-allin-poker") || coHostIds.includes(c.id)}
+                  disabled={isCircuitoChileno && c.slug === "latin-allin-poker"}
                   onChange={(e) => {
                     if (e.target.checked) setCoHostIds([...coHostIds, c.id]);
                     else setCoHostIds(coHostIds.filter(id => id !== c.id));
                   }}
                 />
-                {c.name}
+                {c.name}{isCircuitoChileno && c.slug === "latin-allin-poker" ? " (automático)" : ""}
               </label>
             ))}
           </div>
