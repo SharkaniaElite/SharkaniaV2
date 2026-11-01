@@ -21,7 +21,7 @@ import { supabase } from "../lib/supabase";
 export function ClubDetailPage() {
   const { clubSlug } = useParams<{ clubSlug: string }>();
   const { data: club, isLoading } = useClubBySlug(clubSlug);
-  const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByClub(club?.id ?? '');
+  const { data: tournaments, isLoading: tournamentsLoading } = useTournamentsByClub(club?.id ?? '', true);
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
   const [tournamentTab, setTournamentTab] = useState<"upcoming" | "history">("upcoming"); // 👈 HOOK MOVIDO HACIA ARRIBA
 
@@ -95,7 +95,7 @@ export function ClubDetailPage() {
 
   // ✅ Torneos Finalizados (Orden DESCENDENTE)
   const completed = (tournaments ?? [])
-    .filter(t => ["completed", "cancelled"].includes(t.status))
+    .filter(t => t.results_uploaded || (t.status === "completed" && !t.results_uploaded))
     .sort((a, b) => new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime());
 
   const activeLeagues = leagues?.filter(l => l.status !== "finished") || [];
