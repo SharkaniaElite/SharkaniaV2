@@ -9,6 +9,8 @@ const middleware = readFileSync("functions/_middleware.ts", "utf8");
 test("Liga SHARKANIA uses November 2026 launch and all four Thursdays", () => {
   assert.match(ignition, /Liga SHARKANIA/);
   assert.match(ignition, /5 de noviembre de 2026/);
+  assert.match(ignition, /21:00 hora de Chile/);
+  assert.match(ignition, /21:00 de Chile \(America\/Santiago\)/);
   for (const date of ["Jue 5", "Jue 12", "Jue 19", "Jue 26"]) {
     assert.ok(ignition.includes(date), "Missing "+date);
   }
@@ -35,5 +37,6 @@ test("player dashboard and server-rendered SEO reflect the paid league", () => {
   assert.match(dashboard, /buy-in US\$3,30/);
   assert.doesNotMatch(dashboard, /SHARKANIA LIGA FREEROLL|torneos gratuitos\./);
   assert.match(middleware, /'\/ignition': \{ title: 'Liga SHARKANIA en Ignition Poker/);
-  assert.match(middleware, /US\$100 por fecha/);
+  assert.match(middleware, /US\$100 garantizados por fecha/);
+  assert.match(middleware, /21:00 hora de Chile/);
 });

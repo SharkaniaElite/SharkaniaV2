@@ -30,7 +30,7 @@ const PAGE_META: Record<string, { title: string, desc: string }> = {
   '/calendar': { title: 'Calendario de Torneos | Sharkania', desc: 'Horarios, buy-ins, garantizados y countdown en tiempo real.' },
   '/clubs': { title: 'Clubes de Poker | Sharkania', desc: 'Directorio de clubes de poker online. PPPoker, PokerBros, ClubGG y más.' },
   '/leagues': { title: 'Ligas de Poker | Sharkania', desc: 'Ligas de poker competitivo con sistema de puntos y rankings.' },
-  '/ignition': { title: 'Liga SHARKANIA en Ignition Poker | Noviembre 2026', desc: 'Comienza el jueves 5 de noviembre: buy-in US$3,30, pozo garantizado de US$100 por fecha, reentry y registro tardío de 60 minutos. Bounty al host y premios mensuales.' },
+  '/ignition': { title: 'Liga SHARKANIA en Ignition Poker | Noviembre 2026', desc: 'Jueves 5, 12, 19 y 26 de noviembre a las 21:00 hora de Chile. Buy-in US$3,30, US$100 garantizados por fecha, reentry y registro tardío de 60 minutos. Bounty al host y premios mensuales.' },
   '/compare': { title: 'Comparador de Jugadores | Sharkania', desc: 'Compara estadísticas: ELO, ITM%, ROI, torneos y evolución.' },
   '/blog': { title: 'Blog — Estrategia & Análisis | Sharkania', desc: 'Estrategia, GTO, ICM y análisis del ecosistema de clubes privados.' },
   '/academia': { title: 'Academia de Poker | Sharkania', desc: 'Aprende estrategia de poker con lecciones, módulos y herramientas de estudio.' },

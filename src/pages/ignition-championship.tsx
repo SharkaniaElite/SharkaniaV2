@@ -216,7 +216,7 @@ export function IgnitionChampionshipPage() {
       <div className="min-h-screen bg-[#0a0a0a] text-white relative font-sans pt-20">
         <SEOHead 
           title="Liga SHARKANIA Noviembre 2026 en Ignition Poker"
-          description="Liga SHARKANIA desde el 5 de noviembre: $100 USD garantizados por fecha, buy-in $3,30, reentry y registro tardío de 60 minutos. Bounty al host y ranking mensual." 
+          description="Liga SHARKANIA: jueves 5, 12, 19 y 26 de noviembre a las 21:00 hora de Chile. US$100 garantizados por fecha, buy-in US$3,30, reentry y registro tardío de 60 minutos." 
           path="/ignition"
         />
 
@@ -262,8 +262,9 @@ export function IgnitionChampionshipPage() {
             
             <p className="text-lg text-gray-300 leading-relaxed max-w-lg">
               La Liga SHARKANIA comienza el jueves 5 de noviembre de 2026 en Ignition Poker.
-              Cada jueves compite por un pozo garantizado de US$100, participa del bounty al host
-              y suma puntos para los premios mensuales. Regístrate para recibir la contraseña de acceso.
+              Cada jueves a las <strong className="text-orange-300">21:00 hora de Chile</strong> compite por un pozo garantizado de US$100,
+              participa del bounty al host y suma puntos para los premios mensuales.
+              Regístrate para recibir la contraseña de acceso.
             </p>
 
             <div className="grid grid-cols-2 gap-4">
@@ -283,7 +284,7 @@ export function IgnitionChampionshipPage() {
 
             <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
               <p className="text-xs font-mono font-bold uppercase tracking-widest text-orange-300 mb-2">
-                Fechas de noviembre de 2026
+                Fechas de noviembre de 2026 · 21:00 Chile
               </p>
               <div className="grid grid-cols-4 gap-2 text-center text-sm font-bold">
                 {["Jue 5", "Jue 12", "Jue 19", "Jue 26"].map(fecha => (
@@ -291,7 +292,8 @@ export function IgnitionChampionshipPage() {
                 ))}
               </div>
               <p className="mt-3 text-xs text-gray-400">
-                El horario de inicio y la estructura de pagos se informarán en el lobby de Ignition Poker.
+                Todos los torneos comienzan a las <strong className="text-white">21:00 de Chile (America/Santiago)</strong>.
+                La distribución de los US$100 garantizados se informa en el lobby de Ignition Poker.
               </p>
               <Link to="/leagues/liga-sharkania-noviembre-2026" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-orange-400 hover:text-orange-300">
                 Ver ranking y fechas de la Liga SHARKANIA <ChevronRight size={16} />
