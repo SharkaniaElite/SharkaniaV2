@@ -5,6 +5,8 @@ import { AdminAccessBanner } from "./admin-access-banner";
 import { X } from "lucide-react";
 import { useBanners } from "../../hooks/use-banners";
 import { cn } from "../../lib/cn";
+import { bannerIsReviewed } from "../../lib/marketing-banner-policy";
+import { VerifiedBannerStrip } from "../marketing/verified-banner-strip";
 import { GlobalChampionsTicker } from "./global-champions-ticker";
 
 interface PageShellProps {
@@ -16,21 +18,9 @@ export function PageShell({ children }: PageShellProps) {
   
   // 1. TOP GLOBAL (Destacado Principal)
   const topGlobal = banners?.slots?.top_global;
-  const hasTopDesktop = !!(topGlobal?.desktop?.src || topGlobal?.desktop?.href);
-  const hasTopMobile = !!(topGlobal?.mobile?.src || topGlobal?.mobile?.href);
+  const hasTopDesktop = bannerIsReviewed(topGlobal?.desktop);
+  const hasTopMobile = bannerIsReviewed(topGlobal?.mobile);
   const hasTopBanner = hasTopDesktop || hasTopMobile;
-
-  // 2. SUPER IZQUIERDO
-  const superLeft = banners?.slots?.super_left;
-  const hasLeftDesktop = !!(superLeft?.desktop?.src || superLeft?.desktop?.href);
-  const hasLeftMobile = !!(superLeft?.mobile?.src || superLeft?.mobile?.href);
-  const hasLeftBanner = hasLeftDesktop || hasLeftMobile;
-
-  // 3. SUPER DERECHO
-  const superRight = banners?.slots?.super_right;
-  const hasRightDesktop = !!(superRight?.desktop?.src || superRight?.desktop?.href);
-  const hasRightMobile = !!(superRight?.mobile?.src || superRight?.mobile?.href);
-  const hasRightBanner = hasRightDesktop || hasRightMobile;
 
   const [showWhatsapp, setShowWhatsapp] = useState(() => {
     if (typeof window !== "undefined") return !sessionStorage.getItem("hide_whatsapp");
@@ -58,12 +48,12 @@ export function PageShell({ children }: PageShellProps) {
           <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 shadow-md flex justify-center py-3 relative z-[45]">
             <div className="w-full max-w-[1520px] px-2 flex justify-center items-center">
               {hasTopDesktop && (
-                <a href={topGlobal.desktop?.href || "#"} target="_blank" rel="noopener noreferrer" className={cn("w-full flex justify-center bg-black rounded-xl overflow-hidden border border-white/5 shadow-sm hover:opacity-90 transition-opacity", hasTopMobile ? "hidden md:flex" : "flex")}>
+                <a href={topGlobal.desktop?.href || "#"} target="_blank" rel="sponsored noopener noreferrer" className={cn("w-full flex justify-center bg-black rounded-xl overflow-hidden border border-white/5 shadow-sm hover:opacity-90 transition-opacity", hasTopMobile ? "hidden md:flex" : "flex")}>
                   <img src={topGlobal.desktop?.src} alt="Destacado Principal" className="w-full h-auto max-h-[150px] object-contain" />
                 </a>
               )}
               {hasTopMobile && (
-                <a href={topGlobal.mobile?.href || "#"} target="_blank" rel="noopener noreferrer" className={cn("w-full flex justify-center bg-black rounded-xl overflow-hidden border border-white/5 shadow-sm hover:opacity-90 transition-opacity", hasTopDesktop ? "md:hidden" : "flex")}>
+                <a href={topGlobal.mobile?.href || "#"} target="_blank" rel="sponsored noopener noreferrer" className={cn("w-full flex justify-center bg-black rounded-xl overflow-hidden border border-white/5 shadow-sm hover:opacity-90 transition-opacity", hasTopDesktop ? "md:hidden" : "flex")}>
                   <img src={topGlobal.mobile?.src} alt="Destacado Principal Mobile" className="w-full h-auto max-h-[200px] object-contain" />
                 </a>
               )}
@@ -71,44 +61,8 @@ export function PageShell({ children }: PageShellProps) {
           </div>
         )}
 
-        {/* 🌟 BANNERS SECUNDARIOS (Izquierdo y Derecho) */}
-        {(hasLeftBanner || hasRightBanner) && (
-          <div className="w-full bg-sk-bg-1 border-b border-sk-border-2 overflow-hidden shadow-sm flex justify-center py-3 relative z-40">
-            <div className="w-full max-w-[1520px] px-2 flex flex-col xl:flex-row items-center justify-center gap-4">
-              
-              {hasLeftBanner && (
-                <div className="w-full xl:w-[728px] h-auto flex justify-center shrink-0">
-                  {hasLeftDesktop && (
-                    <a href={superLeft.desktop?.href || "#"} target="_blank" rel="noopener noreferrer" className={cn("w-full max-w-[728px] h-auto flex justify-center bg-black rounded-md overflow-hidden shadow-sm hover:opacity-90 transition-opacity", hasLeftMobile ? "hidden md:flex" : "flex")}>
-                      <img src={superLeft.desktop?.src} alt="Banner Izquierdo" className="w-full h-auto max-h-[90px] object-contain xl:object-cover" />
-                    </a>
-                  )}
-                  {hasLeftMobile && (
-                    <a href={superLeft.mobile?.href || "#"} target="_blank" rel="noopener noreferrer" className={cn("w-full max-w-[728px] h-auto flex justify-center bg-black rounded-md overflow-hidden shadow-sm hover:opacity-90 transition-opacity", hasLeftDesktop ? "md:hidden" : "flex")}>
-                      <img src={superLeft.mobile?.src} alt="Banner Izquierdo Mobile" className="w-full h-auto object-contain" />
-                    </a>
-                  )}
-                </div>
-              )}
+        <VerifiedBannerStrip banners={banners} />
 
-              {hasRightBanner && (
-                <div className="w-full xl:w-[728px] h-auto flex justify-center shrink-0">
-                  {hasRightDesktop && (
-                    <a href={superRight.desktop?.href || "#"} target="_blank" rel="noopener noreferrer" className={cn("w-full max-w-[728px] h-auto flex justify-center bg-black rounded-md overflow-hidden shadow-sm border border-white/5 hover:opacity-90 transition-opacity", hasRightMobile ? "hidden md:flex" : "flex")}>
-                      <img src={superRight.desktop?.src} alt="Banner Derecho" className="w-full h-auto max-h-[90px] object-contain xl:object-cover" />
-                    </a>
-                  )}
-                  {hasRightMobile && (
-                    <a href={superRight.mobile?.href || "#"} target="_blank" rel="noopener noreferrer" className={cn("w-full max-w-[728px] h-auto flex justify-center bg-black rounded-md overflow-hidden shadow-sm border border-white/5 hover:opacity-90 transition-opacity", hasRightDesktop ? "md:hidden" : "flex")}>
-                      <img src={superRight.mobile?.src} alt="Banner Derecho Mobile" className="w-full h-auto object-contain" />
-                    </a>
-                  )}
-                </div>
-              )}
-
-            </div>
-          </div>
-        )}
       </div>
 
       <main className="flex-1">{children}</main>
