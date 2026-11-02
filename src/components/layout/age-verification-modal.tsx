@@ -10,15 +10,17 @@ export function AgeVerificationModal() {
   });
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    }
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
   }, [isOpen]);
 
   const handleVerify = () => {
     localStorage.setItem("sharkania_age_verified", "true");
     setIsOpen(false);
-    document.body.style.overflow = "auto";
   };
 
   const handleReject = () => {
@@ -32,8 +34,8 @@ export function AgeVerificationModal() {
   if (!isOpen || isBot) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-sk-bg-0/90 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-md bg-sk-bg-1 border border-sk-border-2 rounded-xl shadow-2xl p-6 overflow-hidden">
+    <div className="fixed inset-0 z-[150] w-screen max-w-full flex items-center justify-center bg-sk-bg-0/90 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="age-verification-title" aria-describedby="age-verification-description">
+      <div className="relative w-full min-w-0 max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-sk-bg-1 border border-sk-border-2 rounded-xl shadow-2xl p-4 sm:p-6">
         {/* Decorative subtle top border */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sk-bg-1 via-sk-accent to-sk-bg-1 opacity-50"></div>
         
@@ -42,9 +44,9 @@ export function AgeVerificationModal() {
             <AlertTriangle className="text-sk-accent w-6 h-6" />
           </div>
           
-          <h2 className="text-xl font-bold text-sk-text-1">Verificación de Edad</h2>
+          <h2 id="age-verification-title" className="text-xl font-bold text-sk-text-1">Verificación de Edad</h2>
           
-          <div className="space-y-3 text-sk-sm text-sk-text-2">
+          <div id="age-verification-description" className="space-y-3 text-sk-sm text-sk-text-2">
             <p>
               Sharkania es una plataforma de analítica y ranking competitivo para jugadores de póker. 
             </p>
