@@ -210,7 +210,7 @@ export function HomePage() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {loadingBlog ? [1,2,3].map(i => <div key={i} className="animate-sk-pulse h-40 bg-sk-bg-2 border border-sk-border-2 rounded-xl" />) : blogPosts.map(post => (
+              {loadingBlog ? [1,2,3].map(i => <div key={i} className="animate-sk-pulse h-52 md:h-56 bg-sk-bg-2 border border-sk-border-2 rounded-xl" />) : blogPosts.map(post => (
                 <Link key={post.id} to={getEditorialPath(post.category, post.slug)} className="group relative h-52 md:h-56 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 transition-all duration-300 flex items-end p-5">
                   {post.category === 'Promociones'
                     ? <><div className="absolute inset-0 overflow-hidden"><PromotionArtwork post={post} variant="compact" className="w-full h-full group-hover:scale-[1.02] transition-transform duration-500" /></div><div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-transparent pointer-events-none" /></>
