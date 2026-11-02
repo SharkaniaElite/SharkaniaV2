@@ -1,6 +1,7 @@
 // src/components/seo/structured-data.tsx
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect } from "react";
+import { getEditorialPath } from "../../lib/editorial-routing";
 
 const STRUCTURED_DATA = [
   // ── Organization ──
@@ -108,6 +109,9 @@ export function useArticleSchema({
   imageUrl,
 }: ArticleSchemaProps) {
   useEffect(() => {
+    if (!slug || !title || !publishedAt) return;
+    const path = getEditorialPath(category, slug);
+    const articleUrl = `https://sharkania.com${path}`;
     const id = "sharkania-article-jsonld";
     let el = document.getElementById(id);
     if (!el) {
@@ -122,12 +126,12 @@ export function useArticleSchema({
       "@type": "Article",
       headline: title,
       description,
-      url: `https://sharkania.com/blog/${slug}`,
+      url: articleUrl,
       datePublished: publishedAt,
       dateModified: publishedAt,
       author: { "@id": "https://sharkania.com/#organization" },
       publisher: { "@id": "https://sharkania.com/#organization" },
-      mainEntityOfPage: `https://sharkania.com/blog/${slug}`,
+      mainEntityOfPage: articleUrl,
       articleSection: category,
       inLanguage: "es",
       ...(imageUrl
