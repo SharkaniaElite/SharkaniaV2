@@ -5,7 +5,7 @@ import posthog from "posthog-js";
 
 type Highlight = { slot: "super_left" | "super_right"; config: BannerConfig; mobile: BannerConfig | null };
 
-export function VerifiedBannerStrip({ banners }: { banners: BannersConfig }) {
+export function VerifiedBannerStrip({ banners, loading = false }: { banners: BannersConfig; loading?: boolean }) {
   const highlights: Highlight[] = (["super_left", "super_right"] as const).flatMap((slot) => {
     const pair = banners.slots[slot];
     const desktop = pair?.desktop;
@@ -15,10 +15,21 @@ export function VerifiedBannerStrip({ banners }: { banners: BannersConfig }) {
     const current = reviewedDesktop || reviewedMobile;
     return current ? [{ slot, config: current, mobile: reviewedMobile }] : [];
   });
-  if (!highlights.length) return null;
+  if (!highlights.length && !loading) return null;
 
   return (
-    <section aria-label="Promociones comerciales revisadas" className="border-b border-sk-border-2 bg-sk-bg-0 py-3 sm:py-4">
+    <section aria-label="Promociones comerciales revisadas"
+      aria-busy={loading}
+      className="border-b border-sk-border-2 bg-sk-bg-0 py-3 sm:py-4 min-h-[167px] sm:min-h-[180px]">
+      {loading && !highlights.length ? (
+        <div aria-hidden="true" className="max-w-[1520px] mx-auto px-3 sm:px-5">
+          <div className="h-3 w-44 rounded bg-sk-bg-3/70 mb-3" />
+          <div className="h-[112px] md:h-[118px] grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-xl border border-sk-border-2 bg-sk-bg-2" />
+            <div className="hidden sm:block rounded-xl border border-sk-border-2 bg-sk-bg-2" />
+          </div>
+        </div>
+      ) : (
       <div className="max-w-[1520px] mx-auto px-3 sm:px-5">
         <div className="flex items-center justify-between gap-3 mb-2.5 text-[10px] font-mono uppercase tracking-[0.08em] text-sk-text-3">
           <span className="flex items-center gap-1.5"><ShieldCheck size={13} aria-hidden="true" /> Promociones revisadas · +18</span>
@@ -66,6 +77,7 @@ export function VerifiedBannerStrip({ banners }: { banners: BannersConfig }) {
           })}
         </div>
       </div>
+      )}
     </section>
   );
 }
