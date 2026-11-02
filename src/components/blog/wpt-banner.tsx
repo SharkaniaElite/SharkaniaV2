@@ -2,6 +2,7 @@
 import { useBanners } from "../../hooks/use-banners";
 import { useUserCountry } from "../../hooks/use-geo"; 
 import type { BannerConfig } from "../../lib/api/site-settings";
+import { bannerIsReviewed } from "../../lib/marketing-banner-policy";
 
 type BannerSlot = "mid" | "final" | "sidebar";
 
@@ -17,14 +18,14 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
 
   const slotCfg  = banners.slots[slot];
   const defaultBonusCode = banners.bonusCode;
-
-  // Helpers que deciden qué enlace/imagen mostrar
-  const getHref = (b: BannerConfig) => (isUS && b.us_href) ? b.us_href : b.href;
-  const getSrc = (b: BannerConfig) => (isUS && b.us_src) ? b.us_src : b.src;
+  // Creatividades históricas 'us_src/us_href' no tienen verificación propia.
+  // No anunciar a usuarios de EE. UU. hasta validar oferta y elegibilidad.
+  const getHref = (banner: BannerConfig) => banner.href;
+  const getSrc = (banner: BannerConfig) => banner.src;
 
   // 🔥 NUEVO: Lógica que lee el texto personalizado del CMS, si no existe usa el general.
   const renderPromoText = (banner: BannerConfig | null) => {
-    if (!banner || isUS) return null;
+    if (!banner || isUS || banner.partner_id !== "wptglobal") return null;
     
     // Si llenaste el texto personalizado en el Super Admin, lo usamos
     if (banner.custom_code || banner.custom_text) {
@@ -50,7 +51,7 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
   // ── Sidebar (300×250, solo desktop) ──────────────────────
   if (slot === "sidebar") {
     const banner = slotCfg.desktop;
-    if (!banner) return null;
+    if (!banner || isUS || !bannerIsReviewed(banner)) return null;
 
     const promoContent = renderPromoText(banner);
 
@@ -89,8 +90,8 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
   }
 
   // ── Inline (mid / final) ──────────────────────────────────
-  const desktopBanner = slotCfg.desktop as BannerConfig | null;
-  const mobileBanner  = slotCfg.mobile  as BannerConfig | null;
+  const desktopBanner = !isUS && bannerIsReviewed(slotCfg.desktop) ? slotCfg.desktop : null;
+  const mobileBanner  = !isUS && bannerIsReviewed(slotCfg.mobile) ? slotCfg.mobile : null;
   if (!desktopBanner && !mobileBanner) return null;
 
   const s = slot;
@@ -112,7 +113,7 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
 
       {desktopBanner && (
         <a href={getHref(desktopBanner)} target="_blank" rel="noopener noreferrer sponsored"
-          aria-label="Promo" className={`wpt-${s}-a wpt-${s}-d`}>
+          aria-label={desktopBanner.editorial_title || "Publicidad"} className={`wpt-${s}-a wpt-${s}-d`}>
           <img src={getSrc(desktopBanner)} alt="Promo"
             width={desktopBanner.width} height={desktopBanner.height}
             style={{ display: "block", width: "100%", height: "auto", maxWidth: `${desktopBanner.width}px`, margin: "0 auto" }}
@@ -122,13 +123,17 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
 
       {mobileBanner && (
         <a href={getHref(mobileBanner)} target="_blank" rel="noopener noreferrer sponsored"
-          aria-label="Promo" className={`wpt-${s}-a wpt-${s}-m`}>
+          aria-label={mobileBanner.editorial_title || "Publicidad"} className={`wpt-${s}-a wpt-${s}-m`}>
           <img src={getSrc(mobileBanner)} alt="Promo"
             width={mobileBanner.width} height={mobileBanner.height}
             style={{ display: "block", width: "100%", height: "auto" }}
             loading="lazy" />
         </a>
       )}
+
+      {activeBanner?.source_url && <p className="text-center mt-2 text-[11px] text-sk-text-3">
+        Publicidad revisada · <a href={activeBanner.source_url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-sk-accent">Condiciones oficiales</a>
+      </p>}
 
       {promoContent && (
         <p className={`wpt-${s}-code`}>
