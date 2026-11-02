@@ -71,11 +71,14 @@ export function PromotionsPage() {
               </h1>
 
               <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed">
-                Aprovecha nuestras alianzas exclusivas. Desde torneos gratuitos diarios hasta beneficios por bienvenida. Tu bankroll empieza a crecer aquí.
+                Explora promociones, tutoriales y oportunidades publicadas por Sharkania. Comprueba siempre la vigencia, los requisitos y la disponibilidad según tu país antes de participar.
               </p>
             </div>
           </div>
 
+          <p className="mb-5 text-xs text-sk-text-3">
+            Algunas publicaciones corresponden a campañas anteriores; su fecha de publicación no acredita que la oferta siga vigente. Los enlaces comerciales pueden generar una comisión para Sharkania.
+          </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loading ? (
               <div className="col-span-full text-center text-sk-text-3 py-10">
@@ -108,6 +111,10 @@ export function PromotionsPage() {
                     <img 
                       src={promo.image_thumbnail} 
                       alt={promo.title} 
+                      width={640}
+                      height={360}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                     />
                   </div>
@@ -136,7 +143,7 @@ export function PromotionsPage() {
                     
                     <div className="flex items-center justify-between border-t border-sk-border-2 pt-4 mt-auto">
                       <span className="text-[11px] font-mono text-sk-green flex items-center gap-1.5 uppercase font-bold">
-                        <Zap size={14} /> Activa
+                        <Zap size={14} /> Consultar vigencia
                       </span>
                       <span className={cn(
                         "text-sk-sm font-bold flex items-center gap-1",
