@@ -1,6 +1,7 @@
 import type { BannersConfig, BannerConfig } from "../../lib/api/site-settings";
 import { bannerIsExternal, bannerIsReviewed } from "../../lib/marketing-banner-policy";
 import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import posthog from "posthog-js";
 
 type Highlight = { slot: "super_left" | "super_right"; config: BannerConfig; mobile: BannerConfig | null };
 
@@ -44,6 +45,12 @@ export function VerifiedBannerStrip({ banners }: { banners: BannersConfig }) {
                   <p className="text-[10px] sm:text-xs text-sk-text-3 line-clamp-1">{config.editorial_description || "Consulta los requisitos oficiales"}</p>
                   <div className="flex items-center gap-3 mt-1">
                     <a href={config.href} target={external ? "_blank" : undefined}
+                      onClick={() => posthog.capture("partner_promotion_click", {
+                        placement: slot,
+                        destination_host: new URL(config.href, "https://sharkania.com").hostname,
+                        destination_type: external ? "partner" : "internal",
+                        partner: config.partner_id || "unknown",
+                      })}
                       rel={external ? "sponsored noopener noreferrer" : undefined}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-sk-accent hover:text-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sk-accent">
                       Ver detalles <ArrowUpRight size={13} aria-hidden="true"/>
