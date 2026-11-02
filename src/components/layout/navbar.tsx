@@ -104,7 +104,7 @@ export function Navbar() {
           backdropFilter: "blur(16px)",
         }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-[100] h-14 flex items-center justify-between",
+          "fixed top-0 left-0 right-0 z-[100] w-full max-w-full min-w-0 h-14 flex items-center justify-between",
           "border-b border-sk-border-2 transition-all duration-200",
           "px-3 sm:px-6"
         )}
@@ -189,7 +189,7 @@ export function Navbar() {
 
           <button
             style={{ color: "#a1a1aa" }}
-            className="md:hidden w-9 h-9 flex items-center justify-center"
+            className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-sk-accent"
             onClick={() => setSearchOpen(!searchOpen)}
             aria-label="Buscar"
           >
@@ -210,14 +210,15 @@ export function Navbar() {
           {/* 🔥 Botón de Cobertura EN VIVO (Visible en Desktop y Mobile) */}
           <Link 
             to="/live" 
-            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all group"
+            aria-label="Ver transmisiones en vivo"
+            className="flex items-center justify-center min-w-11 min-h-11 gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all group"
             title="Ir al Stream en Vivo"
           >
             <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
             </span>
-            <span className="text-[10px] sm:text-[11px] font-black tracking-widest uppercase drop-shadow-sm group-hover:text-red-400 mt-px">
+            <span className="max-[375px]:hidden text-[10px] sm:text-[11px] font-black tracking-widest uppercase drop-shadow-sm group-hover:text-red-400 mt-px">
               En Vivo
             </span>
           </Link>
@@ -306,7 +307,7 @@ export function Navbar() {
           {/* Hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden w-10 h-10 flex items-center justify-center text-sk-text-1 bg-transparent border-none cursor-pointer"
+            className="lg:hidden w-11 h-11 flex items-center justify-center text-sk-text-1 bg-transparent border-none cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-sk-accent"
             aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
           >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
