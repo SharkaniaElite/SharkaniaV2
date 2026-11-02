@@ -104,7 +104,7 @@ export function Navbar() {
           backdropFilter: "blur(16px)",
         }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-[100] w-full max-w-full min-w-0 h-14 flex items-center justify-between",
+          "fixed top-0 left-0 right-0 z-[100] w-screen max-w-[100vw] min-w-0 h-14 flex items-center justify-between",
           "border-b border-sk-border-2 transition-all duration-200",
           "px-3 sm:px-6"
         )}
