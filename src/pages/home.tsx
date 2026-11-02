@@ -115,7 +115,7 @@ export function HomePage() {
       <SEOHead title="Inicio" description="Plataforma global de poker competitivo." path="/" />
 
       {/* ══ HERO & TICKER ══ */}
-      <section className="relative min-h-[440px] lg:min-h-[500px] flex flex-col items-center justify-center text-center px-6 pt-12 pb-9 overflow-hidden">
+      <section className="relative min-h-[420px] lg:min-h-[500px] flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-8 sm:pt-12 pb-8 sm:pb-9 overflow-hidden">
         <div className="absolute inset-0 -z-20" style={{ background:"radial-gradient(ellipse 60% 40% at 50% 0%, var(--sk-accent-dim), transparent 70%), radial-gradient(ellipse 40% 30% at 70% 80%, var(--sk-purple-dim), transparent 60%), var(--sk-bg-1)" }} />
         <div className="absolute inset-0 -z-10" style={{ backgroundImage:"linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px)", backgroundSize:"64px 64px", maskImage:"radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent)" }} />
         
@@ -124,15 +124,15 @@ export function HomePage() {
             <span className="px-2 py-0.5 bg-sk-accent-dim text-sk-accent rounded-full font-bold text-[10px] tracking-wide">BETA</span>
             Plataforma Global de Poker Competitivo
           </div>
-          <h1 className="text-5xl md:text-7xl font-black tracking-[-0.045em] text-sk-text-1 leading-none mb-6 uppercase">
+          <h1 className="text-[clamp(2.15rem,9vw,3rem)] md:text-7xl font-black tracking-[-0.045em] text-sk-text-1 leading-[1.06] md:leading-none mb-5 sm:mb-6 uppercase">
             Juega. Aprende.<br /><span className="bg-gradient-to-br from-sk-accent to-blue-400 bg-clip-text text-transparent">Domina las mesas.</span>
           </h1>
           <p className="text-sk-lg text-sk-text-2 leading-relaxed mx-auto max-w-2xl">
             Para ser un verdadero tiburón del póker necesitas dos cosas: volumen de juego y conocimiento táctico.
           </p>
           
-          <div className="flex flex-col md:flex-row justify-center items-stretch gap-6 mt-10 w-full max-w-3xl mx-auto">
-            <div className="flex-1 bg-sk-bg-2/50 backdrop-blur-sm border border-sk-border-2 rounded-2xl p-5 flex flex-col items-center justify-center hover:border-sk-accent/40 transition-colors shadow-sm">
+          <div className="flex flex-col md:flex-row justify-center items-stretch gap-3 sm:gap-6 mt-7 sm:mt-10 w-full max-w-3xl mx-auto">
+            <div className="flex-1 bg-sk-bg-2/50 backdrop-blur-sm border border-sk-border-2 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center hover:border-sk-accent/40 transition-colors shadow-sm">
               <p className="text-[10px] font-mono text-sk-text-3 uppercase tracking-widest mb-4">Pilar 1: Volumen</p>
               <Link to="/calendar" className="w-full">
                 <Button variant="accent" size="xl" className="w-full font-extrabold shadow-[0_0_20px_rgba(34,211,238,0.15)] hover:shadow-[0_0_35px_rgba(34,211,238,0.4)]">
