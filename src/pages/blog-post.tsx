@@ -428,7 +428,7 @@ export default function BlogPostPage() {
 
       {!loading && !error && post && (
         <>
-          <SEOHead title={post.title} description={post.excerpt} path={`/${post.category === "Noticias" ? "noticias" : post.category === "Promociones" ? "promociones" : "blog"}/${post.slug}`} ogType="article" ogImage={post.image_og ?? undefined} />
+          <SEOHead title={(post.seo_title || post.title).replace(/\s*\|\s*Sharkania\s*$/i, "")} description={post.seo_description || post.excerpt} path={`/${post.category === "Noticias" ? "noticias" : post.category === "Promociones" ? "promociones" : "blog"}/${post.slug}`} ogType="article" ogImage={post.image_og ?? undefined} />
 
           {post.image_hero && (
             <div className="w-full max-h-[480px] overflow-hidden bg-sk-bg-3">
