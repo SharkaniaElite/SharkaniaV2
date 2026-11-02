@@ -12,6 +12,13 @@ export interface BannerConfig {
   us_href?: string; 
   custom_text?: string; 
   custom_code?: string; 
+  // Verificación editorial específica por pieza. Fechas ISO en America/Santiago.
+  verified_on?: string;
+  review_by?: string;
+  source_url?: string;
+  editorial_title?: string;
+  editorial_description?: string;
+  partner_id?: "coinpoker" | "wptglobal" | "ignition" | "latinallin";
 }
 
 export interface BannerSlotConfig {
