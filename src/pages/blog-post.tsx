@@ -462,6 +462,25 @@ export default function BlogPostPage() {
                 </div>
 
                 <h1 className="text-sk-3xl font-extrabold text-sk-text-1 tracking-tight leading-tight mb-6">{post.title}</h1>
+
+                {post.category === "Promociones" && (() => {
+                  const tags = post.tags || [];
+                  const checked = tags.find((tag) => tag.startsWith("verified-on:"));
+                  const reviewBy = tags.find((tag) => tag.startsWith("review-by:"))?.slice("review-by:".length);
+                  const officialEnd = tags.find((tag) => tag.startsWith("official-end:"))?.slice("official-end:".length);
+                  const parts = new Intl.DateTimeFormat("en-GB", {timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit"}).formatToParts(new Date());
+                  const piece = (part: string) => parts.find((entry) => entry.type === part)?.value || "";
+                  const today = `${piece("year")}-${piece("month")}-${piece("day")}`;
+                  const shouldReview = !checked || (reviewBy && today > reviewBy) || (officialEnd && today > officialEnd);
+                  return (
+                    <aside role="note" className="my-6 rounded-lg border border-sk-border-2 bg-sk-bg-2 p-4 text-sm text-sk-text-2">
+                      {shouldReview
+                        ? "Archivo promocional: la vigencia de esta campaña no está confirmada a la fecha. Consulta los términos oficiales y evita asumir que sus beneficios siguen disponibles."
+                        : `Información revisada por Sharkania. Próxima comprobación editorial: ${reviewBy || "por definir"}. Esta fecha no implica el vencimiento oficial de la oferta.`}
+                    </aside>
+                  );
+                })()}
+
                 
                 {/* 📢 CARTEL DE BOUNTY (REGLAS DEL JUEGO) */}
                 <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-sk-bg-2 border border-sk-border-2 shadow-sm">
