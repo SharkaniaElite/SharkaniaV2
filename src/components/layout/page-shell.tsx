@@ -3,7 +3,7 @@ import { Navbar } from "./navbar";
 import { Footer } from "./footer";
 import { AdminAccessBanner } from "./admin-access-banner";
 import { X } from "lucide-react";
-import { useBanners } from "../../hooks/use-banners";
+import { useBannersWithStatus } from "../../hooks/use-banners";
 import { cn } from "../../lib/cn";
 import { bannerIsReviewed } from "../../lib/marketing-banner-policy";
 import { VerifiedBannerStrip } from "../marketing/verified-banner-strip";
@@ -14,7 +14,7 @@ interface PageShellProps {
 }
 
 export function PageShell({ children }: PageShellProps) {
-  const banners = useBanners();
+  const { banners, loading: bannersLoading } = useBannersWithStatus();
   
   // 1. TOP GLOBAL (Destacado Principal)
   const topGlobal = banners?.slots?.top_global;
@@ -61,7 +61,7 @@ export function PageShell({ children }: PageShellProps) {
           </div>
         )}
 
-        <VerifiedBannerStrip banners={banners} />
+        <VerifiedBannerStrip banners={banners} loading={bannersLoading} />
 
       </div>
 
