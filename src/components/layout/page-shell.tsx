@@ -38,7 +38,7 @@ export function PageShell({ children }: PageShellProps) {
       <div style={{ height: "56px", flexShrink: 0 }} />
 
       {/* 🌟 TICKER STICKY: Se queda pegado a 56px del tope (justo debajo del Navbar) */}
-      <div className="sticky top-[56px] left-0 right-0 w-full z-[90] shadow-md border-b border-sk-border-2 bg-sk-bg-2">
+      <div className="sticky top-[56px] left-0 right-0 w-full h-10 shrink-0 z-[90] shadow-md border-b border-sk-border-2 bg-sk-bg-2">
         <GlobalChampionsTicker />
       </div>
 
