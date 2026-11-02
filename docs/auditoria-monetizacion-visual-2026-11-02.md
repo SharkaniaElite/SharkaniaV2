@@ -57,3 +57,17 @@ Fuentes técnicas: https://developers.google.com/search/docs/crawling-indexing/q
 - Promociones: evitar afirmar vigencia, transparencia y miniaturas lazy.
 - Perfilador: suprimir porcentajes sin fundamento, calificar enlaces comerciales y explicar recomendaciones orientativas.
 La rama no cambia datos de Supabase ni despliega producción, y las nuevas fotos son prompts, no archivos aún generados.
+
+
+## Capacidad real de publicación de recursos visuales (verificación 02-11-2026)
+- Supabase Storage ya tiene el bucket público `blog_images` (206 objetos) y `Logos Sharkania` (13 objetos); también existen otros buckets de uso funcional. Consultas de solo lectura, no se subieron archivos ni se modificaron políticas de Storage.
+- La conexión actual de Supabase permite leer tablas y ejecutar SQL, pero no ofrece una operación directa de carga binaria a Storage. La integración de las imágenes generadas **no está automatizada todavía**: no confundir generación de un recurso visual con subida/publicación. Prohibido colocar claves secretas en el cliente para intentar salvar esta limitación.
+- Ruta técnica prevista: crear imágenes originales sin logos, generar recortes desktop y mobile, convertir WebP/AVIF, conservar un manifest de dimensiones/alt/licencia, subir mediante una operación Storage autenticada con permisos mínimos, usar URLs versionadas en el CMS, verificar CDN/caché y revisar preview antes de producción. La etapa de carga requiere una vía de transferencia binaria realmente disponible o un flujo de publicación autorizado. No crear un bucket nuevo innecesariamente.
+- Guardar los archivos en Storage no equivale a insertar imágenes en una tabla SQL. La configuración de banners de la portada se obtiene desde `site_settings` y referencia rutas/URLs; los recursos editoriales se asocian a `blog_posts`. Evitar duplicar configuraciones.
+
+## Revisión obligatoria de marcas y logos
+- **ClubGG**: sus directrices oficiales restringen los usos que sugieren patrocinio, prohíben presentar al club como socio de ClubGG y restringen el uso de su logo en promocionales; indican que logo y enlaces de descarga pueden mostrarse en footer con aviso obligatorio en negrita. También prohíben publicitar públicamente juego por dinero real o métodos de pago como club de ClubGG. Estas reglas deben revisarse antes de generar o publicar un banner ClubGG; usar preferentemente identidad propia de Latin Allin Poker y no añadir sello ni logo ClubGG sin autorización.
+- Texto oficial del aviso exigido por ClubGG en inglés: "ClubGG is a free poker client that only offers poker gameplay with play money that doesn’t have any monetary value and is not affiliated with, sponsoring, or endorsing this promotional activity." Revisar versión textual y ubicación con el responsable de cumplimiento antes de publicar modificaciones.
+- Fuente primaria: https://www.clubgg.com/media-guideline (consultada 02-11-2026). No dar por hecho permiso universal para usar logos de terceros por el solo hecho de que sean visibles en internet.
+- Para otras salas: priorizar kits oficiales del programa de afiliados o archivos entregados por el partner, registrar procedencia/condiciones de uso, no incorporar logos a fotografías generadas con IA. Ignition menciona explícitamente materiales y banners disponibles en su plataforma de afiliados: https://www.ignitionpoker.com/en/affiliates.
+- No afirmar que una oferta está vigente sin fuente, término y países admisibles actualizados. Señalizar siempre contenido comercial y juego responsable.
