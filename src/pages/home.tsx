@@ -15,7 +15,8 @@ import { useBanners } from "../hooks/use-banners";
 import { TournamentCard } from "../components/calendar/tournament-card";
 import { TournamentDetailModal } from "../components/calendar/tournament-detail-modal";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
-import { InstagramFeed } from "../components/marketing/instagram-feed.tsx"; // 🔥 NUEVA IMPORTACIÓN
+import { InstagramFeed } from "../components/marketing/instagram-feed.tsx";
+import posthog from "posthog-js"; // 🔥 NUEVA IMPORTACIÓN
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -48,27 +49,64 @@ function RowSkeleton() {
   );
 }
 
-// ── Grilla de Banners (Aparece en Home) ───────────────────────────────────────
+// ── Grilla de colaboradores: URL móvil y medición por ubicación ────────────────
 function HomeBannerGrid() {
   const banners = useBanners();
   const slots = ["grid_1", "grid_2", "grid_3", "grid_4"] as const;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    const sync = () => setIsMobile(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   return (
-    <section className="py-10 bg-sk-bg-0 border-b border-sk-border-2">
+    <section aria-label="Colaboraciones y promociones de salas" className="py-10 bg-sk-bg-0 border-b border-sk-border-2">
       <div className="max-w-[1300px] mx-auto px-6">
+        <p className="mb-3 text-[10px] font-mono uppercase tracking-widest text-sk-text-3">
+          Colaboraciones comerciales · Consulta las condiciones en cada destino
+        </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {slots.map((slotKey) => {
             const config = banners?.slots?.[slotKey];
             const desk = config?.desktop;
             const mob = config?.mobile;
-            
-            if (!desk?.src && !mob?.src) return null;
-            
+
+            const image = (isMobile ? mob?.src || desk?.src : desk?.src || mob?.src) || "";
+            const href = (isMobile ? mob?.href || desk?.href : desk?.href || mob?.href) || "";
+            if (!image || !href || href === "#") return null;
+
+            const isExternalPartner = /^https?:\/\//i.test(href) && new URL(href).origin !== window.location.origin;
+            const label = (isMobile ? mob?.label || desk?.label : desk?.label || mob?.label) || "Oferta de sala de póker";
+
             return (
-              <a key={slotKey} href={desk?.href || mob?.href || "#"} target="_blank" rel="noopener noreferrer" className="block rounded-xl overflow-hidden border border-sk-border-2 hover:border-sk-accent transition-all hover:-translate-y-1 shadow-md bg-black group">
+              <a
+                key={slotKey}
+                href={href}
+                target="_blank"
+                rel={isExternalPartner ? "sponsored noopener noreferrer" : "noopener noreferrer"}
+                aria-label={label}
+                onClick={() => posthog.capture("partner_promotion_click", {
+                  placement: slotKey,
+                  destination_host: new URL(href, window.location.origin).hostname,
+                  destination_type: isExternalPartner ? "partner" : "internal",
+                })}
+                className="block rounded-xl overflow-hidden border border-sk-border-2 hover:border-sk-accent transition-all hover:-translate-y-1 shadow-md bg-black group"
+              >
                 <picture>
-                  <source media="(max-width: 768px)" srcSet={mob?.src || desk?.src} />
-                  <img src={desk?.src || mob?.src} alt={`Promoción ${slotKey}`} className="w-full h-auto aspect-[350/200] md:aspect-[600/250] object-cover hover:opacity-90 transition-opacity" />
+                  {mob?.src && <source media="(max-width: 768px)" srcSet={mob.src} />}
+                  <img
+                    src={desk?.src || mob?.src || image}
+                    alt={label}
+                    width={desk?.width || mob?.width || 600}
+                    height={desk?.height || mob?.height || 250}
+                    loading={slotKey === "grid_1" ? "eager" : "lazy"}
+                    decoding="async"
+                    className="w-full h-auto aspect-[350/200] md:aspect-[600/250] object-cover hover:opacity-90 transition-opacity"
+                  />
                 </picture>
               </a>
             );
