@@ -5,7 +5,9 @@ import { RevealSection } from "../components/landing/reveal-section";
 import { Button } from "../components/ui/button";
 import { cn } from "../lib/cn";
 import { getPlayers } from "../lib/api/players";
-import { getBlogPosts, formatBlogDate } from "../lib/api/blog";
+import { getBlogPosts, formatBlogDate, type BlogPost } from "../lib/api/blog";
+import { getEditorialPath } from "../lib/editorial-routing";
+import { getPromotionTag } from "../components/marketing/promotion-artwork";
 import { supabase } from "../lib/supabase";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { Megaphone, Zap, Brain, Flame, CalendarDays, BookOpen } from "lucide-react";
@@ -130,7 +132,7 @@ function HomeBannerGrid() {
 
 export function HomePage() {
   const [players, setPlayers] = useState<PlayerWithRoom[]>([]);
-  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [stats, setStats] = useState({ players:0, tournaments:0, clubs:0, leagues:0, live:0 });
   
   const [loadingRank, setLoadingRank] = useState(true);
@@ -145,9 +147,23 @@ export function HomePage() {
     getPlayers({ page:1, pageSize:10, orderBy:"elo_rating", orderDir:"desc" }).then(res => setPlayers(res.data.slice(0,10))).finally(() => setLoadingRank(false));
     
     getBlogPosts().then(posts => {
-      posts.sort((a, b) => new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime());
-      setBlogPosts(posts.slice(0, 3));
-    }).finally(() => setLoadingBlog(false));
+      const dateParts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit",
+      }).formatToParts(new Date());
+      const part = (type: string) => dateParts.find((x) => x.type === type)?.value || "";
+      const today = `${part("year")}-${part("month")}-${part("day")}`;
+      // Las campañas antiguas siguen archivadas en /promociones, pero no se
+      // presentan como oportunidades vigentes en la portada del sitio.
+      const eligible = posts.filter((post) => {
+        if (post.category !== "Promociones") return true;
+        const checked = getPromotionTag(post.tags, "verified-on:");
+        const reviewBy = getPromotionTag(post.tags, "review-by:");
+        const officialEnd = getPromotionTag(post.tags, "official-end:");
+        return !!checked && !!reviewBy && reviewBy >= today && (!officialEnd || officialEnd >= today);
+      });
+      eligible.sort((a, b) => new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime());
+      setBlogPosts(eligible.slice(0, 3));
+    }).catch(() => setBlogPosts([])).finally(() => setLoadingBlog(false));
 
     getUpcomingTournaments().then(d => {
       const now = new Date();
@@ -185,12 +201,15 @@ export function HomePage() {
                 <span className="text-[10px] font-mono text-sk-accent uppercase tracking-widest font-bold mb-1 block">Actualidad y Novedades</span>
                 <h2 className="text-sk-xl font-black text-sk-text-1 uppercase flex items-center gap-2"><Megaphone className="text-sk-accent" size={20} /> Noticias y Promociones</h2>
               </div>
-              <Link to="/noticias" className="text-[11px] font-mono text-sk-text-3 hover:text-sk-accent font-bold uppercase transition-colors self-end pb-1">Ver todas →</Link>
+              <div className="flex flex-wrap gap-4 self-end pb-1 text-[11px] font-mono font-bold uppercase">
+                <Link to="/noticias" className="text-sk-text-3 hover:text-sk-accent transition-colors">Noticias →</Link>
+                <Link to="/promociones" className="text-sk-text-3 hover:text-sk-accent transition-colors">Promociones →</Link>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {loadingBlog ? [1,2,3].map(i => <div key={i} className="animate-sk-pulse h-40 bg-sk-bg-2 border border-sk-border-2 rounded-xl" />) : blogPosts.map(post => (
-                <Link key={post.id} to={post.category === 'Promociones' ? `/promociones/${post.slug}` : `/noticias/${post.slug}`} className="group relative h-52 md:h-56 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 transition-all duration-300 flex items-end p-5">
+                <Link key={post.id} to={getEditorialPath(post.category, post.slug)} className="group relative h-52 md:h-56 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 transition-all duration-300 flex items-end p-5">
                   {post.category === 'Promociones'
                     ? <><div className="absolute inset-0 overflow-hidden"><PromotionArtwork post={post} variant="compact" className="w-full h-full group-hover:scale-[1.02] transition-transform duration-500" /></div><div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-transparent pointer-events-none" /></>
                     : post.image_thumbnail && <><img src={post.image_thumbnail} alt={post.title} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-90" /></>}
