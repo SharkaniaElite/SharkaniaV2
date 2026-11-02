@@ -25,6 +25,9 @@ export interface BlogPost {
   custom_banner_mid_href: string | null;  // 🔥 Link Intermedio Exclusivo
   custom_banner_final_src: string | null; // 🔥 Banner Final Exclusivo
   custom_banner_final_href: string | null;// 🔥 Link Final Exclusivo
+  tags?: string[] | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
   published: boolean;
   published_at: string | null;
   created_at: string;

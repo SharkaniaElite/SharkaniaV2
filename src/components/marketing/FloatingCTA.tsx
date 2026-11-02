@@ -15,13 +15,6 @@ export function FloatingCTA() {
   const [expanded, setExpanded] = useState(false);
   const [config, setConfig] = useState<FloatingConfig | null>(null);
 
-  // 🛡️ Inicialización perezosa para el contador social
-  const [players] = useState(() => {
-    const base = 180;
-    const random = Math.floor(Math.random() * 60);
-    return base + random;
-  });
-
   // 🛡️ Carga de configuración desde Supabase
   useEffect(() => {
     async function loadConfig() {
@@ -164,7 +157,7 @@ export function FloatingCTA() {
               </div>
               {location.pathname === "/ranking" ? (
                 <div className="text-xs md:text-sm text-orange-400 font-semibold">
-                  🔥 {players} jugadores ya están participando
+                  Consulta los requisitos y la vigencia antes de participar
                 </div>
               ) : (
                 <div className="text-xs md:text-sm text-gray-300 leading-relaxed font-sans">

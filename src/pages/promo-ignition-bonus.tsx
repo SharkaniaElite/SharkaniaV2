@@ -55,7 +55,7 @@ export function PromoIgnitionBonusPage() {
     <PageShell>
       <SEOHead 
         title="Bono de Bienvenida $1,000 USD - Ignition Poker x Sharkania" 
-        description="Recibe un bono de bienvenida del 100% hasta $1,000 USD en tu primer depósito en Ignition Poker. Además, obtén 50 Free Spins y tickets para torneos." 
+        description="Recibe un bono de bienvenida del 100% hasta $1,000 USD en tu primer depósito en Ignition Poker. Beneficios adicionales sujetos a términos y elegibilidad." 
       />
       
       {/* 1. HERO SECTION */}
@@ -68,7 +68,7 @@ export function PromoIgnitionBonusPage() {
         <div className="max-w-[1200px] mx-auto px-6 relative z-10 text-center">
           <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 px-4 py-1.5 rounded-full text-orange-400 font-mono text-xs uppercase tracking-widest font-bold mb-6">
             <Gift size={14} />
-            Promoción Exclusiva
+            Oferta para nuevos jugadores
           </div>
           
           <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-6 leading-tight uppercase font-heading">
@@ -79,11 +79,12 @@ export function PromoIgnitionBonusPage() {
           </h1>
           
           <p className="text-lg md:text-xl text-sk-text-2 mb-10 max-w-3xl mx-auto">
-            Solo hay algo mejor que un bono gigante para comenzar a jugar al póker: <strong>RECIBIR REGALOS EXTRA.</strong> Únete a Ignition Poker a través de Sharkania y desata tu potencial en las mesas.
+            El bono se desbloquea conforme generas comisiones de póker elegibles. Revisa los requisitos, la disponibilidad regional y el plazo antes de depositar.
           </p>
           
+          <p className="text-xs text-sk-text-3 max-w-3xl mx-auto mb-6">Oferta general, no exclusiva de Sharkania. Información revisada el 2 de noviembre de 2026; próxima revisión editorial: 2 de diciembre de 2026. La revisión no equivale al vencimiento oficial. Contenido comercial: Sharkania puede obtener una comisión. +18 · Juego responsable.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href={AFFILIATE_LINK} target="_blank" rel="noopener noreferrer">
+            <a href={AFFILIATE_LINK} target="_blank" rel="sponsored noopener noreferrer">
               <Button size="xl" className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white border-none shadow-[0_0_30px_rgba(249,115,22,0.3)] hover:scale-105 transition-transform w-full sm:w-auto px-10">
                 ¡Lo Quiero Ahora! <ExternalLink size={18} className="ml-2" />
               </Button>
@@ -118,8 +119,8 @@ export function PromoIgnitionBonusPage() {
               <div className="w-16 h-16 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                 <Gamepad2 size={32} className="text-orange-500" />
               </div>
-              <p className="text-sk-sm font-mono text-sk-text-3 font-bold uppercase tracking-wider mb-2">4 Tickets Exclusivos</p>
-              <h3 className="text-xl font-black text-sk-text-1 leading-tight">SUNDAY FREEROLLING <br /><span className="text-orange-500 text-2xl">$1,200 USD</span></h3>
+              <p className="text-sk-sm font-mono text-sk-text-3 font-bold uppercase tracking-wider mb-2">Tickets de Torneos</p>
+              <h3 className="text-xl font-black text-sk-text-1 leading-tight">Sujeto a <br /><span className="text-orange-500 text-2xl">calendario oficial</span></h3>
             </div>
             
             <div className="bg-sk-bg-2 border border-sk-border-2 p-8 rounded-xl text-center shadow-lg hover:border-orange-500/50 transition-colors group">
@@ -138,7 +139,7 @@ export function PromoIgnitionBonusPage() {
         <div className="max-w-[1000px] mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-black text-sk-text-1 uppercase font-heading mb-4">Solo tienes que seguir estos pasos:</h2>
-            <p className="text-sk-text-3">Es un proceso rápido y seguro diseñado para que estés en las mesas en minutos.</p>
+            <p className="text-sk-text-3">Consulta previamente los términos del bono, los requisitos de liberación y las restricciones de tu país.</p>
           </div>
 
           <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-sk-border-2 before:to-transparent">
@@ -171,7 +172,7 @@ export function PromoIgnitionBonusPage() {
               <div className="w-[calc(100%-3rem)] md:w-[calc(50%-2.5rem)] bg-sk-bg-2 p-6 rounded-xl border border-sk-border-2 shadow-sm">
                 <h3 className="font-bold text-sk-text-1 text-lg mb-2">Deposita y Juega</h3>
                 <p className="text-sk-sm text-sk-text-3 leading-relaxed">
-                  Realiza tu primer depósito utilizando tu método de pago favorito (Recomendamos Criptomonedas para retiros más rápidos) y siéntate en las mesas.
+                  Realiza tu primer depósito utilizando tu método de pago favorito (Confirma antes los costos y plazos de cada método) y siéntate en las mesas.
                 </p>
               </div>
             </div>
@@ -192,7 +193,7 @@ export function PromoIgnitionBonusPage() {
           </div>
           
           <div className="mt-12 text-center">
-            <a href={AFFILIATE_LINK} target="_blank" rel="noopener noreferrer">
+            <a href={AFFILIATE_LINK} target="_blank" rel="sponsored noopener noreferrer">
               <Button size="xl" className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white font-bold border-none shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:scale-105 transition-all px-12">
                 Deposita y Activa el Bono Ahora
               </Button>
@@ -201,6 +202,9 @@ export function PromoIgnitionBonusPage() {
         </div>
       </section>
 
+      <div className="text-center text-xs text-sk-text-3 px-6 py-4 bg-sk-bg-0">
+        Condiciones oficiales: <a href="https://www.ignitionpoker.com/en/bonus-terms-conditions" target="_blank" rel="noopener noreferrer" className="underline hover:text-sk-accent">Bonos Ignition Poker</a>. Bono del 100% hasta US$1.000 para el primer depósito, sujeto a liberación y elegibilidad.
+      </div>
       {/* 4. PREGUNTAS FRECUENTES Y MÉTODOS DE PAGO */}
       <section className="py-20 bg-sk-bg-1 border-t border-sk-border-2">
         <div className="max-w-[1000px] mx-auto px-6 grid lg:grid-cols-12 gap-12">
@@ -219,21 +223,21 @@ export function PromoIgnitionBonusPage() {
                   <>
                     El bono se desbloquea gradualmente a medida que juegas. Ganas <strong>15 Ignition Miles (Coins) por cada $1 USD de rake</strong> que generes en Cash Games o en fees de torneos.
                     <br /><br />
-                    Dado que por cada <strong>150 Coins</strong> acumuladas se liberan <strong>$5 USD en dinero real</strong> directo a tu cajero, estarás obteniendo un espectacular <strong>50% de Rakeback efectivo</strong> mientras liberas tu bono. Tienes 30 días para aprovecharlo al máximo.
+                    Dado que por cada <strong>150 Coins</strong> acumuladas se liberan <strong>$5 USD en dinero real</strong> directo a tu cajero, la liberación equivale a US$5 por cada US$10 de rake elegible, <strong>solo hasta agotar el saldo promocional</strong>. No es un rakeback permanente. El plazo oficial de liberación es de 30 días desde el depósito seleccionado.
                   </>
                 } 
               />
               <FAQItem 
                 question="¿Voy a poder jugar los Freerolls de $1,200 de Ignition?" 
-                answer="¡Sí! Con tu primer depósito aseguras tu participación gratuita en los próximos cuatro torneos 'Sunday FreeRolling' de $1,200 USD garantizados, que se disputan cada domingo. Son $4,800 USD en premios que puedes jugar gratis." 
+                answer="Los tickets incluidos dependen de las condiciones promocionales y del calendario vigente. Ignition indica la posible acreditación de un ticket para un torneo gratuito de US$10.000, pero no confirma cuatro entradas Sunday FreeRolling de US$1.200. Revisa el bono de tu cuenta." 
               />
               <FAQItem 
                 question="¿Puedo usar el bono de las 50 Free Spins de inmediato?" 
-                answer="Totalmente. Las 50 Free Spins para el juego '777 Deluxe' se acreditan de forma automática tras tu depósito. Ve a la sección de Casino, busca el juego y utilízalos." 
+                answer="Las condiciones publicadas incluyen 50 giros para 777 Deluxe en ciertos paquetes elegibles. El beneficio está sujeto a disponibilidad, un límite de ganancia de US$10 como bono y requisitos de rollover de casino. Consulta su aplicación en tu cuenta." 
               />
               <FAQItem 
                 question="¿El bono está disponible para jugadores de Latinoamérica?" 
-                answer="Sí, la promoción es válida para jugadores de Argentina, Chile, Brasil, Colombia, México, Ecuador, Perú y casi toda América Latina." 
+                answer="Ignition puede restringir ofertas por país y por cuenta. No podemos asegurar elegibilidad de todos los países latinoamericanos. Confirma el acceso y la bonificación en la plataforma antes de registrarte." 
               />
               <FAQItem 
                 question="¿Puedo jugar desde mi celular?" 
@@ -250,7 +254,7 @@ export function PromoIgnitionBonusPage() {
                 Métodos de Pago
               </h3>
               <p className="text-xs text-sk-text-3 mb-4">
-                Ignition acepta una gran variedad de métodos en Latam. Recomendamos Cripto para velocidad total.
+                Los métodos disponibles y sus tiempos pueden variar según país y cuenta; compruébalos en el cajero.
               </p>
               <div className="flex flex-wrap gap-2">
                 {["Bitcoin", "Ethereum", "Tether (USDT)", "Litecoin", "Tarjetas (Visa/MC)"].map(metodo => (
@@ -268,7 +272,7 @@ export function PromoIgnitionBonusPage() {
                 <li>Los depósitos vía Vouchers no califican para la promo.</li>
                 <li>Los tickets de torneo se acreditan los viernes.</li>
                 <li>Free Spins tienen un cap de ganancia de $10 (pagados como bono de casino con rollover x30).</li>
-                <li>La creación de múltiples cuentas resultará en baneos permanentes de ambas plataformas.</li>
+                <li>El uso de múltiples cuentas puede provocar pérdida de beneficios y restricciones según los términos de Ignition.</li>
               </ul>
             </div>
           </div>

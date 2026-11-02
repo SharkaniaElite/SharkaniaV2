@@ -108,7 +108,7 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
           post.custom_banner_mid_src ? (
             <div className="w-full my-8">
               <small className="block text-[9px] font-mono text-sk-text-4 text-right mb-1 uppercase tracking-widest">Publicidad Exclusiva</small>
-              <a href={post.custom_banner_mid_href ?? "#"} target="_blank" rel="noopener noreferrer" className="block w-full overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+              <a href={post.custom_banner_mid_href ?? "#"} target="_blank" rel="sponsored noopener noreferrer" className="block w-full overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
                 <img src={post.custom_banner_mid_src} alt="Banner Intermedio Exclusivo" className="w-full h-auto object-cover" />
               </a>
             </div>
@@ -192,7 +192,7 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
         <a 
           href={block.value || '#'} 
           target="_blank" 
-          rel="noopener noreferrer"
+          rel={post.category === "Promociones" ? "sponsored noopener noreferrer" : "noopener noreferrer"}
           className="inline-block px-10 py-4 text-center font-extrabold text-white text-lg tracking-wider uppercase rounded-xl bg-gradient-to-r from-orange-500 to-red-600 shadow-[0_10px_30px_rgba(249,115,22,0.4)] hover:shadow-[0_15px_40px_rgba(249,115,22,0.6)] hover:-translate-y-1 transition-all duration-300 border-t border-t-white/20 border-b-[4px] border-b-black/50"
         >
           {block.content || 'CLIC AQUÍ'}
@@ -428,7 +428,7 @@ export default function BlogPostPage() {
 
       {!loading && !error && post && (
         <>
-          <SEOHead title={post.title} description={post.excerpt} path={`/${post.category === "Noticias" ? "noticias" : post.category === "Promociones" ? "promociones" : "blog"}/${post.slug}`} ogType="article" ogImage={post.image_og ?? undefined} />
+          <SEOHead title={(post.seo_title || post.title).replace(/\s*\|\s*Sharkania\s*$/i, "")} description={post.seo_description || post.excerpt} path={`/${post.category === "Noticias" ? "noticias" : post.category === "Promociones" ? "promociones" : "blog"}/${post.slug}`} ogType="article" ogImage={post.image_og ?? undefined} />
 
           {post.image_hero && (
             <div className="w-full max-h-[480px] overflow-hidden bg-sk-bg-3">
@@ -462,6 +462,25 @@ export default function BlogPostPage() {
                 </div>
 
                 <h1 className="text-sk-3xl font-extrabold text-sk-text-1 tracking-tight leading-tight mb-6">{post.title}</h1>
+
+                {post.category === "Promociones" && (() => {
+                  const tags = post.tags || [];
+                  const checked = tags.find((tag) => tag.startsWith("verified-on:"));
+                  const reviewBy = tags.find((tag) => tag.startsWith("review-by:"))?.slice("review-by:".length);
+                  const officialEnd = tags.find((tag) => tag.startsWith("official-end:"))?.slice("official-end:".length);
+                  const parts = new Intl.DateTimeFormat("en-GB", {timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit"}).formatToParts(new Date());
+                  const piece = (part: string) => parts.find((entry) => entry.type === part)?.value || "";
+                  const today = `${piece("year")}-${piece("month")}-${piece("day")}`;
+                  const shouldReview = !checked || (reviewBy && today > reviewBy) || (officialEnd && today > officialEnd);
+                  return (
+                    <aside role="note" className="my-6 rounded-lg border border-sk-border-2 bg-sk-bg-2 p-4 text-sm text-sk-text-2">
+                      {shouldReview
+                        ? "Archivo promocional: la vigencia de esta campaña no está confirmada a la fecha. Consulta los términos oficiales y evita asumir que sus beneficios siguen disponibles."
+                        : `Información revisada por Sharkania. Próxima comprobación editorial: ${reviewBy || "por definir"}. Esta fecha no implica el vencimiento oficial de la oferta.`}
+                    </aside>
+                  );
+                })()}
+
                 
                 {/* 📢 CARTEL DE BOUNTY (REGLAS DEL JUEGO) */}
                 <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-sk-bg-2 border border-sk-border-2 shadow-sm">

@@ -229,7 +229,7 @@ export function RoomProfilerPage() {
                 <BrainCircuit size={36} className="text-sk-accent" />
               </div>
               <h1 className="text-sk-3xl sm:text-4xl font-extrabold text-sk-text-1 tracking-tight mb-4">
-                El 80% del éxito en poker es elegir la <span className="text-transparent bg-clip-text bg-gradient-to-r from-sk-accent to-sk-purple">sala correcta</span>.
+                Encuentra la <span className="text-transparent bg-clip-text bg-gradient-to-r from-sk-accent to-sk-purple">sala adecuada para tu estilo</span>.
               </h1>
               <p className="text-sk-md text-sk-text-2 mb-8 max-w-lg mx-auto leading-relaxed">
                 No juegues donde juegan los profesionales si buscas divertirte. No juegues en salas básicas si eres un analista de datos. Descubre tu hábitat natural en menos de 1 minuto.
@@ -284,6 +284,11 @@ export function RoomProfilerPage() {
                 </h2>
               </div>
 
+              <p className="text-sk-xs text-sk-text-3 text-center mb-6 max-w-xl mx-auto">
+                Resultado orientativo basado en tus respuestas, no una predicción de ganancias.
+                Algunos enlaces pueden generar una comisión para Sharkania. Comprueba requisitos y disponibilidad en tu país.
+              </p>
+
               {/* Top Room Card */}
               <div className="relative bg-sk-bg-2 border-2 rounded-2xl p-1 overflow-hidden shadow-sk-xl mb-6" style={{ borderColor: topRoom.color }}>
                 <div className="absolute top-0 left-0 right-0 h-1" style={{ background: topRoom.color }} />
@@ -292,7 +297,7 @@ export function RoomProfilerPage() {
                   {/* Badge Match */}
                   <div className="absolute top-4 right-4 rotate-12">
                     <div className="bg-sk-bg-0 text-sk-text-1 font-extrabold text-lg px-3 py-1.5 rounded-lg border-2 shadow-lg" style={{ borderColor: topRoom.color }}>
-                      98% MATCH
+                      RECOMENDACIÓN
                     </div>
                   </div>
 
@@ -341,7 +346,7 @@ export function RoomProfilerPage() {
                   <a 
                     href={topRoom.link} 
                     target="_blank" 
-                    rel="noopener noreferrer"
+                    rel="sponsored noopener noreferrer"
                     className="block w-full"
                   >
                     <Button variant="accent" size="lg" className="w-full text-sk-bg-0 font-bold text-md" style={{ background: topRoom.color, borderColor: topRoom.color }}>
@@ -356,7 +361,7 @@ export function RoomProfilerPage() {
               <a 
                 href={runnerUp.link}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="sponsored noopener noreferrer"
                 className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-5 flex items-center justify-between mb-8 opacity-80 hover:opacity-100 transition-opacity cursor-pointer block"
               >
                 <div className="flex items-center gap-4">

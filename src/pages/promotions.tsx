@@ -7,10 +7,39 @@ import { cn } from "../lib/cn";
 import { supabase } from "../lib/supabase"; // Importación de DB agregada
 import { formatBlogDate } from "../lib/api/blog"; // 👈 Importamos el formateador
 
+
+const SUPABASE_LOGOS = "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/";
+const VERIFIED_PARTNER_LOGOS: Record<string, string> = {
+  coinpoker: SUPABASE_LOGOS + "coinpoker.png",
+  wptglobal: SUPABASE_LOGOS + "wptglobal.png",
+  ignition: SUPABASE_LOGOS + "logo-ignition-poker.png",
+};
+function promoTag(promo: { tags?: string[] | null }, prefix: string): string | undefined {
+  return promo.tags?.find((tag) => tag.startsWith(prefix))?.slice(prefix.length);
+}
+function promoPhase(promo: { tags?: string[] | null }, today: string): "verified" | "upcoming" | "past" {
+  const verified = promoTag(promo, "verified-on:");
+  if (!verified) return "past"; // No transformar una fecha de publicación antigua en vigencia.
+  const deadline = promoTag(promo, "review-by:");
+  const officialEnd = promoTag(promo, "official-end:");
+  if ((deadline && today > deadline) || (officialEnd && today > officialEnd)) return "past";
+  const startsOn = promoTag(promo, "starts-on:");
+  return startsOn && today < startsOn ? "upcoming" : "verified";
+}
+
 export function PromotionsPage() {
   const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
   const [promotions, setPromotions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Formato ISO YYYY-MM-DD en la zona horaria editorial de Sharkania.
+  const dateParts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: string) => dateParts.find((entry) => entry.type === type)?.value || "";
+  const today = `${part("year")}-${part("month")}-${part("day")}`;
+  const currentPromos = promotions.filter((promo) => promoPhase(promo, today) !== "past");
+  const archivePromos = promotions.filter((promo) => promoPhase(promo, today) === "past");
 
   useEffect(() => {
     // Definimos la función asíncrona
@@ -34,7 +63,7 @@ export function PromotionsPage() {
     <PageShell>
       <SEOHead
         title="Promociones y Freerolls Exclusivos | Sharkania"
-        description="Descubre los mejores freerolls, bonos de bienvenida y torneos con entradas garantizadas en los clubes oficiales de Sharkania."
+        description="Promociones de póker verificadas, condiciones de bonos y próximos torneos. Consulta la fecha de revisión, requisitos y disponibilidad por país."
         path="/promociones"
       />
       
@@ -71,23 +100,27 @@ export function PromotionsPage() {
               </h1>
 
               <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed">
-                Aprovecha nuestras alianzas exclusivas. Desde torneos gratuitos diarios hasta beneficios por bienvenida. Tu bankroll empieza a crecer aquí.
+                Explora promociones, tutoriales y oportunidades publicadas por Sharkania. Comprueba siempre la vigencia, los requisitos y la disponibilidad según tu país antes de participar.
               </p>
             </div>
           </div>
 
+          <p className="mb-5 text-xs text-sk-text-3">
+            Algunas publicaciones corresponden a campañas anteriores; su fecha de publicación no acredita que la oferta siga vigente. Los enlaces comerciales pueden generar una comisión para Sharkania.
+          </p>
+          <h2 className="text-xl font-bold text-sk-text-1 mb-5">Ofertas verificadas y próximos eventos</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loading ? (
               <div className="col-span-full text-center text-sk-text-3 py-10">
                 <div className="w-6 h-6 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin mx-auto mb-3" />
                 Cargando promociones...
               </div>
-            ) : promotions.length === 0 ? (
+            ) : currentPromos.length === 0 ? (
               <div className="col-span-full text-center text-sk-text-3 py-10">
-                No hay promociones activas en este momento.
+                No hay ofertas actualmente verificadas para mostrar. Estamos preparando nuevas páginas con fuentes oficiales; las publicaciones anteriores están archivadas más abajo.
               </div>
             ) : (
-              promotions.map((promo) => (
+              currentPromos.map((promo) => (
                 <Link 
                   key={promo.id} 
                   to={`/promociones/${promo.slug}`}
@@ -105,11 +138,16 @@ export function PromotionsPage() {
                     </div>
                     
                     <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-2 to-transparent z-0 opacity-80" />
-                    <img 
-                      src={promo.image_thumbnail} 
-                      alt={promo.title} 
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                    />
+                    {promo.image_thumbnail ? (
+                      <img src={promo.image_thumbnail} alt={promo.title} width={640} height={360}
+                        loading="lazy" decoding="async"
+                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
+                    ) : (() => {
+                      const logo = VERIFIED_PARTNER_LOGOS[promoTag(promo, "partner:") || ""];
+                      return logo
+                        ? <div className="absolute inset-0 flex items-center justify-center bg-sk-bg-3 p-8"><img src={logo} alt={`Logo oficial de ${promoTag(promo, "partner:")}`} loading="lazy" decoding="async" className="max-w-[72%] max-h-[85%] object-contain" /></div>
+                        : <div className="absolute inset-0 bg-sk-bg-3" aria-hidden="true" />;
+                    })()}
                   </div>
                   
                   <div className="p-6 flex flex-col flex-1">
@@ -136,7 +174,7 @@ export function PromotionsPage() {
                     
                     <div className="flex items-center justify-between border-t border-sk-border-2 pt-4 mt-auto">
                       <span className="text-[11px] font-mono text-sk-green flex items-center gap-1.5 uppercase font-bold">
-                        <Zap size={14} /> Activa
+                        <Zap size={14} /> {promoPhase(promo, today) === "upcoming" ? "Próximamente" : "Verificada"} · {promoTag(promo, "review-by:") || "Revisar condiciones"}
                       </span>
                       <span className={cn(
                         "text-sk-sm font-bold flex items-center gap-1",
@@ -150,6 +188,24 @@ export function PromotionsPage() {
               ))
             )}
           </div>
+          {!loading && archivePromos.length > 0 && (
+            <section className="mt-16" aria-label="Promociones anteriores sin vigencia confirmada">
+              <h2 className="text-xl font-bold text-sk-text-1 mb-2">Publicaciones anteriores</h2>
+              <p className="text-sm text-sk-text-3 mb-5">Archivo editorial: estos artículos NO acreditan promociones vigentes. Una revisión pendiente o una fecha de campaña superada impide mostrarlos como ofertas verificadas.</p>
+              <div className="grid md:grid-cols-2 gap-3">
+                {archivePromos.map((promo) => (
+                  <Link key={promo.id} to={`/promociones/${promo.slug}`}
+                    className="flex gap-3 items-start rounded-lg border border-sk-border-2 bg-sk-bg-2 p-4 hover:border-sk-accent/40">
+                    <Clock size={16} className="text-sk-text-3 shrink-0 mt-1" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-sk-text-2">{promo.title}</span>
+                      <span className="block mt-1 text-xs text-sk-text-3">Histórico · Vigencia no confirmada · {formatBlogDate(promo.published_at)}</span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
         </div>
       </div>
