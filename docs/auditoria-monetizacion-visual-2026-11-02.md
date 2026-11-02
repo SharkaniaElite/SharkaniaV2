@@ -71,3 +71,29 @@ La rama no cambia datos de Supabase ni despliega producción, y las nuevas fotos
 - Fuente primaria: https://www.clubgg.com/media-guideline (consultada 02-11-2026). No dar por hecho permiso universal para usar logos de terceros por el solo hecho de que sean visibles en internet.
 - Para otras salas: priorizar kits oficiales del programa de afiliados o archivos entregados por el partner, registrar procedencia/condiciones de uso, no incorporar logos a fotografías generadas con IA. Ignition menciona explícitamente materiales y banners disponibles en su plataforma de afiliados: https://www.ignitionpoker.com/en/affiliates.
 - No afirmar que una oferta está vigente sin fuente, término y países admisibles actualizados. Señalizar siempre contenido comercial y juego responsable.
+
+
+## Ejecución real: promociones verificadas / borradores creados (2 de noviembre de 2026)
+Fuentes primarias revisadas en noviembre de 2026. No reutilizar artes comerciales generadas con logos aproximados: los activos originales de marca residen en Supabase Storage:
+- `Logos Sharkania/coinpoker.png` (18.976 bytes)
+- `Logos Sharkania/wptglobal.png` (11.768 bytes)
+- `Logos Sharkania/logo-ignition-poker.png` (87.823 bytes)
+- `Logos Sharkania/sharkania-horizontal-light.svg` y `...dark.svg`.
+No se encontró el logo oficial de Latin Allin Poker en ese bucket concreto. Revisar otra ubicación/autorización antes de diseñarlo; no improvisar versiones con IA.
+
+**Se insertaron y verificaron tres nuevas entradas en `blog_posts`, todas `published=false, status=draft`; ninguna visible en público:**
+1. `coinpoker-bono-bienvenida-150-2026`: fuente https://coinpoker.com/es/promotions/welcome-bonus/ ; 150 % hasta USD 2.000, primer depósito USD 10+, selección durante depósito; liberación mediante rake equivalente a 10x importe de bono, 30 días oficiales para liberarlo. Revisión editorial 2026-12-02 (no caducidad oficial).
+2. `wpt-global-paquete-bienvenida-2026`: fuente https://wptglobal.com/es/poker/promociones/welcome-offer ; 100 % condicionado hasta USD 3.000, modalidad según región, 60 días liberación y tickets con plazos propios. Revisión editorial 2026-12-02 (no caducidad oficial); código FPHL no presentado como beneficio extra garantizado.
+3. `coinpoker-pgt-kickoff-noviembre-2026`: calendario https://coinpoker.com/es/pgt-in-app-schedule/ ; fechas oficiales 8 a 30 noviembre 2026. Para este evento prevalece el final oficial del 30 de noviembre, no un período artificial. Aclarado que The One octubre 2026 ya terminó.
+
+**Contenido existente:** `/promociones/ignition-bonus` ya utiliza una landing React dedicada y el bono de hasta USD 1.000 está documentado en https://www.ignitionpoker.com/en/bonus-terms-conditions ; no se crea una URL duplicada para el mismo beneficio. La landing existente contenía promesas específicas de cuatro freerolls Sunday de USD 1.200, elegibilidad universal de LATAM y "rakeback 50%" sin suficiente contexto. Se corrigieron esas aseveraciones en la rama de revisión, junto con divulgación de afiliación y plazos reales. Su publicación requiere aprobar el PR y revisar la ruta.
+
+**Control de vigencias en frontend (PR, sin deploy):**
+- `verified-on:YYYY-MM-DD`: fecha efectiva de comprobación editorial; `review-by:YYYY-MM-DD`: fecha límite de la comprobación. La política para ofertas sin fecha oficial de finalización es revisión a 30 días desde última verificación. Una revisión vencida **no implica que el operador haya cancelado la oferta**: solo se oculta de la lista de ofertas verificadas hasta su reconfirmación.
+- `starts-on:YYYY-MM-DD` y `official-end:YYYY-MM-DD`: fecha oficial de evento. Se muestra "Próximamente" si todavía no inicia; sale del listado prioritario tras la fecha final.
+- Entradas sin verificación se muestran por separado como archivo histórico y no aparecen con insignia de "activas".
+- `partner:coinpoker|wptglobal|ignition`: permite mostrar el PNG oficial de Storage cuando una entrada verificada no tenga imagen editorial, sin logos generados por IA.
+- Este mecanismo de interfaz no ejecuta por sí solo una nueva investigación ni revalida ofertas automáticamente: antes de vencer el plazo se debe consultar de nuevo la fuente y actualizar la ficha. Está preparado para automatizarse, pero todavía no cuenta con una tarea recurrente conectada.
+- Mantener las 3 páginas nuevas en borrador hasta finalizar QA de rutas, texto comercial, países, referencias, robots/canónicas, preview y aprobación de publicación. No modificar datos de promociones históricas en producción sin revisión individual.
+
+**Observaciones críticas de fuentes:** El directorio de CoinPoker exhibía información antigua sobre The One en la vista de octubre, pero la actualización oficial posterior indica que la edición 2026 terminó, con retorno proyectado para 2027: https://coinpoker.com/es/promotions/ . En el caso del calendario PGT, alguna sección secundaria muestra una fecha 2025 errónea, mientras el cronograma completo corresponde claramente al 8–30 de noviembre de 2026: https://coinpoker.com/es/tournaments/pokergo-tour-online/schedule/ . El contenido editorial cita explícitamente el calendario y no usa la fecha inconsistente.
