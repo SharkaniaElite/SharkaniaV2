@@ -13,14 +13,11 @@ import { FlagIcon } from "../components/ui/flag-icon";
 import { Megaphone, Zap, Brain, Flame, CalendarDays, BookOpen } from "lucide-react";
 import type { PlayerWithRoom, TournamentWithDetails } from "../types";
 import { SEOHead } from "../components/seo/seo-head";
-import { useBanners } from "../hooks/use-banners";
 import { TournamentCard } from "../components/calendar/tournament-card";
 import { TournamentDetailModal } from "../components/calendar/tournament-detail-modal";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
 import { InstagramFeed } from "../components/marketing/instagram-feed.tsx";
-import posthog from "posthog-js";
-import { PromotionArtwork } from "../components/marketing/promotion-artwork"; // 🔥 NUEVA IMPORTACIÓN
-import { bannerIsReviewed } from "../lib/marketing-banner-policy";
+import { PromotionArtwork } from "../components/marketing/promotion-artwork";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -50,83 +47,6 @@ function RowSkeleton() {
     <tr className="animate-sk-pulse">
       {[40,120,60,50,60,60].map((w,i) => <td key={i} className="py-3 px-4 border-b border-sk-border-2"><div className="h-4 rounded bg-sk-bg-4" style={{ width: w }} /></td>)}
     </tr>
-  );
-}
-
-// ── Grilla de colaboradores: URL móvil y medición por ubicación ────────────────
-function HomeBannerGrid() {
-  const banners = useBanners();
-  const slots = ["grid_1", "grid_2", "grid_3", "grid_4"] as const;
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 768px)");
-    const sync = () => setIsMobile(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  return (
-    <section aria-label="Colaboraciones y promociones de salas" className="py-10 bg-sk-bg-0 border-b border-sk-border-2">
-      <div className="max-w-[1300px] mx-auto px-6">
-        <p className="mb-3 text-[10px] font-mono uppercase tracking-widest text-sk-text-3">
-          Colaboraciones comerciales verificadas · Condiciones según sala y país · +18
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {slots.map((slotKey) => {
-            const config = banners?.slots?.[slotKey];
-            const desk = bannerIsReviewed(config?.desktop) ? config?.desktop : null;
-            const mob = bannerIsReviewed(config?.mobile) ? config?.mobile : null;
-            const selected = (isMobile ? mob || desk : desk || mob);
-            const image = selected?.src || "";
-            const href = selected?.href || "";
-            if (!image || !href || href === "#") return null;
-
-            // El CMS puede recibir enlaces mal formados; nunca romper la portada por una URL inválida.
-            let destination: URL;
-            try {
-              destination = new URL(href, window.location.origin);
-            } catch {
-              return null;
-            }
-            if (!["http:", "https:"].includes(destination.protocol)) return null;
-            const isExternalPartner = destination.origin !== window.location.origin;
-            const label = selected?.editorial_title || selected?.label || "Oferta de sala de póker";
-
-            return (
-              <a
-                key={slotKey}
-                href={href}
-                target="_blank"
-                rel={isExternalPartner ? "sponsored noopener noreferrer" : "noopener noreferrer"}
-                aria-label={label}
-                onClick={() => posthog.capture("partner_promotion_click", {
-                  placement: slotKey,
-                  destination_host: destination.hostname,
-                  destination_type: isExternalPartner ? "partner" : "internal",
-                })}
-                className="block rounded-xl overflow-hidden border border-sk-border-2 hover:border-sk-accent transition-all hover:-translate-y-1 shadow-md bg-black group"
-              >
-                <picture>
-                  {mob?.src && <source media="(max-width: 768px)" srcSet={mob.src} />}
-                  <img
-                    src={desk?.src || mob?.src || image}
-                    alt={label}
-                    width={desk?.width || mob?.width || 720}
-                    height={desk?.height || mob?.height || 405}
-                    loading="lazy"
-                    fetchPriority="low"
-                    decoding="async"
-                    className="w-full h-auto aspect-[350/200] md:aspect-[600/250] object-cover hover:opacity-90 transition-opacity"
-                  />
-                </picture>
-              </a>
-            );
-          })}
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -194,50 +114,12 @@ export function HomePage() {
     <PageShell>
       <SEOHead title="Inicio" description="Plataforma global de poker competitivo." path="/" />
 
-      {/* 📰 NOTICIAS (Arriba de todo) */}
-      <section className="pt-8 pb-4 relative z-10 bg-sk-bg-1 border-b border-sk-border-2/50">
-        <div className="max-w-[1300px] mx-auto px-6">
-          <RevealSection>
-            <div className="flex items-center justify-between mb-6 border-b border-sk-border-2 pb-4">
-              <div>
-                <span className="text-[10px] font-mono text-sk-accent uppercase tracking-widest font-bold mb-1 block">Actualidad y Novedades</span>
-                <h2 className="text-sk-xl font-black text-sk-text-1 uppercase flex items-center gap-2"><Megaphone className="text-sk-accent" size={20} /> Noticias y Promociones</h2>
-              </div>
-              <div className="flex flex-wrap gap-4 self-end pb-1 text-[11px] font-mono font-bold uppercase">
-                <Link to="/noticias" className="text-sk-text-3 hover:text-sk-accent transition-colors">Noticias →</Link>
-                <Link to="/promociones" className="text-sk-text-3 hover:text-sk-accent transition-colors">Promociones →</Link>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {loadingBlog ? [1,2,3].map(i => <div key={i} className="animate-sk-pulse h-52 md:h-56 bg-sk-bg-2 border border-sk-border-2 rounded-xl" />) : blogPosts.map(post => (
-                <Link key={post.id} to={getEditorialPath(post.category, post.slug)} className="group relative h-52 md:h-56 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 transition-all duration-300 flex items-end p-5">
-                  {post.category === 'Promociones'
-                    ? <><div className="absolute inset-0 overflow-hidden"><PromotionArtwork post={post} variant="compact" className="w-full h-full group-hover:scale-[1.02] transition-transform duration-500" /></div><div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-transparent pointer-events-none" /></>
-                    : post.image_thumbnail && <><img src={post.image_thumbnail} alt={post.title} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-90" /></>}
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={cn("px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-sm", post.category.toLowerCase() === 'promociones' ? "bg-sk-accent text-sk-bg-0" : "bg-sk-accent text-black")}>{post.category}</span>
-                      <span className="text-[10px] font-mono text-gray-300">{formatBlogDate(post.published_at)}</span>
-                    </div>
-                    <h3 className="text-white font-bold text-sm leading-tight group-hover:text-sk-accent transition-colors line-clamp-2">{post.title}</h3>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </RevealSection>
-        </div>
-      </section>
-
-      {/* 🎰 GRILLA 4 SALAS */}
-      <HomeBannerGrid />
-
       {/* ══ HERO & TICKER ══ */}
-      <section className="relative min-h-[60vh] flex flex-col items-center justify-center text-center px-6 pt-16 pb-12 overflow-hidden">
+      <section className="relative min-h-[440px] lg:min-h-[500px] flex flex-col items-center justify-center text-center px-6 pt-12 pb-9 overflow-hidden">
         <div className="absolute inset-0 -z-20" style={{ background:"radial-gradient(ellipse 60% 40% at 50% 0%, var(--sk-accent-dim), transparent 70%), radial-gradient(ellipse 40% 30% at 70% 80%, var(--sk-purple-dim), transparent 60%), var(--sk-bg-1)" }} />
         <div className="absolute inset-0 -z-10" style={{ backgroundImage:"linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px)", backgroundSize:"64px 64px", maskImage:"radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent)" }} />
         
-        <div className="max-w-[800px] flex-1 flex flex-col justify-center mb-10">
+        <div className="max-w-[800px] flex-1 flex flex-col justify-center mb-4">
           <div className="inline-flex items-center gap-2 py-1 pl-1 pr-3.5 bg-sk-bg-3 border border-sk-border-2 rounded-full text-[11px] font-medium text-sk-text-2 mb-8 mx-auto">
             <span className="px-2 py-0.5 bg-sk-accent-dim text-sk-accent rounded-full font-bold text-[10px] tracking-wide">BETA</span>
             Plataforma Global de Poker Competitivo
@@ -284,6 +166,51 @@ export function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* Noticias y promociones: portada visual arriba, metadatos debajo.
+          Nunca superponer títulos HTML sobre creatividades que ya incluyen texto. */}
+      <section className="py-10 md:py-14 relative z-10 bg-sk-bg-1 border-b border-sk-border-2/50">
+        <div className="max-w-[1300px] mx-auto px-6">
+          <RevealSection>
+            <div className="flex flex-wrap items-end justify-between gap-4 mb-6 border-b border-sk-border-2 pb-4">
+              <div>
+                <span className="text-[10px] font-mono text-sk-accent uppercase tracking-widest font-bold mb-1 block">Actualidad y novedades</span>
+                <h2 className="text-sk-xl font-black text-sk-text-1 flex items-center gap-2"><Megaphone className="text-sk-accent" size={20} /> Noticias y promociones</h2>
+              </div>
+              <div className="flex flex-wrap gap-4 text-[11px] font-mono font-bold uppercase">
+                <Link to="/noticias" className="text-sk-text-3 hover:text-sk-accent transition-colors">Noticias →</Link>
+                <Link to="/promociones" className="text-sk-text-3 hover:text-sk-accent transition-colors">Promociones →</Link>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
+              {loadingBlog
+                ? [1, 2, 3].map(i => <div key={i} className="h-[310px] rounded-xl border border-sk-border-2 bg-sk-bg-2 overflow-hidden" aria-hidden="true"><div className="aspect-video bg-sk-bg-3" /><div className="h-6 w-4/5 rounded bg-sk-bg-3 mx-4 mt-8" /></div>)
+                : blogPosts.map(post => (
+                  <Link key={post.id} to={getEditorialPath(post.category, post.slug)}
+                    className="group flex flex-col min-w-0 overflow-hidden rounded-xl border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/45 transition-colors duration-200">
+                    <div className="relative w-full aspect-video overflow-hidden bg-sk-bg-3">
+                      {post.category === "Promociones"
+                        ? <PromotionArtwork post={post} variant="card" className="w-full h-full transition-transform duration-500 group-hover:scale-[1.02]" />
+                        : post.image_thumbnail
+                          ? <img src={post.image_thumbnail} alt={post.title} loading="lazy" decoding="async" width={720} height={405} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                          : <div className="w-full h-full bg-[radial-gradient(circle_at_70%_20%,rgba(34,211,238,0.12),transparent_65%)]" aria-hidden="true" />}
+                    </div>
+                    <div className="flex flex-1 flex-col gap-2 px-4 py-4 border-t border-sk-border-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-sk-accent">{post.category}</span>
+                        <span className="text-[10px] font-mono text-sk-text-4">{formatBlogDate(post.published_at)}</span>
+                      </div>
+                      <h3 className="text-sm md:text-base text-sk-text-1 font-bold leading-snug line-clamp-2 group-hover:text-sk-accent transition-colors">{post.title}</h3>
+                      <span className="mt-auto pt-2 text-[11px] font-semibold text-sk-text-3 group-hover:text-sk-accent transition-colors">
+                        {post.category === "Promociones" ? "Consultar condiciones" : "Leer artículo"} →
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+            </div>
+          </RevealSection>
+        </div>
+      </section>
 
       {/* ══ RANKING ══ */}
       <section className="py-16 bg-sk-bg-0" id="ranking">
