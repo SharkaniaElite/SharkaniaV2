@@ -33,9 +33,11 @@ export function PromotionsPage() {
   const [loading, setLoading] = useState(true);
 
   // Formato ISO YYYY-MM-DD en la zona horaria editorial de Sharkania.
-  const today = new Intl.DateTimeFormat("en-CA", {
+  const dateParts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit",
-  }).format(new Date());
+  }).formatToParts(new Date());
+  const part = (type: string) => dateParts.find((entry) => entry.type === type)?.value || "";
+  const today = `${part("year")}-${part("month")}-${part("day")}`;
   const currentPromos = promotions.filter((promo) => promoPhase(promo, today) !== "past");
   const archivePromos = promotions.filter((promo) => promoPhase(promo, today) === "past");
 
@@ -61,7 +63,7 @@ export function PromotionsPage() {
     <PageShell>
       <SEOHead
         title="Promociones y Freerolls Exclusivos | Sharkania"
-        description="Descubre los mejores freerolls, bonos de bienvenida y torneos con entradas garantizadas en los clubes oficiales de Sharkania."
+        description="Promociones de póker verificadas, condiciones de bonos y próximos torneos. Consulta la fecha de revisión, requisitos y disponibilidad por país."
         path="/promociones"
       />
       
