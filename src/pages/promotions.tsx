@@ -130,7 +130,9 @@ export function PromotionsPage() {
                       {promo.category}
                     </div>
                     
-                    <PromotionArtwork post={promo} variant="card" className="absolute inset-0 group-hover:scale-[1.025] transition-transform duration-500" />
+                    <div className="absolute inset-0 overflow-hidden">
+                      <PromotionArtwork post={promo} variant="card" className="w-full h-full group-hover:scale-[1.025] transition-transform duration-500" />
+                    </div>
                   </div>
                   
                   <div className="p-6 flex flex-col flex-1">
