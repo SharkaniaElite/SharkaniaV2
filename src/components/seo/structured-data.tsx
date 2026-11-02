@@ -162,7 +162,21 @@ interface BreadcrumbItem {
 }
 
 export function useBreadcrumbSchema(items: BreadcrumbItem[]) {
+  // Serialización estable: evita retirar/reinsertar el JSON-LD en cada render
+  // (p. ej., el temporizador de lectura actualiza el artículo cada segundo).
+  const schemaJson = items.length ? JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  }) : "";
+
   useEffect(() => {
+    if (!schemaJson) return;
     const id = "sharkania-breadcrumb-jsonld";
     let el = document.getElementById(id);
     if (!el) {
@@ -171,24 +185,9 @@ export function useBreadcrumbSchema(items: BreadcrumbItem[]) {
       el.setAttribute("type", "application/ld+json");
       document.head.appendChild(el);
     }
-
-    const schema = {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      itemListElement: items.map((item, i) => ({
-        "@type": "ListItem",
-        position: i + 1,
-        name: item.name,
-        item: item.url,
-      })),
-    };
-
-    el.textContent = JSON.stringify(schema);
-
-    return () => {
-      el?.remove();
-    };
-  }, [items]);
+    el.textContent = schemaJson;
+    return () => { el?.remove(); };
+  }, [schemaJson]);
 }
 // ── Glossary Term (DefinedTerm) ──
 
