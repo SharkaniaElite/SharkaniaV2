@@ -57,7 +57,7 @@ export function PromotionsPage() {
   return (
     <PageShell>
       <SEOHead
-        title="Promociones y Freerolls Exclusivos | Sharkania"
+        title="Promociones de póker verificadas"
         description="Promociones de póker verificadas, condiciones de bonos y próximos torneos. Consulta la fecha de revisión, requisitos y disponibilidad por país."
         path="/promociones"
       />
