@@ -17,6 +17,7 @@ import { RelatedPosts } from "../components/blog/related-posts";
 import { useAuthStore } from "../stores/auth-store";
 import { claimBlogReward } from "../lib/api/players";
 import { supabase } from "../lib/supabase";
+import { getEditorialPath, getEditorialSection, getEditorialSectionLabel } from "../lib/editorial-routing";
 
 // Importaciones para interceptar las landings dinámicas
 import { PromoFreerollPage } from "./promo-freeroll";
@@ -242,11 +243,11 @@ export default function BlogPostPage() {
     imageUrl: post?.image_og ?? undefined,
   });
 
-  useBreadcrumbSchema([
-    { name: 'Inicio', url: 'https://sharkania.com' },
-    { name: 'Blog', url: 'https://sharkania.com/blog' },
-    { name: post?.title ?? 'Artículo', url: `https://sharkania.com/blog/${post?.slug ?? ''}` },
-  ]);
+  useBreadcrumbSchema(post ? [
+    { name: "Inicio", url: "https://sharkania.com" },
+    { name: getEditorialSectionLabel(post.category), url: `https://sharkania.com/${getEditorialSection(post.category)}` },
+    { name: post.title, url: `https://sharkania.com${getEditorialPath(post.category, post.slug)}` },
+  ] : []);
 
   // 2. Hook de carga de datos
   useEffect(() => {
@@ -384,7 +385,7 @@ export default function BlogPostPage() {
           <nav className="flex items-center gap-1.5 text-[11px] text-sk-text-4">
             <Link to="/" className="hover:text-sk-text-2 transition-colors">Inicio</Link>
             <ChevronRight size={10} />
-            <Link to="/blog" className="hover:text-sk-text-2 transition-colors">Blog</Link>
+            <Link to={`/${getEditorialSection(post?.category)}`} className="hover:text-sk-text-2 transition-colors">{getEditorialSectionLabel(post?.category)}</Link>
             {post && (
               <>
                 <ChevronRight size={10} />
@@ -432,7 +433,7 @@ export default function BlogPostPage() {
 
       {!loading && !error && post && (
         <>
-          <SEOHead title={(post.seo_title || post.title).replace(/\s*\|\s*Sharkania\s*$/i, "")} description={post.seo_description || post.excerpt} path={`/${post.category === "Noticias" ? "noticias" : post.category === "Promociones" ? "promociones" : "blog"}/${post.slug}`} ogType="article" ogImage={post.image_og ?? undefined} />
+          <SEOHead title={(post.seo_title || post.title).replace(/\s*\|\s*Sharkania\s*$/i, "")} description={post.seo_description || post.excerpt} path={getEditorialPath(post.category, post.slug)} ogType="article" ogImage={post.image_og ?? undefined} />
 
           {(post.image_hero || post.category === "Promociones") && (
             <div className="max-w-[1120px] mx-auto px-4 sm:px-6 pt-8">
@@ -451,8 +452,8 @@ export default function BlogPostPage() {
           <div className="blog-grid">
             <div style={{ minWidth: 0 }}>
               <div className="py-12">
-                <Link to="/blog" className="inline-flex items-center gap-1.5 text-sk-sm text-sk-text-3 hover:text-sk-text-1 transition-colors mb-8">
-                  <ArrowLeft size={14} /> Volver al Blog
+                <Link to={`/${getEditorialSection(post.category)}`} className="inline-flex items-center gap-1.5 text-sk-sm text-sk-text-3 hover:text-sk-text-1 transition-colors mb-8">
+                  <ArrowLeft size={14} /> Volver a {getEditorialSectionLabel(post.category)}
                 </Link>
 
                 <div className="flex items-center gap-3 mb-5 flex-wrap">
@@ -505,7 +506,7 @@ export default function BlogPostPage() {
                   </div>
                   {!isAuthenticated && (
                     <Link 
-                      to={`/login?redirect=/blog/${post.slug}`} 
+                      to={`/login?redirect=${encodeURIComponent(getEditorialPath(post.category, post.slug))}`} 
                       className="shrink-0 w-full sm:w-auto text-center text-[11px] font-bold tracking-widest uppercase text-sk-bg-0 bg-sk-accent px-4 py-2 rounded-lg hover:scale-105 transition-transform"
                     >
                       Login para Minar
@@ -552,7 +553,7 @@ export default function BlogPostPage() {
                   {!isAuthenticated ? (
                     <div className="flex flex-col items-center gap-4 w-full max-w-sm">
                       <p className="text-sk-sm text-sk-text-2 mb-2">Inicia sesión para reclamar <strong className="text-sk-accent">{REWARD_AMOUNT} SC</strong> por tu tiempo de estudio.</p>
-                      <Link to={`/login?redirect=/blog/${post.slug}`} className="w-full py-3 px-6 rounded-lg bg-sk-bg-3 border border-sk-border-2 font-bold text-sk-text-1 flex items-center justify-center gap-2 hover:bg-sk-bg-4 transition-all">
+                      <Link to={`/login?redirect=${encodeURIComponent(getEditorialPath(post.category, post.slug))}`} className="w-full py-3 px-6 rounded-lg bg-sk-bg-3 border border-sk-border-2 font-bold text-sk-text-1 flex items-center justify-center gap-2 hover:bg-sk-bg-4 transition-all">
                         <Lock size={16} className="text-sk-accent" /> Iniciar Sesión para Minar
                       </Link>
                     </div>
