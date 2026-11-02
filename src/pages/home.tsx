@@ -79,7 +79,15 @@ function HomeBannerGrid() {
             const href = (isMobile ? mob?.href || desk?.href : desk?.href || mob?.href) || "";
             if (!image || !href || href === "#") return null;
 
-            const isExternalPartner = /^https?:\/\//i.test(href) && new URL(href).origin !== window.location.origin;
+            // El CMS puede recibir enlaces mal formados; nunca romper la portada por una URL inválida.
+            let destination: URL;
+            try {
+              destination = new URL(href, window.location.origin);
+            } catch {
+              return null;
+            }
+            if (!["http:", "https:"].includes(destination.protocol)) return null;
+            const isExternalPartner = destination.origin !== window.location.origin;
             const label = (isMobile ? mob?.label || desk?.label : desk?.label || mob?.label) || "Oferta de sala de póker";
 
             return (
@@ -91,7 +99,7 @@ function HomeBannerGrid() {
                 aria-label={label}
                 onClick={() => posthog.capture("partner_promotion_click", {
                   placement: slotKey,
-                  destination_host: new URL(href, window.location.origin).hostname,
+                  destination_host: destination.hostname,
                   destination_type: isExternalPartner ? "partner" : "internal",
                 })}
                 className="block rounded-xl overflow-hidden border border-sk-border-2 hover:border-sk-accent transition-all hover:-translate-y-1 shadow-md bg-black group"
