@@ -46,12 +46,16 @@ export function PromotionArtwork({ post, variant = "card", className = "", prior
   const source = variant === "hero" ? (post.image_hero || post.image_thumbnail) : (post.image_thumbnail || post.image_hero);
   const isHero = variant === "hero";
   if (source) {
-    return <div className={`relative overflow-hidden bg-sk-bg-3 ${className}`}>
-      <img src={source} alt={post.title} loading={priority ? "eager" : "lazy"}
-        fetchPriority={priority ? "high" : undefined} decoding="async"
-        width={isHero ? 1200 : 640} height={isHero ? 600 : 360}
-        className="absolute inset-0 w-full h-full object-cover" />
-    </div>;
+    // El contenedor debe disponer de altura propia: una imagen absoluta no la aporta.
+    // En artículos, el hero reserva un espacio 2:1; en tarjetas ocupa el alto del slot.
+    return (
+      <div className={`relative overflow-hidden bg-sk-bg-3 ${isHero ? "w-full aspect-[2/1]" : "w-full h-full"} ${className}`}>
+        <img src={source} alt={post.title} loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : undefined} decoding="async"
+          width={isHero ? 1200 : 640} height={isHero ? 600 : 360}
+          className="absolute inset-0 w-full h-full object-cover" />
+      </div>
+    );
   }
   const copy = tagline(post);
   return (
