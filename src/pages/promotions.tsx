@@ -6,14 +6,9 @@ import { Gift, ArrowRight, Zap, Sparkles, Clock } from "lucide-react"; // 👈 A
 import { cn } from "../lib/cn";
 import { supabase } from "../lib/supabase"; // Importación de DB agregada
 import { formatBlogDate } from "../lib/api/blog"; // 👈 Importamos el formateador
+import { PromotionArtwork } from "../components/marketing/promotion-artwork";
 
 
-const SUPABASE_LOGOS = "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/";
-const VERIFIED_PARTNER_LOGOS: Record<string, string> = {
-  coinpoker: SUPABASE_LOGOS + "coinpoker.png",
-  wptglobal: SUPABASE_LOGOS + "wptglobal.png",
-  ignition: SUPABASE_LOGOS + "logo-ignition-poker.png",
-};
 function promoTag(promo: { tags?: string[] | null }, prefix: string): string | undefined {
   return promo.tags?.find((tag) => tag.startsWith(prefix))?.slice(prefix.length);
 }
@@ -124,30 +119,18 @@ export function PromotionsPage() {
                 <Link 
                   key={promo.id} 
                   to={`/promociones/${promo.slug}`}
-                  className="group flex flex-col bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/50 transition-all duration-300 shadow-sk-md hover:shadow-[0_0_30px_rgba(34,211,238,0.1)]"
+                  className="group flex flex-col bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/40 transition-colors duration-200 shadow-sm"
                 >
-                  <div className="h-48 overflow-hidden relative border-b border-sk-border-2">
+                  <div className="h-48 sm:h-52 overflow-hidden relative border-b border-sk-border-2">
                     {/* Etiqueta superior izquierda */}
                     <div className={cn(
                       "absolute top-3 left-3 z-10 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded",
-                      promo.slug === "ignition-bonus" 
-                        ? "bg-orange-500 text-white" 
-                        : "bg-sk-accent text-sk-bg-0"
+                      "bg-sk-bg-0/85 text-sk-accent border border-sk-accent/30 backdrop-blur-sm"
                     )}>
                       {promo.category}
                     </div>
                     
-                    <div className="absolute inset-0 bg-gradient-to-t from-sk-bg-2 to-transparent z-0 opacity-80" />
-                    {promo.image_thumbnail ? (
-                      <img src={promo.image_thumbnail} alt={promo.title} width={640} height={360}
-                        loading="lazy" decoding="async"
-                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
-                    ) : (() => {
-                      const logo = VERIFIED_PARTNER_LOGOS[promoTag(promo, "partner:") || ""];
-                      return logo
-                        ? <div className="absolute inset-0 flex items-center justify-center bg-sk-bg-3 p-8"><img src={logo} alt={`Logo oficial de ${promoTag(promo, "partner:")}`} loading="lazy" decoding="async" className="max-w-[72%] max-h-[85%] object-contain" /></div>
-                        : <div className="absolute inset-0 bg-sk-bg-3" aria-hidden="true" />;
-                    })()}
+                    <PromotionArtwork post={promo} variant="card" className="absolute inset-0 group-hover:scale-[1.025] transition-transform duration-500" />
                   </div>
                   
                   <div className="p-6 flex flex-col flex-1">
@@ -163,7 +146,7 @@ export function PromotionsPage() {
                     <h3 className={cn(
                       "text-xl font-bold text-sk-text-1 mb-2 transition-colors line-clamp-2",
                       promo.slug === "ignition-bonus" 
-                        ? "group-hover:text-orange-500" 
+                        ? "group-hover:text-sk-accent" 
                         : "group-hover:text-sk-accent"
                     )}>
                       {promo.title}
@@ -174,11 +157,11 @@ export function PromotionsPage() {
                     
                     <div className="flex items-center justify-between border-t border-sk-border-2 pt-4 mt-auto">
                       <span className="text-[11px] font-mono text-sk-green flex items-center gap-1.5 uppercase font-bold">
-                        <Zap size={14} /> {promoPhase(promo, today) === "upcoming" ? "Próximamente" : "Verificada"} · {promoTag(promo, "review-by:") || "Revisar condiciones"}
+                        <Zap size={14} /> {promoPhase(promo, today) === "upcoming" ? "Próximamente" : "Verificada"}
                       </span>
                       <span className={cn(
                         "text-sk-sm font-bold flex items-center gap-1",
-                        promo.slug === "ignition-bonus" ? "text-orange-500" : "text-sk-accent"
+                        "text-sk-accent"
                       )}>
                         Ver detalles <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
                       </span>
