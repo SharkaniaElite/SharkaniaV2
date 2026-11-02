@@ -10,6 +10,8 @@ import { renderWithLinks, renderWithLinksAndGlossary } from "../lib/render-inlin
 import { useGlossaryTerms } from "../hooks/use-glossary";
 import type { GlossaryTerm } from "../lib/api/glossary";
 import { WptBanner } from "../components/blog/wpt-banner";
+import { PromotionArtwork } from "../components/marketing/promotion-artwork";
+import { PartnerPromotionPanel } from "../components/marketing/partner-promotion-panel";
 import { TableOfContents, slugify } from "../components/blog/table-of-contents";
 import { RelatedPosts } from "../components/blog/related-posts";
 import { useAuthStore } from "../stores/auth-store";
@@ -105,7 +107,7 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
           </div>
         )}
         {h2Index === 3 && (
-          post.custom_banner_mid_src ? (
+          post.category === "Promociones" ? <PartnerPromotionPanel post={post} /> : post.custom_banner_mid_src ? (
             <div className="w-full my-8">
               <small className="block text-[9px] font-mono text-sk-text-4 text-right mb-1 uppercase tracking-widest">Publicidad Exclusiva</small>
               <a href={post.custom_banner_mid_href ?? "#"} target="_blank" rel="sponsored noopener noreferrer" className="block w-full overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
@@ -187,15 +189,17 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
   }
 
   if (block.type === "button") {
+    const affiliate = post.category === "Promociones" && /afiliad/i.test(block.content || "");
     return (
-      <div className="my-10 flex justify-center">
-        <a 
-          href={block.value || '#'} 
-          target="_blank" 
-          rel={post.category === "Promociones" ? "sponsored noopener noreferrer" : "noopener noreferrer"}
-          className="inline-block px-10 py-4 text-center font-extrabold text-white text-lg tracking-wider uppercase rounded-xl bg-gradient-to-r from-orange-500 to-red-600 shadow-[0_10px_30px_rgba(249,115,22,0.4)] hover:shadow-[0_15px_40px_rgba(249,115,22,0.6)] hover:-translate-y-1 transition-all duration-300 border-t border-t-white/20 border-b-[4px] border-b-black/50"
+      <div className="my-8 flex justify-center">
+        <a
+          href={block.value || '#'}
+          target="_blank"
+          rel={affiliate ? "sponsored noopener noreferrer" : "noopener noreferrer"}
+          className={`inline-flex max-w-full w-full sm:w-auto items-center justify-center gap-2 px-6 py-3.5 rounded-lg border text-center text-sm sm:text-base font-bold leading-snug transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent ${affiliate ? "bg-sk-accent hover:bg-cyan-300 border-sk-accent text-sk-bg-0" : "bg-sk-bg-2 hover:bg-sk-bg-3 border-sk-border-3 text-sk-text-1 hover:border-sk-accent/50"}`}
         >
-          {block.content || 'CLIC AQUÍ'}
+          <span>{block.content || "Consultar información"}</span>
+          <ChevronRight size={17} className="shrink-0" aria-hidden="true" />
         </a>
       </div>
     );
@@ -430,15 +434,15 @@ export default function BlogPostPage() {
         <>
           <SEOHead title={(post.seo_title || post.title).replace(/\s*\|\s*Sharkania\s*$/i, "")} description={post.seo_description || post.excerpt} path={`/${post.category === "Noticias" ? "noticias" : post.category === "Promociones" ? "promociones" : "blog"}/${post.slug}`} ogType="article" ogImage={post.image_og ?? undefined} />
 
-          {post.image_hero && (
-            <div className="w-full max-h-[480px] overflow-hidden bg-sk-bg-3">
-              <img 
-                src={post.image_hero} 
-                alt={`Portada del artículo: ${post.title}`} 
-                fetchPriority="high" 
-                loading="eager" 
-                className="w-full h-full object-cover" 
-              />
+          {(post.image_hero || post.category === "Promociones") && (
+            <div className="max-w-[1120px] mx-auto px-4 sm:px-6 pt-8">
+              {post.category === "Promociones"
+                ? <PromotionArtwork post={post} variant="hero" priority className="rounded-2xl border border-sk-accent/15 shadow-sm" />
+                : <div className="overflow-hidden rounded-2xl border border-sk-border-2 bg-sk-bg-3">
+                  <img src={post.image_hero!} alt={`Portada del artículo: ${post.title}`}
+                    fetchPriority="high" loading="eager" decoding="async" width={1200} height={600}
+                    className="w-full max-h-[480px] object-cover" />
+                </div>}
             </div>
           )}
 
@@ -521,7 +525,7 @@ export default function BlogPostPage() {
                   })}
                 </div>
 
-                {post.custom_banner_final_src ? (
+                {post.category === "Promociones" ? null : post.custom_banner_final_src ? (
                   <div className="w-full mt-10">
                     <small className="block text-[9px] font-mono text-sk-text-4 text-right mb-1 uppercase tracking-widest">Publicidad Exclusiva</small>
                     <a href={post.custom_banner_final_href ?? "#"} target="_blank" rel="noopener noreferrer" className="block w-full overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
@@ -595,7 +599,7 @@ export default function BlogPostPage() {
                   )}
                 </div>
 
-                <RelatedPosts currentSlug={post.slug} currentCategory={post.category} />
+                <RelatedPosts currentSlug={post.slug} currentCategory={post.category} currentPartner={post.tags?.find((tag) => tag.startsWith("partner:"))?.slice(8)} />
 
                 {/* Share */}
                 <div className="mt-10 pt-8 border-t border-sk-border-2">

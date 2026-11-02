@@ -46,7 +46,7 @@ export function formatBlogDate(iso: string | null): string {
 export async function getBlogPosts(): Promise<BlogPost[]> {
   const { data, error } = await supabase
     .from("blog_posts")
-    .select("id, slug, title, excerpt, category, read_time, image_thumbnail, image_og, published_at, created_at")
+    .select("id, slug, title, excerpt, category, read_time, image_thumbnail, image_hero, image_og, tags, published_at, created_at")
     .eq("published", true)
     .order("published_at", { ascending: false });
 

@@ -16,7 +16,8 @@ import { TournamentCard } from "../components/calendar/tournament-card";
 import { TournamentDetailModal } from "../components/calendar/tournament-detail-modal";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
 import { InstagramFeed } from "../components/marketing/instagram-feed.tsx";
-import posthog from "posthog-js"; // 🔥 NUEVA IMPORTACIÓN
+import posthog from "posthog-js";
+import { PromotionArtwork } from "../components/marketing/promotion-artwork"; // 🔥 NUEVA IMPORTACIÓN
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -190,10 +191,12 @@ export function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {loadingBlog ? [1,2,3].map(i => <div key={i} className="animate-sk-pulse h-40 bg-sk-bg-2 border border-sk-border-2 rounded-xl" />) : blogPosts.map(post => (
                 <Link key={post.id} to={post.category === 'Promociones' ? `/promociones/${post.slug}` : `/noticias/${post.slug}`} className="group relative h-40 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 transition-all duration-300 flex items-end p-5">
-                  {post.image_thumbnail && <><img src={post.image_thumbnail} alt={post.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-90" /></>}
+                  {post.category === 'Promociones'
+                    ? <><PromotionArtwork post={post} variant="compact" className="absolute inset-0 group-hover:scale-[1.02] transition-transform duration-500" /><div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" /></>
+                    : post.image_thumbnail && <><img src={post.image_thumbnail} alt={post.title} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-90" /></>}
                   <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={cn("px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-sm", post.category.toLowerCase() === 'promociones' ? "bg-orange-500 text-white" : "bg-sk-accent text-black")}>{post.category}</span>
+                      <span className={cn("px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-sm", post.category.toLowerCase() === 'promociones' ? "bg-sk-accent text-sk-bg-0" : "bg-sk-accent text-black")}>{post.category}</span>
                       <span className="text-[10px] font-mono text-gray-300">{formatBlogDate(post.published_at)}</span>
                     </div>
                     <h3 className="text-white font-bold text-sm leading-tight group-hover:text-sk-accent transition-colors line-clamp-2">{post.title}</h3>
