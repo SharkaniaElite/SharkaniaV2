@@ -190,7 +190,7 @@ export function HomePage() {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {loadingBlog ? [1,2,3].map(i => <div key={i} className="animate-sk-pulse h-40 bg-sk-bg-2 border border-sk-border-2 rounded-xl" />) : blogPosts.map(post => (
-                <Link key={post.id} to={post.category === 'Promociones' ? `/promociones/${post.slug}` : `/noticias/${post.slug}`} className="group relative h-40 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 transition-all duration-300 flex items-end p-5">
+                <Link key={post.id} to={post.category === 'Promociones' ? `/promociones/${post.slug}` : `/noticias/${post.slug}`} className="group relative h-52 md:h-56 rounded-xl overflow-hidden border border-sk-border-2 bg-sk-bg-2 shadow-sk-md hover:border-sk-accent/50 transition-all duration-300 flex items-end p-5">
                   {post.category === 'Promociones'
                     ? <><div className="absolute inset-0 overflow-hidden"><PromotionArtwork post={post} variant="compact" className="w-full h-full group-hover:scale-[1.02] transition-transform duration-500" /></div><div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-transparent pointer-events-none" /></>
                     : post.image_thumbnail && <><img src={post.image_thumbnail} alt={post.title} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-90" /></>}
