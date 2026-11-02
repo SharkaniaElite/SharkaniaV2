@@ -20,6 +20,7 @@ import { getUpcomingTournaments } from "../lib/api/tournaments";
 import { InstagramFeed } from "../components/marketing/instagram-feed.tsx";
 import posthog from "posthog-js";
 import { PromotionArtwork } from "../components/marketing/promotion-artwork"; // 🔥 NUEVA IMPORTACIÓN
+import { bannerIsReviewed } from "../lib/marketing-banner-policy";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -70,16 +71,16 @@ function HomeBannerGrid() {
     <section aria-label="Colaboraciones y promociones de salas" className="py-10 bg-sk-bg-0 border-b border-sk-border-2">
       <div className="max-w-[1300px] mx-auto px-6">
         <p className="mb-3 text-[10px] font-mono uppercase tracking-widest text-sk-text-3">
-          Colaboraciones comerciales · Consulta las condiciones en cada destino
+          Colaboraciones comerciales verificadas · Condiciones según sala y país · +18
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {slots.map((slotKey) => {
             const config = banners?.slots?.[slotKey];
-            const desk = config?.desktop;
-            const mob = config?.mobile;
-
-            const image = (isMobile ? mob?.src || desk?.src : desk?.src || mob?.src) || "";
-            const href = (isMobile ? mob?.href || desk?.href : desk?.href || mob?.href) || "";
+            const desk = bannerIsReviewed(config?.desktop) ? config?.desktop : null;
+            const mob = bannerIsReviewed(config?.mobile) ? config?.mobile : null;
+            const selected = (isMobile ? mob || desk : desk || mob);
+            const image = selected?.src || "";
+            const href = selected?.href || "";
             if (!image || !href || href === "#") return null;
 
             // El CMS puede recibir enlaces mal formados; nunca romper la portada por una URL inválida.
@@ -91,7 +92,7 @@ function HomeBannerGrid() {
             }
             if (!["http:", "https:"].includes(destination.protocol)) return null;
             const isExternalPartner = destination.origin !== window.location.origin;
-            const label = (isMobile ? mob?.label || desk?.label : desk?.label || mob?.label) || "Oferta de sala de póker";
+            const label = selected?.editorial_title || selected?.label || "Oferta de sala de póker";
 
             return (
               <a
@@ -112,9 +113,10 @@ function HomeBannerGrid() {
                   <img
                     src={desk?.src || mob?.src || image}
                     alt={label}
-                    width={desk?.width || mob?.width || 600}
-                    height={desk?.height || mob?.height || 250}
-                    loading={slotKey === "grid_1" ? "eager" : "lazy"}
+                    width={desk?.width || mob?.width || 720}
+                    height={desk?.height || mob?.height || 405}
+                    loading="lazy"
+                    fetchPriority="low"
                     decoding="async"
                     className="w-full h-auto aspect-[350/200] md:aspect-[600/250] object-cover hover:opacity-90 transition-opacity"
                   />
