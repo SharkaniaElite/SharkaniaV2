@@ -33,7 +33,7 @@ export function PageShell({ children }: PageShellProps) {
   };
 
   return (
-    <div className="min-h-screen bg-sk-bg-1 flex flex-col relative">
+    <div className="min-h-screen bg-sk-bg-1 flex flex-col relative overflow-x-clip">
       <Navbar />
       <div style={{ height: "56px", flexShrink: 0 }} />
 
