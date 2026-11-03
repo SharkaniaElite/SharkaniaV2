@@ -172,7 +172,7 @@ export function ArenaHomePage() {
   });
 
   return <PageShell variant="arena">
-    <SEOHead title="Sharkania | Ranking ELO y torneos de póker online" description="Sigue torneos de póker online, consulta el ranking ELO de jugadores y descubre clubes, ligas y resultados registrados en Sharkania." path="/" />
+    <SEOHead title="Ranking ELO y torneos de póker online" description="Sigue torneos de póker online, consulta el ranking ELO de jugadores y descubre clubes, ligas y resultados registrados en Sharkania." path="/" />
     <div className="arena">
       <section className="arena-hero arena-scene" aria-labelledby="arena-hero-title">
         <img className="arena-scene-photo" src="/images/arena/home-hero.webp" alt="" aria-hidden="true" width={720} height={240} loading="eager" decoding="async" fetchPriority="high" />
