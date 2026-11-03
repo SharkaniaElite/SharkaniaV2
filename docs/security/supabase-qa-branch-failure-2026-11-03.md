@@ -15,7 +15,7 @@
 
 ## Hallazgo de causa probable (por confirmar con logs de migración)
 
-La lista de migraciones aplicada a producción de Supabase tiene **más de 50 registros**, desde `20260320132525_allow_club_admin_update_players`, `20260321120051_fix_club_admin_update_players_via_tournaments`, hasta noviembre de 2026.
+La lista de migraciones aplicada a producción de Supabase tiene **50 registros**, desde `20260320132525_allow_club_admin_update_players`, `20260321120051_fix_club_admin_update_players_via_tournaments`, hasta noviembre de 2026.
 
 En cambio, **el repositorio de GitHub conserva solo 22 archivos SQL en `supabase/migrations`**, y el más antiguo es `20261031143409_restrict_club_management_and_directory_policies.sql`. Este archivo inicial intenta crear políticas y triggers en tablas preexistentes `public.clubs` y `public.club_admins`, usa `public.is_super_admin` e `public.is_club_admin`, y **no incluye el DDL de creación de dichas tablas/funciones**.
 
