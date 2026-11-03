@@ -20,7 +20,7 @@ import { useFeatureAccess } from "../hooks/use-shop";
 import { getCountryName } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { formatElo } from "../lib/format";
-import { ArrowLeft, Info, ShieldCheck, Link2 } from "lucide-react";
+import { ArrowLeft, Info, ShieldCheck, Link2, Trophy } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import { useAuthStore } from "../stores/auth-store";
 
@@ -127,7 +127,7 @@ export function PlayerProfilePage() {
 
   if (isLoading) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div
           ref={topRef}
           className="pt-20 min-h-screen flex items-center justify-center"
@@ -140,7 +140,7 @@ export function PlayerProfilePage() {
 
   if (error || !player) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div
           ref={topRef}
           className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4"
@@ -175,14 +175,14 @@ export function PlayerProfilePage() {
   const displayEloPeak = unifiedEloPeak ?? player.elo_peak;
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title={`${cleanNickname} — Perfil`}
         description={`Perfil de ${cleanNickname}. ELO ${Math.round(Number(displayElo)).toLocaleString()}, ${displayStats?.total_tournaments ?? player.total_tournaments} torneos. ${getCountryName(player.country_code)}.`}
         path={`/ranking/${playerSlug}`}
       />
-      <div ref={topRef} className="pt-20 pb-16">
-        <div className="max-w-[1200px] mx-auto px-6">
+      <div ref={topRef} className="arena-interior">
+        <div className="arena-interior-container">
           <Link
             to="/ranking"
             className="inline-flex items-center gap-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 transition-colors mb-6"
@@ -192,7 +192,8 @@ export function PlayerProfilePage() {
           </Link>
 
           {/* Header */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
+          <div className="arena-profile-hero bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
+            <p className="arena-profile-kicker"><Trophy size={14} aria-hidden="true" /> SHARKANIA ARENA / PERFIL COMPETITIVO</p>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-2xl font-extrabold text-sk-accent shrink-0 overflow-hidden">
                 {avatarUrl ? (
@@ -249,7 +250,7 @@ export function PlayerProfilePage() {
               </div>
 
               <div className="text-right">
-                <div className="font-mono text-sk-3xl font-extrabold text-sk-accent tracking-tight leading-none">
+                <div className="arena-profile-elo font-mono text-sk-3xl font-extrabold text-sk-accent tracking-tight leading-none">
                   {formatElo(displayElo)}
                 </div>
                 {hasAliases && (
@@ -272,7 +273,7 @@ export function PlayerProfilePage() {
           </div>
 
           {/* Stats Grid con indicador de ByPass para SuperAdmin */}
-          <div className="mb-6 relative">
+          <div className="arena-profile-panel mb-6 relative">
             {isSuperAdmin && (
               <div className="absolute -top-3 right-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-sk-bg-0 border border-sk-border-2 text-sk-text-2 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm pointer-events-none">
                 <ShieldCheck size={10} className="text-sk-accent" />
@@ -293,7 +294,7 @@ export function PlayerProfilePage() {
           </div>
 
           {/* ELO Chart */}
-          <div className="mb-6">
+          <div className="arena-profile-panel mb-6">
             {hasAliases && (
               <p className="text-[11px] font-mono text-sk-accent/60 mb-2">
                 📈 Gráfica de ELO unificada — combina{" "}
@@ -304,14 +305,14 @@ export function PlayerProfilePage() {
           </div>
 
           {/* Tournament History */}
-          <div className="relative">
+          <div className="arena-profile-panel relative p-3 sm:p-5">
             {isSuperAdmin && (
               <div className="absolute top-0 right-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-sk-bg-0 border border-sk-border-2 text-sk-text-2 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm pointer-events-none">
                 <ShieldCheck size={10} className="text-sk-accent" />
                 Admin Bypass Activo
               </div>
             )}
-            <h3 className="text-sk-md font-bold text-sk-text-1 mb-4">
+            <h3 className="arena-section-title text-sk-md font-bold text-sk-text-1 mb-4">
               🎯 Historial de Torneos
               {hasAliases && (
                 <span className="text-sk-xs text-sk-text-3 font-normal ml-2">
