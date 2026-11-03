@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const client = read("src/lib/api/guarded-elo.ts");
 const engine = read("src/lib/api/elo-engine.ts");
+const tournamentsApi = read("src/lib/api/tournaments.ts");
 const sql = read("docs/security/elo-transactional-guarded-rpc-2026-11-03.proposal.sql");
 const workflow = read(".github/workflows/core-supabase-rls-qa.yml");
 const fixture = read("tests/fixtures/sharkania-elo-qa-reentries.sql");
@@ -23,6 +24,8 @@ test("Guarded ELO remains disabled unless explicitly opted in", () => {
 test("Reverse ELO is blocked in guarded mode until a protected reset exists", () => {
   assert.match(engine, /export async function reverseElo/);
   assert.match(engine, /if \(GUARDED_ELO_RPC_ENABLED\)\s*\{\s*return \{ success: false/);
+  assert.match(tournamentsApi, /if \(GUARDED_ELO_RPC_ENABLED\)\s*\{\s*throw new Error/);
+  assert.match(tournamentsApi, /supabase\.rpc\('reset_tournament_impact'/);
 });
 
 test("SQL preserves Elo rating formula but charges each actual entry", () => {
