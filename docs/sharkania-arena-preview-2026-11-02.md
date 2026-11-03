@@ -249,3 +249,27 @@ Hallazgo inicial: las rutas comerciales y de video seguían montando `<PageShell
 - GitHub Actions en el commit de la suite de contratos: **4/4 checks aprobados**, incluidos TypeScript estricto, SEO/accesos, sitemap Worker y limpieza de funcionalidades retiradas.
 - Pendiente inspección humana de navegación real con usuario autenticado, reproducción de Rumble, errores de compra y ofertas locales, además de QA visual completa en 320/390/1440 px.
 - No se fusionó PR #64, no se editaron datos de producción ni Supabase; las ofertas de afiliados siguen requiriendo revisión editorial de vigencia, condiciones legales y elegibilidad por país (no inferirlas del rediseño).
+
+
+## Etapa 11 — exclusividad publicitaria de Ignition Poker (3 nov 2026)
+
+- `/ignition` mantiene `<PageShell variant="arena">`, pero NO pasa `showMarketing`: la franja global, sus dos espacios destacados y el ticker dejan de aparecer en esta ruta. No se modifica su configuración en las demás páginas.
+- `FloatingCTA` desactiva la creatividad flotante de WPT/otras salas únicamente en `/ignition`.
+- Un solo banner Ignition `728x90.jpg` aparece al principio, con etiqueta «Publicidad · Ignition Poker», condiciones y enlace comercial patrocinado. Se quitó su duplicado del bloque de beneficios.
+- Hero «LIGA DE PÓKER SHARKANIA», texto de premios/fechas, campos de vinculación, Turnstile y acciones existentes permanecen. CSS azul oscuro/naranja responsive acotado a `.arena-ignition-route`.
+- Tests en `tests/arena-ignition-sponsor-contract.test.mjs`; excepción explícita en `tests/arena-public-navigation-contract.test.mjs`, 4/4 GitHub Actions verdes; Cloudflare Browser Rendering confirmó la única pieza publicitaria Ignition y ausencia de promos globales en 390px. Producción intacta.
+
+## Etapa 12 — Replayer y dashboard privados con identidad Arena (3 nov 2026)
+
+**Alcance:** solo rama `feature/sharkania-arena-experience-preview`, PR #64 abierto DRAFT. No modificaciones SQL/RLS, secretos, datos ni merge a main.
+
+- `/tools/replayer`: usa `Navbar variant="arena"` en modo normal, manteniendo el modo pantalla completa que oculta el Navbar. Introducción editorial «REPLAYER DE MANOS DE PÓKER», enlace al catálogo, tabs con `aria-pressed`, etiqueta de historial, carga mediante archivo .txt/.log accesible y mensajes de error con `role="alert"`.
+- Estado de reproducción: barra de datos, opciones de compartir y nueva mano, selector múltiple, PokerTable, ReplayControls y fullscreen preservados. CSS reduce las columnas del panel acción/pozo a `minmax(0,1fr) 118px` en móvil, sin cambiar el motor o los atajos.
+- `/dashboard`: activa `PageShell variant="arena"` y sigue con `noIndex`; nuevo hero «TU PANEL DE PÓKER» con accesos a ranking y torneos, cierres de sesión, enlaces internos a perfil, nicknames, liga Ignition, misiones y estadísticas.
+- Perfil, WPT, vinculación Ignition, nicknames, reclamaciones, monedas, XP, misiones y gráficos conservan sus consultas, callbacks y estructura. Se mejoraron etiquetas de inputs, avatar y campos Ignition. Las descripciones de estadísticas ya no implican «Premium desbloqueado» o «gratis de por vida» sin validar las condiciones del servicio.
+- Hoja `arena-player-experience.css` acotada a dashboard y replayer; `ReplayControls` identifica su panel con `role="region"` y etiqueta accesible.
+- `tests/arena-player-experience-contract.test.mjs` valida rutas, controles, callbacks, modos, permisos, herramientas y estilos; CI GitHub de la etapa aprobó 4/4 comprobaciones, incluido TypeScript.
+- Cloudflare confirmó el Preview. **Limitaciones**: no se validaron visualmente los flujos autenticados a través de Browser Rendering; las rutas protegidas no quedaron disponibles en la herramienta. Pendiente QA humano/sesión de prueba para importar manos, play/pause, fullscreen, zoom de mesa, reclamar nicknames, editar foto/perfil y vincular Ignition en 390/1440px.
+- Reiteración de seguridad: rediseñar el dashboard NO modifica la exposición SQL pendiente de `Stats Espía`. Se mantiene el runbook de migración a RPC segura y pruebas aisladas antes de fusionar.
+
+Próxima prioridad: QA funcional autenticado con cuentas de prueba, consistencia del área privada, y posteriormente cierre de seguridad Stats Espía. No fusionar PR #64 aún.
