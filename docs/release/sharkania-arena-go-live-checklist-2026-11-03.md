@@ -108,3 +108,12 @@ Se recuperó una **fotografía de solo metadatos del estado actual** de PostgreS
 El propietario exportó en Ubuntu/WSL 2 con `pg_dump 18.6` **solo el esquema** de PostgreSQL 17.6, usando conexión Session pooler IPv4. Se verificaron `public` (64 tablas, 185 políticas RLS, 22 triggers) y `private` (1 tabla `hand_view_cooldowns`, FK a `public.shared_hands` y `auth.users`). Ambos dumps permanecen fuera del repositorio; se añadieron únicamente **hashes, recuentos, documentación y un validador offline** `scripts/verify-supabase-schema-snapshots.mjs`.
 
 **Persisten los gates de NO-GO:** snapshot es posterior a las 50 migraciones, sin historial inicial; falta ensayar restauración en QA Supabase y recomponer permisos/roles/extensiones, porque los dumps tienen `--no-acl --no-owner`. Además de Stats Espía, se identificaron políticas RLS demasiado abiertas en `tournament_clubs`, SharkTV, tablas ACC de pagos y varias tablas de administración. No se aplicó SQL ni se creó una rama con cobro.
+
+
+## Actualización de prioridades — SharkTV fuera de alcance (3 noviembre 2026)
+
+Por decisión del propietario, **no invertir más tiempo en auditoría/remediación individual de SharkTV**: se retirará por un proyecto de limpieza posterior, sin tocar datos ni derechos históricos sin evaluación. No confundir esta decisión con autorización para borrar objetos de producción ahora.
+
+**Prioridad técnica nueva:** permisos P0 de `tournament_clubs`, tablas ACC de pagos, `site_configs`, `live_polls` y `blog_embeddings`; Stats Espía mantiene bloqueo P0. La propuesta RLS **no aplicada** y la matriz de roles están en [Plan RLS sin SharkTV](../security/non-sharktv-rls-hardening-plan-2026-11-03.md). El modelo de permisos de `current_league_champion`, `players` y `leagues` requiere revisión funcional antes de cambiarlo.
+
+**Estado:** solo documentación, tests estáticos y propuesta de SQL en rama Preview. CI de frontend no certifica RLS en producción. Faltan pruebas reales en ambiente aislado y aprobación para cambios SQL. NO-GO.
