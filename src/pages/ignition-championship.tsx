@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaRouteTrail } from "../components/arena/arena-route-trail";
 import { cn } from "../lib/cn";
 
 const LATAM_COUNTRIES = [
@@ -212,13 +213,14 @@ export function IgnitionChampionshipPage() {
   };
 
   return (
-    <PageShell>
-      <div className="min-h-screen bg-[#0a0a0a] text-white relative font-sans pt-20">
+    <PageShell variant="arena" showMarketing>
+      <div className="arena-public-bridge arena-partner-route arena-ignition-route min-h-screen text-white relative font-sans">
         <SEOHead 
           title="Liga SHARKANIA Noviembre 2026 en Ignition Poker"
           description="Liga SHARKANIA: jueves 5, 12, 19 y 26 de noviembre a las 21:00 hora de Chile. US$100 garantizados por fecha, buy-in US$3,30, reentry y registro tardío de 60 minutos." 
           path="/ignition"
         />
+        <ArenaRouteTrail section="Promociones de póker" current="Ignition Poker · Liga Sharkania" />
 
         {/* Efectos visuales de fondo */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-orange-600/20 blur-[150px] rounded-full pointer-events-none opacity-60" />
@@ -231,7 +233,7 @@ export function IgnitionChampionshipPage() {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-500/10 border border-orange-500/30 px-3 py-1.5 rounded-full text-orange-400 font-mono text-xs uppercase tracking-widest font-bold">
               <Flame size={14} className="animate-pulse" />
-              Liga SHARKANIA · Noviembre 2026
+              TORNEOS DE PÓKER / LIGA SHARKANIA · NOVIEMBRE 2026
             </div>
             
             <h1 className="text-5xl sm:text-6xl font-black leading-tight tracking-tight">
