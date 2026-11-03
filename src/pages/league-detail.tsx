@@ -254,12 +254,15 @@ export function LeagueDetailPage() {
                   </h2>
                   {nextNovemberDateLabel && <p className="mt-2 text-sk-base font-semibold text-sk-accent capitalize">{nextNovemberDateLabel} · Chile</p>}
                   <p className="mt-2 text-sk-sm leading-relaxed text-sk-text-2">
-                    Cuatro jueves de noviembre, 21:00 h de Chile. Consulta el calendario y cómo vincular tu nickname de Ignition para aparecer en la clasificación.
+                    Cuatro jueves de noviembre, 21:00 h de Chile. Si aún no tienes Ignition, descárgalo usando el enlace de SHARKANIA en nuestra guía.
+                  </p>
+                  <p className="mt-2 text-sk-sm font-semibold leading-relaxed text-sk-text-1">
+                    ¿Ya estabas inscrito en la Liga SHARKANIA? No necesitas registrarte nuevamente. Entra con tu cuenta de siempre y comprueba el estado de tu nickname.
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row lg:flex-col">
                   <Link to="/ignition" className="inline-flex min-h-12 items-center justify-center rounded-lg bg-sk-accent px-5 py-3 text-center text-sm font-extrabold text-sk-bg-0 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
-                    Cómo participar y vincular nickname
+                    Descargar Ignition y vincular nickname
                   </Link>
                   <a href="#league-tabs" onClick={() => setTab("upcoming")} className="inline-flex min-h-12 items-center justify-center rounded-lg border border-sk-border-2 bg-sk-bg-3 px-5 py-3 text-center text-sm font-bold text-sk-text-1 hover:border-sk-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
                     Ver fechas programadas
