@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 const FOOTER_LINKS = [
   { label: "Ranking", href: "/ranking" },
   { label: "Sistema ELO", href: "/sistema-elo" },
-  { label: "Calendario", href: "/calendar" },
+  { label: "Torneos", href: "/calendar" },
   { label: "Clubes", href: "/clubs" },
   { label: "Ligas", href: "/leagues" },
   { label: "Comparador", href: "/compare" },
@@ -35,7 +35,7 @@ export function Footer() {
               </span>
             </div>
             <p className="text-sk-xs text-sk-text-2">
-              © {new Date().getFullYear()} Sharkania. La plataforma global de poker competitivo.
+              © {new Date().getFullYear()} Sharkania. Torneos de póker, rankings ELO y ligas competitivas.
             </p>
           </div>
           
