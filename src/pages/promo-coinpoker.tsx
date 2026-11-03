@@ -1,5 +1,6 @@
 // src/pages/promo-coinpoker.tsx
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaRouteTrail } from "../components/arena/arena-route-trail";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import { 
@@ -12,12 +13,14 @@ const AFFILIATE_LINK = "https://record.coinpokeraffiliates.com/_ZnRTLL6Lwv7UOsjN
 
 export function PromoCoinPokerPage() {
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead 
-        title="CoinPoker | Bono 150% y Rakeback Épico | Sharkania" 
-        description="Únete a CoinPoker con Sharkania. Bono de bienvenida del 150% hasta $2.000, 15% de rakeback diario y cero bloqueos geográficos." 
+        title="CoinPoker | Promociones de póker y guía de registro" 
+        description="Consulta información publicada sobre CoinPoker, sus beneficios y registro. Verifica siempre las condiciones oficiales, elegibilidad y vigencia antes de participar." 
+        path="/promociones/coinpoker"
       />
-      <div className="selection:bg-red-500/30 bg-sk-bg-0">
+      <div className="arena-public-bridge arena-partner-route arena-coinpoker-route selection:bg-red-500/30">
+        <ArenaRouteTrail section="Promociones de póker" current="CoinPoker" />
         
         {/* ============================================================== 
             HERO SECTION (Cinemático y Agresivo)
@@ -48,7 +51,7 @@ export function PromoCoinPokerPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start pt-4">
-                <a href={AFFILIATE_LINK} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                <a href={AFFILIATE_LINK} target="_blank" rel="sponsored noopener noreferrer" className="w-full sm:w-auto">
                   <Button variant="accent" size="lg" className="w-full bg-red-600 hover:bg-red-500 text-white border-none shadow-[0_0_30px_rgba(220,38,38,0.4)] hover:shadow-[0_0_40px_rgba(220,38,38,0.6)] h-14 px-8 text-lg">
                     Reclamar Bono de $2.000 <ArrowRight size={20} className="ml-2" />
                   </Button>
