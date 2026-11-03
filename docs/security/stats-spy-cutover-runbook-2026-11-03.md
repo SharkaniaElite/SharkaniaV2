@@ -59,3 +59,28 @@ Fuente: consultas de solo lectura `pg_policies`, `pg_proc`, `has_column_privileg
 **Ninguna política, grant, tabla, función ni dato de producción fue modificado.** La aplicación de la fase de permisos requiere autorización y pruebas con cuentas de ensayo en un entorno de base de datos aislado. Un `REVOKE` directo en producción antes de adaptar `get_unified_ranking` rompería la clasificación y está expresamente descartado.
 
 Referencia: [Supabase — Column Level Security](https://supabase.com/docs/guides/database/postgres/column-level-security) y [Supabase — Security Definer Advisor](https://supabase.com/docs/guides/observability/advisors?queryGroups=lint&lint=0028_anon_security_definer_function_executable).
+
+
+## Costo real del entorno aislado — comprobado 3 noviembre de 2026
+
+El proyecto `nhpjzywfzljtlqaigzed` pertenece a la organización `SharkaniaV2` (`dhlmdmgqejjrtozibqrg`). `get_cost(type=branch)` confirmó **US$0.01344 por hora** de Compute Micro.
+
+- Sin cargo fijo inicial de rama; se cobra mientras existe.
+- Otros consumos potencialmente facturables: disco, tráfico/egress y Storage; depende de la utilización.
+- Los créditos de Compute del plan Pro **no se aplican a Branching Compute**; Branches **no están protegidas por el Spend Cap**.
+- La inspección de `list_branches` confirmó cero ramas abiertas antes de este trabajo.
+- **No se creó ninguna rama**, ni se aprobó un gasto. El coste solo empezaría al crearla.
+- La rama de prueba no copia automáticamente los datos reales de producción. Preparar fixtures sanitizados para las pruebas de permisos.
+
+Referencia oficial: https://supabase.com/docs/guides/platform/manage-your-usage/branching
+
+## Mejoras sin costos de infraestructura
+
+- Historial premium preparado para solicitar **30 resultados por página** mediante `useInfiniteQuery`; botón «Ver 30 resultados más» con carga bajo demanda y separación de caché por usuario. No hay consultas a la RPC protegida mientras `VITE_STATS_SPY_SECURE_RPC` esté desactivado.
+- `src/main.tsx`: PostHog y Clarity solo arrancan en `sharkania.com` y `www.sharkania.com`; las vistas previas Pages ya no contaminan las métricas de producción. Clarity usa importación dinámica tras el evento de carga.
+- `tests/stats-spy-contract.test.mjs` añade validación automática de contrato de los RPC, paginación y semántica de autorización; expone explícitamente tres tareas pendientes como `test.todo`.
+- `tests/analytics-preview-isolation.test.mjs` protege el aislamiento de la analítica y la carga diferida en el pipeline existente.
+- Consulta de solo lectura de `pg_indexes` y `EXPLAIN`: el plan de Kolonvo usa `idx_players_slug` y `idx_tournament_results_player`; el orden por `created_at` requiere `Sort` de un número estimado de 11 filas. **No se propone otro índice de inmediato**: la ganancia no está demostrada a la escala actual.
+- La propuesta de RPC resumen replica el cálculo heredado de buy-ins que contempla reentradas, con fallback a totales del jugador si los resultados son incompletos. Aún debe validarse el tratamiento de múltiples divisas antes de activar informes de ROI.
+
+**Criterio de salida:** solo desplegar fase final cuando exista prueba de cuatro identidades (anónimo, sin licencia, licencia activa y superadmin), permisos SQL explícitos, rollback ensayado y revisión del propietario.
