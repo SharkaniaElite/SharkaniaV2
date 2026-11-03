@@ -80,6 +80,7 @@ test("Stats Spy proposal does not sum mixed currencies into fictitious aggregate
   const types = client;
   const grid = load("src/components/players/player-stats-grid.tsx");
   assert.match(sql, /GROUP BY COALESCE\(t\.currency::text, 'SIN_MONEDA'\)/);
+  assert.match(sql, /SUM\(COALESCE\(r\.prize_won,0\) \+ COALESCE\(r\.bounties_won,0\)\)/);
   assert.match(sql, /v_currency_count = 1/);
   assert.match(sql, /v_prizes := NULL/);
   assert.match(sql, /v_buyins := NULL/);
