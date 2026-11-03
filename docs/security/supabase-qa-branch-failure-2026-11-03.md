@@ -19,6 +19,8 @@ La lista de migraciones aplicada a producción de Supabase tiene **50 registros*
 
 En cambio, **el repositorio de GitHub conserva solo 22 archivos SQL en `supabase/migrations`**, y el más antiguo es `20261031143409_restrict_club_management_and_directory_policies.sql`. Este archivo inicial intenta crear políticas y triggers en tablas preexistentes `public.clubs` y `public.club_admins`, usa `public.is_super_admin` e `public.is_club_admin`, y **no incluye el DDL de creación de dichas tablas/funciones**.
 
+**Cruce por versiones:** de las 50 migraciones registradas en el proyecto, **29 no tienen un archivo con la misma versión en GitHub**. Los otros 21 archivos con versión de 14 dígitos sí corresponden a versiones remotas. Además, GitHub contiene **`20261031_secure_batch_blog_views.sql`**, con prefijo de **8 dígitos** en lugar de los 14 esperados y **sin correspondencia exacta** en el historial de Supabase; revisar este SQL antes de moverlo, renombrarlo o aplicarlo, pues podría duplicar funciones ya instaladas.
+
 Esto demuestra que el conjunto de archivos SQL bajo control de versiones **no es autónomo ni reproducible desde una base vacía**. Es una explicación probable del estado `MIGRATIONS_FAILED`, pero **no hay un log de error preciso de la migración que falló**; no atribuirle causalidad confirmada sin obtenerlo.
 
 ## Plan seguro de reparación sin alterar el histórico
