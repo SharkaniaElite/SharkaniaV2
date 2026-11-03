@@ -8,10 +8,12 @@ import { signIn } from "../lib/api/auth";
 import { useAuthStore } from "../stores/auth-store";
 import { SEOHead } from "../components/seo/seo-head";
 import { ArenaAuthFrame } from "../components/arena/arena-auth-frame";
+import { isArenaPreviewAuthBlocked } from "../lib/arena-preview";
 import { translateAuthError } from "../lib/format"; // 👈 Importamos el traductor
 
 export function LoginPage() {
   const turnstileRef = useRef<TurnstileInstance>(null);
+  const previewBlocked = isArenaPreviewAuthBlocked();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -26,6 +28,7 @@ export function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (previewBlocked) return;
     setError("");
 
     if (!captchaToken) {
@@ -80,6 +83,7 @@ export function LoginPage() {
             <input
               id="arena-login-email"
               type="email"
+              disabled={previewBlocked}
               name="email"
               autoComplete="email"
               value={email}
@@ -97,6 +101,7 @@ export function LoginPage() {
             <input
               id="arena-login-password"
               type="password"
+              disabled={previewBlocked}
               name="password"
               autoComplete="current-password"
               value={password}
@@ -116,7 +121,7 @@ export function LoginPage() {
             </div>
           </div>
 
-          <div className="flex justify-center py-2 min-h-[65px]">
+          {!previewBlocked && <div className="flex justify-center py-2 min-h-[65px]">
             <Turnstile
               ref={turnstileRef}
               siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
@@ -125,7 +130,7 @@ export function LoginPage() {
               onExpire={() => setCaptchaToken(null)}
               options={{ theme: "dark" }}
             />
-          </div>
+          </div>}
 
           {error && (
             <div role="alert" className="bg-sk-red-dim border border-sk-red/20 rounded-md p-3 text-sk-sm text-sk-red">
@@ -139,7 +144,7 @@ export function LoginPage() {
             size="lg"
             className="w-full"
             isLoading={loading}
-            disabled={!captchaToken || loading}
+            disabled={previewBlocked || !captchaToken || loading}
           >
             Iniciar Sesión
           </Button>
