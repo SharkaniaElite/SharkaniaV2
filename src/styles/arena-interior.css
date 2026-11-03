@@ -890,3 +890,48 @@
   .arena-league-breakdown-entry {gap:8px}
   .arena-league-breakdown-entry b {font-size:14px}
 }
+
+
+/* Performance + premium UX: incremental authorized history pagination. */
+.arena-history-load-more {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:16px 18px;
+  border-top:1px solid rgba(133,183,202,.2);
+  background:linear-gradient(100deg,rgba(22,53,67,.68),rgba(12,25,38,.97));
+}
+.arena-history-load-more > span {
+  color:#99bbca;
+  font:650 11px/1.4 monospace;
+  font-variant-numeric:tabular-nums;
+}
+.arena-history-load-more button {
+  min-height:41px;
+  border:1px solid rgba(52,219,236,.65);
+  background:rgba(37,205,230,.12);
+  color:#67e9f4;
+  border-radius:8px;
+  font:800 12px/1.4 system-ui,sans-serif;
+  padding:10px 16px;
+  transition:background .18s,border-color .18s;
+}
+.arena-history-load-more button:hover:not(:disabled) {
+  background:rgba(38,205,230,.23);
+  border-color:#64eaf5;
+}
+.arena-history-load-more button:focus-visible {
+  outline:2px solid #74ebf6;
+  outline-offset:3px;
+}
+.arena-history-load-more button:disabled {
+  opacity:.48;
+  cursor:wait;
+}
+@media(max-width:520px){
+  .arena-history-load-more{flex-direction:column;align-items:stretch}
+  .arena-history-load-more>span{text-align:center}
+  .arena-history-load-more button{width:100%}
+}
