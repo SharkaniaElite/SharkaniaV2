@@ -378,7 +378,7 @@ export default function BlogPostPage() {
 
   // Si no es ninguna de las promos especiales, renderizamos el blog normal
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       {/* Breadcrumb */}
       <div className="arena-article-breadcrumb border-b border-sk-border-1 bg-sk-bg-1/80 backdrop-blur-sm sticky top-14 z-40">
         <div className="max-w-3xl mx-auto px-6 py-2.5 flex items-center justify-between">
