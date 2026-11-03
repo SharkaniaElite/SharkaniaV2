@@ -17,18 +17,16 @@ export function PlayerStatsGrid({ player, hasAccess = false }: PlayerStatsGridPr
   const renderPremiumValue = (val: string) => {
     if (hasAccess) return val;
     return (
-      <div className="relative inline-flex items-center">
-        <span className="blur-[6px] select-none opacity-60 pointer-events-none">
-          {val}
-        </span>
-        <Lock size={14} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-sk-text-1 opacity-80" />
-      </div>
+      <span className="arena-private-stat" aria-label="Disponible con Stats Espía" title="Disponible con Stats Espía">
+        <Lock size={13} aria-hidden="true" />
+        <span>Bloqueado</span>
+      </span>
     );
   };
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="arena-stats-grid grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* PÚBLICAS */}
         <StatCard
           label="ELO Actual"
@@ -77,7 +75,7 @@ export function PlayerStatsGrid({ player, hasAccess = false }: PlayerStatsGridPr
       {!hasAccess && (
         <Link
           to="/shop#stats-espia"
-          className="flex items-center justify-between gap-3 bg-sk-bg-3 border border-sk-border-2 hover:border-sk-accent/40 rounded-lg px-4 py-3 transition-all group"
+          className="arena-stats-upgrade flex items-center justify-between gap-3 bg-sk-bg-3 border border-sk-border-2 hover:border-sk-accent/40 rounded-lg px-4 py-3 transition-all group"
         >
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-md bg-sk-accent-dim flex items-center justify-center shrink-0">
@@ -88,7 +86,7 @@ export function PlayerStatsGrid({ player, hasAccess = false }: PlayerStatsGridPr
                 🕵️ Stats Espía — Ve lo que otros no pueden ver
               </p>
               <p className="text-[11px] text-sk-text-3">
-                Desbloquea Cashes, ITM%, ROI, Profit y Victorias de todos los jugadores — 100 🦈/mes
+                Desbloquea Cashes, ITM%, ROI, Profit y Victorias de todos los jugadores — consulta las condiciones vigentes en la tienda
               </p>
             </div>
           </div>
