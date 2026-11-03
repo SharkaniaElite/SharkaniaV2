@@ -41,6 +41,7 @@ const LeaguesPage = lazy(() => import("./pages/leagues").then(m => ({ default: m
 const LeagueDetailPage = lazy(() => import("./pages/league-detail").then(m => ({ default: m.LeagueDetailPage })));
 const ComparePage = lazy(() => import("./pages/compare").then(m => ({ default: m.ComparePage })));
 const LoginPage = lazy(() => import("./pages/login").then(m => ({ default: m.LoginPage })));
+const ArenaPreviewQaPage = lazy(() => import("./pages/arena-preview-qa").then(m => ({ default: m.ArenaPreviewQaPage })));
 const RegisterPage = lazy(() => import("./pages/register").then(m => ({ default: m.RegisterPage })));
 const PlayerDashboardPage = lazy(() => import("./pages/player-dashboard").then(m => ({ default: m.PlayerDashboardPage })));
 const ClubAdminPage = lazy(() => import("./pages/club-admin").then(m => ({ default: m.ClubAdminPage })));
@@ -127,6 +128,8 @@ export function App() {
               <Route path="/leagues/:leagueSlug" element={<LeagueDetailPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/login" element={<LoginPage />} />
+              {/* Synthetic, read-only preview UI: guarded against production hosts inside component. */}
+              <Route path="/__arena-qa" element={<ArenaPreviewQaPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/welcome" element={<WelcomePage />} />
               <Route path="/tournament/:id" element={<TournamentDetailPage />} />
