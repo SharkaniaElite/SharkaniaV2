@@ -365,3 +365,71 @@
 @media (prefers-reduced-data: reduce) {
   .arena-scene-photo { display: none !important; }
 }
+
+
+/* One-season editorial spotlight. No interactive access/permission assumptions. */
+.arena-featured-league {
+  position: relative;
+  background: linear-gradient(115deg, #112835 0%, #12242f 46%, #221a1b 100%);
+  border-block: 1px solid rgba(240,198,118,.3);
+  color: var(--arena-white);
+}
+.arena-featured-league-inner {
+  width: min(1240px, calc(100% - 48px));
+  margin-inline: auto;
+  padding: 28px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+.arena-featured-league-copy { flex: 1; min-width: 0; }
+.arena-featured-league-eyebrow {
+  display: inline-flex; align-items: center; gap: 9px;
+  color: var(--arena-gold);
+  font: 750 10px/1.6 var(--sk-font-mono, monospace);
+  letter-spacing: .1em;
+}
+.arena-featured-league-copy h2 {
+  color: #f8fafc;
+  font: 850 clamp(20px,2.45vw,30px)/1.2 var(--sk-font,system-ui);
+  letter-spacing: -.04em;
+  margin: 7px 0;
+}
+.arena-featured-league-copy p {
+  color: #acbdc9; line-height: 1.65; font-size: 13px;
+  max-width: 690px; margin: 0;
+}
+.arena-featured-league-actions {
+  display: flex; align-items: stretch; justify-content: flex-end;
+  flex-wrap: wrap; gap: 10px;
+}
+.arena-featured-league-actions a {
+  min-height: 48px; padding: 0 17px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  border-radius: 7px; font-size: 12px; font-weight: 800;
+  transition: border-color .15s, background .15s;
+  text-align: center;
+}
+.arena-featured-league-main {
+  color: #0b1318; background: var(--arena-gold);
+  border: 1px solid var(--arena-gold);
+}
+.arena-featured-league-main:hover { background: #ffe1a4; }
+.arena-featured-league-secondary {
+  color: #e5f4f7; border: 1px solid rgba(183,216,225,.32);
+  background: rgba(255,255,255,.045);
+}
+.arena-featured-league-secondary:hover { border-color: var(--arena-cyan); }
+.arena-featured-league-actions a:focus-visible {
+  outline: 3px solid var(--arena-cyan);
+  outline-offset: 4px;
+}
+@media (max-width: 800px) {
+  .arena-featured-league-inner { flex-direction: column; align-items: stretch; gap: 20px; }
+  .arena-featured-league-actions { justify-content: flex-start; }
+}
+@media (max-width: 420px) {
+  .arena-featured-league-actions { flex-direction: column; }
+  .arena-featured-league-actions a { width: 100%; }
+}
