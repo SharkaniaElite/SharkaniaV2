@@ -11,19 +11,21 @@ import { ScrollToTop } from "./components/layout/scroll-to-top";
 import { FloatingCTA } from "./components/marketing/FloatingCTA";
 import { Spinner } from "./components/ui/spinner";
 import { AgeVerificationModal } from "./components/layout/age-verification-modal";
-import { EloSystemPage } from "./pages/elo-system";
-import { TutorialCsvPage } from "./pages/tutorial-csv";
-import { RoomProfilerPage } from "./pages/room-profiler";
-import { TutorialClubGGPage } from "./pages/tutorial-clubgg";
-import { PromotionsPage } from "./pages/promotions";
-import { SharkTvPage } from "./pages/shark-tv";
-import { HandReviewPage } from "./pages/hand-review";
-import { AdminBroadcastPage } from "./pages/admin-broadcast";
-import { IgnitionChampionshipPage } from "./pages/ignition-championship";
-import { TutorialIgnitionPage } from "./pages/tutorial-ignition";
-import { NoticiasPage } from "./pages/noticias";
-import { PromoMindevPage } from "./pages/promo-mindev";
-import { PromoFullnutsPage } from "./pages/promo-fullnuts";
+
+// Route-level splitting: avoid downloading promotions, admin, TV and articles on Arena initial load.
+const EloSystemPage = lazy(() => import("./pages/elo-system").then(m => ({ default: m.EloSystemPage })));
+const TutorialCsvPage = lazy(() => import("./pages/tutorial-csv").then(m => ({ default: m.TutorialCsvPage })));
+const RoomProfilerPage = lazy(() => import("./pages/room-profiler").then(m => ({ default: m.RoomProfilerPage })));
+const TutorialClubGGPage = lazy(() => import("./pages/tutorial-clubgg").then(m => ({ default: m.TutorialClubGGPage })));
+const PromotionsPage = lazy(() => import("./pages/promotions").then(m => ({ default: m.PromotionsPage })));
+const SharkTvPage = lazy(() => import("./pages/shark-tv").then(m => ({ default: m.SharkTvPage })));
+const HandReviewPage = lazy(() => import("./pages/hand-review").then(m => ({ default: m.HandReviewPage })));
+const AdminBroadcastPage = lazy(() => import("./pages/admin-broadcast").then(m => ({ default: m.AdminBroadcastPage })));
+const IgnitionChampionshipPage = lazy(() => import("./pages/ignition-championship").then(m => ({ default: m.IgnitionChampionshipPage })));
+const TutorialIgnitionPage = lazy(() => import("./pages/tutorial-ignition").then(m => ({ default: m.TutorialIgnitionPage })));
+const NoticiasPage = lazy(() => import("./pages/noticias").then(m => ({ default: m.NoticiasPage })));
+const PromoMindevPage = lazy(() => import("./pages/promo-mindev").then(m => ({ default: m.PromoMindevPage })));
+const PromoFullnutsPage = lazy(() => import("./pages/promo-fullnuts").then(m => ({ default: m.PromoFullnutsPage })));
 
 // 🔥 Lazy imports (CLAVE)
 const HomePage = lazy(() => import("./pages/arena-home").then(m => ({ default: m.ArenaHomePage })));
@@ -250,7 +252,6 @@ export function App() {
                   </ProtectedRoute>
                 }
               />
-
 
               <Route
                 path="/admin/broadcast"
