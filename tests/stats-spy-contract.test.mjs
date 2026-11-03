@@ -61,7 +61,40 @@ test("Free profile history requests no more than two records", () => {
   assert.match(results, /sortedResults\.slice\(0, 2\)/);
 });
 
+test("Comparator, profile and guarded database RPC use the single real license key", () => {
+  const compare = load("src/pages/compare.tsx");
+  assert.match(compare, /useFeatureAccess\("cosmetic_extended_stats"\)/);
+  assert.match(profile, /useFeatureAccess\("cosmetic_extended_stats"\)/);
+  assert.match(sql, /feature_key = 'cosmetic_extended_stats'/);
+  assert.doesNotMatch(compare, /useFeatureAccess\("stats_espia"\)/);
+});
+
+test("Public player queries use explicit selected columns ahead of security migration", () => {
+  assert.doesNotMatch(playerApi, /\bconst BASE_PLAYER_SELECT = `\s*\*/);
+  assert.doesNotMatch(playerApi, /\.select\("\*"/);
+  assert.match(playerApi, /const BASE_TOURNAMENT_RESULT_SELECT/);
+  assert.match(playerApi, /currency, start_datetime/);
+});
+
+test("Stats Spy proposal does not sum mixed currencies into fictitious aggregate ROI", () => {
+  const types = client;
+  const grid = load("src/components/players/player-stats-grid.tsx");
+  assert.match(sql, /GROUP BY COALESCE\(t\.currency::text, 'SIN_MONEDA'\)/);
+  assert.match(sql, /v_currency_count = 1/);
+  assert.match(sql, /v_prizes := NULL/);
+  assert.match(sql, /v_buyins := NULL/);
+  assert.match(sql, /'mixed_currencies', v_currency_count > 1/);
+  assert.match(sql, /'currency_breakdown', v_currency_breakdown/);
+  assert.match(sql, /'currency', t\.currency/);
+  assert.match(types, /mixed_currencies: boolean/);
+  assert.match(grid, /financialComparable/);
+  assert.match(grid, /No comparable/);
+  assert.match(results, /formatTournamentAmount/);
+  assert.match(results, /r\.tournaments\.currency/);
+});
+
 // Pending cross-system security work is intentionally visible, not falsely green.
 test.todo("Cut over public player select-star queries to explicitly allowed columns");
 test.todo("Revoke premium column access and legacy SQL RPC bypasses after all clients migrate");
 test.todo("Run live anon / expired / paid / superadmin role checks in isolated Supabase database");
+test.todo("Verify single-currency and multi-currency financial totals against synthetic fixture histories on isolated DB");
