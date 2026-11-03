@@ -98,6 +98,25 @@ export function PlayerProfilePage() {
     ? secureHistoryQuery.isLoading
     : (hasAliases ? unifiedResultsLoading : individualResultsLoading);
 
+  // UI comparison only: monetary totals are valid when ALL tournaments have
+  // been loaded and every result is denominated in the SAME known currency.
+  const legacyCurrencySet = new Set(
+    publicOrLegacyResults.map((r) => (r.tournaments?.currency || "").trim().toUpperCase() || "SIN_MONEDA")
+  );
+  const legacyExpectedCount = hasAliases
+    ? Number(unifiedStats?.total_tournaments ?? 0)
+    : Number(player?.total_tournaments ?? 0);
+  const legacyHistoryComplete = hasFullAccess && !SECURE_STATS_SPY_MODE &&
+    publicOrLegacyResults.length === legacyExpectedCount;
+  const legacyFinancialCurrency = legacyHistoryComplete &&
+    legacyCurrencySet.size === 1 && !legacyCurrencySet.has("SIN_MONEDA")
+    ? Array.from(legacyCurrencySet)[0] ?? null
+    : null;
+  const legacyFinancialComparable = !!legacyFinancialCurrency;
+  const legacyPrizes = publicOrLegacyResults.reduce(
+    (sum, r) => sum + Number(r.prize_won || 0) + Number(r.bounties_won || 0), 0
+  );
+
   // The free preview only downloads two rows. Use the aggregate count to
   // preserve the upgrade prompt without fetching the remaining result records.
   const hasHiddenHistory = !verifiedPremiumAccess &&
@@ -131,7 +150,10 @@ export function PlayerProfilePage() {
           total_tournaments: Number(secureSummaryQuery.data.total_tournaments),
           total_cashes: Number(secureSummaryQuery.data.total_cashes),
           total_wins: Number(secureSummaryQuery.data.total_wins),
-          total_prize_won: Number(secureSummaryQuery.data.total_prize_won),
+          total_prize_won: Number(secureSummaryQuery.data.total_prize_won ?? 0),
+        } : {}),
+        ...(!SECURE_STATS_SPY_MODE && legacyFinancialComparable ? {
+          total_prize_won: legacyPrizes,
         } : {}),
         elo_rating: hasAliases && eloHistory.length > 0
           ? eloHistory[eloHistory.length - 1]!.elo_after
@@ -335,10 +357,12 @@ export function PlayerProfilePage() {
               }
               hasAccess={verifiedPremiumAccess}
               hideUpsell={useGuardedPremium}
-              financialComparable={!useGuardedPremium || (
-                !!secureSummaryQuery.data?.currency && !secureSummaryQuery.data?.mixed_currencies
-              )}
-              financialCurrency={useGuardedPremium ? secureSummaryQuery.data?.currency : undefined}
+              financialComparable={useGuardedPremium
+                ? !!secureSummaryQuery.data?.currency && !secureSummaryQuery.data?.mixed_currencies
+                : legacyFinancialComparable}
+              financialCurrency={useGuardedPremium
+                ? secureSummaryQuery.data?.currency
+                : legacyFinancialCurrency}
             />
           </div>
 
