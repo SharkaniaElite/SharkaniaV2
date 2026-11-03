@@ -116,53 +116,20 @@ export function IgnitionChampionshipPage() {
           return;
         }
 
-        // Validamos una vez más pasando el User ID real por si acaso
-        const { data: doubleCheckDuplicate, error: duplicateError } = await supabase.rpc("check_ignition_duplicate", {
-          p_email: emailToLink, 
-          p_nickname: nickToLink,
-          p_user_id: data.session.user.id
+        // Un jugador que ya tenía cuenta (incluso de ligas anteriores) solo
+        // inicia sesión. No se vuelve a vincular ni se cambia su estado
+        // verified/pending. El panel permite solicitar la vinculación si falta.
+        if (!data.session?.user) {
+          throw new Error("No se pudo recuperar tu sesión. Intenta nuevamente.");
+        }
+        const profile = await getProfile(data.session.user.id);
+        useAuthStore.setState({
+          user: data.session.user,
+          profile,
+          isAuthenticated: true,
+          isLoading: false,
         });
-
-        if (duplicateError) throw duplicateError;
-
-        if (doubleCheckDuplicate) {
-          setError("⚠️ Tu usuario de Ignition ya fue reclamado por otra cuenta. Si es un error, contacta a soporte.");
-          await supabase.auth.signOut(); 
-          setLoading(false);
-          return;
-        }
-
-        // Record a pending request; only administrators can verify an Ignition player.
-        const { error: linkError } = await supabase.from('profiles').update({
-          ignition_league_player: true,
-          ignition_email: emailToLink,
-          ignition_nickname: nickToLink,
-          ignition_status: 'pending'
-        }).eq('id', data.session.user.id);
-        if (linkError) {
-          await supabase.auth.signOut();
-          throw linkError;
-        }
-
-        const { error: metadataError } = await supabase.auth.updateUser({
-          data: {
-            ignition_league_player: true,
-            ignition_email: emailToLink,
-            ignition_nickname: nickToLink
-          }
-        });
-        if (metadataError) throw metadataError;
-
-        if (data.session?.user) {
-          const profile = await getProfile(data.session.user.id);
-          useAuthStore.setState({
-            user: data.session.user,
-            profile,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-          navigate("/dashboard?highlight=ignition");
-        }
+        navigate("/dashboard?highlight=ignition");
 
       } else {
         // FLUJO 2: SIGN UP
@@ -288,8 +255,34 @@ export function IgnitionChampionshipPage() {
               La Liga SHARKANIA comienza el jueves 5 de noviembre de 2026 en Ignition Poker.
               Cada jueves a las <strong className="text-orange-300">21:00 hora de Chile</strong> compite por un pozo garantizado de US$100,
               participa del bounty al host y suma puntos para los premios mensuales.
-              Regístrate para recibir la contraseña de acceso.
+              Si eres nuevo, utiliza el enlace de Sharkania para descargar Ignition y crear tu cuenta.
+              Si ya te registraste para la liga y tu vinculación está guardada, no necesitas registrarte otra vez.
             </p>
+
+            <section className="rounded-xl border border-orange-400/40 bg-orange-500/[.08] p-5 space-y-4" aria-label="Cómo participar si eres nuevo o ya estabas inscrito">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-orange-300 mb-2">¿Primera vez en Ignition?</p>
+                <h2 className="text-lg font-extrabold text-white">Descarga Ignition desde el enlace de SHARKANIA</h2>
+                <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                  Si todavía no tienes cuenta en Ignition, utiliza nuestro enlace para descargar la plataforma y registrarte. Después vincula tu nickname con SHARKANIA para el ranking.
+                </p>
+                <a href="https://record.revenuenetwork.com/_s_OAdmC6KUdsTNBL-wo7tGNd7ZgqdRLk/1/" target="_blank" rel="sponsored noopener noreferrer"
+                  className="mt-3 inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-orange-500 px-5 py-3 text-sm font-extrabold text-black hover:bg-orange-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                  <Download size={17} aria-hidden="true" /> Descargar Ignition desde SHARKANIA
+                </a>
+              </div>
+              <div className="border-t border-orange-400/25 pt-4">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-orange-200 mb-1">¿Ya participaste o te registraste antes?</p>
+                <h2 className="text-lg font-extrabold text-white">No necesitas registrarte nuevamente</h2>
+                <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                  Si ya tienes una cuenta SHARKANIA con tu nickname de Ignition vinculado o pendiente de revisión, inicia sesión con la misma cuenta y consulta su estado en tu panel. No crees una cuenta duplicada ni envíes otra solicitud.
+                </p>
+                <a href="#vincular-nickname" onClick={() => setIsExistingUser(true)}
+                  className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-orange-400/40 px-4 py-2 text-sm font-bold text-orange-200 hover:bg-orange-500/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                  Ya tengo cuenta: iniciar sesión <ChevronRight size={16} aria-hidden="true" />
+                </a>
+              </div>
+            </section>
 
             <a href="#vincular-nickname" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-orange-500 px-5 py-3 text-center text-sm font-extrabold text-black shadow-lg shadow-orange-500/15 transition-colors hover:bg-orange-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
               Ir al formulario de vinculación <ChevronRight size={17} aria-hidden="true" />
@@ -370,8 +363,8 @@ export function IgnitionChampionshipPage() {
               <div className="flex gap-4 items-start">
                 <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold shrink-0">1</div>
                 <div>
-                  <h4 className="font-bold text-white">Descarga Ignition Poker</h4>
-                  <p className="text-sm text-gray-400 mt-1">Crea tu cuenta en la sala si aún no la tienes utilizando nuestro enlace oficial.</p>
+                  <h4 className="font-bold text-white">Descarga Ignition desde SHARKANIA</h4>
+                  <p className="text-sm text-gray-400 mt-1">Si eres nuevo en Ignition, descarga y crea tu cuenta usando el enlace de SHARKANIA. Si ya tienes cuenta en la sala, no necesitas descargarla ni crear otra.</p>
                   <a href="https://record.revenuenetwork.com/_s_OAdmC6KUdsTNBL-wo7tGNd7ZgqdRLk/1/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-orange-400 hover:text-orange-300 mt-2 font-semibold bg-orange-500/10 px-3 py-1.5 rounded border border-orange-500/20 transition-all hover:bg-orange-500/20">
                     <Download size={14} /> Crear cuenta en Ignition
                   </a>
@@ -381,8 +374,8 @@ export function IgnitionChampionshipPage() {
               <div className="flex gap-4 items-start">
                 <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold shrink-0">2</div>
                 <div>
-                  <h4 className="font-bold text-white">Regístrate en Sharkania</h4>
-                  <p className="text-sm text-gray-400 mt-1">Completa el siguiente formulario para vincular tu Nickname de Ignition a nuestra base de datos. ¡Es obligatorio para el ranking!</p>
+                  <h4 className="font-bold text-white">Vincula tu nickname una sola vez</h4>
+                  <p className="text-sm text-gray-400 mt-1">Si eres nuevo en SHARKANIA, crea tu cuenta y vincula tu nickname. Si ya estabas registrado, inicia sesión: no repitas el registro y revisa el estado de tu vinculación en el panel.</p>
                 </div>
               </div>
 
@@ -406,11 +399,11 @@ export function IgnitionChampionshipPage() {
                   <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/15 text-orange-400">
                     <Trophy size={28} />
                   </div>
-                  <h2 className="mb-3 text-2xl font-bold text-white">Ya eres parte de Sharkania</h2>
+                  <h2 className="mb-3 text-2xl font-bold text-white">Ya tienes cuenta en SHARKANIA</h2>
                   <p className="mb-6 text-sm leading-relaxed text-gray-400">
-                    Consulta aquí todas las bases de la Liga SHARKANIA. Para vincular tu
-                    correo y nickname de Ignition, revisar tu solicitud o actualizar tus datos,
-                    ingresa a tu panel.
+                    No tienes que registrarte otra vez para la liga. En tu panel puedes comprobar
+                    si el nickname de Ignition ya está verificado, si sigue en revisión o si
+                    todavía debes solicitar la vinculación.
                   </p>
                   <Link to="/dashboard?highlight=ignition" className="inline-block">
                     <Button size="lg" className="bg-gradient-to-r from-orange-500 to-red-600 border-none font-bold text-white">
@@ -421,7 +414,10 @@ export function IgnitionChampionshipPage() {
               ) : (
                 <>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold text-white mb-4">Paso 2: Vinculación</h2>
+                <h2 className="text-2xl font-bold text-white mb-2">Accede a SHARKANIA</h2>
+                <p className="mb-4 text-xs leading-relaxed text-gray-400">
+                  Si ya tenías cuenta, selecciona «Ya tengo cuenta». Iniciar sesión no vuelve a registrar tu nickname ni modifica su verificación.
+                </p>
                 
                 {/* TABS DE LOGIN VS REGISTRO */}
                 <div className="flex bg-black/40 p-1 rounded-lg border border-white/10 mb-6">
