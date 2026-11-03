@@ -177,7 +177,7 @@ export function ArenaPreviewQaPage() {
             <Link to="/login"><ArrowLeft size={14}/> Volver al acceso</Link>
           </div>
         </div>
-      </main>
+      </div>
     </PageShell>
   );
 }
