@@ -119,7 +119,7 @@ export async function getPlayerEloHistory(
 
 export async function getPlayerTournamentResults(
   playerId: string,
-  hasFullAccess = false
+  hasFullAccess = true
 ): Promise<
   (TournamentResult & {
     tournaments: {
@@ -254,7 +254,7 @@ export async function getUnifiedEloHistory(
  */
 export async function getUnifiedTournamentResults(
   profileId: string,
-  hasFullAccess = false
+  hasFullAccess = true
 ): Promise<
   (TournamentResult & {
     tournaments: {
