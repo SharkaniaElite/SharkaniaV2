@@ -32,7 +32,7 @@ test('All new write policies are authenticated and demand authorization, not log
   for (const [, name, table, operation, body] of create) {
     assert.match(body, /\(SELECT auth\.uid\(\)\) IS NOT NULL/, name);
     assert.match(body, /\(SELECT public\.is_super_admin\(\)\)/, name);
-    assert.match(body, /WITH CHECK\s*\(/, name);
+    if (operation !== 'DELETE') assert.match(body, /WITH CHECK\s*\(/, name);
     assert.ok(!/\bUSING\s*\(\s*true\s*\)|\bWITH CHECK\s*\(\s*true\s*\)/i.test(body), name);
     if (table === 'tournament_clubs') {
       assert.match(body, /SELECT public\.is_club_admin\(t\.club_id\)/, name);
