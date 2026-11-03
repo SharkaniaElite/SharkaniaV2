@@ -225,3 +225,25 @@
 @media (prefers-reduced-motion: reduce) {
   .arena * { scroll-behavior: auto !important; transition: none !important; }
 }
+
+/* Arena shell: visual bridge between new Home, existing navbar and footer. */
+.arena-page-shell > nav {
+  background: rgba(6, 12, 20, .94) !important;
+  border-bottom: 1px solid rgba(42, 173, 199, .22);
+  box-shadow: 0 1px 0 rgba(255,255,255,.025);
+}
+.arena-nav-badge {
+  padding: 5px 7px 4px;
+  border-radius: 4px;
+  color: #0c2531;
+  background: #51d9ec;
+  font: 900 9px/1 var(--sk-font-mono,monospace);
+  letter-spacing: .14em;
+}
+.arena-page-shell footer {
+  background: #070c12;
+  border-top-color: rgba(55,129,145,.2);
+}
+@media (max-width: 375px) {
+  .arena-nav-badge { display: none; }
+}
