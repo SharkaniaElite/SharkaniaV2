@@ -566,3 +566,76 @@
   .arena-elo-chart-top {padding:0 8px}
   .arena-elo-chart h3 {font-size:16px}
 }
+
+/* Stage 3 — tournament fixtures as legible, tappable competition cards. */
+.arena-interior .arena-tournament-card {
+  display:flex;flex-direction:column;gap:13px;
+  background:linear-gradient(112deg,rgba(17,34,46,.97),rgba(12,24,35,.95));
+  border:1px solid rgba(118,174,193,.22);
+  border-radius:13px;
+  padding:17px 20px 15px;
+  box-shadow:0 6px 24px rgba(0,0,0,.09);
+  transition:border-color .18s,background-color .18s,transform .18s;
+}
+.arena-interior .arena-tournament-card:hover {
+  border-color:rgba(48,214,237,.46);
+  background:linear-gradient(112deg,#172e3b,#101e2a);
+}
+.arena-interior .arena-tournament-card--live{
+  border-left:3px solid #4fdfb4;
+}
+.arena-tournament-card-header {gap:13px;flex-wrap:wrap}
+.arena-tournament-card-title-wrap {flex:1 1 220px}
+.arena-tournament-card-title {
+  font-size:15px;font-weight:800;line-height:1.35;
+  color:#f6fbff;
+  overflow-wrap:anywhere;
+  transition:color .18s;
+}
+.arena-tournament-card-title:hover {color:#51e4f1}
+.arena-tournament-card-title:focus-visible{outline:2px solid #6be9fa;outline-offset:4px;border-radius:3px}
+.arena-tournament-info-button {
+  width:36px;height:36px;border-radius:50%;border:1px solid rgba(150,192,207,.25);
+}
+.arena-tournament-demo {
+  border:1px solid rgba(242,190,90,.25);font-size:10px;
+  padding:4px 7px;border-radius:5px;
+}
+.arena-tournament-status {
+  padding:5px 8px;border-radius:6px;
+  font-size:11px;letter-spacing:.01em;
+  font-variant-numeric:tabular-nums;
+}
+.arena-tournament-card-details{
+  padding:11px 0;
+  gap:12px;
+  border-top:1px solid rgba(135,184,203,.13);
+  border-bottom:1px solid rgba(135,184,203,.13);
+}
+.arena-tournament-financials {flex-wrap:wrap;gap:7px 22px}
+.arena-tournament-financials small {font-size:9px;color:#8bacbf;font-weight:550}
+.arena-tournament-date{white-space:nowrap;gap:7px;font-variant-numeric:tabular-nums}
+.arena-tournament-card-links{
+  flex-wrap:wrap;align-items:start;gap:9px 18px;
+}
+.arena-tournament-participation{min-width:0;max-width:100%}
+.arena-tournament-participation-hint {
+  display:flex;align-items:center;gap:4px;
+  color:#95b6c8;font-size:11px;line-height:1.4;
+  transition:color .18s;
+}
+.arena-tournament-participation:hover .arena-tournament-participation-hint{color:#53dcef}
+.arena-tournament-league {
+  text-align:right;max-width:270px;
+  overflow-wrap:anywhere;
+}
+@media(max-width:640px){
+  .arena-interior .arena-tournament-card{padding:14px 13px 13px;gap:11px}
+  .arena-tournament-card-header{align-items:flex-start}
+  .arena-tournament-card-title-wrap{flex-basis:100%}
+  .arena-tournament-badges{margin-left:auto}
+  .arena-tournament-card-details{flex-direction:column;align-items:flex-start;gap:8px}
+  .arena-tournament-financials{gap:7px 16px}
+  .arena-tournament-card-links{flex-direction:column}
+  .arena-tournament-league{text-align:left}
+}
