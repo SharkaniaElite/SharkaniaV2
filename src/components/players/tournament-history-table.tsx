@@ -17,9 +17,20 @@ interface TournamentHistoryEntry {
     name: string;
     slug: string;
     buy_in: number;
+    currency?: string | null;
     start_datetime: string;
     clubs: { id: string; name: string; slug?: string } | null; 
   };
+}
+
+// Always label the currency of each tournament; CLP, USD and EUR coexist.
+function formatTournamentAmount(amount: number, currency?: string | null): string {
+  if (amount === 0) return "Gratis";
+  const code = currency?.toUpperCase();
+  if (code === "CLP" || code === "USD" || code === "EUR") {
+    return `${code} ${amount.toLocaleString("es-CL", { maximumFractionDigits: 2 })}`;
+  }
+  return formatCurrency(amount);
 }
 
 interface TournamentHistoryTableProps {
@@ -132,7 +143,7 @@ export function TournamentHistoryTable({
                     )}
                   </td>
                   <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono text-sk-text-2">
-                    {formatCurrency(r.tournaments.buy_in)}
+                    {formatTournamentAmount(r.tournaments.buy_in, r.tournaments.currency)}
                   </td>
                   
                   <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono text-sk-text-2">
@@ -160,7 +171,7 @@ export function TournamentHistoryTable({
                         r.prize_won > 0 ? "text-sk-green" : "text-sk-text-3"
                       )}
                     >
-                      {r.prize_won > 0 ? formatCurrency(r.prize_won) : "—"}
+                      {r.prize_won > 0 ? formatTournamentAmount(r.prize_won, r.tournaments.currency) : "—"}
                     </span>
                   </td>
                   <td className="py-3 px-4 border-b border-sk-border-2 text-right">
