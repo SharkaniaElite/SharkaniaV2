@@ -110,6 +110,18 @@ export function LeagueDetailPage() {
     .filter(t => ["scheduled", "live", "late_registration"].includes(t.status))
     .sort((a, b) => new Date(a.start_datetime || 0).getTime() - new Date(b.start_datetime || 0).getTime());
 
+  const isNovemberSharkaniaLeague = league.slug === "liga-sharkania-noviembre-2026";
+  const nextNovemberDate = upcoming.find(t =>
+    (t.status === "live" || t.status === "late_registration") ||
+    new Date(t.start_datetime).getTime() >= Date.now()
+  );
+  const nextNovemberDateLabel = nextNovemberDate
+    ? new Intl.DateTimeFormat("es-CL", {
+        weekday: "long", day: "numeric", month: "long",
+        hour: "2-digit", minute: "2-digit", timeZone: "America/Santiago"
+      }).format(new Date(nextNovemberDate.start_datetime))
+    : null;
+
   const completed = (tournaments ?? [])
     .filter(t => t.results_uploaded || (t.status === "completed" && !t.results_uploaded))
     .sort((a, b) => new Date(b.start_datetime || 0).getTime() - new Date(a.start_datetime || 0).getTime());
@@ -215,6 +227,32 @@ export function LeagueDetailPage() {
               </div>
             </div>
           </header>
+
+          {/* Ruta de acceso clara a la liga; se alimenta del calendario real. */}
+          {isNovemberSharkaniaLeague && currentStatus !== "finished" && (
+            <section className="mb-6 overflow-hidden rounded-xl border border-sk-accent/30 bg-gradient-to-br from-sk-bg-2 via-sk-bg-2 to-sk-accent/10 p-5 sm:p-7" aria-labelledby="sharkania-november-join-title">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="max-w-2xl">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[.16em] text-sk-gold">Liga SHARKANIA · Noviembre 2026</p>
+                  <h2 id="sharkania-november-join-title" className="text-xl sm:text-2xl font-extrabold text-sk-text-1">
+                    {nextNovemberDateLabel ? "Próxima fecha de la liga" : "Sigue el ranking de la liga"}
+                  </h2>
+                  {nextNovemberDateLabel && <p className="mt-2 text-sk-base font-semibold text-sk-accent capitalize">{nextNovemberDateLabel} · Chile</p>}
+                  <p className="mt-2 text-sk-sm leading-relaxed text-sk-text-2">
+                    Cuatro jueves de noviembre, 21:00 h de Chile. Consulta el calendario y cómo vincular tu nickname de Ignition para aparecer en la clasificación.
+                  </p>
+                </div>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row lg:flex-col">
+                  <Link to="/ignition" className="inline-flex min-h-12 items-center justify-center rounded-lg bg-sk-accent px-5 py-3 text-center text-sm font-extrabold text-sk-bg-0 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
+                    Cómo participar y vincular nickname
+                  </Link>
+                  <button type="button" onClick={() => setTab("upcoming")} className="inline-flex min-h-12 items-center justify-center rounded-lg border border-sk-border-2 bg-sk-bg-3 px-5 py-3 text-center text-sm font-bold text-sk-text-1 hover:border-sk-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
+                    Ver fechas programadas
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Campeón Finalizado */}
           {currentStatus === "finished" && champion && (
