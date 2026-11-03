@@ -38,6 +38,15 @@ test("Original production migration SQL stays byte-identical to the recovered lo
   }
 });
 
+test("Production table inventory documents 54 missing prehistory CREATE TABLE definitions", () => {
+  const inventory = JSON.parse(readFileSync(new URL("./schema-baseline-requirements.json", root), "utf8"));
+  assert.equal(inventory.current_public_tables.length, 64);
+  assert.equal(inventory.without_creation_in_recorded_history.length, 54);
+  for (const table of ["players", "profiles", "tournaments", "tournament_results", "clubs", "club_admins", "leagues", "user_purchases"]) {
+    assert.ok(inventory.without_creation_in_recorded_history.includes(table), "Missing base table: " + table);
+  }
+});
+
 test("Before creating paid QA branches, use the separate baseline readiness gate", () => {
   const preflight = readFileSync(new URL("../scripts/check-supabase-migration-readiness.mjs", import.meta.url), "utf8");
   assert.match(preflight, /missingBaselineObjects/);
