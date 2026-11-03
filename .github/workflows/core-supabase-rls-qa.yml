@@ -49,3 +49,10 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-assert.sql
       - name: Reject malformed tournament results and rollback a forced mid-calculation failure
         run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-adversarial.sql
+
+      - name: Create separate PostgreSQL 17 Stats Espia database (synthetic data only)
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_stats'
+      - name: Prepare synthetic purchases, players, currencies and authorization roles
+        run: psql -v ON_ERROR_STOP=1 -d qa_stats -f tests/fixtures/sharkania-stats-spy-qa-setup.sql
+      - name: Test real guarded Stats Espia SQL RPCs (licenses, mixed currencies and pagination)
+        run: psql -v ON_ERROR_STOP=1 -d qa_stats -f tests/fixtures/sharkania-stats-spy-qa-assert.sql
