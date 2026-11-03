@@ -52,3 +52,19 @@ El SQL no modifica ninguna fila y utiliza `BEGIN/COMMIT`, pero sería una altera
 - [ ] Aprobar explícitamente el cambio a producción; respaldo, despliegue y rollback revisados.
 
 **Hasta completar las casillas pendientes, NO-GO para producción.**
+
+## Validación CI RLS — PostgreSQL 17 aislado, resultado exitoso
+
+Nuevo flujo `.github/workflows/core-supabase-rls-qa.yml` con tablas mínimas ficticias y roles `anon`/`authenticated`. Ejecuta los scripts `tests/fixtures/sharkania-rls-qa-setup.sql` y `tests/fixtures/sharkania-rls-qa-assert.sql`, cargando el **SQL propuesto original**, sin conexión a producción.
+
+**Resultado primer run: success** para GitHub Actions en commit `d091ede950ef0630e9d27d5656a02117dcd94a24`. Los cuatro flujos habituales (SEO/access, sitemap, cleanup, TypeScript) también terminaron success. Los tests realizan operaciones de escritura solamente en PostgreSQL 17 efímero con identidades ficticias.
+
+**Límites:** Es una simulación PostgreSQL con tablas mínimas, no un entorno Supabase completo. No verifica auth real, todas las extensiones, triggers de producción, compras ni las 50 migraciones. Sigue NO-GO para aplicar políticas a producción.
+
+## Riesgo adicional de integridad del ranking — confirmado por privilegios y RLS
+
+El rol authenticated tiene privilegio UPDATE para `public.players.elo_rating`, `elo_peak`, `total_prize_won`, `total_buy_ins_spent` y los contadores de torneos. La política `Players: editar propio` permite actualizar la fila donde `profile_id = auth.uid()` sin excluir esas columnas; no existe trigger protector de estadísticas derivadas en `players`. Un jugador autenticado con una fila vinculada podría alterar sus propias estadísticas por la API, aunque la interfaz no lo ofrezca. Además existe una política INSERT para players que exige solamente `auth.uid() IS NOT NULL`. El diagnóstico es de permisos efectivos, sin realizar explotación.
+
+Antes de bloquear estas vías hay que conservar la edición legítima de nicknames/país por club admin y verificar el flujo real de registro de nuevos jugadores, resultados y cálculo ELO. Preparar trigger/permiso por columna y pruebas de regresión en una segunda propuesta aislada; no aplicar aún a producción.
+
+Priorizar integridad del ranking y Stats Espía sobre otras mejoras, manteniendo fuera de alcance los módulos que se retirarán.
