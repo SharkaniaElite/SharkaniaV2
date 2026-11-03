@@ -19,8 +19,8 @@ export function AcademyPage() {
   return (
     <PageShell variant="arena">
       <SEOHead
-        title="Academia — Aprende Poker Competitivo"
-        description="Aprende Texas Hold'em desde cero hasta nivel élite. Lecciones interactivas, autoevaluaciones opcionales y sistema de progresión diseñado para que realmente mejores."
+        title="Academia de póker | Lecciones y entrenamiento"
+        description="Aprende póker competitivo con módulos, lecciones y autoevaluaciones. Explora la Academia Sharkania y registra tu progreso."
         path="/academia"
       />
       <div className="arena-interior arena-editorial">
@@ -29,8 +29,8 @@ export function AcademyPage() {
           <ArenaPageHero
             section="academy"
             eyebrow="APRENDIZAJE / ACADEMIA"
-            heading="APRENDE."
-            highlight="LLEVA TU JUEGO MÁS LEJOS."
+            heading="ACADEMIA"
+            highlight="DE PÓKER."
             icon={GraduationCap}
             description="Explora los módulos de formación en póker competitivo. Avanza a tu ritmo, consulta las lecciones y registra tu progreso si inicias sesión."
             count={isLoading ? undefined : (modules?.length ?? 0)}
