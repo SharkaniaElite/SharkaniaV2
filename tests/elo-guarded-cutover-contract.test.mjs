@@ -28,6 +28,19 @@ test("Reverse ELO is blocked in guarded mode until a protected reset exists", ()
   assert.match(tournamentsApi, /supabase\.rpc\('reset_tournament_impact'/);
 });
 
+
+test("Legacy tournament re-edit refuses destructive reset when later ELO history exists", () => {
+  assert.match(tournamentsApi, /\.from\("elo_history"\)/);
+  assert.match(tournamentsApi, /\.select\("player_id, recorded_at", \{ count: "exact" \}\)/);
+  assert.match(tournamentsApi, /if \(historyError \|\| !history\?\.length \|\| count === null \|\| count > history\.length\)/);
+  assert.match(tournamentsApi, /\.neq\("tournament_id", tournamentId\)/);
+  assert.match(tournamentsApi, /\.gte\("recorded_at"/);
+  assert.ok(
+    tournamentsApi.indexOf('if (later?.length)') < tournamentsApi.indexOf("supabase.rpc('reset_tournament_impact'"),
+    "the reject-on-later-history check must happen before legacy reset"
+  );
+});
+
 test("SQL preserves Elo rating formula but charges each actual entry", () => {
   assert.match(sql, /v_k := \(CASE WHEN v_result\.total_tournaments < 30 THEN 40 ELSE 20 END\)/);
   assert.match(sql, /log\(10::numeric,v_buy_in\+1::numeric\)/);
