@@ -244,8 +244,8 @@ export function ComparePage() {
   const { isAuthenticated, user } = useAuthStore();
   const { data: balance } = useSharkCoinsBalance();
   
-  // 👇 Verificamos si tiene la suscripción mensual "Stats Espía"
-  const { data: premiumAccess } = useFeatureAccess("stats_espia");
+  // Licencia real publicada en La Bóveda; debe coincidir con el control del RPC de Stats Espía.
+  const { data: premiumAccess } = useFeatureAccess("cosmetic_extended_stats");
   const hasPremiumAccess = premiumAccess?.has_access ?? false;
 
   // 👇 1. Leemos el disco duro del navegador (localStorage) para ver si ya vino hoy
