@@ -222,3 +222,30 @@ Solo rama `feature/sharkania-arena-experience-preview` del PR #64. No hay merge 
 - La experiencia a pantalla completa de `/tools/replayer`, los paneles privados `/dashboard` y `/admin`, y la revisión visual completa en 320px, 390px y 1440px todavía requieren fases específicas. No unificar a ciegas el Replayer porque tiene modo fullscreen.
 
 Estado: mantener PR #64 en borrador y no alterar `main`, RLS, Supabase, licencias, URLs, sitemap ni Cloudflare Worker.
+
+
+## Etapa 10 — continuidad visual de Promociones, SharkTV, La Bóveda y salas de póker (3 nov 2026)
+
+Hallazgo inicial: las rutas comerciales y de video seguían montando `<PageShell>` en su modo `standard`; al navegar desde un directorio Arena aparecían el menú y la presentación previos. Además, el Navbar móvil del modo Arena utilizaba internamente la lista de enlaces antigua.
+
+### Corrección de arquitectura sin perder monetización
+- `PageShell` agrega `showMarketing?: boolean`, separado de `variant="arena"`. El valor por defecto conserva el comportamiento preexistente: Arena de directorios sin banners/ticker y páginas estándar con banners/ticker.
+- Las páginas comerciales y editoriales migradas usan `<PageShell variant="arena" showMarketing>`: Navbar y footer Arena **manteniendo** `GlobalChampionsTicker`, `VerifiedBannerStrip` y el banner global verificado, incluyendo sus políticas de aprobación.
+- `Navbar`: el desplegable Arena incorpora Estrategia y mantiene SharkTV, La Bóveda, CoinPoker e Ignition; el menú móvil ya utiliza `ARENA_MOBILE_LINKS` y muestra las salas con enlaces a tutoriales. Se añade `aria-expanded` al control de menú.
+- Hoja `arena-public-bridge.css`: gradientes y fondos de la identidad Arena, tipografía, cartas, hero, bloques de contenido, menú móvil y estilos adaptables a móviles sin alterar componentes de compra, videos ni formularios.
+- Componente `ArenaRouteTrail` con migas de navegación semánticas que llevan de cada oferta o tutorial a su sección padre. No sustituye slugs ni rutas canónicas.
+
+### Páginas y contenido preservado
+- `/promociones`: hero Arena, listado de ofertas revisadas y archivo histórico. Mantiene controles de `promoPhase`, fechas `America/Santiago`, `PromotionArtwork` y avisos editoriales.
+- `/tv`: catálogo SharkTV con hero Arena y contador real de videos; mantiene lectura de `shark_tv_videos`, miniaturas, instructor, fecha y navegación a cada episodio. Se elimina un indicador «En línea ahora» que no estaba basado en estado real.
+- `/tv/:id`: navegación Arena en loading, error y contenido; conserva Rumble, votación, contexto de la mano y videos relacionados.
+- `/shop`: hero La Bóveda coherente con Arena, saldo real de Shark Coins y pestañas más accesibles con `aria-pressed`. **No se modifican** `useShopProducts`, `useUserPurchases`, `useSharkCoinsBalance`, precios, permisos, ni callbacks de compra.
+- `/promociones/coinpoker`, `/tutorial-coinpoker`: navegación Arena, migas, hero y canonicals explícitas; conservan enlaces de afiliación, imágenes y zoom.
+- `/ignition`, `/tutorial-ignition`, `/tutorial-ignition-deposit`, `/promociones/ignition-bonus`: navegación Arena, contexto del torneo y guías; se conservan formularios, captcha, pasos, medios y links comerciales.
+- Otras promociones alcanzables: `/promociones/freeroll-diario`, `/mindev`, `/fullnuts`, además de los artículos dinámicos `/:category/:slug`. Estos últimos conservan anuncios y recompensas, y ya no devuelven al menú antiguo.
+
+### Verificación y restricciones
+- `tests/arena-public-navigation-contract.test.mjs`: cobertura estática de rutas, menú desktop/móvil, banners revisados, datos reales de tienda, selector de pestañas, TV, formularios, canonicals y contenido asociado.
+- GitHub Actions en el commit de la suite de contratos: **4/4 checks aprobados**, incluidos TypeScript estricto, SEO/accesos, sitemap Worker y limpieza de funcionalidades retiradas.
+- Pendiente inspección humana de navegación real con usuario autenticado, reproducción de Rumble, errores de compra y ofertas locales, además de QA visual completa en 320/390/1440 px.
+- No se fusionó PR #64, no se editaron datos de producción ni Supabase; las ofertas de afiliados siguen requiriendo revisión editorial de vigencia, condiciones legales y elegibilidad por país (no inferirlas del rediseño).
