@@ -73,7 +73,8 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
   const timeZoneLabel = startDate.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", timeZone: t.timezone });
   // Torneos de Ignition: la ficha debe llevar a la guía de vinculación de
   // nickname/ranking existente, nunca al perfil genérico de un club.
-  const isIgnition = t.poker_rooms?.name?.trim().toLowerCase() === "ignition poker";
+  const roomLabel = t.poker_rooms?.name?.trim().toLowerCase() ?? "";
+  const isIgnition = roomLabel === "ignition poker" || roomLabel === "ignition póker";
   const participationLink = isIgnition
     ? "/ignition"
     : ["ccp", "latin-allin-poker"].includes(t.clubs?.slug || "")
