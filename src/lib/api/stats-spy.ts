@@ -43,23 +43,25 @@ export async function getStatsSpySummary(slug: string): Promise<StatsSpySummary 
   return (data as StatsSpySummary | null) ?? null;
 }
 
-export async function getStatsSpyHistory(slug: string): Promise<StatsSpyHistoryEntry[]> {
-  const pageSize = 250;
-  const maxPages = 40; // 10,000 records; avoid unbounded RPC loops.
-  const history: StatsSpyHistoryEntry[] = [];
+/**
+ * Read only one authorized page at a time. PostgreSQL validates entitlement on
+ * every request. There is no fallback to public tournament_results.
+ */
+export const STATS_SPY_HISTORY_PAGE_SIZE = 30;
 
-  for (let page = 0; page < maxPages; page++) {
-    const { data, error } = await supabase.rpc("stats_spy_get_history_v1", {
-      p_slug: slug,
-      p_limit: pageSize,
-      p_offset: page * pageSize,
-    });
-    if (error) throw error;
-    if (!Array.isArray(data)) throw new Error("Respuesta de historial premium inválida");
-    history.push(...(data as StatsSpyHistoryEntry[]));
-    if (data.length < pageSize) return history;
-  }
-
-  // Fail visibly rather than presenting a truncated 10,000-row response as complete.
-  throw new Error("Historial demasiado extenso para este visor: requiere paginación");
+export async function getStatsSpyHistoryPage(
+  slug: string,
+  offset: number,
+  limit = STATS_SPY_HISTORY_PAGE_SIZE
+): Promise<StatsSpyHistoryEntry[]> {
+  if (!Number.isSafeInteger(offset) || offset < 0) throw new Error("Desplazamiento de historial inválido");
+  const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
+  const { data, error } = await supabase.rpc("stats_spy_get_history_v1", {
+    p_slug: slug,
+    p_limit: safeLimit,
+    p_offset: offset,
+  });
+  if (error) throw error;
+  if (!Array.isArray(data)) throw new Error("Respuesta de historial premium inválida");
+  return data as StatsSpyHistoryEntry[];
 }
