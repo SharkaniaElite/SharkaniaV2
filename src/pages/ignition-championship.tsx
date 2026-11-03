@@ -213,7 +213,7 @@ export function IgnitionChampionshipPage() {
   };
 
   return (
-    <PageShell variant="arena" showMarketing>
+    <PageShell variant="arena">
       <div className="arena-public-bridge arena-partner-route arena-ignition-route min-h-screen text-white relative font-sans">
         <SEOHead 
           title="Liga SHARKANIA Noviembre 2026 en Ignition Poker"
@@ -222,12 +222,34 @@ export function IgnitionChampionshipPage() {
         />
         <ArenaRouteTrail section="Promociones de póker" current="Ignition Poker · Liga Sharkania" />
 
+        {/* Única creatividad publicitaria permitida en esta ruta: Ignition Poker. */}
+        <aside className="arena-ignition-sponsor" aria-label="Publicidad de Ignition Poker">
+          <div className="arena-ignition-sponsor-label">
+            <span>PUBLICIDAD · IGNITION POKER</span>
+            <span>+18 · Sujeto a condiciones y disponibilidad por país</span>
+          </div>
+          <a
+            href="https://record.revenuenetwork.com/_s_OAdmC6KUdsTNBL-wo7tGNd7ZgqdRLk/1/"
+            target="_blank"
+            rel="sponsored noopener noreferrer"
+            aria-label="Consultar Ignition Poker y sus condiciones oficiales"
+          >
+            <img
+              src="https://media.revenuenetwork.com/GIF/Ignition%20Poker/Spanish/Poker/728x90.jpg"
+              alt="Banner promocional Ignition Poker"
+              width={728}
+              height={90}
+              decoding="async"
+            />
+          </a>
+        </aside>
+
         {/* Efectos visuales de fondo */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-orange-600/20 blur-[150px] rounded-full pointer-events-none opacity-60" />
         <div className="absolute top-40 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-red-600/20 blur-[100px] rounded-full pointer-events-none opacity-40" />
 
         {/* ══ HERO SECTION ══ */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 pb-24 grid grid-cols-1 lg:grid-cols-2 gap-16 items-start mt-8">
+        <div className="arena-ignition-hero relative z-10 max-w-7xl mx-auto px-6 pb-24 grid grid-cols-1 lg:grid-cols-2 gap-16 items-start mt-8">
           
           {/* COLUMNA IZQUIERDA: Copy & Explicación */}
           <div className="space-y-8">
@@ -237,7 +259,7 @@ export function IgnitionChampionshipPage() {
             </div>
             
             <h1 className="text-5xl sm:text-6xl font-black leading-tight tracking-tight">
-              LIGA <br/>
+              LIGA DE PÓKER <br/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">
                 SHARKANIA
               </span>
@@ -569,8 +591,8 @@ export function IgnitionChampionshipPage() {
           </div>
         </div>
 
-        {/* ══ NUEVA SECCIÓN DE BENEFICIOS ══ */}
-        <div className="relative z-10 bg-black/60 border-t border-white/5 py-24 shadow-[inset_0_20px_50px_rgba(0,0,0,0.5)]">
+        {/* ══ BENEFICIOS Y CONDICIONES DE IGNITION ══ */}
+        <div className="arena-ignition-benefits relative z-10 border-t border-white/5 py-24 shadow-[inset_0_20px_50px_rgba(0,0,0,0.5)]">
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-black text-white mb-4 uppercase tracking-tight">
@@ -580,19 +602,7 @@ export function IgnitionChampionshipPage() {
                 Al jugar en Ignition Poker a través de Sharkania no solo participas por los premios garantizados de la liga, sino que también accedes a todos los beneficios nativos de la sala.
               </p>
               
-              {/* 🔥 NUEVO: Banner Promocional Ignition 728x90 */}
-              <a 
-                href="https://record.revenuenetwork.com/_s_OAdmC6KUdsTNBL-wo7tGNd7ZgqdRLk/1/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-block w-full max-w-[728px] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 shadow-lg hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] transition-all duration-300 group"
-              >
-                <img 
-                  src="https://media.revenuenetwork.com/GIF/Ignition%20Poker/Spanish/Poker/728x90.jpg" 
-                  alt="Ignition Poker Beneficios" 
-                  className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-500" 
-                />
-              </a>
+
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
