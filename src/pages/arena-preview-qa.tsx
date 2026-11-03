@@ -1,79 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, Navigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowUpRight, CalendarDays, ChevronRight, LockKeyhole, Maximize2, ShieldCheck, Trophy, UserRound } from "lucide-react";
+import { useState } from "react";
+import { Link, Navigate } from "react-router-dom";
+import { ArrowLeft, ArrowUpRight, CalendarDays, LockKeyhole, ShieldCheck, Trophy } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
 import { StatCard } from "../components/ui/stat-card";
-import { PokerTable } from "../components/replayer/poker-table";
-import { ReplayControls } from "../components/replayer/replay-controls";
-import { createDemoHand, goToStep, initReplayState, stepBackward, stepForward } from "../lib/replayer-engine";
-import type { ReplayState } from "../types/replayer";
 import { isArenaPreviewHost } from "../lib/arena-preview";
 import "../styles/arena-player-experience.css";
 import "../styles/arena-preview-qa.css";
-
-function PreviewHand() {
-  const [state, setState] = useState<ReplayState>(() => initReplayState(createDemoHand()));
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const fullRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!state.isPlaying) return;
-    const id = window.setInterval(() => {
-      setState(previous => {
-        if (previous.isFinished) return { ...previous, isPlaying: false };
-        const next = stepForward(previous);
-        return { ...next, playbackSpeed: previous.playbackSpeed, isPlaying: !next.isFinished };
-      });
-    }, 1000 / state.playbackSpeed);
-    return () => window.clearInterval(id);
-  }, [state.isPlaying, state.playbackSpeed]);
-
-  useEffect(() => {
-    const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
-    document.addEventListener("fullscreenchange", handler);
-    return () => document.removeEventListener("fullscreenchange", handler);
-  }, []);
-
-  const pause = (next: ReplayState): ReplayState => ({ ...next, isPlaying: false });
-  const toggleFullscreen = () => {
-    if (document.fullscreenElement) {
-      void document.exitFullscreen().catch(() => {});
-    } else {
-      void fullRef.current?.requestFullscreen().catch(() => {});
-    }
-  };
-
-  return (
-    <section aria-label="Prueba local del Replayer">
-      <div className="arena-qa-intro">
-        <span className="arena-player-kicker">REPLAYER / EJEMPLO SINTÉTICO</span>
-        <h2>Una mano realista, sin usar ninguna cuenta.</h2>
-        <p>Prueba avanzar, retroceder, reproducir, ajustar la velocidad y abrir pantalla completa. Esta mano de ejemplo se calcula en tu navegador y no se guarda en Supabase.</p>
-      </div>
-      <div ref={fullRef} className="arena-qa-replay-stage">
-        <div className="arena-qa-replay-head">
-          <span>SHARKANIA ARENA · REPLAYER DEMO</span>
-          <button type="button" onClick={toggleFullscreen} aria-pressed={isFullscreen} aria-label={isFullscreen ? "Salir de pantalla completa" : "Ver mesa en pantalla completa"}>
-            <Maximize2 size={15} aria-hidden="true" /> {isFullscreen ? "Salir" : "Pantalla completa"}
-          </button>
-        </div>
-        <div className="arena-qa-replay-table"><div className="arena-qa-replay-table-inner"><PokerTable state={state}/></div></div>
-        <div className="arena-qa-controls">
-          <ReplayControls
-            state={state}
-            onStepForward={() => setState(old => pause(stepForward(old)))}
-            onStepBackward={() => setState(old => pause(stepBackward(old)))}
-            onGoToStep={step => setState(old => ({ ...goToStep(old.hand, step), playbackSpeed: old.playbackSpeed, isPlaying: false }))}
-            onTogglePlay={() => setState(old => old.isFinished ? { ...initReplayState(old.hand), playbackSpeed: old.playbackSpeed, isPlaying: true } : { ...old, isPlaying: !old.isPlaying })}
-            onSetSpeed={speed => setState(old => ({ ...old, playbackSpeed: speed }))}
-            onReset={() => setState(old => ({ ...initReplayState(old.hand), playbackSpeed: old.playbackSpeed }))}
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function PreviewPlayer() {
   const [editing, setEditing] = useState(false);
@@ -147,9 +80,6 @@ function PreviewPlayer() {
 }
 
 export function ArenaPreviewQaPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const view = searchParams.get("view") === "replayer" ? "replayer" : "panel";
-
   // A production deployment can ship this component without exposing a test-only entry point.
   if (!isArenaPreviewHost()) return <Navigate to="/" replace/>;
 
@@ -163,14 +93,10 @@ export function ArenaPreviewQaPage() {
             <div>
               <span>AMBIENTE PREVIEW · DATOS FICTICIOS</span>
               <h1>Prueba el diseño sin tocar producción.</h1>
-              <p>Este espacio simula pantallas privadas para revisar el diseño y probar los controles locales. No inicia sesión, no cambia cuentas ni envía datos a Supabase.</p>
+              <p>Revisa la distribución del panel y prueba la edición local de un nombre ficticio. No inicia sesión, no cambia cuentas ni envía datos a Supabase.</p>
             </div>
           </div>
-          <div className="arena-qa-switch" role="group" aria-label="Seleccionar demostración">
-            <button aria-pressed={view === "panel"} onClick={() => setSearchParams({ view: "panel" })}><UserRound size={17}/> Panel del jugador</button>
-            <button aria-pressed={view === "replayer"} onClick={() => setSearchParams({ view: "replayer" })}><ChevronRight size={17}/> Replayer de póker</button>
-          </div>
-          {view === "panel" ? <PreviewPlayer/> : <PreviewHand/>}
+          <PreviewPlayer/>
           <div className="arena-qa-footer">
             <LockKeyhole size={18} aria-hidden="true"/>
             <p>La autenticación y las operaciones reales seguirán bloqueadas en Preview hasta disponer de un backend de pruebas aislado y Turnstile configurado para él.</p>
