@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { SEOHead } from "../components/seo/seo-head";
 import { Link } from "react-router-dom";
-import { Play, TrendingUp, Clock, Eye, Sparkles, MonitorPlay } from "lucide-react";
+import { Play, Clock, Eye, MonitorPlay } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { supabase } from "../lib/supabase";
 import { Spinner } from "../components/ui/spinner";
@@ -31,47 +32,26 @@ export function SharkTvPage() {
   }, []);
 
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead
-        title="SharkTV: Análisis de Manos | Sharkania"
-        description="Aprende la lógica detrás de las jugadas más complejas con Nicolás Fuentes y nuestros expertos."
+        title="SharkTV | Análisis de manos de póker"
+        description="Mira análisis de manos de póker en SharkTV. Episodios educativos y comentarios de los instructores publicados en Sharkania."
         path="/tv"
       />
       
-      <div className="pt-20 pb-20">
-        <div className="max-w-7xl mx-auto px-6">
+      <div className="arena-public-bridge arena-tv-route">
+        <div className="arena-bridge-content">
           
-          {/* 📺 HERO SECTION */}
-          <div className="relative rounded-3xl overflow-hidden mb-16 border border-sk-border-2 bg-sk-bg-2">
-            <div className="absolute inset-0 bg-gradient-to-r from-sk-bg-0 via-sk-bg-0/60 to-transparent z-10" />
-            <img 
-              src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/SharkTv/plo6-2.webp" 
-              alt="SharkTV Hero" 
-              className="absolute inset-0 w-full h-full object-cover opacity-40 blur-[2px]"
-            />
-            
-            <div className="relative z-20 p-8 md:p-16 max-w-2xl">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 rounded-full bg-sk-accent animate-pulse" />
-                <span className="text-sk-accent font-mono text-xs uppercase tracking-widest font-bold">En línea ahora</span>
-              </div>
-              <h1 className="text-4xl md:text-6xl font-black text-sk-text-1 mb-6 leading-tight">
-                DOMINA EL <span className="text-sk-accent">META</span> DEL POKER
-              </h1>
-              <p className="text-sk-lg text-sk-text-2 mb-8 leading-relaxed">
-                Análisis tácticos de manos reales, estrategias de GTO aplicadas y la mentalidad necesaria para aplastar los niveles más difíciles de ClubGG.
-              </p>
-              <div className="flex gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-sk-bg-3/50 backdrop-blur-md rounded-full border border-sk-border-3 text-sk-xs font-bold text-sk-text-1">
-                  <Sparkles size={14} className="text-sk-gold" /> Estrategias Exclusivas
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-sk-bg-3/50 backdrop-blur-md rounded-full border border-sk-border-3 text-sk-xs font-bold text-sk-text-1">
-                  <TrendingUp size={14} className="text-sk-accent" /> Basado en Data
-                </div>
-              </div>
-            </div>
-          </div>
-
+          <ArenaPageHero
+            section="tv"
+            eyebrow="SHARKTV / VIDEOTECA DE PÓKER"
+            heading="ANÁLISIS"
+            highlight="DE MANOS."
+            icon={MonitorPlay}
+            description="Explora episodios de póker, decisiones estratégicas y comentarios de instructores. Aprende de situaciones reales de juego y examina diferentes líneas de acción."
+            count={loading ? undefined : videos.length}
+            countLabel="Videos publicados"
+          />
           {/* 📽️ VIDEO GRID */}
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-black text-sk-text-1 flex items-center gap-3">
@@ -81,7 +61,7 @@ export function SharkTvPage() {
             <div className="h-[1px] flex-1 bg-gradient-to-r from-sk-border-2 to-transparent ml-8" />
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="arena-bridge-grid arena-tv-grid grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loading ? (
               <div className="col-span-full flex justify-center py-20">
                 <Spinner size="lg" />
@@ -89,14 +69,14 @@ export function SharkTvPage() {
             ) : videos.length === 0 ? (
               <div className="col-span-full text-center py-20 border border-sk-border-2 rounded-2xl bg-sk-bg-2">
                 <MonitorPlay className="mx-auto text-sk-text-4 mb-3" size={40} />
-                <p className="text-sk-text-3">Aún no hay videos publicados. ¡Ve al Super Admin y lanza el primero!</p>
+                <p className="text-sk-text-3">Todavía no hay videos publicados en SharkTV. Vuelve a consultar próximamente.</p>
               </div>
             ) : (
               videos.map((video) => (
                 <Link 
                   key={video.id} 
                   to={`/tv/${video.id}`}
-                  className="group flex flex-col bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/50 transition-all duration-300 shadow-sk-md hover:shadow-[0_0_30px_rgba(34,211,238,0.1)]"
+                  className="arena-bridge-card group flex flex-col hover:border-sk-accent/50 transition-all duration-300"
                 >
                   <div className="h-56 overflow-hidden relative border-b border-sk-border-2">
                     <div className="absolute top-3 left-3 z-10">
