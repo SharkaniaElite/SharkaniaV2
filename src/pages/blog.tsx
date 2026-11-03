@@ -122,8 +122,8 @@ export default function BlogPage() {
   return (
     <PageShell variant="arena">
       <SEOHead
-        title="Biblioteca de Inteligencia — Blog"
-        description="Estrategia de poker, análisis de datos, mental game y más. Estudia y mina Shark Coins con nuestros artículos técnicos."
+        title="Estrategia de póker | Guías y análisis"
+        description="Artículos de estrategia de póker, análisis de torneos, conceptos ELO e ICM y guías educativas publicadas en Sharkania."
         path="/blog"
       />
 
@@ -133,10 +133,10 @@ export default function BlogPage() {
           <ArenaPageHero
             section="blog"
             eyebrow="BIBLIOTECA / ESTRATEGIA"
-            heading="ESTUDIA."
-            highlight="EVOLUCIONA."
+            heading="ESTRATEGIA"
+            highlight="DE PÓKER."
             icon={BookOpen}
-            description="Explora análisis de juego, conceptos de estrategia y artículos publicados por Sharkania. Busca por tema o recorre la biblioteca completa."
+            description="Encuentra guías de póker, análisis de torneos y conceptos estratégicos en la biblioteca de Sharkania. Busca por tema o recorre todos los artículos."
             count={loading ? undefined : posts.filter((p) => !["noticias", "promociones"].includes(p.category.toLowerCase())).length}
             countLabel="Artículos de estrategia"
             action={<Link to="/sistema-elo">Conoce cómo calculamos el ELO <ArrowRight size={15} /></Link>}
