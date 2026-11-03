@@ -61,3 +61,12 @@ test("League hero keeps the long source description reachable without flooding m
   assert.match(page, /Descripción y condiciones de la liga/);
   assert.match(page, /whitespace-pre-line leading-relaxed/);
 });
+
+
+test("Ignition landing has a keyboard-accessible shortcut to its nickname form", () => {
+  const ignition = read("src/pages/ignition-championship.tsx");
+  assert.match(ignition, /href="#vincular-nickname"/);
+  assert.match(ignition, /id="vincular-nickname"/);
+  assert.match(ignition, /Ir al formulario de vinculación/);
+  assert.match(ignition, /<Turnstile/);
+});
