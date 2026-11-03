@@ -13,6 +13,18 @@
 - El árbol histórico del repositorio consultado en un commit anterior al 20 de marzo de 2026 tampoco contenía archivos SQL de esquema.
 - La rama QA temporal fallida ya fue eliminada. **No** hay resultados de tests SQL de esa rama.
 
+## Inventario de esquema recuperado (3 de noviembre, inspección adicional)
+
+La conexión autorizada de Supabase permitió extraer, con consultas de solo lectura al catálogo PostgreSQL, una fotografía técnica de la estructura **actual**, sin filas, compradores, correos ni saldos.
+
+- [Catálogo estructural protegido](supabase-schema-catalog-2026-11-03.json): **64 tablas, 567 columnas, 184 restricciones, 138 índices, 194 firmas de funciones, 22 triggers, 185 políticas, 2 vistas, 77 etiquetas de enumerados y 9 extensiones**.
+- El catálogo **no incluye los cuerpos SQL de funciones, triggers ni las expresiones de políticas**: solo sus identidades y hashes. Esto limita la exposición de información técnica en GitHub público.
+- Una expresión de valor por defecto fue excluida de la captura pública por cautela. Debe recuperarse únicamente mediante una exportación de confianza, en privado.
+- `tests/supabase-schema-catalog.test.mjs` verifica la coherencia del catálogo con las 64 tablas inventariadas, las reglas de minimización de información y el bloqueo de nuevos intentos QA.
+- `scripts/export-supabase-schema-only.ps1` automatiza un **dump de DDL sin datos** en un equipo Windows de confianza; guarda fuera del repositorio y no acepta contraseñas como parámetros.
+
+**Límite técnico:** este inventario describe el esquema **después** de todas las migraciones. No contiene el estado anterior al 20 de marzo de 2026 y no reemplaza una exportación íntegra de DDL con las dependencias del esquema personalizadas. Insertarlo como migración antes de las 50 versiones provocaría posibles conflictos de tablas, columnas, funciones y políticas.
+
 ## Diagnóstico
 
 Supabase Branching creado desde el Dashboard vuelve a ejecutar las migraciones del proyecto principal contra una base nueva. Si se crearon objetos manualmente antes de registrar migraciones, el historial no puede reproducirlos y la rama puede terminar en `MIGRATIONS_FAILED`. Es consistente con el fallo observado, pero sin el mensaje de la sentencia concreta no está probado como causa exclusiva.
@@ -36,6 +48,8 @@ supabase db dump --help
 supabase login
 supabase link --project-ref nhpjzywfzljtlqaigzed
 supabase db dump --schema public --file .\sharkania-schema-actual-SOLO-LOCAL.sql
+# Alternativamente, desde Windows, usa el script auditado que guarda fuera de Git:
+# powershell -ExecutionPolicy Bypass -File .\scripts\export-supabase-schema-only.ps1 -IncludePrivateSchema
 ```
 
 El dump por defecto **no incluye datos de filas**; tampoco debe incluir el estado `auth.users` ni los datos de `storage`. **NO subir este archivo a GitHub automáticamente**: examinarlo localmente por si hubiera literales, definiciones con secretos o configuraciones que no deben publicarse. No se solicita contraseña ni token por el chat.
