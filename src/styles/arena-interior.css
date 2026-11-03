@@ -1022,3 +1022,29 @@
 @media(max-width:760px){
   .arena-editorial .arena-glossary-grid {grid-template-columns:minmax(0,1fr)}
 }
+
+/* ARENA / COMPARISON: clearer guest entry and reliable mobile metrics. */
+.arena-page-hero--compare::before {background-image:url("/images/arena/home-ranking.webp")}
+.arena-compare .arena-compare-guest {max-width:920px;margin-inline:auto}
+.arena-compare .arena-compare-guest-intro {display:flex;align-items:flex-start;gap:22px}
+.arena-compare .arena-compare-guest-symbol {
+  width:60px;height:60px;flex-shrink:0;display:grid;place-items:center;
+  color:#64ddec;background:rgba(52,204,230,.10);border:1px solid rgba(67,207,235,.3);border-radius:14px
+}
+.arena-compare .arena-compare-primary,.arena-compare .arena-compare-secondary {
+  min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  padding:12px 18px;border:1px solid rgba(73,220,239,.45);border-radius:9px;
+  font:800 12px/1.4 system-ui,sans-serif;text-decoration:none;transition:background .2s
+}
+.arena-compare .arena-compare-primary{background:#49d8e9;color:#071b27}
+.arena-compare .arena-compare-primary:hover{background:#8aebf5}
+.arena-compare .arena-compare-secondary{background:rgba(39,182,213,.07);color:#b6eff7}
+.arena-compare .arena-compare-secondary:hover{background:rgba(39,182,213,.18)}
+.arena-compare .arena-compare-row{grid-template-columns:minmax(0,1fr) minmax(84px,120px) minmax(0,1fr)}
+.arena-compare .arena-compare-row > *{min-width:0;overflow-wrap:anywhere}
+@media(max-width:520px){
+  .arena-compare .arena-compare-guest-intro {flex-direction:column;gap:14px}
+  .arena-compare .arena-compare-primary,.arena-compare .arena-compare-secondary {width:100%}
+  .arena-compare .arena-compare-row {gap:7px}
+  .arena-compare .arena-compare-row > * {font-size:11px}
+}
