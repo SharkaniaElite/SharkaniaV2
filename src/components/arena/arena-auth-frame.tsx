@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import "../../styles/arena-workspaces.css";
 
 type ArenaAuthFrameProps = {
-  mode: "login" | "register";
+  mode: "login" | "register" | "recovery" | "reset";
   title: string;
   description: string;
   children: ReactNode;
@@ -33,7 +33,7 @@ export function ArenaAuthFrame({ mode, title, description, children }: ArenaAuth
         <section className="arena-auth-panel" aria-labelledby="arena-auth-form-title">
           <div className="arena-auth-panel-heading">
             <p className="arena-auth-panel-eyebrow">
-              {mode === "login" ? "CUENTA / ACCESO" : "CUENTA / REGISTRO"}
+              {mode === "login" ? "CUENTA / ACCESO" : mode === "register" ? "CUENTA / REGISTRO" : "CUENTA / SEGURIDAD"}
             </p>
             <h2 id="arena-auth-form-title">{title}</h2>
             <p>{description}</p>
