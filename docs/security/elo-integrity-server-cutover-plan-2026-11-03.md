@@ -58,3 +58,12 @@ Una única llamada PostgreSQL bloquea torneo/jugadores/resultados, valida posici
 El paso de ejecución del RPC en CI terminó `success` en el run `41712846518`, commit `645536f80b86c2b49447a03977886e389f9c86b4`. Es una **prueba de PostgreSQL con roles ficticios**, no Supabase QA completo. La UI sigue usando el motor anterior porque la RPC no ha sido publicada: mantener ese estado hasta autorizar el cambio.
 
 **Pendiente crítico:** probar conflictos entre torneos concurrentes, todos los tipos de perfiles/alias, moneda/cálculo financiero, triggers productivos, `reverseElo` y el flujo de cargas reales. En particular, no publicar la RPC sin haber probado previamente el esquema completo de Supabase; no activar un flag de cliente o revocar `players.UPDATE` antes de cutover validado.
+
+## Segunda batería de QA adversarial — 3 de noviembre de 2026
+
+- **Hallazgo corregido en la propuesta SQL (no en producción):** un torneo con dos filas de resultados pertenecientes al **mismo jugador** y posiciones distintas superaba la validación inicial de posiciones, con riesgo de incrementar dos veces ELO, premios y contadores. La propuesta ahora requiere `count(DISTINCT tr.player_id) = count(*)` además de las posiciones únicas.
+- **Nueva prueba ejecutada:** `tests/fixtures/sharkania-elo-qa-adversarial.sql`, añadida al workflow aislado de PostgreSQL 17.
+- **Casos negativos confirmados:** jugador duplicado, identificador de jugador inexistente, posición duplicada y posición fuera del rango permitido. Ninguno cambia el estado del torneo ni el historial de ELO.
+- **Atomicidad comprobada:** un trigger exclusivamente ficticio provoca un error al insertar el historial del segundo jugador; el RPC revierte los cambios que ya había intentado efectuar sobre el primer jugador. Se comprueban tablas de jugadores, perfiles, resultados, torneos e historial.
+- **Evidencia:** GitHub Actions run [41714223441](https://github.com/SharkaniaElite/SharkaniaV2/actions/runs/41714223441), job `rls` concluido con `success`. Estas pruebas **no modificaron Supabase**.
+- **Bloqueos aún abiertos:** concurrencia entre torneos que comparten jugadores, reentradas/buy-ins efectivos, compatibilidad con varios nicknames, reversión del ELO, cifras multimoneda, permisos y triggers reales de Supabase, y comparación completa con el frontend. La propuesta sigue **NO-GO para producción**.
