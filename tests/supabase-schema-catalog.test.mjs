@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
@@ -40,4 +41,16 @@ test("Local schema-only export never requests data or passes credentials as argu
   assert.doesNotMatch(script, /& supabase db dump [^\n]+--data-only/);
   assert.doesNotMatch(script, /& supabase db dump [^\n]+--role-only/);
   assert.doesNotMatch(script, /service_role\s*[:=]\s*['"]/i);
+});
+
+
+test("History hash verification succeeds but full migration readiness fails closed", () => {
+  const options = { cwd: new URL("../", import.meta.url).pathname, encoding: "utf8" };
+  const history = spawnSync(process.execPath, ["scripts/check-supabase-migration-readiness.mjs", "--history-only"], options);
+  assert.equal(history.status, 0, history.stderr);
+  assert.match(history.stdout, /PASS: all 50 historically applied migration files/);
+
+  const full = spawnSync(process.execPath, ["scripts/check-supabase-migration-readiness.mjs"], options);
+  assert.equal(full.status, 2, "Do not silently approve paid QA branching without initial schema");
+  assert.match(full.stderr, /QA NO-GO: schema baseline lacks CREATE TABLE/);
 });
