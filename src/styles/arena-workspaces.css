@@ -197,3 +197,31 @@
   .arena-auth-benefits li{font-size:10px;padding:5px 8px}
   .arena-auth-panel{padding:23px 20px}
 }
+
+/* Quizzes remain narrow enough to read on mobile and desktop. */
+.arena-tool-page > .arena-interior-container.arena-quiz-container,
+.arena-tool-page > .arena-interior-container.arena-profiler-container {
+  width:min(820px,calc(100% - 48px));
+}
+.arena-quiz-container .arena-tool-hero,
+.arena-profiler-container .arena-tool-hero {margin-bottom:23px}
+.arena-tool-page .arena-tool-content > .bg-sk-bg-2,
+.arena-profiler-page .arena-tool-content .bg-sk-bg-2 {
+  background:linear-gradient(145deg,#132533,#101d2a);
+  border-color:rgba(112,172,191,.22);
+}
+.arena-tool-page .arena-tool-content .text-sk-text-1{overflow-wrap:anywhere}
+.arena-auth-panel .arena-recovery-link-primary{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:12px 17px;border-radius:8px;min-height:45px;
+  background:#48d9e9;color:#08202b;font:800 12px/1.4 system-ui,sans-serif;
+  text-decoration:none
+}
+.arena-auth-panel .arena-recovery-link-primary:hover{background:#87eff8}
+@media(max-width:490px){
+  .arena-tool-page > .arena-interior-container.arena-quiz-container,
+  .arena-tool-page > .arena-interior-container.arena-profiler-container {
+    width:calc(100% - 28px);
+  }
+  .arena-tool-page .arena-tool-content .flex{min-width:0}
+}
