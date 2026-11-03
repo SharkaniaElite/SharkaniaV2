@@ -93,6 +93,19 @@ test("Stats Spy proposal does not sum mixed currencies into fictitious aggregate
   assert.match(results, /r\.tournaments\.currency/);
 });
 
+test("Guarded comparator gets premium financial values from licensed RPCs and never blurs DOM data", () => {
+  const compare = load("src/pages/compare.tsx");
+  assert.match(compare, /useSecureStatsSpySummary\(playerA\?\.slug, hasPremiumAccess\)/);
+  assert.match(compare, /useSecureStatsSpySummary\(playerB\?\.slug, hasPremiumAccess\)/);
+  assert.match(compare, /SECURE_STATS_SPY_MODE/);
+  assert.match(compare, /securedA\.data\?\.profit/);
+  assert.match(compare, /securedB\.data\?\.roi_percent/);
+  assert.match(compare, /profitComparable/);
+  assert.match(compare, /No comparable/);
+  assert.match(compare, /isPremium=\{row\.premium && SECURE_STATS_SPY_MODE\}/);
+  assert.doesNotMatch(compare, /blur-\[6px\]/);
+});
+
 // Pending cross-system security work is intentionally visible, not falsely green.
 test.todo("Cut over public player select-star queries to explicitly allowed columns");
 test.todo("Revoke premium column access and legacy SQL RPC bypasses after all clients migrate");
