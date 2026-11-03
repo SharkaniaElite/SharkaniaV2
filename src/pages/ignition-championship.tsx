@@ -256,6 +256,32 @@ export function IgnitionChampionshipPage() {
               Si ya te registraste para la liga y tu vinculación está guardada, no necesitas registrarte otra vez.
             </p>
 
+            <section aria-labelledby="ignition-exclusive-prizes-title" className="rounded-xl border-2 border-amber-400/65 bg-amber-400/10 p-5 sm:p-6 shadow-[0_0_24px_rgba(251,191,36,0.08)]">
+              <div className="flex items-start gap-3">
+                <Trophy size={23} className="mt-0.5 shrink-0 text-amber-300" aria-hidden="true" />
+                <div>
+                  <p className="mb-2 text-[11px] font-black uppercase tracking-widest text-amber-300">Condición obligatoria para premios adicionales</p>
+                  <h2 id="ignition-exclusive-prizes-title" className="text-xl font-extrabold leading-snug text-white">
+                    Bounty de cada fecha y premios de fin de mes: exclusivos para inscritos mediante SHARKANIA
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-gray-200">
+                    Solo pueden optar al <strong className="text-white">bounty al host</strong> y a los
+                    <strong className="text-white"> premios del ranking mensual</strong> los jugadores que
+                    se hayan inscrito a la Liga SHARKANIA a través de este sitio y tengan su nickname
+                    de Ignition correctamente vinculado para acreditar su participación.
+                    <strong className="text-amber-200"> Jugar el torneo en Ignition sin registrarte en SHARKANIA no te habilita para esos premios.</strong>
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                    Si ya te registraste y vinculaste tu nickname en una edición anterior, no tienes que volver
+                    a inscribirte: entra a tu panel y comprueba el estado de tu vinculación.
+                  </p>
+                  <p className="mt-3 text-xs leading-relaxed text-gray-400">
+                    El pozo garantizado regular de cada torneo se rige por las condiciones de Ignition Poker.
+                  </p>
+                </div>
+              </div>
+            </section>
+
             <section className="rounded-xl border border-orange-400/40 bg-orange-500/[.08] p-5 space-y-4" aria-label="Cómo participar si eres nuevo o ya estabas inscrito">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-orange-300 mb-2">¿Primera vez en Ignition?</p>
