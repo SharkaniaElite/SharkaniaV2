@@ -217,19 +217,19 @@ export function Navbar({variant = "standard"}: {variant?: "standard" | "arena"})
             <Mail size={18} />
           </a>
 
-          {/* 🔥 Botón de Cobertura EN VIVO (Visible en Desktop y Mobile) */}
+          {/* Enlace a transmisiones: Arena no afirma que haya un directo activo sin verificarlo. */}
           <Link 
             to="/live" 
-            aria-label="Ver transmisiones en vivo"
-            className="flex items-center justify-center min-w-11 min-h-11 gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all group"
-            title="Ir al Stream en Vivo"
+            aria-label={variant === "arena" ? "Ver transmisiones de póker" : "Ver transmisiones en vivo"}
+            className={cn("flex items-center justify-center min-w-11 min-h-11 gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all group", variant === "arena" ? "bg-cyan-400/10 border border-cyan-400/25 text-cyan-300 hover:bg-cyan-400/20" : "bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]")}
+            title={variant === "arena" ? "Ir a transmisiones" : "Ir al Stream en Vivo"}
           >
             <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
+              {variant !== "arena" && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />}
+              <span className={cn("relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5", variant === "arena" ? "bg-cyan-300" : "bg-red-500")} />
             </span>
             <span className="max-[375px]:hidden text-[10px] sm:text-[11px] font-black tracking-widest uppercase drop-shadow-sm group-hover:text-red-400 mt-px">
-              En Vivo
+              {variant === "arena" ? "Transmisiones" : "En Vivo"}
             </span>
           </Link>
 
