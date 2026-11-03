@@ -1,7 +1,7 @@
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "../../lib/cn";
-import { FlagIcon } from "../ui/flag-icon";
+import { PlayerAvatar } from "./player-avatar";
 import {
   formatElo,
   formatNumber,
@@ -17,25 +17,12 @@ interface PlayerRowProps {
 }
 
 function PlayerRowComponent({ player, rank }: PlayerRowProps) {
-  // 🔥 Memoizar cálculo (evita recomputo innecesario)
-  const itm = useMemo(() => {
-    return calcItm(player.total_cashes, player.total_tournaments);
-  }, [player.total_cashes, player.total_tournaments]);
-
-  // 🔥 Avatar estable (evita recalcular string en cada render)
-  const avatar = useMemo(() => {
-    return (
-      player.profiles?.avatar_url ||
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        player.nickname
-      )}&background=111827&color=fff`
-    );
-  }, [player.profiles?.avatar_url, player.nickname]);
+  const itm = calcItm(player.total_cashes, player.total_tournaments);
 
   return (
     <tr
       className={cn(
-        "group transition-colors duration-150 hover:bg-white/[0.03]",
+        "arena-ranking-row group transition-colors duration-150 hover:bg-white/[0.03]",
         rank === 1 && "bg-[rgba(251,191,36,0.08)] border-l-2 border-l-sk-gold",
         rank === 2 && "bg-[rgba(203,213,225,0.05)] border-l-2 border-l-sk-silver",
         rank === 3 && "bg-[rgba(217,119,6,0.06)] border-l-2 border-l-sk-bronze"
@@ -50,27 +37,12 @@ function PlayerRowComponent({ player, rank }: PlayerRowProps) {
       <td className="py-3 px-4 border-b border-sk-border-2">
         <Link
           to={`/ranking/${player.slug}`}
-          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity"
         >
-          {/* Avatar */}
-          <div className="relative w-7 h-7 shrink-0">
-            <div className="w-7 h-7 rounded-full bg-sk-bg-4 border border-sk-border-2 overflow-hidden">
-              <img
-                src={avatar}
-                alt={player.nickname}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-
-            {/* Flag */}
-            <div className="absolute -bottom-1 -right-1 shadow-sm">
-              <FlagIcon countryCode={player.profiles?.country_code || player.country_code} size={11} />
-            </div>
-          </div>
+          <PlayerAvatar nickname={player.nickname} avatarUrl={player.profiles?.avatar_url} countryCode={player.profiles?.country_code ?? player.country_code} />
 
           {/* Nombre */}
-          <span className="font-semibold text-sk-text-1 transition-colors group-hover:text-white">
+          <span className="arena-ranking-nickname font-semibold text-sk-text-1 transition-colors group-hover:text-white">
             {player.nickname}
           </span>
 
@@ -126,18 +98,5 @@ function PlayerRowComponent({ player, rank }: PlayerRowProps) {
   );
 }
 
-// 🔥 Comparador custom (nivel PRO)
-export const PlayerRow = memo(
-  PlayerRowComponent,
-  (prev, next) => {
-    return (
-      prev.rank === next.rank &&
-      prev.player.id === next.player.id &&
-      prev.player.elo_rating === next.player.elo_rating &&
-      prev.player.total_tournaments === next.player.total_tournaments &&
-      prev.player.total_cashes === next.player.total_cashes &&
-      prev.player.total_wins === next.player.total_wins &&
-      prev.player.profiles?.country_code === next.player.profiles?.country_code // 🔥 Agregamos validación de país
-    );
-  }
-);
+// Shallow props comparison avoids stale rows when a name, avatar or room changes.
+export const PlayerRow = memo(PlayerRowComponent);
