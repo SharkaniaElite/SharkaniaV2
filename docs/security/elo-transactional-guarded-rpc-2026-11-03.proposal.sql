@@ -100,6 +100,21 @@ BEGIN
       USING ERRCODE='22023';
   END IF;
 
+  -- Financial buy-ins must count reentries. Prevent invalid, null or
+  -- fractional buy-in counts from silently corrupting stored statistics.
+  -- Existing production metadata was checked read-only: all current counts
+  -- are positive integers. Keep the rating formula/K based on base buy-in.
+  IF EXISTS (
+    SELECT 1 FROM public.tournament_results tr
+    WHERE tr.tournament_id=p_tournament_id
+      AND (tr.buy_ins_count IS NULL
+        OR tr.buy_ins_count < 1
+        OR tr.buy_ins_count <> trunc(tr.buy_ins_count))
+  ) THEN
+    RAISE EXCEPTION 'Invalid tournament buy-ins count'
+      USING ERRCODE='22023';
+  END IF;
+
   -- Never append to a pre-existing ELO history without reconciliation.
   -- This closes a retry path for historically half-processed tournaments.
   IF EXISTS (
@@ -114,7 +129,7 @@ BEGIN
 
   FOR v_result IN
     SELECT tr.id AS result_id,tr.player_id,tr.position,
-           tr.prize_won,tr.bounties_won,
+           tr.prize_won,tr.bounties_won,tr.buy_ins_count,
            p.elo_rating,p.elo_peak,p.total_tournaments
     FROM public.tournament_results tr
     JOIN public.players p ON p.id=tr.player_id
@@ -141,7 +156,7 @@ BEGIN
           total_cashes=p.total_cashes+CASE WHEN v_prize>0 THEN 1 ELSE 0 END,
           total_wins=p.total_wins+CASE WHEN v_result.position=1 THEN 1 ELSE 0 END,
           total_prize_won=p.total_prize_won+v_prize,
-          total_buy_ins_spent=p.total_buy_ins_spent+v_buy_in
+          total_buy_ins_spent=p.total_buy_ins_spent+v_buy_in*v_result.buy_ins_count
       WHERE p.id=v_result.player_id;
     GET DIAGNOSTICS v_rows=ROW_COUNT;
     IF v_rows<>1 THEN
