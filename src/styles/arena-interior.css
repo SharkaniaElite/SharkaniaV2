@@ -285,3 +285,63 @@
   .arena-page-hero::before{display:none}
   .arena-interior .arena-profile-hero{background-image:none}
 }
+
+/* Detail views — same identity without changing tournament, league or club data. */
+.arena-interior .arena-detail-narrow {max-width:1040px}
+.arena-interior .arena-detail-banner {
+  position:relative;
+  isolation:isolate;
+  border:1px solid rgba(111,173,197,.28);
+  border-radius:16px;
+  background:linear-gradient(95deg,rgba(7,15,25,.95),rgba(7,15,25,.70) 55%,rgba(7,15,25,.50)),url("/images/arena/home-tournaments.webp") 60% 46%/cover no-repeat;
+  box-shadow:0 18px 55px rgba(0,0,0,.2);
+}
+.arena-interior .arena-detail-banner--league {
+  background:linear-gradient(95deg,rgba(7,15,25,.96),rgba(7,15,25,.74) 56%,rgba(7,15,25,.51)),url("/images/arena/home-ranking.webp") 60% 46%/cover no-repeat;
+}
+.arena-interior .arena-detail-banner--club {
+  padding:22px 24px 24px;
+  background:linear-gradient(95deg,rgba(7,15,25,.95),rgba(7,15,25,.72) 55%,rgba(7,15,25,.50)),url("/images/arena/home-final.webp") 60% 46%/cover no-repeat;
+}
+.arena-interior .arena-detail-banner--club > :last-child {
+  border-radius:13px;
+  overflow:hidden;
+}
+.arena-detail-banner::before {
+  content:"";position:absolute;left:0;right:45%;top:0;height:2px;
+  background:linear-gradient(90deg,#2bd8ef,transparent);
+  z-index:25;pointer-events:none;
+}
+.arena-interior .arena-detail-kicker {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#40d8f0;
+  font:750 10px/1.4 monospace;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin:0 0 17px;
+  position:relative;
+  z-index:24;
+}
+.arena-interior .arena-detail-title {
+  color:#f7f9ff;
+  font-size:clamp(26px,3.5vw,40px);
+  line-height:1.16;
+  letter-spacing:-.05em;
+  font-weight:850;
+  overflow-wrap:anywhere;
+}
+.arena-interior .arena-detail-section-head h2 {
+  color:#f7fbff;
+  font-weight:800;
+  letter-spacing:-.03em;
+  font-size:22px;
+}
+.arena-interior .arena-detail-banner--tournament {padding:29px 31px}
+@media(max-width:560px){
+  .arena-interior .arena-detail-banner--club {padding:15px}
+  .arena-interior .arena-detail-banner--tournament {padding:22px 18px}
+  .arena-interior .arena-detail-kicker {font-size:9px}
+  .arena-interior .arena-detail-title {font-size:29px}
+}
