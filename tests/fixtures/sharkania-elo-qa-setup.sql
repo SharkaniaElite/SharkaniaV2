@@ -9,7 +9,7 @@ CREATE TABLE public.profiles(id uuid PRIMARY KEY,role text NOT NULL,unified_elo 
 CREATE TABLE public.club_admins(club_id uuid NOT NULL,user_id uuid NOT NULL);
 CREATE TABLE public.tournaments(id uuid PRIMARY KEY,club_id uuid NOT NULL,buy_in numeric(10,2) NOT NULL,results_uploaded boolean NOT NULL DEFAULT false,status text NOT NULL DEFAULT 'scheduled');
 CREATE TABLE public.players(id uuid PRIMARY KEY,profile_id uuid,elo_rating numeric(10,2) NOT NULL DEFAULT 1200,elo_peak numeric(10,2) NOT NULL DEFAULT 1200,total_tournaments integer NOT NULL DEFAULT 0,total_cashes integer NOT NULL DEFAULT 0,total_wins integer NOT NULL DEFAULT 0,total_prize_won numeric(12,2) NOT NULL DEFAULT 0,total_buy_ins_spent numeric(12,2) NOT NULL DEFAULT 0);
-CREATE TABLE public.tournament_results(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tournament_id uuid NOT NULL,player_id uuid NOT NULL,position integer NOT NULL,prize_won numeric(10,2) NOT NULL DEFAULT 0,bounties_won numeric(10,2) NOT NULL DEFAULT 0,elo_before numeric(10,2),elo_after numeric(10,2),elo_change numeric(10,2));
+CREATE TABLE public.tournament_results(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tournament_id uuid NOT NULL,player_id uuid NOT NULL,position integer NOT NULL,prize_won numeric(10,2) NOT NULL DEFAULT 0,bounties_won numeric(10,2) NOT NULL DEFAULT 0,buy_ins_count numeric NOT NULL DEFAULT 1,elo_before numeric(10,2),elo_after numeric(10,2),elo_change numeric(10,2));
 CREATE TABLE public.elo_history(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tournament_id uuid NOT NULL,player_id uuid NOT NULL,elo_before numeric(10,2) NOT NULL,elo_after numeric(10,2) NOT NULL,elo_change numeric(10,2) NOT NULL);
 INSERT INTO public.profiles(id,role) VALUES
 ('00000000-0000-0000-0000-000000000001','super_admin'),
