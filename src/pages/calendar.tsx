@@ -108,20 +108,20 @@ export function CalendarPage() {
   return (
     <PageShell variant="arena">
     <SEOHead
-  title="Calendario de Torneos"
-  description="Calendario de torneos de poker en vivo. Horarios, buy-ins, garantizados y countdown en tiempo real para clubes privados."
+  title="Calendario de torneos de póker online"
+  description="Consulta el calendario de torneos de póker de Sharkania: próximos eventos, horarios, estados y resultados de torneos registrados."
   path="/calendar"
 />
       <div className="arena-interior">
         <div className="arena-interior-container">
           <ArenaPageHero
             section="calendar"
-            eyebrow="CIRCUITO / CALENDARIO"
-            heading="PRÓXIMOS"
-            highlight="TORNEOS."
+            eyebrow="PÓKER ONLINE / CALENDARIO"
+            heading="TORNEOS"
+            highlight="DE PÓKER."
             icon={CalendarDays}
             description={
-              <>Agenda de torneos registrados, estados en vivo y archivo de resultados.
+              <>Consulta los próximos torneos de póker, su estado y los resultados que forman parte del archivo.
                 {liveCount > 0 && tab === "upcoming" && <span className="arena-refresh-label"> · {liveCount} en vivo</span>}
                 {(loadingUpcoming || loadingHistory) && <span className="arena-refresh-label"> · Sincronizando agenda…</span>}
               </>
