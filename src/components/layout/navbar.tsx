@@ -47,7 +47,9 @@ const ARENA_MAIN_LINKS = [
   { label: "Promociones", href: "/promociones" },
 ];
 
-const ALL_LINKS = [...MAIN_LINKS, ...MORE_LINKS];
+const ARENA_MORE_LINKS = [{ label: "Estrategia", href: "/blog" }, ...MORE_LINKS];
+const ARENA_MOBILE_LINKS = [...ARENA_MAIN_LINKS, ...ARENA_MORE_LINKS];
+const STANDARD_MOBILE_LINKS = [...MAIN_LINKS, ...MORE_LINKS];
 
 const MENU_BG: React.CSSProperties = {
   background: "rgb(12, 13, 16)",
@@ -152,7 +154,7 @@ export function Navbar({variant = "standard"}: {variant?: "standard" | "arena"})
             </button>
             
             <div className="absolute top-full left-0 pt-3 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[200]">
-              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg shadow-sk-xl overflow-hidden py-2">
+              <div className={cn("bg-sk-bg-2 border border-sk-border-2 rounded-lg shadow-sk-xl overflow-hidden py-2", variant === "arena" && "arena-nav-dropdown")}>
                 
                 {/* Salas */}
                 <div className="px-4 py-1 text-[10px] uppercase font-bold text-sk-text-4 tracking-wider mb-1">Salas Recomendadas</div>
@@ -170,7 +172,7 @@ export function Navbar({variant = "standard"}: {variant?: "standard" | "arena"})
                 <div className="border-t border-sk-border-2 my-2" />
 
                 {/* Otros */}
-                {MORE_LINKS.map((link) => (
+                {(variant === "arena" ? ARENA_MORE_LINKS : MORE_LINKS).map((link) => (
                   <Link
                     key={link.href}
                     to={link.href}
@@ -317,6 +319,8 @@ export function Navbar({variant = "standard"}: {variant?: "standard" | "arena"})
             onClick={() => setMobileOpen(!mobileOpen)}
             className="lg:hidden w-11 h-11 flex items-center justify-center text-sk-text-1 bg-transparent border-none cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-sk-accent"
             aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={mobileOpen}
+            aria-controls="sharkania-mobile-nav"
           >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -332,7 +336,7 @@ export function Navbar({variant = "standard"}: {variant?: "standard" | "arena"})
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div style={MENU_BG} className="lg:hidden">
+        <div id="sharkania-mobile-nav" style={variant === "arena" ? { ...MENU_BG, background: "rgb(6, 17, 27)", borderTop: "1px solid rgba(76,206,227,0.26)" } : MENU_BG} className={cn("lg:hidden", variant === "arena" && "arena-mobile-menu")}>
           {/* SECCIÓN DE ECONOMÍA (Mobile) */}
           {isAuthenticated && profile && (
             <Link
@@ -357,7 +361,7 @@ export function Navbar({variant = "standard"}: {variant?: "standard" | "arena"})
           )}
 
           {/* Nav links */}
-          {ALL_LINKS.map((link) => (
+          {(variant === "arena" ? ARENA_MOBILE_LINKS : STANDARD_MOBILE_LINKS).map((link) => (
             <Link
               key={link.href}
               to={link.href}
@@ -369,6 +373,18 @@ export function Navbar({variant = "standard"}: {variant?: "standard" | "arena"})
               {link.label}
             </Link>
           ))}
+
+          {variant === "arena" && (
+            <div className="arena-mobile-rooms" aria-label="Salas de póker y tutoriales">
+              <p className="arena-mobile-rooms-title">SALAS DE PÓKER</p>
+              {ROOMS.map((room) => (
+                <div key={room.name} className="arena-mobile-room-row">
+                  <Link to={room.href}>{room.name}</Link>
+                  <Link to={room.tutorial.href}>{room.tutorial.label}</Link>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Enlace de Contacto en Mobile */}
           <a
