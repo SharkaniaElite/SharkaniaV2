@@ -110,3 +110,29 @@ Inspección de metadatos `pg_policies`, `pg_proc` y `has_column_privilege` de Su
 4. Solo tras aprobación del propietario, aplicar en producción con chequeos de regresión SEO, resultados, pagos y suscripciones.
 
 **No se aplicó SQL ni cambiaron permisos de producción.** El riesgo existe en la configuración de datos revisada y requiere tratamiento antes de anunciar protección de estadísticas premium como característica segura.
+
+
+## Etapa 5 — Stats Espía y velocidad: preparación segura (3 nov 2026)
+
+### Rendimiento: código ya integrado en el prototipo
+- **13 páginas pasadas de import estático a `React.lazy`** en `src/App.tsx`: EloSystem, Tutorial CSV, perfilador, ClubGG tutorial, promociones, SharkTV, revisión de mano, broadcast admin, campeonato Ignition, tutorial Ignition, noticias, promociones Mindev y Fullnuts. Se conservan todas las rutas y los controles.
+- La foto decorativa del hero, confirmada como **elemento LCP** en una prueba móvil, pasa de `fetchPriority="low"` a `fetchPriority="high"`, con `loading="eager"` y tamaños explícitos. Los cuatro fondos inferiores siguen con `loading=lazy`.
+- En una ejecución sintética móvil 390 px, antes de dividir rutas el JS transferido sumó aproximadamente 278.238 bytes; tras dividir rutas 233.912 bytes (reducción observada ~16%). **Son ejecuciones individuales de Cloudflare Browser Rendering, no un benchmark estadístico ni p75 real.**
+- Una ejecución antes de cambiar prioridad registró ~1.500 ms de LCP en hero; otra después ~1.036 ms. **No atribuir causalidad ni comparar como mejora garantizada sin repetir mediciones controladas**.
+
+### Stats Espía: cambios de código preparados
+- `src/hooks/use-shop.ts`: claves de caché de compras, monedas y permisos incluyen ID del usuario autenticado. Inhabilita lecturas privadas al cerrar sesión; consulta otra vez al cambiar de cuenta.
+- `src/lib/api/players.ts`, `src/hooks/use-players.ts`, `src/pages/player-profile.tsx`: visitantes sin licencia descargan solo **dos resultados** en las rutas de perfil y conservan un aviso basado en el número total de torneos. Consultas de usuarios con licencia conservan todo el historial por el mecanismo anterior hasta activar el backend de seguridad.
+- `src/lib/api/stats-spy.ts` y `src/hooks/use-stats-spy.ts`: cliente e integración para RPC nuevas, solo activo al configurar `VITE_STATS_SPY_SECURE_RPC=true`. La bandera está **desactivada por defecto**; **NO activarla** antes de instalar las funciones, ajustar los privilegios públicos y validar con usuarios de prueba. Fallos de autorización nunca vuelven automáticamente al endpoint público.
+- `PlayerStatsGrid`: comunicación ajustada para describir análisis de rentabilidad/histórico, sin afirmar exclusividad de métricas que el ranking ya expone. Estado visual sin oferta de compra temporal durante verificación de un suscriptor.
+- `docs/security/stats-spy-guarded-rpcs-2026-11-03.proposal.sql`: dos RPC de lectura con `auth.uid()` y licencia activa/superadmin verificada dentro de PostgreSQL, SQL **no ejecutado**.
+- `docs/security/stats-spy-cutover-runbook-2026-11-03.md`: contrato de datos, auditoría del SQL existente, fases, compatibilidad, pruebas por rol, migración y rollback.
+
+**Punto de seguridad aún abierto:** `get_unified_ranking` devuelve premios/cashes/victorias y hace `SELECT *` internamente; `get_unified_player_stats` devuelve gastos/premios a usuarios anónimos; y las tablas base permiten SELECT público de valores usados como premium. La propuesta preparada **todavía no remedia esas vías**. La revocación efectiva se realizará solo tras migración completa de clientes y prueba con base de datos de desarrollo, no en producción a ciegas.
+
+### QA de esta etapa
+- 4/4 flujos GitHub Actions superados: TypeScript estricto, SEO/acceso, sitemap Worker y limpieza de funcionalidades.
+- Vista móvil de Kolonvo (390 px): dos filas de historial, llamada de API con `limit=2`, paywall explicativo, cinco métricas bloqueadas visualmente, ningún recurso de imagen roto, documento 390 px sin desbordamiento.
+- Cloudflare Preview desplegó cambios de división de código y prioridad del hero; últimas revisiones de integración quedan sometidas a QA de la vista previa final.
+- Supabase proyecto de producción: **solo consultas SQL de lectura**; no se alteró una sola tabla, función, RLS ni permiso. No existen branches de Supabase disponibles para probar una migración sin crear un entorno nuevo.
+
