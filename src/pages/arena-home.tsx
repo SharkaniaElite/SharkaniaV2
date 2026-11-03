@@ -175,7 +175,7 @@ export function ArenaHomePage() {
     <SEOHead title="Sharkania Arena | Ranking ELO, torneos y póker competitivo" description="El centro de competición de Sharkania. Explora el ranking ELO, los jugadores destacados, clubes, ligas y próximos torneos." path="/" />
     <div className="arena">
       <section className="arena-hero arena-scene" aria-labelledby="arena-hero-title">
-        <img className="arena-scene-photo" src="/images/arena/home-hero.webp" alt="" aria-hidden="true" width={720} height={240} decoding="async" fetchPriority="low" />
+        <img className="arena-scene-photo" src="/images/arena/home-hero.webp" alt="" aria-hidden="true" width={720} height={240} loading="eager" decoding="async" fetchPriority="high" />
         <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-hero-aura" aria-hidden="true" />
         <div className="arena-hero-grid">
