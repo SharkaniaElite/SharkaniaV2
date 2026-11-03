@@ -18,7 +18,6 @@ const IMPLEMENTED_FEATURES = [
   "tool_icm",
   "tool_elo_sim",
   "bankroll_calculator",
-  "tool_replayer",
   "cosmetic_extended_stats",
   "tool_quiz", // 👈 AÑADIDO EL QUIZ AQUÍ
 ];
@@ -28,7 +27,6 @@ const TOOL_CONFIG: Record<string, { path: string; bgImage: string; label: string
   "tool_icm": { path: "/tools/calculadora-icm", bgImage: "/bg/icm.webp", label: "Ir a la Calculadora ICM" }, // Ajustado
   "tool_elo_sim": { path: "/tools/simulador-elo", bgImage: "/bg/elo.webp", label: "Ir al Simulador" }, // Ajustado
   "bankroll_calculator": { path: "/tools/calculadora-banca", bgImage: "/bg/bankroll.webp", label: "Ir a Gestión de Banca" }, // Ajustado
-  "tool_replayer": { path: "/tools/replayer", bgImage: "/bg/replayer.webp", label: "Ir al Replayer" },
   "cosmetic_extended_stats": { path: "/ranking", bgImage: "/bg/stats.webp", label: "Probar en el Ranking" },
   "tool_quiz": { path: "/tools/quiz", bgImage: "/bg/quiz.webp", label: "Ir al Quiz" },
 };
