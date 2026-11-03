@@ -82,8 +82,8 @@ export function RankingPage() {
   return (
     <PageShell variant="arena">
       <SEOHead
-        title="Ranking ELO Global"
-        description="Los mejores jugadores de poker del mundo ordenados por ELO. Busca, filtra y descubre quién domina."
+        title="Ranking ELO de póker | Jugadores"
+        description="Consulta el ranking ELO de jugadores de póker, busca por nickname y filtra las clasificaciones con resultados registrados en Sharkania."
         path="/ranking"
       />
 
@@ -92,12 +92,12 @@ export function RankingPage() {
 
           <ArenaPageHero
             section="ranking"
-            eyebrow="ÍNDICE COMPETITIVO / ELO"
-            heading="RANKING"
-            highlight="GLOBAL."
+            eyebrow="PÓKER COMPETITIVO / ELO"
+            heading="RANKING ELO"
+            highlight="DE PÓKER."
             icon={Trophy}
             description={
-              <>Los jugadores, sus resultados y las posiciones que construyen con cada torneo registrado.
+              <>Clasificación ELO de jugadores de póker según sus resultados en los torneos registrados.
                 {isFetching && <span className="arena-refresh-label"> · Actualizando clasificación…</span>}
               </>
             }
