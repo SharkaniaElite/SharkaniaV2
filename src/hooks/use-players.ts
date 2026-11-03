@@ -1,5 +1,6 @@
 // src/hooks/use-players.ts
 import { useQuery } from "@tanstack/react-query";
+import { useAuthStore } from "../stores/auth-store";
 import {
   getPlayers,
   getPlayerById,
@@ -85,10 +86,11 @@ export function usePlayerEloHistory(playerId: string | undefined) {
   });
 }
 
-export function usePlayerTournamentResults(playerId: string | undefined) {
+export function usePlayerTournamentResults(playerId: string | undefined, hasFullAccess = false) {
+  const viewerId = useAuthStore((s) => s.user?.id ?? "anonymous");
   return useQuery({
-    queryKey: ["player-tournament-results", playerId],
-    queryFn: () => getPlayerTournamentResults(playerId!),
+    queryKey: ["player-tournament-results", playerId, hasFullAccess, viewerId],
+    queryFn: () => getPlayerTournamentResults(playerId!, hasFullAccess),
     enabled: !!playerId,
     staleTime: 1000 * 60 * 2,
   });
@@ -122,10 +124,11 @@ export function useUnifiedEloHistory(slug: string | undefined) {
   });
 }
 
-export function useUnifiedTournamentResults(profileId: string | undefined) {
+export function useUnifiedTournamentResults(profileId: string | undefined, hasFullAccess = false) {
+  const viewerId = useAuthStore((s) => s.user?.id ?? "anonymous");
   return useQuery({
-    queryKey: ["unified-tournament-results", profileId],
-    queryFn: () => getUnifiedTournamentResults(profileId!),
+    queryKey: ["unified-tournament-results", profileId, hasFullAccess, viewerId],
+    queryFn: () => getUnifiedTournamentResults(profileId!, hasFullAccess),
     enabled: !!profileId,
     staleTime: 1000 * 60 * 2,
   });
