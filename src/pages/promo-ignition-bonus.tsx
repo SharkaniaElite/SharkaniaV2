@@ -1,5 +1,6 @@
 // src/pages/promo-ignition-bonus.tsx
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaRouteTrail } from "../components/arena/arena-route-trail";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import { Link } from "react-router-dom";
@@ -52,12 +53,15 @@ export function PromoIgnitionBonusPage() {
   const AFFILIATE_LINK = "https://record.revenuenetwork.com/_s_OAdmC6KUepsRaI0hkgHmNd7ZgqdRLk/1/";
 
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead 
         title="Bono de Bienvenida $1,000 USD - Ignition Poker x Sharkania" 
-        description="Recibe un bono de bienvenida del 100% hasta $1,000 USD en tu primer depósito en Ignition Poker. Beneficios adicionales sujetos a términos y elegibilidad." 
+        description="Consulta información sobre el bono de bienvenida en Ignition Poker, las condiciones oficiales, la elegibilidad y los requisitos de liberación." 
+        path="/promociones/ignition-bonus"
       />
       
+      <div className="arena-public-bridge arena-partner-route arena-ignition-route">
+        <ArenaRouteTrail section="Promociones de póker" current="Bono Ignition Poker" />
       {/* 1. HERO SECTION */}
       <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 overflow-hidden bg-sk-bg-0">
         <div className="absolute inset-0 z-0">
@@ -279,7 +283,7 @@ export function PromoIgnitionBonusPage() {
 
         </div>
       </section>
-
+      </div>
     </PageShell>
   );
 }
