@@ -999,3 +999,26 @@
   .arena-editorial .arena-interior-container {width:calc(100% - 30px)}
   .arena-editorial .arena-utility-strip {align-items:flex-start}
 }
+
+/* ARENA / LEARNING: shared glossary, academy and educational article styling. */
+.arena-page-hero--glossary::before {background-image:url("/images/arena/home-editorial.webp")}
+.arena-page-hero--academy::before {background-image:url("/images/arena/home-final.webp")}
+.arena-page-hero--elo::before {background-image:url("/images/arena/home-ranking.webp")}
+.arena-editorial .arena-learning-panel {
+  border:1px solid rgba(128,180,201,.22);border-radius:13px;
+  background:linear-gradient(140deg,rgba(19,35,48,.94),rgba(10,19,29,.96));
+  box-shadow:0 18px 34px rgba(0,0,0,.13)
+}
+.arena-editorial .arena-glossary-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.arena-editorial .arena-glossary-grid > a {min-width:0}
+.arena-editorial .arena-glossary-article {max-width:850px;margin:0 auto}
+.arena-editorial .arena-glossary-article .arena-page-hero {min-height:0}
+.arena-editorial .arena-glossary-article .arena-page-hero-inner {min-height:205px}
+.arena-editorial .arena-glossary-article .arena-page-title {font-size:clamp(30px,5vw,51px);letter-spacing:-.045em}
+.arena-editorial .arena-glossary-article .arena-page-hero-bottom {padding:12px 25px}
+.arena-editorial .arena-glossary-article .arena-page-hero-inner {padding:26px}
+.arena-editorial .arena-learning-body {max-width:850px;margin-inline:auto}
+.arena-editorial .arena-learning-body > :is(div,section) {scroll-margin-top:100px}
+@media(max-width:760px){
+  .arena-editorial .arena-glossary-grid {grid-template-columns:minmax(0,1fr)}
+}
