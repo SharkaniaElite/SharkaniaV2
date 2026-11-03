@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { ArenaToolHeader } from "../components/arena/arena-tool-header";
 import { SEOHead } from "../components/seo/seo-head";
