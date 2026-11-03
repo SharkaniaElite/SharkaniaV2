@@ -225,3 +225,22 @@
   }
   .arena-tool-page .arena-tool-content .flex{min-width:0}
 }
+
+/* The public preview has no isolated Supabase Auth backend or configured Turnstile. */
+.arena-auth-preview-warning{
+  border:1px solid rgba(123,220,231,.35);
+  border-left:3px solid #65e5ed;border-radius:10px;
+  padding:15px 16px;margin:0 0 21px;
+  background:linear-gradient(115deg,rgba(16,62,79,.44),rgba(12,39,53,.46))
+}
+.arena-auth-preview-warning strong{
+  display:block;color:#b5f5fc;font-size:12px;font-weight:850;line-height:1.45;margin-bottom:7px
+}
+.arena-auth-preview-warning p{color:#b3cad5;font-size:12px;line-height:1.65;margin:0 0 13px}
+.arena-auth-preview-demo-link{
+  display:inline-flex;align-items:center;justify-content:center;min-height:43px;padding:10px 13px;
+  border-radius:8px;background:#5cdfe9;color:#06222c;text-decoration:none;
+  font-weight:850;font-size:12px;line-height:1.5
+}
+.arena-auth-preview-demo-link:hover{background:#a2f2f6}
+.arena-auth-preview-demo-link:focus-visible{outline:2px solid white;outline-offset:3px}
