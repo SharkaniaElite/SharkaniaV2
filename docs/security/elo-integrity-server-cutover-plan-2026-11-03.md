@@ -67,3 +67,30 @@ El paso de ejecución del RPC en CI terminó `success` en el run `41712846518`, 
 - **Atomicidad comprobada:** un trigger exclusivamente ficticio provoca un error al insertar el historial del segundo jugador; el RPC revierte los cambios que ya había intentado efectuar sobre el primer jugador. Se comprueban tablas de jugadores, perfiles, resultados, torneos e historial.
 - **Evidencia:** GitHub Actions run [41714223441](https://github.com/SharkaniaElite/SharkaniaV2/actions/runs/41714223441), job `rls` concluido con `success`. Estas pruebas **no modificaron Supabase**.
 - **Bloqueos aún abiertos:** concurrencia entre torneos que comparten jugadores, reentradas/buy-ins efectivos, compatibilidad con varios nicknames, reversión del ELO, cifras multimoneda, permisos y triggers reales de Supabase, y comparación completa con el frontend. La propuesta sigue **NO-GO para producción**.
+
+
+## Continuación — reentradas, compatibilidad y cliente protegido (3 nov 2026)
+
+### Evidencia agregada SOLO lectura en Supabase productivo
+
+- `public.tournament_results`: 20.432 resultados, 1.576 con `buy_ins_count > 1` y 2.527 entradas adicionales a la primera. Hay un máximo de 13 entradas y **ningún conteo nulo, no positivo o fraccionario** en los resultados presentes.
+- Los datos pertenecen a **tres monedas distintas** (EUR, CLP y USD). No sumar ingresos, pérdidas ni gasto histórico en un único número sin conversión verificable ni recalcular una columna agregada mixta automáticamente.
+- El motor anterior cargaba `total_buy_ins_spent += buy_in` por fila, sin multiplicar por `buy_ins_count`. El desfase es una **inconsistencia de modelado**, no una medición contable auditada. La propuesta protegida ahora calcula `buy_in * buy_ins_count` y rechaza entradas nulas, fraccionarias o menores a 1. **Ninguna fila productiva ha sido corregida** y la puntuación ELO/K no cambió.
+- Las firmas actuales de `is_super_admin()`, `is_club_admin(uuid)` y `get_unified_elo(uuid)` coinciden con las referencias de la propuesta SQL. Falta validarlas junto con triggers y permisos reales en una base QA aislada.
+
+### Avances exclusivamente en el PR en borrador
+
+- `tests/fixtures/sharkania-elo-qa-reentries.sql`: usa PostgreSQL 17 aislado y premios ficticios para probar tres entradas, importes, contadores e invalidación atómica de entradas 0, nulas y fraccionarias.
+- `tests/fixtures/sharkania-elo-qa-concurrency-assert.sql` y el workflow comprueban procesamiento simultáneo de dos torneos con jugadores comunes.
+- `src/lib/api/guarded-elo.ts` introduce `VITE_ELO_GUARDED_RPC === "true"` **apagado por defecto**. En ese modo el navegador solo invoca `calculate_tournament_elo_guarded` y nunca reintenta el cálculo de cliente si el servidor rechaza la petición. La nueva RPC **NO está instalada**, por lo que activar hoy el flag detendría cálculos.
+- `calculateElo` delega a la RPC protegida únicamente si está habilitada. `reverseElo` y `prepareTournamentForReedit` bloquean los caminos de reset antiguos bajo ese mismo modo hasta reemplazarlos por un servicio transaccional autorizado. **Los resultados-upload/editor todavía contienen escrituras directas**, por lo que no declarar terminado el cutover.
+- `tests/elo-guarded-cutover-contract.test.mjs` protege el flag, la ausencia de fallback y el bloqueo de reversión.
+
+### Bloqueos de lanzamiento
+
+1. Preparar una base Supabase QA aislada con esquema completo, Auth y roles. Los dumps privados de `public`/`private` que se recuperaron el 3 de noviembre representan el **estado actual posterior** a las 50 migraciones y carecen de ACL/owners. No sirven directamente como migración inicial: faltan grants, dependencias de `auth` y reconstrucción reproducible. No modificar el historial productivo ni crear una rama con coste sin aprobación.
+2. Probar upload, edición y reversión como **una sola operación server-side autorizada**. Hasta entonces el flag permanece en `false`. Comprobar también que los perfiles con alias múltiples actualicen `unified_elo` sin inconsistencias.
+3. Diseñar la contabilidad monetaria por divisa y reentradas, luego reconciliar sumatorias históricas sin alterar ELO ni asignaciones de premios no verificadas.
+4. En el corte final, restringir columnas ELO/financieras a clientes no autorizados **solo después** de comprobar la sustitución de las escrituras administrativas. Integrar autorización de clubes y Stats Espía.
+
+**Estado: progreso de implementación y QA sintética, pero NO-GO para producción.**
