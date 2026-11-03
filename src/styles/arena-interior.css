@@ -935,3 +935,67 @@
   .arena-history-load-more>span{text-align:center}
   .arena-history-load-more button{width:100%}
 }
+
+/* ARENA / EDITORIAL & TOOLS: continuation of the shared design system. */
+.arena-page-hero--blog::before {background-image:url("/images/arena/home-editorial.webp")}
+.arena-page-hero--news::before {background-image:url("/images/arena/home-editorial.webp")}
+.arena-page-hero--tools::before {background-image:url("/images/arena/home-final.webp")}
+.arena-editorial .arena-interior-container {width:min(1220px,calc(100% - 48px));margin-inline:auto}
+.arena-editorial .arena-utility-strip {
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+  margin:-10px 0 26px;padding:15px 20px;border:1px solid rgba(105,176,194,.22);
+  background:linear-gradient(110deg,rgba(16,36,48,.92),rgba(10,21,32,.92));border-radius:12px;
+}
+.arena-editorial .arena-utility-strip p {margin:0;color:#b6cad6;font-size:12px;line-height:1.6}
+.arena-editorial .arena-utility-strip strong {color:#6be7f3}
+.arena-editorial .arena-utility-strip a {color:#78e8f4;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.arena-editorial .arena-wallet-balance {display:inline-flex;align-items:center;gap:8px;font:800 15px/1.2 monospace;color:#e9faff;white-space:nowrap}
+.arena-editorial .arena-wallet-balance img {width:19px;height:19px;object-fit:contain}
+.arena-editorial .arena-section-intro {
+  display:flex;align-items:end;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  margin:8px 0 21px
+}
+.arena-editorial .arena-section-intro h2 {margin:0;color:#f0faff;font-size:clamp(19px,3vw,27px);line-height:1.15;font-weight:850;letter-spacing:-.035em}
+.arena-editorial .arena-section-intro p {margin:5px 0 0;color:#99b7c7;font-size:12px;line-height:1.6}
+.arena-editorial .arena-section-intro span {font:700 10px/1.4 monospace;letter-spacing:.1em;color:#66dceb}
+.arena-editorial .arena-content-card {
+  border:1px solid rgba(130,181,205,.2);border-radius:14px;background:#111d29;
+  box-shadow:0 18px 32px rgba(0,0,0,.12);overflow:hidden;
+  transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease
+}
+.arena-editorial a.arena-content-card:hover {
+  border-color:rgba(72,220,239,.59);transform:translateY(-2px);
+  box-shadow:0 22px 38px rgba(0,0,0,.2)
+}
+.arena-editorial a.arena-content-card:focus-visible,
+.arena-editorial button:focus-visible,
+.arena-editorial a:focus-visible {outline:2px solid #7deef9;outline-offset:3px}
+.arena-editorial .arena-content-card h2,
+.arena-editorial .arena-content-card h3 {overflow-wrap:anywhere}
+.arena-editorial .arena-content-card img {transition:transform .3s ease}
+.arena-editorial .arena-editorial-controls {
+  display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap
+}
+.arena-editorial .arena-editorial-controls button[aria-pressed="true"] {
+  color:#081b26;background:#5fe2ef;border-color:#5fe2ef
+}
+.arena-editorial .arena-news-featured {min-height:315px}
+.arena-editorial .arena-tools-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-bottom:45px}
+.arena-editorial .arena-tools-grid > a {min-width:0}
+.arena-editorial .arena-tools-grid > a > .arena-content-card {min-height:315px}
+.arena-editorial .arena-tools-grid > a > .arena-content-card:hover {transform:translateY(-2px)}
+.arena-editorial .arena-tools-grid .arena-tool-login {
+  display:inline-flex;align-items:center;gap:7px;padding:9px 12px;border-radius:8px;
+  background:rgba(33,204,228,.12);border:1px solid rgba(82,212,231,.32);color:#89edf7;
+  font-size:11px;font-weight:800
+}
+@media(max-width:760px){
+  .arena-editorial .arena-tools-grid {grid-template-columns:minmax(0,1fr);gap:15px}
+  .arena-editorial .arena-utility-strip {margin:-15px 0 23px;padding:14px}
+  .arena-editorial .arena-news-featured {min-height:0}
+  .arena-editorial .arena-content-card:hover {transform:none}
+}
+@media(max-width:440px){
+  .arena-editorial .arena-interior-container {width:calc(100% - 30px)}
+  .arena-editorial .arena-utility-strip {align-items:flex-start}
+}
