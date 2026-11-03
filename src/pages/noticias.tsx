@@ -44,8 +44,8 @@ export function NoticiasPage() {
   return (
     <PageShell variant="arena">
       <SEOHead 
-        title="Noticias y Promociones de Póker | Sharkania" 
-        description="Mantente al día con la actualidad del circuito, descubre nuevas promociones, bonos exclusivos y mejora tu juego con nuestros artículos de estrategia." 
+        title="Noticias de póker | Torneos y actualidad" 
+        description="Noticias del póker online, novedades del circuito, artículos de estrategia y promociones identificadas en Sharkania." 
         path="/noticias"
       />
 
@@ -55,10 +55,10 @@ export function NoticiasPage() {
           <ArenaPageHero
             section="news"
             eyebrow="ACTUALIDAD / CIRCUITO"
-            heading="LO QUE"
-            highlight="ESTÁ PASANDO."
+            heading="ACTUALIDAD"
+            highlight="DEL PÓKER."
             icon={Megaphone}
-            description="Noticias del circuito, artículos de estrategia y novedades publicadas por Sharkania. Navega cada sección desde un mismo lugar."
+            description="Consulta noticias de póker, novedades del circuito, guías y promociones publicadas por Sharkania. Usa los filtros para encontrar cada categoría."
             count={loading ? undefined : posts.length}
             countLabel="Publicaciones registradas"
             action={<Link to="/blog">Explorar biblioteca de estrategia <ChevronRight size={16} /></Link>}
