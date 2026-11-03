@@ -18,16 +18,25 @@ interface PlayersFilters {
   orderDir?: "asc" | "desc";
 }
 
-// 🔥 Query base reutilizable (evita inconsistencias)
+/**
+ * Explicit columns, no wildcard on public.players.
+ * Temporary transitional contract: the legacy profile/compare page still
+ * consumes financial figures. These columns MUST be removed from public
+ * queries in the coordinated Stats Espía database/client cutover.
+ * This is NOT a permissions fix; database grants are still independently open.
+ */
 const BASE_PLAYER_SELECT = `
-  *,
+  id,profile_id,nickname,slug,room_id,country_code,elo_rating,elo_peak,
+  total_tournaments,total_cashes,total_wins,total_prize_won,total_buy_ins_spent,
+  created_at,updated_at,is_demo,avg_elimination,top_3_rate,consistency_score,
   poker_rooms(name),
-  profiles (
-    id,
-    avatar_url,
-    display_name,
-    country_code
-  )
+  profiles(id,avatar_url,display_name,country_code)
+`;
+
+const BASE_TOURNAMENT_RESULT_SELECT = `
+  id,tournament_id,player_id,position,prize_won,bounties_won,
+  elo_before,elo_after,elo_change,league_points_earned,created_at,
+  ccp_club,buy_ins_count
 `;
 
 export async function getPlayers(
@@ -109,7 +118,7 @@ export async function getPlayerEloHistory(
 ): Promise<EloHistory[]> {
   const { data, error } = await supabase
     .from("elo_history")
-    .select("*")
+    .select("id,player_id,tournament_id,elo_before,elo_after,elo_change,recorded_at")
     .eq("player_id", playerId)
     .order("recorded_at", { ascending: true });
 
@@ -137,7 +146,7 @@ export async function getPlayerTournamentResults(
   let query = supabase
     .from("tournament_results")
     .select(
-      "*, tournaments(id, name, slug, buy_in, start_datetime, clubs!club_id(id, name, slug))"
+      `${BASE_TOURNAMENT_RESULT_SELECT}, tournaments(id, name, slug, buy_in, start_datetime, clubs!club_id(id, name, slug))`
     )
     .eq("player_id", playerId)
     .order("created_at", { ascending: false });
@@ -280,7 +289,7 @@ export async function getUnifiedTournamentResults(
   let query = supabase
     .from("tournament_results")
     .select(
-      "*, tournaments(id, name, slug, buy_in, start_datetime, clubs!club_id(id, name, slug)), players(nickname)"
+      `${BASE_TOURNAMENT_RESULT_SELECT}, tournaments(id, name, slug, buy_in, start_datetime, clubs!club_id(id, name, slug)), players(nickname)`
     )
     .in("player_id", ids)
     .order("created_at", { ascending: false });
