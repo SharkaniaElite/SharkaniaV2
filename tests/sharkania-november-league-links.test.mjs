@@ -27,3 +27,27 @@ test("League details still show canonical dates, rules link and tournament list"
   assert.match(page, /league\.rules_url/);
   assert.match(page, /useTournamentsByLeague/);
 });
+
+
+test("Arena homepage announces the current Sharkania November league and expires after November", () => {
+  const home = read("src/pages/arena-home.tsx");
+  const css = read("src/pages/arena-home.css");
+  assert.match(home, /Date\.parse\("2026-11-27T03:00:00Z"\)/);
+  assert.match(home, /to="\/leagues\/liga-sharkania-noviembre-2026"/);
+  assert.match(home, /to="\/ignition"/);
+  assert.match(home, /arena-featured-league/);
+  assert.match(css, /\.arena-featured-league-inner/);
+  assert.match(css, /max-width: 420px/);
+  assert.match(css, /focus-visible/);
+});
+
+test("November league detail prominently links to Ignition and initially shows scheduled dates", () => {
+  const page = read("src/pages/league-detail.tsx");
+  assert.match(page, /league\?\.slug === "liga-sharkania-noviembre-2026"/);
+  assert.match(page, /setTab\("upcoming"\)/);
+  assert.match(page, /nextNovemberDateLabel/);
+  assert.match(page, /to="\/ignition"/);
+  assert.match(page, /href="#league-tabs"/);
+  assert.match(page, /id="league-tabs"/);
+  assert.match(page, /currentStatus !== "finished"/);
+});
