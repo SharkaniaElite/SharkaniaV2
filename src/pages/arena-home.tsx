@@ -198,6 +198,23 @@ export function ArenaHomePage() {
         <div className="arena-hero-footer"><span>EST. 2026 &nbsp;/&nbsp; LATINOAMÉRICA</span><span>COMPETIR · MEDIR · EVOLUCIONAR</span><span className="arena-hero-scroll">DESCUBRE SHARKANIA ↓</span></div>
       </section>
 
+      {/* Aviso editorial temporal: se retira automáticamente tras noviembre. */}
+      {Date.now() < Date.parse("2026-11-27T03:00:00Z") && (
+        <aside className="arena-featured-league" aria-label="Liga SHARKANIA de noviembre">
+          <div className="arena-featured-league-inner">
+            <div className="arena-featured-league-copy">
+              <span className="arena-featured-league-eyebrow"><CalendarDays size={15} aria-hidden="true" /> NOVIEMBRE 2026 · CIRCUITO SHARKANIA</span>
+              <h2>La Liga SHARKANIA ya tiene calendario.</h2>
+              <p>Cuatro jueves, desde el 5 de noviembre a las 21:00 h de Chile. Consulta las fechas y sigue la clasificación en Sharkania.</p>
+            </div>
+            <div className="arena-featured-league-actions">
+              <Link to="/leagues/liga-sharkania-noviembre-2026" className="arena-featured-league-main">Fechas y ranking <ArrowUpRight size={16} aria-hidden="true" /></Link>
+              <Link to="/ignition" className="arena-featured-league-secondary">Información de acceso <ArrowRight size={16} aria-hidden="true" /></Link>
+            </div>
+          </div>
+        </aside>
+      )}
+
       <section className="arena-hub arena-scene" aria-label="Explorar las funciones de Sharkania">
         <img className="arena-scene-photo" src="/images/arena/home-ranking.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
         <span className="arena-scene-shade" aria-hidden="true" />
