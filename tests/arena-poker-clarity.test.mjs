@@ -8,7 +8,7 @@ test("Home communicates poker immediately in the main heading and title", () => 
   const home = load("src/pages/arena-home.tsx");
   assert.match(home, /<h1 id="arena-hero-title">EL PÓKER TIENE/);
   assert.match(home, /<em>ARENA\.<\/em>/);
-  assert.match(home, /title="Sharkania \| Ranking ELO y torneos de póker online"/);
+  assert.match(home, /title="Ranking ELO y torneos de póker online"/);
   assert.match(home, /Ver torneos de póker/);
   assert.match(home, /ranking ELO/i);
   assert.doesNotMatch(home, /EL RANKING<br\/>NO <em>MIENTE/);
