@@ -39,3 +39,34 @@ Base puntual Cloudflare Browser Rendering 390×844 previa al prototipo: 39 solic
 - No debe haber overflow horizontal ni enlaces rotos.
 - Las cuatro pruebas CI deben estar verdes.
 - No fusionar a producción sin revisión visual y aprobación del propietario.
+
+## Etapa 2 — extensión al interior del sitio (3 de noviembre de 2026)
+
+Se mantiene todo en la misma rama de revisión del PR #64, sin merge a `main` ni cambios SQL.
+
+### Sistema compartido
+- `src/components/arena/arena-page-hero.tsx`: componente reutilizable para los directorios y rankings, con escena de póker por categoría, título editorial, métrica de datos reales y acción opcional.
+- `src/styles/arena-interior.css`: sistema tipográfico y superficies unificadas, encabezados con fotografías ya existentes y capas de contraste, controles accesibles y adaptación móvil. Se carga desde `PageShell` con selectores acotados a la variante Arena.
+- `PageShell variant="arena"`: conserva Navbar, Footer, soporte y verificación de edad global. No presenta banners comerciales ni ticker antes del contenido, como la portada Arena aprobada.
+
+### Rutas de consulta renovadas
+- `/ranking`: clasificación y filtros, paginación e Intelligence Hub intactos.
+- `/ranking/:playerSlug`: identidad de perfil, ELO actual, estadísticas, gráfico ELO, alias y resultados intactos; no se alteran reglas de acceso a estadísticas.
+- `/calendar`: agenda, pestañas Próximos/Historial, filtros, modal de torneos y paginación intactos.
+- `/clubs`: listado y búsqueda, imágenes reales de los clubes y enlaces intactos.
+- `/leagues`: temporadas activas/archivadas y sus estados intactos.
+
+### Rutas de detalle renovadas
+- `/tournament/:tournamentSlug`: estado en vivo, late registration, premios y resultados intactos.
+- `/clubs/:clubSlug`: página del club, contactos, ligas y torneos intactos.
+- `/leagues/:leagueSlug`: ligas, campeón, rankings, exportación y pestañas intactas.
+
+### Rendimiento
+Eliminadas de las cabeceras antiguas las consultas de `useSharkCoinsBalance` exclusivamente decorativas que se disparaban en Ranking, Calendario, Clubes y Ligas. Se conservan las consultas reales necesarias para resultados/estadísticas. El nuevo CSS de interiores usa las cinco fotografías WebP pequeñas ya presentes en `public/images/arena` y no requiere más recursos de imagen.
+
+### Seguridad y QA
+- No cambiar RLS, datos, autenticación, indexación, Workers ni permisos de Supabase.
+- Revisar cuatro tests CI de último commit y build de Cloudflare Preview.
+- Comprobar navegación desde Home a ranking, perfil, calendario, club, liga y torneo en escritorio y móvil.
+- Verificar estados vacíos, fichas sin datos, filtros, SEO/URLs, tablas horizontales y accesibilidad.
+- Mantener la renovación completa en borrador hasta evaluación humana.
