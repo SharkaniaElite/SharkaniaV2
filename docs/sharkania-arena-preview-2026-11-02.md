@@ -70,3 +70,17 @@ Eliminadas de las cabeceras antiguas las consultas de `useSharkCoinsBalance` exc
 - Comprobar navegación desde Home a ranking, perfil, calendario, club, liga y torneo en escritorio y móvil.
 - Verificar estados vacíos, fichas sin datos, filtros, SEO/URLs, tablas horizontales y accesibilidad.
 - Mantener la renovación completa en borrador hasta evaluación humana.
+
+
+## Etapa 3 — lectura de datos competitivos (3 nov 2026)
+
+Se mantuvieron las consultas reales, URLs canónicas, paginación, filtros y lógica de ranking. Sin cambios en tablas SQL, RLS ni Supabase Storage.
+
+- **Ranking:** tabla ELO de siete columnas en escritorio y tarjetas con puesto, avatar, nick, sala, ELO, torneos, cobros, ITM y victorias en móvil. Datos idénticos a los de la tabla original. Cabecera y filtros con labels, opción de restablecer y resumen de resultados. Los avatares con foto real siguen utilizando su origen; cuando faltan se dibuja una inicial en CSS, sin solicitudes a `ui-avatars.com`.
+- **Perfil:** la curva ELO conserva la serie original y agrega el diferencial entre primer y último registro, con fecha y descripción accesible. Evita animaciones en cada actualización.
+- **Historial:** las primeras dos filas permanecen visibles en cuentas sin Stats Espía, el resto no se inserta al DOM; usuarios con permiso conservan historial completo. El servicio de datos puede seguir ofreciendo información en la respuesta del navegador: confirmar autorizaciones servidor antes de considerar esta mejora como un endurecimiento de seguridad completo.
+- **Torneos:** el encabezado de cada tarjeta enlaza de forma accesible al evento. Se eliminó la navegación por clic sobre todo el contenedor, que podía interceptar enlaces a clubes/ligas. Los contadores de eventos terminados dejan de generar intervalos por segundo. Controles y llamados a participar con redacción neutral.
+- **Rendimiento y adaptación:** contenido móvil con `content-visibility: auto` para saltar el diseño de tarjetas fuera de pantalla, reglas de visibilidad explícitas y CSS acotado a `.arena-interior`.
+- **Regresión:** ejecutar TypeScript, validadores SEO, limpieza y sitemap; probar anchos 320, 390 y 1440 px, enlaces a perfil, filtros de país/sala/nickname, detalles y bloqueo Stats Espía, así como nuevas consultas/transferencias en devtools.
+
+No fusionar PR #64 hasta inspección visual y funcional de las rutas anteriores en preview.
