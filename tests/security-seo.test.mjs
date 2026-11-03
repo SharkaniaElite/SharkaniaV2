@@ -81,7 +81,8 @@ test("club signup never inserts arbitrary email messages from the browser", () =
 
 test("PostHog sync performs a single atomic authorized RPC without per-post PATCH calls", () => {
   const fn = readFileSync("functions/api/sync-blog-views.ts", "utf8");
-  const db = readFileSync("supabase/migrations/20261031_secure_batch_blog_views.sql", "utf8");
+  const db = readFileSync("supabase/migrations/20261031135830_secure_batch_posthog_unique_views_20261031.sql", "utf8");
+  const fix = readFileSync("supabase/migrations/20261031135902_correct_batch_blog_sync_jsonb_key_count_20261031.sql", "utf8");
   const api = readFileSync("src/lib/api/blog.ts", "utf8");
   assert.match(fn, /rpc\/sync_blog_unique_views/);
   assert.match(fn, /Object\.fromEntries\(views\)/);
@@ -90,6 +91,8 @@ test("PostHog sync performs a single atomic authorized RPC without per-post PATC
   assert.match(db, /public\.is_super_admin\(\)/);
   assert.match(db, /GREATEST\(COALESCE\(b\.unique_views, 0\), v\.visits\)/);
   assert.match(db, /REVOKE EXECUTE ON FUNCTION public\.sync_blog_unique_views\(jsonb\)/);
+  assert.match(fix, /jsonb_object_keys\(p_views\)/);
+  assert.match(fix, /pg_get_functiondef\('public\.sync_blog_unique_views\(jsonb\)'::regprocedure\)/);
   assert.match(api, /response\.headers\.get\("content-type"\)/);
   assert.match(api, /response\.ok && result\.success === true/);
 });
@@ -100,7 +103,10 @@ test("privileged reward functions enforce server-side verification and mission s
   const permissions = readFileSync(base + "20261031145511_secure_manual_mission_requests_and_private_evidence_20261031.sql", "utf8");
   const academy = readFileSync(base + "20261031145750_validate_academy_quizzes_and_serialize_rewards_20261031.sql", "utf8");
   const rows = readFileSync(base + "20261031145859_secure_academy_reward_tables_against_client_bypass_20261031.sql", "utf8");
-  assert.match(missions, /validation_type = 'auto'/);
+  // This historical migration patches the existing SQL by replacing a quoted
+  // function-body fragment. Doubled quotes are intentional in PL/pgSQL strings.
+  assert.match(missions, /validation_type = ''auto''/);
+  assert.match(missions, /public\.claim_auto_mission\(uuid\)/);
   assert.match(missions, /Esta misión requiere revisión administrativa/);
   assert.match(permissions, /status='pending'/);
   assert.match(permissions, /validation_type='manual'/);
@@ -108,20 +114,23 @@ test("privileged reward functions enforce server-side verification and mission s
   assert.match(academy, /quiz_failed/);
   assert.match(academy, /module_locked/);
   assert.match(academy, /FOR UPDATE/);
-  assert.match(academy, /WHERE id = p_player_mission_id AND status = 'pending'/);
+  assert.match(academy, /WHERE id = p_player_mission_id AND status = ''pending''/);
   assert.match(rows, /guard_academy_lesson_rewards/);
-  assert.match(rows, /REVOKE INSERT,UPDATE,DELETE ON public\.academy_user_modules/);
+  assert.match(rows, /REVOKE INSERT,\s*UPDATE,\s*DELETE ON public\.academy_user_modules/);
   assert.match(rows, /REVOKE DELETE ON public\.academy_user_lessons/);
 });
 
 test("hand view counting requires a session and prevents public counter inflation", () => {
   const base = "supabase/migrations/";
   const migration = readFileSync(base+"20261031151248_throttle_authenticated_shared_hand_views_once_per_day_20261031.sql","utf8");
+  const constraintFix = readFileSync(base+"20261031151446_fix_hand_view_throttle_conflict_constraint_20261031.sql","utf8");
   const privateRls = readFileSync(base+"20261031151554_enforce_rls_internal_hand_view_counter_20261031.sql","utf8");
   const app = readFileSync("src/App.tsx","utf8");
   assert.match(migration, /CREATE TABLE IF NOT EXISTS private\.hand_view_cooldowns/);
   assert.match(migration, /v_viewer IS NULL/);
-  assert.match(migration, /ON CONFLICT ON CONSTRAINT hand_view_cooldowns_pkey/);
+  assert.match(migration, /ON CONFLICT \(hand_id, viewer_id\)/);
+  assert.match(constraintFix, /ON CONFLICT ON CONSTRAINT hand_view_cooldowns_pkey/);
+  assert.match(constraintFix, /pg_get_functiondef\('public\.increment_hand_views\(text\)'::regprocedure\)/);
   assert.match(migration, /interval '24 hours'/);
   assert.match(migration, /REVOKE EXECUTE ON FUNCTION public\.increment_hand_views\(text\) FROM PUBLIC, anon, authenticated/);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.increment_hand_views\(text\) TO authenticated, service_role/);
