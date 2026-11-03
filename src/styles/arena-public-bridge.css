@@ -3,7 +3,7 @@
 .arena-public-bridge{
   --bridge-ink:#07111b;--bridge-cyan:#57dae9;--bridge-edge:rgba(130,187,207,.22);
   color:#d4e2e9;background:linear-gradient(180deg,#07111b,#0c1824 620px,#09121c);
-  min-height:68vh;padding:24px 0 88px;overflow:clip
+  min-height:68vh;padding:24px 0 88px;overflow-x:clip
 }
 .arena-public-bridge .arena-bridge-content{
   width:min(1220px,calc(100% - 48px));margin-inline:auto
@@ -123,4 +123,37 @@
   .arena-shop-route .arena-shop-wallet .arena-shop-coins{font-size:22px}
   .arena-public-bridge a.arena-bridge-card:hover{transform:none}
   .arena-partner-route .arena-route-trail{font-size:10px}
+}
+
+/* Single Arena dropdown and responsive menu across the entire public route system. */
+.arena-page-shell .arena-nav-dropdown {
+  background:#0e1d2b;border-color:rgba(91,194,212,.3);
+  box-shadow:0 24px 70px rgba(0,0,0,.45)
+}
+.arena-page-shell .arena-nav-dropdown a:focus-visible,
+.arena-page-shell .arena-mobile-menu a:focus-visible {outline:2px solid #65e8f5;outline-offset:-2px}
+.arena-mobile-menu .arena-mobile-rooms {
+  margin:12px 0 0;padding:13px 15px;border-radius:11px;
+  background:rgba(13,40,53,.62);border:1px solid rgba(111,187,208,.2)
+}
+.arena-mobile-menu .arena-mobile-rooms-title{
+  color:#6fe1f1;font:800 10px/1.5 monospace;letter-spacing:.13em;
+  margin:0 0 10px
+}
+.arena-mobile-menu .arena-mobile-room-row{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;
+  gap:8px;margin:0 0 8px;padding-bottom:9px;
+  border-bottom:1px solid rgba(118,176,194,.15)
+}
+.arena-mobile-menu .arena-mobile-room-row:last-child{margin:0;padding:0;border:0}
+.arena-mobile-menu .arena-mobile-room-row a{
+  color:#e4f6fb;font-weight:750;font-size:12px;text-decoration:none
+}
+.arena-mobile-menu .arena-mobile-room-row a:last-child{
+  font-size:11px;font-weight:500;color:#69dcea
+}
+.arena-mobile-menu .arena-mobile-room-row a:hover{text-decoration:underline}
+.arena-page-shell .arena-page-hero-bottom{letter-spacing:.08em}
+.arena-page-shell .arena-partner-route .arena-route-trail{
+  position:relative;z-index:2
 }
