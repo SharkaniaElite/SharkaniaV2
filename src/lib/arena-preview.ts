@@ -10,5 +10,20 @@ export function isArenaPreviewHost(): boolean {
 }
 
 export function isArenaPreviewAuthBlocked(): boolean {
-  return isArenaPreviewHost() && import.meta.env.VITE_ARENA_ALLOW_PREVIEW_AUTH !== "true";
+  if (!isArenaPreviewHost()) return false;
+
+  // A single flag must never allow preview users to authenticate against
+  // production. Require a separately named QA project and Turnstile widget.
+  const notApproved = import.meta.env.VITE_ARENA_ALLOW_PREVIEW_AUTH !== "true";
+  const configuredQaRef = (import.meta.env.VITE_ARENA_QA_SUPABASE_REF || "").trim();
+  const url = import.meta.env.VITE_SUPABASE_URL || "";
+  const domainMatch = /^https:\/\/([a-z0-9-]+)\.supabase\.co\/?$/i.exec(url);
+  const actualRef = domainMatch?.[1] || "";
+  const hasDedicatedQaBackend =
+    configuredQaRef.length > 0 &&
+    configuredQaRef === actualRef &&
+    actualRef !== "nhpjzywfzljtlqaigzed";
+  const hasQaTurnstile = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
+
+  return notApproved || !hasDedicatedQaBackend || !hasQaTurnstile;
 }
