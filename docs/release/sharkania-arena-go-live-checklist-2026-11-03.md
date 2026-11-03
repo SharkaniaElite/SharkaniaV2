@@ -10,6 +10,7 @@
 - El propietario decidió **retirar el Replayer de manos del catálogo público**. El catálogo `/tools` y La Bóveda no ofrecen nuevas compras del Replayer. La demostración Preview ya no lo anuncia.
 - **Compatibilidad:** las rutas antiguas `/tools/replayer` y `/tools/replayer/h/:id` permanecen protegidas. Consulta SQL agregada de solo lectura confirmó **2 productos configurados y 1 compra activa** relacionados con `tool_replayer` a la fecha de revisión. No borrar el código, compras ni historiales sin plan de migración y tratamiento de derechos de quien ya compró.
 - La navegación Arena ya no asegura que existe un directo activo: en lugar del indicador rojo intermitente, el enlace de Arena se llama «TV» en móviles y «Transmisiones» en pantallas mayores. `/live` ahora conserva `PageShell variant="arena" showMarketing` y los banners previamente disponibles.
+- La página `/live` ya no crea un iframe vacío si falta el video configurado y ofrece acceso a SharkTV; tampoco emplea una etiqueta SEO «EN VIVO» sin verificar. La información comercial fija de esa página (premio de liga, enlaces de inscripción y condiciones) **todavía necesita confirmación editorial de vigencia antes de publicar**.
 - Revisado lenguaje del catálogo para distinguir simulaciones, estimaciones y resultados orientativos de afirmaciones de precisión o rentabilidad garantizada.
 
 ## 2. Bloqueos reales de lanzamiento
@@ -28,7 +29,7 @@ Control directo y solo lectura sobre Supabase `sharkania`:
 ### P0 — QA de autenticación, transacciones y cuentas (NO SUPERADO)
 
 - Cloudflare Pages Preview no define `VITE_TURNSTILE_SITE_KEY` y el widget actual de Turnstile no autoriza hostnames `*.sharkaniav2.pages.dev`. La configuración de autenticación de Preview **no está demostrada como aislada** de producción.
-- Por eso el login, registro, recuperación y operaciones privadas están deliberadamente bloqueados en esos hosts. La ruta `/__arena-qa` muestra **solo datos ficticios** y sirve para revisar diseño; no acredita un flujo real.
+- Por eso el login, registro, recuperación y operaciones privadas están deliberadamente bloqueados en esos hosts. La ruta `/__arena-qa` muestra **solo datos ficticios** y sirve para revisar diseño; no acredita un flujo real. Un único flag de habilitación no basta: el guardián Preview también exige referencia explícita de proyecto QA **distinta** de la de producción y una sitekey Turnstile definida.
 - Falta validar con usuarios de prueba en un backend separado: alta y confirmación de correo, inicio/cierre de sesión, recuperación, edición del perfil, nickname y club, estado Ignition, permisos de admin, Shark Coins, compra, caducidad y controles premium.
 
 **Salida exigida:** construir entorno de QA aislado, usar Turnstile propio de prueba y dominios permitidos, callbacks de Auth autorizados, correos de prueba separados y auditoría de escrituras para evitar afectar cuentas reales. No se requieren contraseñas ni secretos enviados por chat.
