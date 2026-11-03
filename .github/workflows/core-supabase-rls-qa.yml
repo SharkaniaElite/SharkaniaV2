@@ -50,6 +50,38 @@ jobs:
       - name: Reject malformed tournament results and rollback a forced mid-calculation failure
         run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-adversarial.sql
 
+      - name: Check concurrent ELO writes for two tournaments sharing players (synthetic only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_elo_concurrency'
+          psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -f tests/fixtures/sharkania-elo-qa-setup.sql
+          psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -f docs/security/elo-transactional-guarded-rpc-2026-11-03.proposal.sql
+
+          # Separate connections. The first holds its row locks after its
+          # calculation while the second processes the same two players.
+          psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -c "
+            BEGIN;
+            SET LOCAL ROLE authenticated;
+            SET LOCAL request.jwt.claim.sub = '00000000-0000-0000-0000-000000000002';
+            SELECT public.calculate_tournament_elo_guarded('00000000-0000-0000-0000-000000000011');
+            SELECT pg_sleep(2);
+            COMMIT;
+          " > /tmp/elo-concurrent-a.log 2>&1 &
+          pid_a=$!
+          sleep 0.25
+          psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -c "
+            BEGIN;
+            SET LOCAL ROLE authenticated;
+            SET LOCAL request.jwt.claim.sub = '00000000-0000-0000-0000-000000000005';
+            SELECT public.calculate_tournament_elo_guarded('00000000-0000-0000-0000-000000000012');
+            COMMIT;
+          " > /tmp/elo-concurrent-b.log 2>&1 &
+          pid_b=$!
+          wait "$pid_a" || { cat /tmp/elo-concurrent-a.log; exit 1; }
+          wait "$pid_b" || { cat /tmp/elo-concurrent-b.log; exit 1; }
+          psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -f tests/fixtures/sharkania-elo-qa-concurrency-assert.sql
+
       - name: Create separate PostgreSQL 17 Stats Espia database (synthetic data only)
         run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_stats'
       - name: Prepare synthetic purchases, players, currencies and authorization roles
