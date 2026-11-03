@@ -58,9 +58,9 @@ function isCurrentEditorial(post: BlogPost) {
 }
 
 const pillars = [
-  { title: "Ranking ELO", overline: "01 / CLASIFICACIÓN", description: "Cada torneo suma historia. Consulta posiciones, jugadores y evolución.", to: "/ranking", icon: Trophy, cta: "Explorar posiciones" },
-  { title: "Circuito de torneos", overline: "02 / COMPETICIÓN", description: "Encuentra los próximos eventos y sigue los resultados registrados.", to: "/calendar", icon: CalendarDays, cta: "Ver calendario" },
-  { title: "Clubes y ligas", overline: "03 / COMUNIDAD", description: "Descubre dónde se compite y los circuitos que mueven la escena.", to: "/clubs", icon: Users, cta: "Descubrir clubes" },
+  { title: "Ranking ELO de póker", overline: "01 / CLASIFICACIÓN", description: "Consulta el ELO de los jugadores a partir de resultados de torneos registrados.", to: "/ranking", icon: Trophy, cta: "Explorar posiciones" },
+  { title: "Torneos de póker", overline: "02 / COMPETICIÓN", description: "Descubre próximos torneos de póker online, horarios y resultados.", to: "/calendar", icon: CalendarDays, cta: "Ver calendario" },
+  { title: "Clubes y ligas de póker", overline: "03 / COMUNIDAD", description: "Conoce clubes, ligas y temporadas registradas en Sharkania.", to: "/clubs", icon: Users, cta: "Descubrir clubes" },
 ] as const;
 
 function SectionHeading({ eyebrow, title, supporting, href, linkText }: {
@@ -77,7 +77,7 @@ function SectionHeading({ eyebrow, title, supporting, href, linkText }: {
 }
 
 function Leaderboard({ players, loading, count, failed }: { players: PlayerWithRoom[]; loading: boolean; count: number; failed: boolean }) {
-  return <div className="arena-board" aria-label="Clasificación ELO destacada">
+  return <div className="arena-board" aria-label="Clasificación ELO de jugadores de póker">
     <div className="arena-board-top">
       <div className="arena-board-ident"><span className="arena-pulse" /><span>ARENA / ELO INDEX</span></div>
       <Trophy size={17} aria-hidden="true" />
@@ -85,7 +85,7 @@ function Leaderboard({ players, loading, count, failed }: { players: PlayerWithR
     <div className="arena-board-intro">
       <div>
         <span className="arena-board-kicker">CLASIFICACIÓN</span>
-        <h2>La cima se gana.</h2>
+        <h2>El ranking del póker.</h2>
       </div>
       <span className="arena-board-cycle">RANKING GLOBAL</span>
     </div>
@@ -172,7 +172,7 @@ export function ArenaHomePage() {
   });
 
   return <PageShell variant="arena">
-    <SEOHead title="Sharkania Arena | Ranking ELO, torneos y póker competitivo" description="El centro de competición de Sharkania. Explora el ranking ELO, los jugadores destacados, clubes, ligas y próximos torneos." path="/" />
+    <SEOHead title="Sharkania | Ranking ELO y torneos de póker online" description="Sigue torneos de póker online, consulta el ranking ELO de jugadores y descubre clubes, ligas y resultados registrados en Sharkania." path="/" />
     <div className="arena">
       <section className="arena-hero arena-scene" aria-labelledby="arena-hero-title">
         <img className="arena-scene-photo" src="/images/arena/home-hero.webp" alt="" aria-hidden="true" width={720} height={240} loading="eager" decoding="async" fetchPriority="high" />
@@ -180,14 +180,14 @@ export function ArenaHomePage() {
         <div className="arena-hero-aura" aria-hidden="true" />
         <div className="arena-hero-grid">
           <div className="arena-hero-copy">
-            <div className="arena-hero-label"><span className="arena-label-line"/><span>SHARKANIA <b>ARENA</b></span><span className="arena-hero-label-index">/ EL CIRCUITO COMPETITIVO</span></div>
+            <div className="arena-hero-label"><span className="arena-label-line"/><span>SHARKANIA <b>ARENA</b></span><span className="arena-hero-label-index">/ CIRCUITO DE PÓKER COMPETITIVO</span></div>
             <div className="arena-hero-mark" aria-hidden="true"><span>S</span><span>↗</span></div>
-            <h1 id="arena-hero-title">EL RANKING<br/>NO <em>MIENTE.</em></h1>
-            <p className="arena-hero-sub">Los resultados dejan huella. <strong>Haz que la tuya cuente.</strong></p>
-            <p className="arena-hero-lead">Jugadores, ligas y torneos en un solo lugar. Sigue el circuito, compara posiciones y descubre quién está marcando el ritmo del póker competitivo.</p>
+            <h1 id="arena-hero-title">EL PÓKER TIENE<br/>SU <em>ARENA.</em></h1>
+            <p className="arena-hero-sub">Ranking ELO, torneos de póker online y jugadores. <strong>Todo en un solo lugar.</strong></p>
+            <p className="arena-hero-lead">Consulta resultados de torneos, explora clasificaciones ELO y conoce los clubes y ligas que forman parte del circuito de póker competitivo.</p>
             <div className="arena-hero-actions">
-              <Link to="/ranking" className="arena-action-main">Entrar al ranking <ArrowUpRight size={19}/></Link>
-              <Link to="/calendar" className="arena-action-secondary">Explorar torneos <ArrowRight size={17}/></Link>
+              <Link to="/ranking" className="arena-action-main">Ver ranking ELO <ArrowUpRight size={19}/></Link>
+              <Link to="/calendar" className="arena-action-secondary">Ver torneos de póker <ArrowRight size={17}/></Link>
             </div>
             <div className="arena-hero-proof"><ShieldCheck size={16} /><span>Clasificaciones basadas en resultados registrados</span></div>
           </div>
@@ -203,7 +203,7 @@ export function ArenaHomePage() {
         <img className="arena-scene-photo" src="/images/arena/home-ranking.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
         <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
-          <SectionHeading eyebrow="TU PUNTO DE PARTIDA" title="Todo empieza en la arena." supporting="Tres puertas de entrada a un mismo ecosistema." />
+          <SectionHeading eyebrow="TU PUNTO DE PARTIDA" title="Explora el póker competitivo." supporting="Clasificaciones ELO, torneos y clubes: encuentra el recorrido que te interesa." />
           <div className="arena-pillar-grid">
             {pillars.map((item)=>{
               const Icon=item.icon;
@@ -221,7 +221,7 @@ export function ArenaHomePage() {
         <img className="arena-scene-photo" src="/images/arena/home-tournaments.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
         <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
-          <SectionHeading eyebrow="AGENDA COMPETITIVA" title="Lo que viene en las mesas." supporting="Próximos eventos registrados en la plataforma." href="/calendar" linkText="Calendario completo"/>
+          <SectionHeading eyebrow="AGENDA DE PÓKER" title="Próximos torneos de póker." supporting="Horarios y eventos publicados por los clubes registrados." href="/calendar" linkText="Calendario completo"/>
           <div className="arena-circuit-grid">
             <div className="arena-events">
               {!circuit.visible || events.isPending ? [1,2,3].map(n=><div className="arena-event-skeleton" key={n}/>) :
@@ -232,7 +232,7 @@ export function ArenaHomePage() {
             <Link to="/leagues" className="arena-circuit-feature">
               <div className="arena-feature-top"><span><Compass size={16}/> CIRCUITO / LIGAS</span><ArrowUpRight size={19}/></div>
               <div className="arena-feature-art" aria-hidden="true"><span>01</span><div/></div>
-              <div><h3>La competición continúa.</h3><p>Descubre las ligas que forman parte del ecosistema Sharkania.</p><strong>Explorar ligas <ArrowRight size={15}/></strong></div>
+              <div><h3>La competición continúa.</h3><p>Sigue las ligas de póker y sus clasificaciones en Sharkania.</p><strong>Explorar ligas <ArrowRight size={15}/></strong></div>
             </Link>
           </div>
         </div>
@@ -242,7 +242,7 @@ export function ArenaHomePage() {
         <img className="arena-scene-photo" src="/images/arena/home-editorial.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
         <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
-          <SectionHeading eyebrow="DENTRO DEL CIRCUITO" title="Historias que importan." supporting="Actualidad, estrategia y promociones verificadas; sin confundir publicidad con resultados." href="/noticias" linkText="Explorar noticias"/>
+          <SectionHeading eyebrow="ACTUALIDAD DEL PÓKER" title="Noticias y estrategia de póker." supporting="Publicaciones, guías y promociones identificadas, separadas de los resultados deportivos." href="/noticias" linkText="Explorar noticias"/>
           <div className="arena-story-grid">
             {!editorial.visible || stories.isPending ? [1,2,3].map(n=><div className="arena-story-skeleton" key={n}/>) :
               stories.isError ? <div className="arena-empty">No fue posible cargar las publicaciones. <Link to="/noticias">Ir a Noticias</Link></div> :
@@ -257,7 +257,7 @@ export function ArenaHomePage() {
         <img className="arena-scene-photo" src="/images/arena/home-final.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
         <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
-          <div className="arena-final-inner"><div><div className="arena-eyebrow"><span className="arena-cross">✳</span> TU HISTORIA EMPIEZA AQUÍ</div><h2>El próximo nombre en el ranking<br/><em>podría ser el tuyo.</em></h2><p>Explora resultados, descubre tu circuito y participa en la comunidad.</p></div><Link to="/register">Crear cuenta <ArrowUpRight size={18}/></Link></div>
+          <div className="arena-final-inner"><div><div className="arena-eyebrow"><span className="arena-cross">✳</span> TU HISTORIA EMPIEZA AQUÍ</div><h2>El próximo nombre en el ranking<br/><em>podría ser el tuyo.</em></h2><p>Sigue tus torneos de póker, consulta el ranking ELO y participa en la comunidad.</p></div><Link to="/register">Crear cuenta <ArrowUpRight size={18}/></Link></div>
         </div>
       </section>
     </div>
