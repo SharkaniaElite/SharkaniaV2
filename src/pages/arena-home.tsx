@@ -181,7 +181,6 @@ export function ArenaHomePage() {
         <div className="arena-hero-grid">
           <div className="arena-hero-copy">
             <div className="arena-hero-label"><span className="arena-label-line"/><span>SHARKANIA <b>ARENA</b></span><span className="arena-hero-label-index">/ CIRCUITO DE PÓKER COMPETITIVO</span></div>
-            <div className="arena-hero-mark" aria-hidden="true"><span>S</span><span>↗</span></div>
             <h1 id="arena-hero-title">EL PÓKER TIENE<br/>SU <em>ARENA.</em></h1>
             <p className="arena-hero-sub">Ranking ELO, torneos de póker online y jugadores. <strong>Todo en un solo lugar.</strong></p>
             <p className="arena-hero-lead">Consulta resultados de torneos, explora clasificaciones ELO y conoce los clubes y ligas que forman parte del circuito de póker competitivo.</p>
