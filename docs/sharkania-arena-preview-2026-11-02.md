@@ -192,3 +192,33 @@ Motivo: la revisión de la portada mostró que el lema «El ranking no miente» 
 - Comprobación de `/ranking` por HTML renderizado: H1 «RANKING ELO DE PÓKER.» y título SEO correcto.
 - Otras inspecciones simultáneas de Browser Rendering devolvieron 429 (límite del servicio); **no afirmar QA visual completa** de /tools, /academia, /compare, /glosario ni /noticias. Realizar revisión humana de esas rutas en ancho 320/390/1440 y de enlaces, formularios, errores, tablas y tipografía.
 - Hasta la aprobación del propietario, NO fusionar PR #64 a `main`. Sin cambios en SQL, RLS, Supabase, sitemaps ni índices.
+
+
+## Etapa 9 — herramientas y acceso de usuarios (3 nov 2026)
+
+Solo rama `feature/sharkania-arena-experience-preview` del PR #64. No hay merge ni escrituras a Supabase de producción.
+
+### Herramientas: estructura común
+- Componente nuevo `ArenaToolHeader`, reutilizado por cinco pantallas de utilidad.
+- `/tools/calculadora-icm`: encabezado profesional de ICM para torneos de póker. Conserva presets, distribución de premios, cálculos, límites de uso y contenido educativo.
+- `/tools/simulador-elo`: portada específica del simulador, mantiene parámetros, fórmulas de ELO, límites y resultados.
+- `/tools/calculadora-banca`: presentación de gestión MTT con aviso de que los cálculos son proyecciones; mantiene el `FeaturePaywall`, inputs y algoritmos.
+- `/tools/quiz`: cabecera contextual persistente en preguntas y resultados para preservar un H1 reconocible; mantiene puntuación, preguntas, uso gratuito y paywall.
+- `/tools/perfilador-salas`: cabecera, cuestionario y contexto explícito de póker. La introducción evita sugerir que un perfilado garantiza rentabilidad y aconseja comprobar legalidad y disponibilidad. No se han cambiado puntuaciones ni destinos comerciales existentes.
+
+### Cuenta y seguridad: identidad visual consistente
+- Componente nuevo `ArenaAuthFrame` con una columna explicativa de Sharkania y un formulario enfocado, sin cargar el menú general de la aplicación.
+- `/login`: mantuvo Supabase Auth, Turnstile, redirección, mensajes, recuperación y estados de carga. Etiquetas vinculadas a campos, autocomplete y errores anunciados.
+- `/register`: mismo mecanismo de alta de jugadores y solicitud de clubes, confirmación de email y validación; selector visual actualizado, etiquetas accesibles, metadatos `SEOHead` explícitos.
+- `/forgot-password`: conserva correo transaccional, antienumeración y Turnstile, añade apariencia Arena y `noIndex`.
+- `/update-password`: conserva `supabase.auth.updateUser`, confirmación de email y redirección; apariencia Arena, sugerencia de contraseña larga y `noIndex`.
+- Hoja `src/styles/arena-workspaces.css` con estilos acotados a herramientas y autenticación, adaptable a `490px` y `850px`.
+
+### Pruebas y límites
+- `tests/arena-workspaces-contract.test.mjs` comprueba que rutas, invocaciones de cálculo, controles de suscripción, métodos de autenticación, Turnstile y CSS responsive permanecen en código.
+- Un pase inicial de TypeScript detectó import `Link` sin uso en `room-profiler.tsx` después de quitar un enlace duplicado. Fue eliminado; verificar nuevamente las 4 comprobaciones antes del merge.
+- Los tests de contrato comprueban presencia de mecanismos, **no** sustituyen pruebas manuales de compras, login real, recibo de email, quiz o cálculos correctos.
+- No usar la vista Preview como evidencia de que se ha corregido la brecha RLS/Stats Espía: el trabajo de seguridad SQL sigue pendiente, sujeto al runbook.
+- La experiencia a pantalla completa de `/tools/replayer`, los paneles privados `/dashboard` y `/admin`, y la revisión visual completa en 320px, 390px y 1440px todavía requieren fases específicas. No unificar a ciegas el Replayer porque tiene modo fullscreen.
+
+Estado: mantener PR #64 en borrador y no alterar `main`, RLS, Supabase, licencias, URLs, sitemap ni Cloudflare Worker.
