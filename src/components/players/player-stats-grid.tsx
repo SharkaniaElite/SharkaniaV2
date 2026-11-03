@@ -19,10 +19,6 @@ export function PlayerStatsGrid({
   const itm = calcItm(player.total_cashes, player.total_tournaments);
   const roi = calcRoi(player.total_prize_won, player.total_buy_ins_spent);
   const profit = player.total_prize_won - player.total_buy_ins_spent;
-  const financialDisplay = (value: string) =>
-    hasAccess && !financialComparable
-      ? <span title="Se necesitan conversiones verificables para combinar monedas">No comparable</span>
-      : renderPremiumValue(value);
   const money = financialCurrency
     ? `${financialCurrency} ${Math.abs(profit).toLocaleString("es-CL", { maximumFractionDigits: 2 })}`
     : formatCurrency(Math.abs(profit));
@@ -36,6 +32,11 @@ export function PlayerStatsGrid({
       </span>
     );
   };
+
+  const financialDisplay = (value: string) =>
+    hasAccess && !financialComparable
+      ? <span title="Se necesitan conversiones verificables para combinar monedas">No comparable</span>
+      : renderPremiumValue(value);
 
   return (
     <div className="space-y-3">
