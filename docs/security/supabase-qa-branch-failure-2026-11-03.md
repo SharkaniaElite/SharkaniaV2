@@ -54,3 +54,5 @@ Referencias:
 - [Checklist general de salida](../release/sharkania-arena-go-live-checklist-2026-11-03.md)
 - [Runbook de protección Stats Espía](stats-spy-cutover-runbook-2026-11-03.md)
 - [Migraciones versionadas en GitHub](https://github.com/SharkaniaElite/SharkaniaV2/tree/feature/sharkania-arena-experience-preview/supabase/migrations)
+
+- [Recuperación segura del esquema inicial](supabase-initial-schema-recovery-2026-11-03.md)
