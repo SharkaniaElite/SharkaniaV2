@@ -723,3 +723,170 @@
   .arena-interior .arena-stats-upgrade {margin:0 10px 10px}
   .arena-history-paywall {padding:15px 12px}
 }
+
+
+/* ARENA 04: official league standings — compact mobile cards, full desktop audit. */
+.arena-interior .arena-league-board {
+  border:1px solid rgba(143,183,201,.22);
+  background:#0b1823;
+  border-radius:16px;
+  overflow:hidden;
+}
+.arena-league-board-heading {
+  display:flex;gap:16px;justify-content:space-between;align-items:center;
+  padding:21px 24px;
+  background:linear-gradient(96deg,#172d3b,#11202e);
+  border-bottom:1px solid rgba(143,195,208,.19);
+}
+.arena-league-board-heading p {
+  margin:0 0 5px;font:700 10px/1.4 monospace;
+  letter-spacing:.12em;color:#4cdaef;
+}
+.arena-league-board-heading h2 {margin:0;color:#f3faff;font-size:20px;font-weight:850;letter-spacing:-.035em}
+.arena-league-board-heading > span {color:#a4c6d2;font:650 11px monospace;white-space:nowrap}
+.arena-league-table-region {overflow-x:auto;scrollbar-color:#327c92 #111b27}
+.arena-league-data-table {min-width:760px;width:100%;border-collapse:collapse;font-size:13px}
+.arena-league-data-table thead {background:#142431}
+.arena-league-data-table th {
+  color:#9cc5d1;text-transform:uppercase;letter-spacing:.055em;
+  font:700 10px/1.3 monospace;
+  padding:16px 13px;text-align:left;white-space:nowrap;
+  border-bottom:1px solid rgba(148,193,207,.22);
+}
+.arena-league-data-table th.text-right {text-align:right}
+.arena-league-th {display:inline-flex;gap:6px;align-items:center;justify-content:flex-end}
+.arena-league-data-table tbody tr {border-bottom:1px solid rgba(144,182,199,.10)}
+.arena-league-data-table tbody tr:nth-child(even){background:rgba(119,157,176,.04)}
+.arena-league-data-table tbody tr:hover{background:rgba(36,200,224,.08)}
+.arena-league-data-table td {padding:12px 13px;font-variant-numeric:tabular-nums;color:#c7d7e2;vertical-align:middle}
+.arena-league-player-link {display:inline-flex;gap:8px;align-items:center;min-width:0;color:#edf8ff}
+.arena-league-player-link strong {font-weight:800;overflow-wrap:anywhere}
+.arena-league-player-link:hover{color:#42dbe9}
+.arena-league-club-tag {
+  display:inline-block;padding:5px 8px;border:1px solid rgba(145,180,196,.19);
+  color:#bdcddc;background:rgba(108,149,174,.10);
+  font:600 10px/1.4 monospace;border-radius:6px;overflow-wrap:anywhere;
+}
+.arena-league-points-value {font:850 16px/1.2 monospace;color:#f6c66c}
+.arena-league-points-button {
+  display:inline-flex;align-items:center;gap:7px;justify-content:flex-end;
+  padding:8px 9px;min-height:38px;border-radius:8px;
+  border:1px solid rgba(238,187,103,.26);
+  background:rgba(255,198,103,.075);color:#f8cf80;
+  font:850 15px/1.2 monospace;white-space:nowrap;
+}
+.arena-league-points-button:hover{background:rgba(249,194,89,.14);border-color:rgba(255,204,109,.65)}
+.arena-league-elo {font:750 14px monospace!important;color:#42d9ed!important}
+.arena-league-cards {display:none;gap:11px;padding:13px}
+.arena-league-mobile-card {
+  background:linear-gradient(145deg,#132633,#101b28);
+  border:1px solid rgba(135,183,205,.25);
+  border-radius:11px;overflow:hidden;
+  content-visibility:auto;contain-intrinsic-size:auto 128px;
+}
+.arena-league-mobile-card:first-child{border-color:rgba(243,189,98,.45);background:linear-gradient(115deg,#2a2c25,#11202d)}
+.arena-league-mobile-card:nth-child(2){border-color:rgba(192,207,216,.34)}
+.arena-league-mobile-card:nth-child(3){border-color:rgba(221,154,89,.29)}
+.arena-league-card-heading {display:flex;gap:9px;align-items:center;padding:12px;min-width:0}
+.arena-league-card-name {flex:1;min-width:0;display:inline-flex;gap:8px;align-items:center;color:#f3fbff}
+.arena-league-card-name strong {font-size:13px;line-height:1.25;overflow-wrap:anywhere}
+.arena-league-mobile-points {
+  display:flex;align-items:flex-end;flex-direction:column;gap:4px;flex-shrink:0;
+  padding-left:9px;border-left:1px solid rgba(133,178,190,.16)
+}
+.arena-league-mobile-points small {font:700 9px monospace;letter-spacing:.07em;color:#b6ac8b}
+.arena-league-card-detail {
+  background:rgba(7,14,20,.32);
+  border-top:1px solid rgba(153,187,204,.13);
+  padding:12px;
+}
+.arena-league-card-detail > .arena-league-club-tag {margin-bottom:10px}
+.arena-league-card-detail dl {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.arena-league-card-detail dl>div {display:flex;flex-direction:column;gap:5px;min-width:0}
+.arena-league-card-detail dt {font:650 10px/1.35 monospace;color:#91b2c2}
+.arena-league-card-detail dd {margin:0;color:#e9f5fc;font:800 13px/1.3 monospace}
+.arena-league-detail-button {color:#59e6f3;font-size:11px;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+@media(min-width:768px){
+  .arena-league-cards {display:none!important}
+  .arena-league-table-region {display:block!important}
+}
+@media(max-width:767px){
+  .arena-league-cards {display:grid!important}
+  .arena-league-table-region {display:none!important}
+}
+@media(max-width:560px){
+  .arena-league-board-heading {padding:18px 13px}
+  .arena-league-board-heading h2 {font-size:17px}
+  .arena-league-board-heading>span{font-size:10px}
+  .arena-league-card-heading {gap:7px;padding:11px 9px}
+  .arena-league-mobile-points {padding-left:6px}
+  .arena-league-points-button {padding:8px 6px;font-size:13px}
+}
+@media(max-width:350px){
+  .arena-league-card-name strong {font-size:12px}
+  .arena-league-points-button {font-size:12px;gap:3px}
+}
+/* Native dialog is portalled to body and sits in the browser top layer. */
+.arena-league-dialog {
+  position:fixed;
+  margin:auto;
+  width:min(calc(100vw - 24px),650px);
+  max-height:min(88vh,800px);
+  overflow:hidden;
+  padding:0;border:1px solid rgba(100,183,201,.32);
+  border-radius:16px;
+  background:#0c1926;color:#eaf8ff;
+  box-shadow:0 32px 95px rgba(0,0,0,.72);
+}
+.arena-league-dialog::backdrop {background:rgba(2,8,14,.82);backdrop-filter:blur(6px)}
+.arena-league-dialog[open]{display:flex;flex-direction:column}
+.arena-league-dialog-heading {
+  flex-shrink:0;
+  padding:21px 22px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  background:linear-gradient(120deg,#153343,#111f2c);
+  border-bottom:1px solid rgba(132,190,204,.25);
+}
+.arena-league-dialog-heading p {margin:0 0 7px;color:#48e0ed;font:750 10px/1.4 monospace;letter-spacing:.12em}
+.arena-league-dialog-heading h2 {margin:0;font-size:clamp(18px,4vw,25px);line-height:1.23;font-weight:850;overflow-wrap:anywhere}
+.arena-league-dialog-heading button {
+  flex-shrink:0;display:grid;place-items:center;width:42px;height:42px;border-radius:9px;
+  background:rgba(17,29,41,.9);border:1px solid rgba(131,191,204,.26);color:#e9f8ff;
+}
+.arena-league-dialog-heading button:hover {border-color:#4ee1f1}
+.arena-league-dialog-body {padding:15px 20px;overflow-y:auto;min-height:0;overscroll-behavior:contain}
+.arena-league-dialog-footer {
+  padding:13px 20px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  border-top:1px solid rgba(148,183,197,.2);
+  flex-shrink:0;
+}
+.arena-league-dialog-footer p {font-size:11px;line-height:1.4;color:#9cbcca}
+.arena-league-dialog-footer strong {color:#f2c86e}
+.arena-league-dialog-footer>button {
+  background:#28d8e9;color:#09212b;padding:11px 16px;min-height:41px;
+  border-radius:7px;font-size:12px;font-weight:850;margin-left:auto;
+}
+.arena-league-dialog-footer>button:hover {background:#80eff6}
+.arena-league-breakdown-list {display:flex;flex-direction:column;gap:0}
+.arena-league-breakdown-entry {
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:14px 7px;border-bottom:1px solid rgba(136,183,202,.15)
+}
+.arena-league-breakdown-entry:last-child{border-bottom:0}
+.arena-league-breakdown-entry>div{min-width:0;display:flex;flex-direction:column;gap:6px}
+.arena-league-breakdown-entry strong {font-size:13px;font-weight:750;line-height:1.4;overflow-wrap:anywhere}
+.arena-league-breakdown-entry span {color:#98b8c7;font:600 11px/1.5 monospace}
+.arena-league-breakdown-entry b {flex-shrink:0;color:#f4cd7a;font:800 16px monospace}
+.arena-league-dialog-status {
+  padding:28px 12px;display:flex;gap:10px;align-items:center;justify-content:center;
+  color:#bad4df;font-size:13px;line-height:1.5;text-align:center;
+}
+.arena-league-dialog button:focus-visible,.arena-league-dialog a:focus-visible {
+  outline:2px solid #70eaf7;outline-offset:3px;
+}
+@media(max-width:560px){
+  .arena-league-dialog-heading {padding:17px 15px}
+  .arena-league-dialog-body {padding:10px 13px}
+  .arena-league-dialog-footer {padding:11px 13px}
+  .arena-league-breakdown-entry {gap:8px}
+  .arena-league-breakdown-entry b {font-size:14px}
+}
