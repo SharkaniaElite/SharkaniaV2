@@ -423,6 +423,11 @@ export function PlayerDashboardPage() {
               {(isIgnitionLinked || hasIgnitionRequest) ? (
                 <div className="flex flex-col items-start lg:items-end bg-black/30 p-3 rounded-lg border border-white/5 w-full lg:w-auto">
                   <Badge variant={isIgnitionLinked ? 'green' : 'orange'}>{isIgnitionLinked ? '¡Vinculado a Ignition!' : 'Solicitud en revisión'}</Badge>
+                  <p className="mt-2 max-w-sm text-xs leading-relaxed text-sk-text-2" role="status">
+                    {isIgnitionLinked
+                      ? "Tu nickname figura verificado. Para adjudicar el bounty o premios de fin de mes, SHARKANIA comprobará también tu inscripción a la liga y los resultados correspondientes."
+                      : "Tu solicitud aún debe revisarse. No te registres otra vez: la vinculación debe confirmarse antes de determinar tu elegibilidad para los premios adicionales."}
+                  </p>
                   <div className="mt-2 space-y-1">
                     <p className="text-[11px] text-sk-text-3 font-mono flex justify-between gap-4">
                       <span>Email:</span> <strong className="text-white">{user?.user_metadata?.ignition_email}</strong>
