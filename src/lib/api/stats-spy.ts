@@ -10,10 +10,19 @@ export interface StatsSpySummary {
   total_tournaments: number;
   total_cashes: number;
   total_wins: number;
-  total_prize_won: number;
-  total_buy_ins_spent: number;
-  profit: number;
+  total_prize_won: number | null;
+  total_buy_ins_spent: number | null;
+  profit: number | null;
   roi_percent: number | null;
+  currency: string | null;
+  mixed_currencies: boolean;
+  currency_breakdown: Array<{
+    currency: string;
+    total_prize_won: number;
+    total_buy_ins_spent: number;
+    profit: number;
+    roi_percent: number | null;
+  }>;
 }
 
 export interface StatsSpyHistoryEntry {
@@ -29,6 +38,7 @@ export interface StatsSpyHistoryEntry {
     name: string;
     slug: string;
     buy_in: number;
+    currency: string;
     start_datetime: string;
     clubs: { id: string; name: string; slug: string } | null;
   };
