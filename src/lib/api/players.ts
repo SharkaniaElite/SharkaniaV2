@@ -118,7 +118,8 @@ export async function getPlayerEloHistory(
 }
 
 export async function getPlayerTournamentResults(
-  playerId: string
+  playerId: string,
+  hasFullAccess = false
 ): Promise<
   (TournamentResult & {
     tournaments: {
@@ -131,14 +132,18 @@ export async function getPlayerTournamentResults(
     };
   })[]
 > {
-  const { data, error } = await supabase
+  // UI/transfer optimization only. Underlying table access must be hardened
+  // at the database level before this is a genuine subscription boundary.
+  let query = supabase
     .from("tournament_results")
     .select(
       "*, tournaments(id, name, slug, buy_in, start_datetime, clubs!club_id(id, name, slug))"
     )
     .eq("player_id", playerId)
     .order("created_at", { ascending: false });
+  if (!hasFullAccess) query = query.limit(2);
 
+  const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
@@ -248,7 +253,8 @@ export async function getUnifiedEloHistory(
  * Se usa para el historial unificado en el perfil del jugador.
  */
 export async function getUnifiedTournamentResults(
-  profileId: string
+  profileId: string,
+  hasFullAccess = false
 ): Promise<
   (TournamentResult & {
     tournaments: {
@@ -271,14 +277,16 @@ export async function getUnifiedTournamentResults(
 
   const ids = playerIds.map((p) => p.id);
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("tournament_results")
     .select(
       "*, tournaments(id, name, slug, buy_in, start_datetime, clubs!club_id(id, name, slug)), players(nickname)"
     )
     .in("player_id", ids)
     .order("created_at", { ascending: false });
+  if (!hasFullAccess) query = query.limit(2);
 
+  const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
