@@ -88,3 +88,5 @@ Con autorización para cómputo **USD 0,01344/h**, se creó una sola rama tempor
 **Estado del gate P0:** BLOQUEADO por **baseline inicial faltante**, no por archivos históricos ausentes. El chequeo `npm run qa:migrations:history` comprueba los 50 SQL; el preflight completo `npm run qa:migrations` continúa rechazando nuevas ramas hasta recuperar el esquema de origen. No repetir creación de rama con cargo hasta validar la reproducibilidad y los logs del fallo. No modificar el historial remoto con `migration repair` ni generar un baseline ficticio en producción.
 
 Detalles y trazabilidad: [Supabase QA branch failure](../security/supabase-qa-branch-failure-2026-11-03.md).
+
+**Procedimiento de recuperación del baseline (solo esquema, sin datos):** [Supabase initial schema recovery](../security/supabase-initial-schema-recovery-2026-11-03.md).
