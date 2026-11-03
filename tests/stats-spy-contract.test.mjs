@@ -106,6 +106,18 @@ test("Guarded comparator gets premium financial values from licensed RPCs and ne
   assert.doesNotMatch(compare, /blur-\[6px\]/);
 });
 
+test("QA role test harness is syntactically valid and explicitly blocks production", () => {
+  const qa = load("scripts/stats-spy-security-smoke.mjs");
+  assert.match(qa, /QA_ALLOW_REMOTE_SECURITY_TESTS/);
+  assert.match(qa, /I_CONFIRM_ISOLATED_QA/);
+  assert.match(qa, /assert\.notEqual\(ref, PROD_REF/);
+  assert.match(qa, /expectDenied\("anon: guarded summary"/);
+  assert.match(qa, /"expired", "QA_EXPIRED_EMAIL"/);
+  assert.match(qa, /"licensed", "QA_LICENSED_EMAIL"/);
+  assert.match(qa, /"super admin", "QA_ADMIN_EMAIL"/);
+  assert.doesNotMatch(qa, /\.from\(["']players["']\)\.update\(/);
+});
+
 // Pending cross-system security work is intentionally visible, not falsely green.
 test.todo("Cut over public player select-star queries to explicitly allowed columns");
 test.todo("Revoke premium column access and legacy SQL RPC bypasses after all clients migrate");
