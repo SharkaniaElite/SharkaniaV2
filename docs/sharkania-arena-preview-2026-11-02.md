@@ -163,3 +163,32 @@ Implementado **solo en la rama Preview del PR #64**, sin merge ni SQL en producc
 - Falta inspección visual humana y tests de interacción real en móvil 320px/390px y escritorio 1440px para todas las rutas nuevas; no presentar el prototipo como validado visualmente sin esta inspección.
 - Otras rutas no cubiertas todavía: detalle editorial `/:category/:slug`, `/tools/*` (herramientas internas), `/academia/:moduleSlug`, `/academia/:moduleSlug/:lessonSlug`, comparación `/compare` y autenticación.
 - No modifica políticas de Supabase, compras, Workers, sitemap, ni el flag de Stats Espía. **Mantener PR #64 en borrador sin fusionar**.
+
+
+## Etapa 8 — identidad explícita de PÓKER y diseño de páginas de detalle (3 nov 2026)
+
+Motivo: la revisión de la portada mostró que el lema «El ranking no miente» no explicaba, por sí mismo, que Sharkania trata de **torneos de póker**. No fue una decisión deliberada de producto, sino un déficit de claridad en el prototipo. La marca Arena se conserva, pero la disciplina y la oferta deben estar visibles en la primera pantalla.
+
+### Portada y lenguaje de producto
+- Nuevo H1: **«EL PÓKER TIENE SU ARENA.»**. Eyebrow «Circuito de póker competitivo», descripción de ranking ELO, torneos de póker online, jugadores, clubes y ligas. CTA «Ver ranking ELO» y «Ver torneos de póker».
+- Tarjetas de acceso: «Ranking ELO de póker», «Torneos de póker» y «Clubes y ligas de póker»; agenda, noticias y banners editoriales con contexto claro.
+- Se ajustó el tamaño tipográfico del hero para mantener el H1 legible en móvil y escritorio. Se eliminó el monograma ornamental «S ↗» que distraía encima del H1.
+- NO se añadieron rutas, claims sobre indexación, números de resultados ficticios, ni lenguaje que garantice ganancias.
+
+### Directorios, SEO y contenido
+- H1/hero y metadatos ajustados con encabezados naturales para `/ranking`, `/calendar`, `/clubs`, `/leagues`, `/blog`, `/noticias`, `/tools`, `/glosario`, `/academia` y `/sistema-elo`.
+- `index.html`, valores predeterminados de `SEOHead`, descripciones del JSON-LD y footer describen torneos de póker, rankings ELO y ligas reales. Se retiró la afirmación genérica «plataforma global» de esos textos, sin alterar el esquema ni el canonical.
+- Inspección de HTML renderizado descubrió el título duplicado `Sharkania | ... | Sharkania` en Home; corregido haciendo que el título de `SEOHead` sea `Ranking ELO y torneos de póker online`, con la marca agregada una sola vez por el componente.
+
+### Páginas de detalle renovadas sin cambiar negocio
+- `/compare`: nuevo encabezado y experiencia de invitado y usuario autenticado; conservar `useFeatureAccess("stats_espia")`, cuotas, precios, cálculos y restricciones existentes. No declarar seguros los datos premium hasta corregir Supabase.
+- `/academia/:moduleSlug`: módulo con jerarquía visual Arena; conserva desencriptación, permisos y progreso. Fichas de lecciones utilizables con teclado (Enter/Espacio).
+- `/academia/:moduleSlug/:lessonSlug`: lectura y quiz dentro de superficies más claras, conservar su recompensa, navegación, WPT banner y estructura SEO.
+- `/:category/:slug`: mejor tipografía, contexto editorial y orden visual, conservando títulos y metadatos individuales, enlaces, publicidad y recompensas. La página de artículo mantiene el PageShell estándar para no retirar accidentalmente banners globales.
+
+### QA con limitaciones claramente identificadas
+- Se añadieron tests `tests/arena-poker-clarity.test.mjs` para identidad de póker, rutas estables y regresiones de acceso/academia/editorial. Un test inicial exigía literalmente «DE PÓKER» incluso donde el texto se separaba en «CLUBES DE» / «PÓKER.»; se corrigió el test tras revisar los logs. El último commit de pruebas quedó 4/4 CI verde.
+- Captura real móvil 390 px mediante Cloudflare Browser Rendering: el H1 y dos CTA de Home se leen sin recorte. Esa captura precede únicamente al ajuste final que elimina la pequeña «S ↗».
+- Comprobación de `/ranking` por HTML renderizado: H1 «RANKING ELO DE PÓKER.» y título SEO correcto.
+- Otras inspecciones simultáneas de Browser Rendering devolvieron 429 (límite del servicio); **no afirmar QA visual completa** de /tools, /academia, /compare, /glosario ni /noticias. Realizar revisión humana de esas rutas en ancho 320/390/1440 y de enlaces, formularios, errores, tablas y tipografía.
+- Hasta la aprobación del propietario, NO fusionar PR #64 a `main`. Sin cambios en SQL, RLS, Supabase, sitemaps ni índices.
