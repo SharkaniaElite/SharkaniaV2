@@ -21,7 +21,7 @@ import {
   calcRoi,
 } from "../lib/format";
 import { cn } from "../lib/cn";
-import { Search, Lock, Zap, Target, TrendingUp, Sparkles, Scale, Unlock, Clock } from "lucide-react";
+import { Search, Lock, Zap, Target, TrendingUp, Sparkles, Scale, Unlock, Clock, ChevronRight } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { format } from "date-fns";
 import type { PlayerWithRoom, EloHistory } from "../types";
