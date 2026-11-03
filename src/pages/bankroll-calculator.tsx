@@ -2,12 +2,12 @@
 import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaToolHeader } from "../components/arena/arena-tool-header";
 import { useAuthStore } from "../stores/auth-store";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import { FeaturePaywall } from "../components/shop/feature-paywall"; // 👈 Agregamos el componente
 import {
-  ArrowLeft,
   ChevronRight,
   Wallet,
   RotateCcw,
@@ -261,7 +261,7 @@ export function BankrollCalculatorPage() {
   const profileConfig = PROFILE_MULTIPLIERS[profile];
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title="Calculadora de Bankroll"
         description="Calcula tu bankroll óptimo para torneos de poker. Riesgo de ruina, buy-ins recomendados y proyección de ganancias."
@@ -269,38 +269,16 @@ export function BankrollCalculatorPage() {
         ogImage="https://sharkania.com/images/tools/og-tool-bankroll.png"
       />
 
-      <div className="pt-20 pb-16">
-        <div className="max-w-[960px] mx-auto px-6">
-          {/* Back */}
-          <Link
-            to="/tools"
-            className="inline-flex items-center gap-1.5 text-sk-sm text-sk-text-3 hover:text-sk-text-1 transition-colors mb-6"
-          >
-            <ArrowLeft size={14} />
-            Herramientas
-          </Link>
-
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-sk-gold-dim flex items-center justify-center">
-                <Wallet size={20} className="text-sk-gold" />
-              </div>
-              <div>
-                <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
-                  Calculadora de Bankroll
-                </h1>
-                <p className="text-sk-xs text-sk-text-3">
-                  Gestión de banca para torneos MTT
-                </p>
-              </div>
-            </div>
-            <p className="text-sk-sm text-sk-text-2 mt-3 max-w-2xl leading-relaxed">
-              Ingresa tu bankroll, tu ROI estimado y tu perfil de riesgo. Te
-              decimos qué buy-ins puedes jugar, tu riesgo de ruina y cuánto
-              puedes esperar ganar por mes.
-            </p>
-          </div>
+      <div className="arena-interior arena-tool-page">
+        <div className="arena-interior-container">
+          <ArenaToolHeader
+            icon={Wallet}
+            eyebrow="MTT / GESTIÓN DE BANCA"
+            title="CALCULADORA DE BANCA PARA PÓKER"
+            subtitle="Gestión de bankroll y escenarios de riesgo"
+            description="Estima requisitos de banca y exposición al riesgo a partir de tus propios supuestos. Son proyecciones orientativas, no garantías de resultados."
+          />
+          <div className="arena-tool-content">
 
           {/* 🔐 PAYWALL: Solo los que paguen pueden usar la herramienta */}
           <FeaturePaywall 
@@ -766,6 +744,7 @@ export function BankrollCalculatorPage() {
     </Link>
   </div>
 )}
+          </div>
         </div>
       </div>
 
