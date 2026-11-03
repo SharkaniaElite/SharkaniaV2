@@ -7,7 +7,7 @@ const src = path => readFileSync(new URL("../" + path, import.meta.url), "utf8")
 test("Public promotions, SharkTV, Bóveda and partner routes share the Arena navbar", () => {
   const paths = [
     "promotions", "shark-tv", "shop", "promo-coinpoker", "tutorial-coinpoker",
-    "ignition-championship", "tutorial-ignition", "tutorial-ignition-deposit",
+    "tutorial-ignition", "tutorial-ignition-deposit",
     "promo-ignition-bonus", "promo-freeroll", "promo-mindev", "promo-fullnuts",
     "hand-review", "blog-post",
   ];
@@ -16,6 +16,13 @@ test("Public promotions, SharkTV, Bóveda and partner routes share the Arena nav
     assert.match(code, /<PageShell variant="arena" showMarketing>/, page);
     assert.doesNotMatch(code, /<PageShell>/, page);
   }
+});
+
+test("Ignition league intentionally opts out of cross-room advertising while keeping Arena", () => {
+  const page = src("src/pages/ignition-championship.tsx");
+  assert.match(page, /<PageShell variant="arena">/);
+  assert.doesNotMatch(page, /showMarketing/);
+  assert.match(page, /arena-ignition-sponsor/);
 });
 
 test("Arena menu styling does not suppress audited commercial banners or the champions ticker", () => {
