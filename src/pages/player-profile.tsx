@@ -335,6 +335,10 @@ export function PlayerProfilePage() {
               }
               hasAccess={verifiedPremiumAccess}
               hideUpsell={useGuardedPremium}
+              financialComparable={!useGuardedPremium || (
+                !!secureSummaryQuery.data?.currency && !secureSummaryQuery.data?.mixed_currencies
+              )}
+              financialCurrency={useGuardedPremium ? secureSummaryQuery.data?.currency : undefined}
             />
           </div>
 
