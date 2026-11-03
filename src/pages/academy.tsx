@@ -1,69 +1,42 @@
 // src/pages/academy.tsx
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { Spinner } from "../components/ui/spinner";
 import { Button } from "../components/ui/button";
 import { SEOHead } from "../components/seo/seo-head";
 import { ModuleCard } from "../components/academy/module-card";
 import { useModulesWithProgress, useStudyStreak } from "../hooks/use-academy";
 import { useAuthStore } from "../stores/auth-store";
-import { Flame, BookOpen, Trophy, Target, Lock, Sparkles, GraduationCap } from "lucide-react";
+import { Flame, BookOpen, Trophy, Target, Sparkles, GraduationCap } from "lucide-react";
 
 export function AcademyPage() {
-  const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const { data: modules, isLoading } = useModulesWithProgress();
   const { data: streak } = useStudyStreak();
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title="Academia — Aprende Poker Competitivo"
-        description="Aprende Texas Hold'em desde cero hasta nivel élite. Lecciones interactivas, quizzes obligatorios y sistema de progresión diseñado para que realmente mejores."
+        description="Aprende Texas Hold'em desde cero hasta nivel élite. Lecciones interactivas, autoevaluaciones opcionales y sistema de progresión diseñado para que realmente mejores."
         path="/academia"
       />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[900px] mx-auto px-6">
+      <div className="arena-interior arena-editorial">
+        <div className="arena-interior-container">
 
-          {/* ══ HERO ACADEMY: ESTILO LA BÓVEDA ══ */}
-          <div className="bg-sk-bg-2 border border-sk-gold/20 rounded-2xl p-6 md:p-10 mb-10 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_0_30px_rgba(251,191,36,0.05)]">
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-sk-gold/5 blur-[50px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sk-gold/20 to-transparent" />
-
-            <div className="shrink-0 relative z-10">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute inset-0 bg-sk-accent/10 blur-xl rounded-full scale-150 group-hover:bg-sk-gold/15 transition-colors duration-500" />
-                <img 
-                  src={`/mascot/shark-${mascotId}.webp`} 
-                  alt="Sharkania Academy Instructor" 
-                  className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 text-center md:text-left relative z-10">
-              <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
-                <Lock className="text-sk-gold" size={16} />
-                <p className="font-mono text-[11px] font-bold tracking-[0.15em] uppercase text-sk-gold">
-                  CENTRAL DE INTELIGENCIA · NIVEL: LA BÓVEDA
-                </p>
-                <Sparkles className="text-sk-gold animate-pulse" size={16} />
-              </div>
-
-              <h1 className="text-sk-3xl md:text-sk-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-4 leading-none">
-                Sharkania Academy
-              </h1>
-
-              <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed">
-                <strong className="text-sk-text-1">"En Sharkania no regalamos la llave; te enseñamos a forjarla."</strong>
-              </p>
-              <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed mt-2">
-                Domina los MTTs con nuestra ruta de 6 niveles diseñada para resultados inmediatos.
-              </p>
-            </div>
-          </div>
+          <ArenaPageHero
+            section="academy"
+            eyebrow="APRENDIZAJE / ACADEMIA"
+            heading="APRENDE."
+            highlight="LLEVA TU JUEGO MÁS LEJOS."
+            icon={GraduationCap}
+            description="Explora los módulos de formación en póker competitivo. Avanza a tu ritmo, consulta las lecciones y registra tu progreso si inicias sesión."
+            count={isLoading ? undefined : (modules?.length ?? 0)}
+            countLabel="Módulos disponibles"
+            action={<Link to="/glosario">Consultar el glosario <BookOpen size={16} /></Link>}
+          />
 
           {/* Streak + Stats bar (solo logueado) */}
           {user && streak && (
@@ -151,7 +124,7 @@ export function AcademyPage() {
           )}
 
           {/* ══ FILOSOFÍA SHARKANIA: PROTOCOLO DE ENTRENAMIENTO ══ */}
-          <div className="mt-12 bg-sk-bg-2 border border-sk-border-2 rounded-2xl p-8 relative overflow-hidden shadow-sk-lg">
+          <div className="arena-learning-panel mt-12 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-sk-accent/5 blur-3xl rounded-full pointer-events-none" />
             
             <h3 className="text-sk-lg font-black text-sk-text-1 mb-4 flex items-center gap-2">
