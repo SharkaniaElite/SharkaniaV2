@@ -49,3 +49,13 @@
 - SharkTV fuera de este alcance, según instrucción del propietario.
 
 **Sin cambios de producción, sin ramas Supabase pagadas, sin anuncios iniciados.**
+
+## 6. Condición exclusiva de premios SHARKANIA (comunicación validada, entrega pendiente de QA)
+
+**Regla confirmada por el organizador el 3 de noviembre:** el **bounty al host de cada fecha** y los **premios adicionales de fin de mes/ranking mensual** se reservan a los jugadores inscritos en la Liga SHARKANIA **a través de Sharkania**, con su nickname de Ignition correctamente vinculado para acreditar identidad. Participar en un torneo de Ignition sin ese registro **no da derecho a estos premios adicionales**. Esto **no altera** la elegibilidad del **pozo garantizado regular de Ignition** regido por las reglas de la sala.
+
+- Jugador nuevo: crea su cuenta en SHARKANIA y registra/vincula su nickname de Ignition. Si aún no dispone de Ignition, la página destaca el enlace afiliado de Sharkania para descargarlo.
+- Jugador previamente inscrito a la liga: conserva su cuenta y vinculación; **no** debe registrar otra cuenta, solicitar nueva vinculación ni volver a quedar pendiente por iniciar sesión.
+- Antes de declarar un ganador del bounty o adjudicar tickets mensuales, un responsable debe cotejar la **cuenta Sharkania**, el **nickname Ignition utilizado**, y el **estado de su vinculación**, con el registro del torneo correspondiente. Resolver solicitudes `pending` y casos de identidad ambigua antes de aprobar premios.
+- La incorporación en los componentes `src/pages/ignition-championship.tsx`, `src/pages/league-detail.tsx` y `src/pages/player-dashboard.tsx` es **comunicación visible**, no constituye prueba de una barrera transaccional o reparto automático de premios. **No afirmar elegibilidad o premio entregado automáticamente** hasta auditar y probar el procedimiento de adjudicación.
+- Añadidas pruebas de contrato en `tests/sharkania-november-league-links.test.mjs` para prevenir la desaparición de esta condición de los tres puntos de entrada. Cambios exclusivamente en PR #64 / Preview; sin migraciones productivas.
