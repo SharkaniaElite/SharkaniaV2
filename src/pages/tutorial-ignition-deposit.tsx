@@ -1,6 +1,7 @@
 // src/pages/tutorial-ignition-deposit.tsx
 import { useState } from "react";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaRouteTrail } from "../components/arena/arena-route-trail";
 import { SEOHead } from "../components/seo/seo-head";
 import { Link } from "react-router-dom";
 import { 
@@ -134,20 +135,22 @@ export function TutorialIgnitionDepositPage() {
   ];
 
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead 
-        title="Mega Tutorial: Cómo Depositar en Ignition Poker (Vía Binance)" 
-        description="Guía paso a paso definitiva (con más de 20 imágenes) para cargar saldo en Ignition Poker desde cualquier país usando Binance y USDT." 
+        title="Cómo depositar en Ignition Poker | Guía y condiciones" 
+        description="Guía ilustrada sobre posibles depósitos y retiros en Ignition Poker mediante USDT. Verifica métodos admitidos, comisiones y requisitos según tu país." 
+        path="/tutorial-ignition-deposit"
       />
       
-      <div className="pt-20 pb-16 min-h-screen bg-sk-bg-1">
+      <div className="arena-public-bridge arena-partner-route arena-guide-route arena-ignition-route">
+        <ArenaRouteTrail section="Ignition Poker" current="Depósitos y retiros" href="/ignition" />
         
         {/* ══ HERO SECTION ══ */}
-        <div className="bg-gradient-to-b from-[#0a0f1a] to-sk-bg-1 border-b border-sk-border-2 pt-16 pb-12">
+        <div className="arena-partner-lead border-b border-sk-border-2 pt-12 pb-12">
           <div className="max-w-5xl mx-auto px-6 text-center">
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-4 py-1.5 rounded-full text-blue-400 font-mono text-xs uppercase tracking-widest font-bold mb-6">
               <Globe size={14} />
-              Válido para todos los países
+              Verifica disponibilidad por país
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight mb-6 leading-tight">
               Cómo Depositar y Retirar en <br />
