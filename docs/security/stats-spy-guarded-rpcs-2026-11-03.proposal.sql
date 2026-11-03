@@ -26,6 +26,7 @@ DECLARE
   v_wins bigint;
   v_prizes numeric;
   v_buyins numeric;
+  v_calculated_buyins numeric;
 BEGIN
   IF v_viewer IS NULL THEN
     RAISE EXCEPTION 'Se requiere iniciar sesión' USING ERRCODE = '42501';
@@ -69,6 +70,23 @@ BEGIN
   FROM public.players p
   WHERE p.id = v_player_id
     OR (v_profile_id IS NOT NULL AND p.profile_id = v_profile_id);
+
+  -- Match the existing profile calculation: buy-in × recorded entries,
+  -- including re-entries. Fallback to player totals for older incomplete
+  -- results. Audit currencies and currency conversion before monetization.
+  SELECT COALESCE(SUM(
+    COALESCE(t.buy_in, 0) * COALESCE(NULLIF(r.buy_ins_count, 0), 1)
+  ), 0)
+  INTO v_calculated_buyins
+  FROM public.tournament_results r
+  JOIN public.players p ON p.id = r.player_id
+  JOIN public.tournaments t ON t.id = r.tournament_id
+  WHERE p.id = v_player_id
+    OR (v_profile_id IS NOT NULL AND p.profile_id = v_profile_id);
+
+  IF v_calculated_buyins > 0 THEN
+    v_buyins := v_calculated_buyins;
+  END IF;
 
   RETURN jsonb_build_object(
     'total_tournaments', v_tournaments,
@@ -160,7 +178,7 @@ BEGIN
       OR (v_profile_id IS NOT NULL AND p.profile_id = v_profile_id)
     ORDER BY r.created_at DESC, r.id DESC
     LIMIT least(greatest(COALESCE(p_limit, 100), 1), 250)
-    OFFSET greatest(COALESCE(p_offset, 0), 0)
+    OFFSET least(greatest(COALESCE(p_offset, 0), 0), 10000)
   ) AS history;
 
   RETURN v_results;
