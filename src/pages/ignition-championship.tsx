@@ -29,6 +29,7 @@ import { SEOHead } from "../components/seo/seo-head";
 import { PageShell } from "../components/layout/page-shell";
 import { ArenaRouteTrail } from "../components/arena/arena-route-trail";
 import { cn } from "../lib/cn";
+import { isArenaPreviewAuthBlocked } from "../lib/arena-preview";
 
 const LATAM_COUNTRIES = [
   { code: "AR", label: "🇦🇷 Argentina" },
@@ -56,6 +57,7 @@ const LATAM_COUNTRIES = [
 ];
 
 export function IgnitionChampionshipPage() {
+  const previewBlocked = isArenaPreviewAuthBlocked();
   const [isExistingUser, setIsExistingUser] = useState(false);
 
   const [email, setEmail] = useState("");
@@ -85,6 +87,8 @@ export function IgnitionChampionshipPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // The public Arena preview must never sign in or create users on production.
+    if (previewBlocked) return;
     setError("");
     setSuccess("");
 
@@ -467,7 +471,12 @@ export function IgnitionChampionshipPage() {
                 </div>
               </div>
 
-              {success ? (
+              {previewBlocked ? (
+                <div role="status" className="rounded-lg border border-orange-400/50 bg-orange-500/10 p-5 text-center text-orange-100">
+                  <strong>Formulario deshabilitado en esta vista previa.</strong>
+                  <p className="mt-2 text-sm">La inscripción y el inicio de sesión solo están habilitados en el sitio oficial de SHARKANIA. Esta demostración no modifica cuentas reales.</p>
+                </div>
+              ) : success ? (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Mail size={32} />
