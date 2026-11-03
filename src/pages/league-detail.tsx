@@ -38,6 +38,14 @@ export function LeagueDetailPage() {
   const [tab, setTab] = useState<Tab>("standings");
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
+  // Durante la convocatoria la primera intención de búsqueda es conocer
+  // la próxima fecha; después se preserva el ranking y las pestañas habituales.
+  useEffect(() => {
+    if (league?.slug === "liga-sharkania-noviembre-2026" && league.status === "upcoming") {
+      setTab("upcoming");
+    }
+  }, [league?.slug, league?.status]);
+
   const [ccpStandings, setCcpStandings] = useState<CCPClubRanking[]>([]);
   const [ccpLoading, setCcpLoading] = useState(false);
 
