@@ -246,9 +246,9 @@ export function LeagueDetailPage() {
                   <Link to="/ignition" className="inline-flex min-h-12 items-center justify-center rounded-lg bg-sk-accent px-5 py-3 text-center text-sm font-extrabold text-sk-bg-0 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
                     Cómo participar y vincular nickname
                   </Link>
-                  <button type="button" onClick={() => setTab("upcoming")} className="inline-flex min-h-12 items-center justify-center rounded-lg border border-sk-border-2 bg-sk-bg-3 px-5 py-3 text-center text-sm font-bold text-sk-text-1 hover:border-sk-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
+                  <a href="#league-tabs" onClick={() => setTab("upcoming")} className="inline-flex min-h-12 items-center justify-center rounded-lg border border-sk-border-2 bg-sk-bg-3 px-5 py-3 text-center text-sm font-bold text-sk-text-1 hover:border-sk-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
                     Ver fechas programadas
-                  </button>
+                  </a>
                 </div>
               </div>
             </section>
@@ -293,7 +293,7 @@ export function LeagueDetailPage() {
           )}
 
           {/* Tabs */}
-          <div className="flex justify-between items-end mb-6">
+          <div id="league-tabs" className="flex justify-between items-end mb-6 scroll-mt-24">
             <div className="flex gap-px bg-sk-bg-0 rounded-md p-0.5 border border-sk-border-2 overflow-x-auto">
               {TABS.map((t) => (
                 <button
