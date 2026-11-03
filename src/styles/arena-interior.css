@@ -96,6 +96,7 @@
   color:#f7faff;
   margin:0 0 16px;
   text-shadow:0 3px 20px rgba(0,0,0,.4);
+  overflow-wrap:anywhere;
 }
 .arena-page-title span {color:var(--arena-cyan)}
 .arena-page-description {max-width:650px;margin:0;font-size:14px;line-height:1.75;color:#bacbda}
@@ -272,6 +273,7 @@
   .arena-interior .arena-profile-hero .arena-profile-elo {font-size:36px}
 }
 @media(max-width:375px){
+  .arena-page-title {font-size:clamp(32px,10.5vw,38px)}
   .arena-page-kicker-divider {display:none}
   .arena-page-hero-bottom span:last-child {display:none}
   .arena-page-metric {flex-direction:column;align-items:start}
