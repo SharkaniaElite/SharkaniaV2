@@ -50,6 +50,9 @@ jobs:
       - name: Reject malformed tournament results and rollback a forced mid-calculation failure
         run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-adversarial.sql
 
+      - name: Reject malformed reentries and account for real buy-in counts (synthetic only)
+        run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-reentries.sql
+
       - name: Check concurrent ELO writes for two tournaments sharing players (synthetic only)
         shell: bash
         run: |
