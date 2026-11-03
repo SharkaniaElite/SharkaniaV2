@@ -254,8 +254,8 @@ export function ToolsPage() {
   return (
     <PageShell variant="arena">
       <SEOHead
-        title="Herramientas Tácticas"
-        description="Analiza tu juego con herramientas de poker profesionales: Calculadora ICM, simulador de ELO, gestión de banca y replayer de manos."
+        title="Herramientas de póker | Calculadoras y simuladores"
+        description="Explora herramientas de póker para estudiar decisiones: calculadora ICM, simulador ELO, gestión de banca, análisis y reproducción de manos."
         path="/tools"
       />
 
@@ -265,8 +265,8 @@ export function ToolsPage() {
           <ArenaPageHero
             section="tools"
             eyebrow="LABORATORIO / HERRAMIENTAS"
-            heading="ANALIZA."
-            highlight="DECIDE MEJOR."
+            heading="HERRAMIENTAS"
+            highlight="DE PÓKER."
             icon={Wrench}
             description="Calculadoras, simuladores y recursos de análisis para estudiar decisiones de póker. Cada herramienta explica sus condiciones de acceso."
             count={TOOLS.filter((tool) => tool.available).length}
