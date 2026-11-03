@@ -1,5 +1,6 @@
 // src/pages/tutorial-ignition.tsx
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaRouteTrail } from "../components/arena/arena-route-trail";
 import { SEOHead } from "../components/seo/seo-head";
 import { Link } from "react-router-dom";
 import { ArrowRight, ExternalLink, Gamepad2, Gift, MousePointerClick, Download, CheckCircle2, Wallet } from "lucide-react";
@@ -45,16 +46,18 @@ export function TutorialIgnitionPage() {
   ];
 
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead 
-        title="Tutorial: Cómo crear cuenta en Ignition Poker" 
-        description="Sigue este paso a paso para crear tu cuenta en Ignition Poker y unirte a la liga de Sharkania." 
+        title="Cómo crear cuenta en Ignition Poker | Tutorial" 
+        description="Tutorial de registro en Ignition Poker y orientación sobre el acceso a eventos de Sharkania. Comprueba la elegibilidad y las condiciones oficiales." 
+        path="/tutorial-ignition"
       />
       
-      <div className="pt-20 pb-16 min-h-screen bg-sk-bg-1">
+      <div className="arena-public-bridge arena-partner-route arena-guide-route arena-ignition-route">
+        <ArenaRouteTrail section="Ignition Poker" current="Tutorial de registro" href="/ignition" />
         
         {/* HERO SECTION */}
-        <div className="bg-gradient-to-b from-[#1a0f0a] to-sk-bg-1 border-b border-orange-500/10 pt-16 pb-12">
+        <div className="arena-partner-lead border-b border-orange-500/10 pt-12 pb-12">
           <div className="max-w-[800px] mx-auto px-6 text-center">
             <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 px-4 py-1.5 rounded-full text-orange-400 font-mono text-xs uppercase tracking-widest font-bold mb-6">
               <CheckCircle2 size={14} />
