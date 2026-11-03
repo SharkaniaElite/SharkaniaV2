@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from "react";
 import "../../styles/arena-interior.css";
+import "../../styles/arena-public-bridge.css";
 import { Navbar } from "./navbar";
 import { Footer } from "./footer";
 import { AdminAccessBanner } from "./admin-access-banner";
@@ -13,11 +14,14 @@ import { GlobalChampionsTicker } from "./global-champions-ticker";
 interface PageShellProps {
   children: ReactNode;
   variant?: "standard" | "arena";
+  /** Preserve reviewed sitewide advertising and the champions ticker on Arena-styled commercial routes. */
+  showMarketing?: boolean;
 }
 
-export function PageShell({ children, variant = "standard" }: PageShellProps) {
+export function PageShell({ children, variant = "standard", showMarketing }: PageShellProps) {
   const isArena = variant === "arena";
-  const { banners, loading: bannersLoading } = useBannersWithStatus(!isArena);
+  const displayMarketing = showMarketing ?? !isArena;
+  const { banners, loading: bannersLoading } = useBannersWithStatus(displayMarketing);
   
   // 1. TOP GLOBAL (Destacado Principal)
   const topGlobal = banners?.slots?.top_global;
@@ -41,11 +45,11 @@ export function PageShell({ children, variant = "standard" }: PageShellProps) {
       <div style={{ height: "56px", flexShrink: 0 }} />
 
       {/* 🌟 TICKER STICKY: Se queda pegado a 56px del tope (justo debajo del Navbar) */}
-      {!isArena && <div className="sticky top-[56px] left-0 right-0 w-full h-10 shrink-0 z-[90] shadow-md border-b border-sk-border-2 bg-sk-bg-2">
+      {displayMarketing && <div className="sticky top-[56px] left-0 right-0 w-full h-10 shrink-0 z-[90] shadow-md border-b border-sk-border-2 bg-sk-bg-2">
         <GlobalChampionsTicker />
       </div>}
 
-      {!isArena && <div className="relative left-0 right-0 w-full z-[80] flex flex-col bg-sk-bg-0">
+      {displayMarketing && <div className="relative left-0 right-0 w-full z-[80] flex flex-col bg-sk-bg-0">
         {/* 🔥 TOP GLOBAL BANNER */}
         {hasTopBanner && (
           <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 shadow-md flex justify-center py-3 relative z-[45]">
