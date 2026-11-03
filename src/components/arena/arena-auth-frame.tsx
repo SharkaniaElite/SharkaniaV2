@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import "../../styles/arena-workspaces.css";
+import { isArenaPreviewAuthBlocked } from "../../lib/arena-preview";
 
 type ArenaAuthFrameProps = {
   mode: "login" | "register" | "recovery" | "reset";
@@ -38,6 +39,13 @@ export function ArenaAuthFrame({ mode, title, description, children }: ArenaAuth
             <h2 id="arena-auth-form-title">{title}</h2>
             <p>{description}</p>
           </div>
+          {isArenaPreviewAuthBlocked() && (
+            <div className="arena-auth-preview-warning" role="status">
+              <strong>Acceso real deshabilitado en Preview</strong>
+              <p>Este entorno todavía no tiene Turnstile ni datos de autenticación aislados. Para proteger las cuentas reales, usa la demostración con datos ficticios.</p>
+              <Link to="/__arena-qa" className="arena-auth-preview-demo-link">Probar panel y Replayer sin iniciar sesión</Link>
+            </div>
+          )}
           {children}
         </section>
       </div>
