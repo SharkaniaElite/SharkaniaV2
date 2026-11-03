@@ -1048,3 +1048,48 @@
   .arena-compare .arena-compare-row {gap:7px}
   .arena-compare .arena-compare-row > * {font-size:11px}
 }
+
+/* ARENA / DEEP READING: education modules, lessons and editorial articles. */
+.arena-learning-page .arena-learning-body{max-width:840px}
+.arena-learning-page .arena-module-header{isolation:isolate}
+.arena-learning-page .arena-module-header::before{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(100deg,rgba(7,18,29,.98) 0%,rgba(8,20,32,.92) 64%,rgba(8,23,33,.78) 100%),url("/images/arena/home-editorial.webp") center/cover
+}
+.arena-learning-page .arena-module-header h1{line-height:1.12;overflow-wrap:anywhere}
+.arena-learning-page .arena-module-meta{flex-wrap:wrap;gap:10px 16px}
+.arena-learning-page .arena-lesson-header{
+  position:relative;background:linear-gradient(130deg,#142b3b,#0d1c29);
+  border:1px solid rgba(88,205,226,.26)
+}
+.arena-learning-page .arena-lesson-header h1{font-size:clamp(25px,4.2vw,36px);line-height:1.15;overflow-wrap:anywhere}
+.arena-learning-page .arena-lesson-eyebrow{
+  color:#71dceb;letter-spacing:.13em;text-transform:uppercase;
+  font:800 10px/1.55 monospace;margin:0 0 19px
+}
+.arena-learning-page .arena-lesson-content{
+  font-size:15px;line-height:1.75;color:#c5d8e2;overflow-wrap:anywhere
+}
+.arena-learning-page [role="link"]:focus-visible {outline:2px solid #6febf7;outline-offset:3px}
+.arena-article-breadcrumb{border-color:rgba(91,177,202,.17)!important}
+.arena-article-cover>div{box-shadow:0 20px 50px rgba(0,0,0,.18)}
+.arena-article-page{color:#c1d4df}
+.arena-article-page .arena-article-content{max-width:760px}
+.arena-article-page .arena-article-context{
+  color:#59dcec;text-transform:uppercase;letter-spacing:.12em;
+  font:800 10px/1.5 monospace;margin:0 0 13px
+}
+.arena-article-page .arena-article-title{
+  font-size:clamp(29px,4.4vw,46px);line-height:1.15;
+  font-weight:860;letter-spacing:-.055em;overflow-wrap:anywhere
+}
+.arena-article-page .arena-article-excerpt{
+  font-size:clamp(15px,2vw,18px);color:#c1d4df;line-height:1.65
+}
+.arena-article-page h2{scroll-margin-top:115px}
+.arena-article-page :is(a,button):focus-visible{outline:2px solid #69e6f3;outline-offset:3px}
+@media(max-width:520px){
+  .arena-learning-page .arena-learning-body{width:100%}
+  .arena-learning-page .arena-module-header{padding:20px}
+  .arena-article-page .arena-article-content{padding-top:30px}
+}
