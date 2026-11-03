@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaToolHeader } from "../components/arena/arena-tool-header";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import { ChevronRight, ChevronLeft, Share2, RotateCcw, Trophy, Target, Brain, Flame, Shield, Zap } from "lucide-react";
@@ -621,16 +622,18 @@ export function PokerQuizPage() {
   };
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
-        title="Quiz: ¿Qué tipo de jugador de poker eres?"
-        description="Descubre tu perfil de jugador con el quiz de Sharkania. 10 preguntas de situaciones reales. Resultado compartible."
+        title="Quiz de jugador de póker | Descubre tu perfil"
+        description="Explora tu perfil como jugador de póker con el cuestionario de Sharkania. Responde situaciones de torneo y consulta un resultado orientativo."
         path="/tools/quiz"
         ogImage="https://sharkania.com/images/tools/og-tool-quiz.png"
       />
 
-      <div className="pt-20 pb-16">
-        <div className="max-w-2xl mx-auto px-6">
+      <div className="arena-interior arena-tool-page">
+        <div className="arena-interior-container arena-quiz-container">
+          <ArenaToolHeader icon={Brain} eyebrow="PERFIL / CUESTIONARIO" title="¿QUÉ TIPO DE JUGADOR DE PÓKER ERES?" subtitle="Test de perfil competitivo" description="Responde preguntas sobre situaciones de torneo y descubre qué estilo se aproxima a tus preferencias. El resultado es orientativo y no constituye una valoración profesional de tu juego." />
+          <div className="arena-tool-content">
           {!showResult ? (
             <>
               {/* Paywall — si ya usó su turno gratis */}
@@ -643,23 +646,6 @@ export function PokerQuizPage() {
                   >
                     <></>
                   </FeaturePaywall>
-                </div>
-              )}
-
-              {/* Header (solo en primera pregunta) */}
-              {currentQ === 0 && answers[0] === undefined && (
-                <div className="text-center mb-8">
-                  <span className="text-4xl mb-3 block">🃏</span>
-                  <p className="font-mono text-[11px] font-semibold uppercase tracking-widest text-sk-accent mb-2">
-                    Quiz de perfil
-                  </p>
-                  <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight mb-2">
-                    ¿Qué tipo de jugador de poker eres?
-                  </h1>
-                  <p className="text-sk-sm text-sk-text-2 max-w-md mx-auto">
-                    10 situaciones reales de torneo. Responde con honestidad y
-                    descubre tu perfil competitivo.
-                  </p>
                 </div>
               )}
 
@@ -710,6 +696,7 @@ export function PokerQuizPage() {
               />
             )
           )}
+          </div>
         </div>
       </div>
 
