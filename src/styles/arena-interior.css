@@ -639,3 +639,87 @@
   .arena-tournament-card-links{flex-direction:column}
   .arena-tournament-league{text-align:left}
 }
+
+/* Player analytics: clear hierarchy and intentionally explicit premium states. */
+.arena-interior .arena-stats-grid {gap:12px;padding:17px}
+.arena-interior .arena-stats-grid > div {
+  border:1px solid rgba(144,183,198,.22);
+  border-radius:10px;
+  padding:18px 17px;
+  background:linear-gradient(150deg,#172734,#111d28);
+  min-width:0;
+}
+.arena-interior .arena-stats-grid > div:first-child{
+  border-color:rgba(39,216,235,.42);
+  background:linear-gradient(145deg,#103542,#10232f);
+}
+.arena-interior .arena-stats-grid > div:nth-child(2){
+  border-color:rgba(220,175,88,.35);
+  background:linear-gradient(145deg,#262720,#111d28);
+}
+.arena-interior .arena-stats-grid > div > div:nth-child(2){
+  overflow-wrap:anywhere;
+  font-size:clamp(16px,2.1vw,24px);
+  line-height:1.18;
+  min-height:25px;
+}
+.arena-private-stat {
+  display:inline-flex;align-items:center;gap:7px;
+  font:700 11px/1.3 monospace;letter-spacing:.01em;
+  border:1px solid rgba(147,187,201,.21);
+  padding:7px 9px;border-radius:7px;
+  background:rgba(11,20,30,.57);color:#9cb8c9;
+}
+.arena-interior .arena-stats-upgrade {
+  flex-wrap:wrap;margin:0 17px 16px;border-radius:10px;
+  border-color:rgba(36,209,234,.28);background:rgba(24,60,75,.31);
+}
+.arena-interior .arena-stats-upgrade > div:first-child{min-width:0}
+.arena-interior .arena-stats-upgrade > div:first-child > div:last-child{min-width:0}
+.arena-interior .arena-history-results {
+  border-radius:11px;
+  background:#0f1b26;
+  border:1px solid rgba(127,183,202,.21);
+}
+.arena-history-scroll-hint {
+  padding:11px 12px;
+  color:#9fbdc9;
+  background:#112837;
+  font:650 10px/1.45 monospace;
+  margin:0;
+}
+.arena-history-scroll-region {scrollbar-color:#327c92 #101a24}
+.arena-history-table {min-width:850px}
+.arena-history-table thead {background:linear-gradient(95deg,#132938,#11202d)}
+.arena-history-table th {
+  color:#9bc9d5 !important;
+  background:transparent !important;
+  border-bottom:1px solid rgba(130,188,201,.24) !important;
+}
+.arena-history-table tbody tr:nth-child(even) {background:rgba(91,160,175,.035)}
+.arena-history-table tbody tr:hover {background:rgba(38,210,236,.06)}
+.arena-history-table td {border-color:rgba(139,186,206,.11) !important}
+.arena-history-paywall {
+  padding:17px 19px;
+  display:flex;gap:13px;align-items:center;flex-wrap:wrap;
+  border-top:1px solid rgba(144,185,199,.18);
+  background:linear-gradient(100deg,#0c2731,#13202a);
+}
+.arena-history-paywall-icon {
+  display:grid;place-items:center;width:38px;height:38px;
+  border-radius:9px;color:#6ce1f2;background:#173e4b;
+}
+.arena-history-paywall > div:nth-child(2){flex:1;min-width:170px}
+.arena-history-paywall strong {color:#f2fcff;font-size:12px}
+.arena-history-paywall p {margin-top:4px;color:#99b5c4;font-size:11px;line-height:1.5}
+.arena-history-paywall-link{
+  flex-shrink:0;padding:10px 13px;border-radius:7px;
+  color:#03171c;background:#29dbe9;font-size:11px;font-weight:850;
+}
+.arena-history-paywall-link:hover {background:#78f2fa}
+@media(max-width:560px){
+  .arena-interior .arena-stats-grid {gap:9px;padding:10px}
+  .arena-interior .arena-stats-grid > div {padding:14px 11px}
+  .arena-interior .arena-stats-upgrade {margin:0 10px 10px}
+  .arena-history-paywall {padding:15px 12px}
+}
