@@ -47,3 +47,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-setup.sql
       - name: Exercise real guarded ELO RPC on fake data (authorization, formula, retries)
         run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-assert.sql
+      - name: Reject malformed tournament results and rollback a forced mid-calculation failure
+        run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-adversarial.sql
