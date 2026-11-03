@@ -7,9 +7,10 @@ import { Lock, ShoppingBag } from "lucide-react";
 interface PlayerStatsGridProps {
   player: PlayerWithRoom;
   hasAccess?: boolean;
+  hideUpsell?: boolean;
 }
 
-export function PlayerStatsGrid({ player, hasAccess = false }: PlayerStatsGridProps) {
+export function PlayerStatsGrid({ player, hasAccess = false, hideUpsell = false }: PlayerStatsGridProps) {
   const itm = calcItm(player.total_cashes, player.total_tournaments);
   const roi = calcRoi(player.total_prize_won, player.total_buy_ins_spent);
   const profit = player.total_prize_won - player.total_buy_ins_spent;
@@ -72,7 +73,7 @@ export function PlayerStatsGrid({ player, hasAccess = false }: PlayerStatsGridPr
       </div>
 
       {/* CTA para desbloquear */}
-      {!hasAccess && (
+      {!hasAccess && !hideUpsell && (
         <Link
           to="/shop#stats-espia"
           className="arena-stats-upgrade flex items-center justify-between gap-3 bg-sk-bg-3 border border-sk-border-2 hover:border-sk-accent/40 rounded-lg px-4 py-3 transition-all group"
@@ -83,10 +84,10 @@ export function PlayerStatsGrid({ player, hasAccess = false }: PlayerStatsGridPr
             </div>
             <div>
               <p className="text-sk-sm font-semibold text-sk-text-1 group-hover:text-sk-accent transition-colors">
-                🕵️ Stats Espía — Ve lo que otros no pueden ver
+                🕵️ Stats Espía — Análisis de rendimiento
               </p>
               <p className="text-[11px] text-sk-text-3">
-                Desbloquea Cashes, ITM%, ROI, Profit y Victorias de todos los jugadores — consulta las condiciones vigentes en la tienda
+                Consulta rentabilidad, ROI e historial detallado en un solo panel. Las métricas dependen de los resultados registrados; revisa las condiciones.
               </p>
             </div>
           </div>
