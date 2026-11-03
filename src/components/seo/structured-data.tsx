@@ -13,7 +13,7 @@ const STRUCTURED_DATA = [
     url: "https://sharkania.com",
     logo: "https://sharkania.com/sharkania-icon-dark.svg",
     description:
-      "Plataforma global de poker competitivo. Ranking ELO, calendarios, clubes, ligas y estadísticas.",
+      "Plataforma de resultados de póker competitivo: ranking ELO, torneos, clubes, ligas y jugadores registrados.",
     foundingDate: "2026",
     sameAs: [],
   },
@@ -45,7 +45,7 @@ const STRUCTURED_DATA = [
     applicationCategory: "SportsApplication",
     operatingSystem: "Web",
     description:
-      "Ranking ELO global de poker competitivo para clubes privados. Calendarios de torneos en vivo, perfiles de jugador, ligas y herramientas.",
+      "Ranking ELO de póker, resultados de torneos, perfiles de jugadores, ligas registradas y herramientas de análisis.",
     offers: {
       "@type": "Offer",
       price: "0",
