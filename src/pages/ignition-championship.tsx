@@ -161,7 +161,7 @@ export function IgnitionChampionshipPage() {
           });
           navigate("/dashboard?highlight=ignition");
         } else {
-          setSuccess("¡Registro exitoso! Revisa tu bandeja de entrada para confirmar tu cuenta y recibir las contraseñas.");
+          setSuccess("¡Registro recibido! Revisa tu correo para confirmar tu cuenta de SHARKANIA. Tu nickname debe quedar vinculado y revisado para optar al bounty y a los premios mensuales.");
         }
       }
     } catch (err) {
@@ -273,7 +273,7 @@ export function IgnitionChampionshipPage() {
                   </p>
                   <p className="mt-2 text-sm leading-relaxed text-gray-300">
                     Si ya te registraste y vinculaste tu nickname en una edición anterior, no tienes que volver
-                    a inscribirte: entra a tu panel y comprueba el estado de tu vinculación.
+                     a inscribirte: entra a tu panel y comprueba el estado de tu vinculación. Si figura pendiente, su verificación debe revisarse antes de adjudicar premios adicionales.
                   </p>
                   <p className="mt-3 text-xs leading-relaxed text-gray-400">
                     El pozo garantizado regular de cada torneo se rige por las condiciones de Ignition Poker.
@@ -604,7 +604,7 @@ export function IgnitionChampionshipPage() {
                     isLoading={loading}
                     disabled={(!isExistingUser && !captchaToken) || loading}
                   >
-                    {isExistingUser ? "Iniciar Sesión y Vincular" : "Registrarse y Participar"}
+                    {isExistingUser ? "Iniciar sesión y revisar mi vinculación" : "Registrarme mediante SHARKANIA"}
                   </Button>
                 </form>
               )}
