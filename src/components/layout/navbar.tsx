@@ -229,7 +229,7 @@ export function Navbar({variant = "standard"}: {variant?: "standard" | "arena"})
               <span className={cn("relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5", variant === "arena" ? "bg-cyan-300" : "bg-red-500")} />
             </span>
             <span className="max-[375px]:hidden text-[10px] sm:text-[11px] font-black tracking-widest uppercase drop-shadow-sm group-hover:text-red-400 mt-px">
-              {variant === "arena" ? "Transmisiones" : "En Vivo"}
+              {variant === "arena" ? <><span className="sm:hidden">TV</span><span className="hidden sm:inline">Transmisiones</span></> : "En Vivo"}
             </span>
           </Link>
 
