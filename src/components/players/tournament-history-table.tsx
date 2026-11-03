@@ -27,6 +27,9 @@ interface TournamentHistoryTableProps {
   isLoading: boolean;
   hasAccess?: boolean;
   hasMoreHistory?: boolean;
+  canLoadMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export function TournamentHistoryTable({
@@ -34,6 +37,9 @@ export function TournamentHistoryTable({
   isLoading,
   hasAccess = false,
   hasMoreHistory = false,
+  canLoadMore = false,
+  isLoadingMore = false,
+  onLoadMore,
 }: TournamentHistoryTableProps) {
   if (isLoading) {
     return (
@@ -179,6 +185,20 @@ export function TournamentHistoryTable({
           </tbody>
         </table>
       </div>
+
+      {hasAccess && canLoadMore && onLoadMore && (
+        <div className="arena-history-load-more">
+          <span>Mostrando {results.length.toLocaleString("es-CL")} resultados</span>
+          <button
+            type="button"
+            disabled={isLoadingMore}
+            onClick={onLoadMore}
+            aria-label="Cargar más resultados del historial"
+          >
+            {isLoadingMore ? "Cargando resultados…" : "Ver 30 resultados más"}
+          </button>
+        </div>
+      )}
 
       {!hasAccess && (hasMoreHistory || results.length > 2) && (
         <div className="arena-history-paywall">
