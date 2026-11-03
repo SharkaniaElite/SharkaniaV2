@@ -77,3 +77,14 @@ Control directo y solo lectura sobre Supabase `sharkania`:
 5. Presentar un reporte final **GO / NO-GO** y solicitar aprobación para merge y despliegue. Sin atajos en permisos o reCAPTCHA/Turnstile.
 
 **Nota:** no existe una fecha de salida comprometida; la decisión se basa en criterios de calidad verificables, no solo en el aspecto de las páginas.
+
+
+## Actualización QA — rama temporal fallida y eliminada (3 noviembre 2026)
+
+Con autorización para cómputo **USD 0,01344/h**, se creó una sola rama temporal Supabase `qa-stats-spy-20261103-temporal`, pero falló con `MIGRATIONS_FAILED`. El proyecto asociado no fue accesible; no se desplegaron las nuevas RPC ni se ejecutaron tests de seguridad. Se eliminó la rama con `success=true` y se verificó que `list_branches` vuelve a mostrar **solo main**.
+
+La auditoría cruzó 50 versiones de migración remotas y 22 archivos SQL en GitHub; faltan 29 versiones remotas en el repositorio, y existe un SQL con prefijo de 8 dígitos sin correspondencia de versión. No se ha confirmado la sentencia exacta que hizo fallar el aprovisionamiento.
+
+**Estado del gate P0:** BLOQUEADO. No repetir creación de rama con cargo hasta reparar/validar la reproducibilidad de migraciones y disponer de los logs de fallo. No modificar el historial remoto con `migration repair` ni generar un baseline ficticio en producción.
+
+Detalles y trazabilidad: [Supabase QA branch failure](../security/supabase-qa-branch-failure-2026-11-03.md).
