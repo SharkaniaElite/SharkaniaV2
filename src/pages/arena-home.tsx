@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ArrowUpRight, CalendarDays, ChevronRight, Compass, Medal, Radar, ShieldCheck, Swords, Trophy, Users, Zap } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarDays, ChevronRight, Compass, Radar, ShieldCheck, Swords, Trophy, Users } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
 import { getPlayers } from "../lib/api/players";
@@ -48,7 +48,9 @@ function isCurrentEditorial(post: BlogPost) {
   if (post.category !== "Promociones") return true;
   const tags = post.tags || [];
   const find = (prefix: string) => tags.find((tag) => tag.startsWith(prefix))?.slice(prefix.length);
-  const today = new Intl.DateTimeFormat("en-CA", {timeZone:"America/Santiago",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const parts = new Intl.DateTimeFormat("en-GB", {timeZone:"America/Santiago",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  const get = (part: string) => parts.find((x)=>x.type===part)?.value || "";
+  const today = get("year")+"-"+get("month")+"-"+get("day");
   const reviewed = find("verified-on:");
   const nextReview = find("review-by:");
   const officialEnd = find("official-end:");
@@ -195,10 +197,10 @@ export function ArenaHomePage() {
         <div className="arena-hero-footer"><span>EST. 2026 &nbsp;/&nbsp; LATINOAMÉRICA</span><span>COMPETIR · MEDIR · EVOLUCIONAR</span><span className="arena-hero-scroll">DESCUBRE SHARKANIA ↓</span></div>
       </section>
 
-      <section className="arena-hub" aria-labelledby="arena-hub-title">
+      <section className="arena-hub" aria-label="Explorar las funciones de Sharkania">
         <div className="arena-section-wrap">
           <SectionHeading eyebrow="TU PUNTO DE PARTIDA" title="Todo empieza en la arena." supporting="Tres puertas de entrada a un mismo ecosistema." />
-          <div className="arena-pillar-grid" id="arena-hub-title">
+          <div className="arena-pillar-grid">
             {pillars.map((item)=>{
               const Icon=item.icon;
               return <Link key={item.to} to={item.to} className="arena-pillar">
