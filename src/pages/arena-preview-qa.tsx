@@ -156,7 +156,7 @@ export function ArenaPreviewQaPage() {
   return (
     <PageShell variant="arena">
       <SEOHead title="Demostración privada de Sharkania Arena" path="/__arena-qa" description="Simulación visual de la experiencia de usuario con datos ficticios." noIndex/>
-      <main className="arena-qa-page">
+      <div className="arena-qa-page">
         <div className="arena-qa-container">
           <div className="arena-qa-guard">
             <div className="arena-qa-guard-icon"><ShieldCheck size={22} aria-hidden="true"/></div>
