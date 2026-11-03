@@ -1,0 +1,306 @@
+{
+  "schema_version": 1,
+  "source": "Supabase production schema_migrations read-only SQL; files verified identical to recorded statements on 2026-11-03",
+  "applied_migrations": [
+    {
+      "version": "20260320132525",
+      "applied_name": "allow_club_admin_update_players",
+      "file": "20260320132525_allow_club_admin_update_players.sql",
+      "git_blob_sha1": "3eab0582a6fcc64afc1702a7f35aa1fe43266996"
+    },
+    {
+      "version": "20260320135619",
+      "applied_name": "add_club_contact_fields",
+      "file": "20260320135619_add_club_contact_fields.sql",
+      "git_blob_sha1": "9259cbab3db9b64ad550601c354d4b0b3b209dab"
+    },
+    {
+      "version": "20260321120051",
+      "applied_name": "fix_club_admin_update_players_via_tournaments",
+      "file": "20260321120051_fix_club_admin_update_players_via_tournaments.sql",
+      "git_blob_sha1": "26d6145def5120c42a4f39d2418c4cbff3bc0e21"
+    },
+    {
+      "version": "20260322113059",
+      "applied_name": "create_tournament_templates",
+      "file": "20260322113059_create_tournament_templates.sql",
+      "git_blob_sha1": "2491f7e4842442b36b62c79268e6b9bfbd764427"
+    },
+    {
+      "version": "20260322121037",
+      "applied_name": "bulk_delete_scheduled_tournaments",
+      "file": "20260322121037_bulk_delete_scheduled_tournaments.sql",
+      "git_blob_sha1": "eddd4ee193c218361927b971c57612ab76a391df"
+    },
+    {
+      "version": "20260322123712",
+      "applied_name": "allow_club_admin_delete_own_leagues",
+      "file": "20260322123712_allow_club_admin_delete_own_leagues.sql",
+      "git_blob_sha1": "3389a8b64c00d5c59f74420ed3939364b33936ee"
+    },
+    {
+      "version": "20260331001639",
+      "applied_name": "add_slug_columns",
+      "file": "20260331001639_add_slug_columns.sql",
+      "git_blob_sha1": "5f2ebc397a13986ddd2b3abdf446cb589d176d45"
+    },
+    {
+      "version": "20260403193557",
+      "applied_name": "create_glossary_table",
+      "file": "20260403193557_create_glossary_table.sql",
+      "git_blob_sha1": "691061c4efca772599d620fb58dedafb6abc9851"
+    },
+    {
+      "version": "20260405000159",
+      "applied_name": "unified_player_views",
+      "file": "20260405000159_unified_player_views.sql",
+      "git_blob_sha1": "e3e65a13b2a3d362e6bf8825cdacb7d96be772e7"
+    },
+    {
+      "version": "20260406064057",
+      "applied_name": "create_club_request_function",
+      "file": "20260406064057_create_club_request_function.sql",
+      "git_blob_sha1": "811dc0f9625e56016ec736110f9b7f244d561bc8"
+    },
+    {
+      "version": "20260407103120",
+      "applied_name": "create_academy_tables",
+      "file": "20260407103120_create_academy_tables.sql",
+      "git_blob_sha1": "497ed6353d8728abe92b9764c69daf59d35839ab"
+    },
+    {
+      "version": "20261031112408",
+      "applied_name": "restrict_add_credits_rpc_to_service_role",
+      "file": "20261031112408_restrict_add_credits_rpc_to_service_role.sql",
+      "git_blob_sha1": "5f0f09862ff6e1ef26f1ebab671f2e5f0338b86c"
+    },
+    {
+      "version": "20261031113149",
+      "applied_name": "restrict_acc_backing_deals_to_accounting_managers",
+      "file": "20261031113149_restrict_acc_backing_deals_to_accounting_managers.sql",
+      "git_blob_sha1": "2a0e424fa35432f3763d44d7191166529af88fba"
+    },
+    {
+      "version": "20261031113245",
+      "applied_name": "remove_authenticated_truncate_trigger_and_references_on_backing_deals",
+      "file": "20261031113245_remove_authenticated_truncate_trigger_and_references_on_backing_deals.sql",
+      "git_blob_sha1": "9ea075f779571df778f9628d6ad6f6536c9d4ea2"
+    },
+    {
+      "version": "20261031115741",
+      "applied_name": "enforce_rpc_authorization_rewards_tournaments_20261031",
+      "file": "20261031115741_enforce_rpc_authorization_rewards_tournaments_20261031.sql",
+      "git_blob_sha1": "fec29515b4de769ac6ce03a5e1cf3a2f41c6589e"
+    },
+    {
+      "version": "20261031120716",
+      "applied_name": "secure_blog_rewards_once_per_article_20261031",
+      "file": "20261031120716_secure_blog_rewards_once_per_article_20261031.sql",
+      "git_blob_sha1": "636cf6e79483686db5608e26ef8c3aa2d2560fa2"
+    },
+    {
+      "version": "20261031121126",
+      "applied_name": "secure_club_ignition_feature_reads_20261031",
+      "file": "20261031121126_secure_club_ignition_feature_reads_20261031.sql",
+      "git_blob_sha1": "ccfb6b250c9f780b517ac62707f43ad925ec9f40"
+    },
+    {
+      "version": "20261031123934",
+      "applied_name": "fix_auth_user_metadata_role_escalation_20261031",
+      "file": "20261031123934_fix_auth_user_metadata_role_escalation_20261031.sql",
+      "git_blob_sha1": "6a80ae11ea4fb028de1c6f93b1fcf93cb04baa43"
+    },
+    {
+      "version": "20261031124255",
+      "applied_name": "block_self_escalation_profiles_rewards_verification_20261031",
+      "file": "20261031124255_block_self_escalation_profiles_rewards_verification_20261031.sql",
+      "git_blob_sha1": "688baddefc3cf01c12dbc4e5573aacdbb5a72bdf"
+    },
+    {
+      "version": "20261031124412",
+      "applied_name": "restrict_remaining_purchase_and_internal_trigger_rpcs_20261031",
+      "file": "20261031124412_restrict_remaining_purchase_and_internal_trigger_rpcs_20261031.sql",
+      "git_blob_sha1": "a98f4d6164eb867537e7ea15b0b44075e8159849"
+    },
+    {
+      "version": "20261031124639",
+      "applied_name": "allow_only_pending_user_verification_requests_20261031",
+      "file": "20261031124639_allow_only_pending_user_verification_requests_20261031.sql",
+      "git_blob_sha1": "44b762f7d115d9197a8c35962b512bb02b6a2a21"
+    },
+    {
+      "version": "20261031124807",
+      "applied_name": "restrict_private_profile_rows_to_self_or_admin_20261031",
+      "file": "20261031124807_restrict_private_profile_rows_to_self_or_admin_20261031.sql",
+      "git_blob_sha1": "1fadf58ffc8415e74fbfa4195ecfa71ab1aab2b6"
+    },
+    {
+      "version": "20261031125423",
+      "applied_name": "pin_search_path_on_public_privileged_rpcs_20261031",
+      "file": "20261031125423_pin_search_path_on_public_privileged_rpcs_20261031.sql",
+      "git_blob_sha1": "8fe17c62f033991a9f9d260d59d5972874598c75"
+    },
+    {
+      "version": "20261031125806",
+      "applied_name": "secure_email_queue_and_server_side_club_confirmation_20261031",
+      "file": "20261031125806_secure_email_queue_and_server_side_club_confirmation_20261031.sql",
+      "git_blob_sha1": "e577a5e9b9983380c4b2e125b7e6d1928302eee0"
+    },
+    {
+      "version": "20261031125903",
+      "applied_name": "capture_club_signup_requests_from_verified_auth_trigger_20261031",
+      "file": "20261031125903_capture_club_signup_requests_from_verified_auth_trigger_20261031.sql",
+      "git_blob_sha1": "b66e33f38079ec11e8da233a3fe1b270dea99707"
+    },
+    {
+      "version": "20261031130111",
+      "applied_name": "limit_public_club_directory_to_approved_20261031",
+      "file": "20261031130111_limit_public_club_directory_to_approved_20261031.sql",
+      "git_blob_sha1": "63815bd7ad44ff3628746d67ee3ca9d8c5e6be91"
+    },
+    {
+      "version": "20261031135830",
+      "applied_name": "secure_batch_posthog_unique_views_20261031",
+      "file": "20261031135830_secure_batch_posthog_unique_views_20261031.sql",
+      "git_blob_sha1": "738ab79e4f40b53e233b237611e72429292f10ed"
+    },
+    {
+      "version": "20261031135902",
+      "applied_name": "correct_batch_blog_sync_jsonb_key_count_20261031",
+      "file": "20261031135902_correct_batch_blog_sync_jsonb_key_count_20261031.sql",
+      "git_blob_sha1": "63e920c0ed1dae5f814fe68075307bc38f69ed99"
+    },
+    {
+      "version": "20261031143409",
+      "applied_name": "restrict_club_management_and_directory_policies_20261031",
+      "file": "20261031143409_restrict_club_management_and_directory_policies.sql",
+      "git_blob_sha1": "fdee124452d58f9ee3bacbbf220b09532739e0e2"
+    },
+    {
+      "version": "20261031145349",
+      "applied_name": "enforce_verified_auto_mission_claims_only_20261031",
+      "file": "20261031145349_enforce_verified_auto_mission_claims_only_20261031.sql",
+      "git_blob_sha1": "e8c32dd1977f57f8a402370c09b18ead8dd27582"
+    },
+    {
+      "version": "20261031145511",
+      "applied_name": "secure_manual_mission_requests_and_private_evidence_20261031",
+      "file": "20261031145511_secure_manual_mission_requests_and_private_evidence_20261031.sql",
+      "git_blob_sha1": "f9c9c769e12fd0d0c6d701e10e96e126ee3e57ac"
+    },
+    {
+      "version": "20261031145750",
+      "applied_name": "validate_academy_quizzes_and_serialize_rewards_20261031",
+      "file": "20261031145750_validate_academy_quizzes_and_serialize_rewards_20261031.sql",
+      "git_blob_sha1": "38967671818cfd904ae382b40da63e9ea95e78b9"
+    },
+    {
+      "version": "20261031145859",
+      "applied_name": "secure_academy_reward_tables_against_client_bypass_20261031",
+      "file": "20261031145859_secure_academy_reward_tables_against_client_bypass_20261031.sql",
+      "git_blob_sha1": "83993662cc558db65425b32dcd112591c690c999"
+    },
+    {
+      "version": "20261031151248",
+      "applied_name": "throttle_authenticated_shared_hand_views_once_per_day_20261031",
+      "file": "20261031151248_throttle_authenticated_shared_hand_views_once_per_day_20261031.sql",
+      "git_blob_sha1": "78a7efb1c8f7512662b50a0d7b14e163330978f8"
+    },
+    {
+      "version": "20261031151446",
+      "applied_name": "fix_hand_view_throttle_conflict_constraint_20261031",
+      "file": "20261031151446_fix_hand_view_throttle_conflict_constraint_20261031.sql",
+      "git_blob_sha1": "eee8df70600c78f00fba1be4717eae4d94c4bc9d"
+    },
+    {
+      "version": "20261031151554",
+      "applied_name": "enforce_rls_internal_hand_view_counter_20261031",
+      "file": "20261031151554_enforce_rls_internal_hand_view_counter_20261031.sql",
+      "git_blob_sha1": "4cc26e9595bc243f0dbfa2e95475d672d3d19fbf"
+    },
+    {
+      "version": "20261031153006",
+      "applied_name": "secure_shared_hands_author_ownership_and_column_privileges_20261031",
+      "file": "20261031153006_secure_shared_hands_author_ownership_and_column_privileges_20261031.sql",
+      "git_blob_sha1": "dfcfb6f31a68520413283b592f059346a3a5bbe3"
+    },
+    {
+      "version": "20261031154647",
+      "applied_name": "prepare_private_shared_hand_lookup_and_strong_ids_20261031",
+      "file": "20261031154647_prepare_private_shared_hand_lookup_and_strong_ids_20261031.sql",
+      "git_blob_sha1": "12cfff11c9b47681db3ceb2aad33d461df3a7227"
+    },
+    {
+      "version": "20261031155504",
+      "applied_name": "restrict_shared_hands_table_read_to_owner_20261031",
+      "file": "20261031155504_restrict_shared_hands_table_read_to_owner_20261031.sql",
+      "git_blob_sha1": "b1ff0bc3760b7955ea845c690ba9be3521366341"
+    },
+    {
+      "version": "20261031160943",
+      "applied_name": "fix_academy_single_coin_debit_20261031",
+      "file": "20261031160943_fix_academy_single_coin_debit_20261031.sql",
+      "git_blob_sha1": "d70769be0ea35d0c8cd12a5c1c9917c17efaa179"
+    },
+    {
+      "version": "20261031162543",
+      "applied_name": "remove_legacy_cash_topup_rpc_20261031",
+      "file": "20261031162543_remove_legacy_cash_topup_rpc_20261031.sql",
+      "git_blob_sha1": "af8bb1e94c3b2a28a34f48db142f361d9b0cdb7e"
+    },
+    {
+      "version": "20261031175040",
+      "applied_name": "restrict_academy_lesson_progress_columns_20261031",
+      "file": "20261031175040_restrict_academy_lesson_progress_columns_20261031.sql",
+      "git_blob_sha1": "12459837238b51f32162ef8c500df1591078b97e"
+    },
+    {
+      "version": "20261031175603",
+      "applied_name": "revoke_web_roles_destructive_table_privileges_20261031",
+      "file": "20261031175603_revoke_web_roles_destructive_table_privileges_20261031.sql",
+      "git_blob_sha1": "2f340c55338ecec1ac0b77e9f1bdeda06addeab0"
+    },
+    {
+      "version": "20261031181112",
+      "applied_name": "record_ignition_signup_as_pending_20261031",
+      "file": "20261031181112_record_ignition_signup_as_pending_20261031.sql",
+      "git_blob_sha1": "d6900554b1dae91977dd71bc9ae33a046a001b1a"
+    },
+    {
+      "version": "20261031182236",
+      "applied_name": "lock_verified_poker_identity_columns_20261031",
+      "file": "20261031182236_lock_verified_poker_identity_columns_20261031.sql",
+      "git_blob_sha1": "bba0b2af04e2a972fccea14d3a2121b9d34ae1b1"
+    },
+    {
+      "version": "20261031190504",
+      "applied_name": "restrict_email_queue_browser_dml_20261031",
+      "file": "20261031190504_restrict_email_queue_browser_dml_20261031.sql",
+      "git_blob_sha1": "14315da9b5aebd2eea232a15b360af92b15dd0cb"
+    },
+    {
+      "version": "20261031192103",
+      "applied_name": "guard_club_registration_submissions_20261031",
+      "file": "20261031192103_guard_club_registration_submissions_20261031.sql",
+      "git_blob_sha1": "d72050eff28a4852018b4884ff983be1e1674f1a"
+    },
+    {
+      "version": "20261031195701",
+      "applied_name": "admin_email_verification_reminder_limits",
+      "file": "20261031195701_admin_email_verification_reminder_limits.sql",
+      "git_blob_sha1": "13514c8c27b5877b3c7a646a204e600a3530833b"
+    },
+    {
+      "version": "20261101230327",
+      "applied_name": "auto_link_ccp_latin_allin_tournaments_20261101",
+      "file": "20261101230327_auto_link_ccp_latin_allin_tournaments_20261101.sql",
+      "git_blob_sha1": "d7bf55e32b9403109c08604fbf8cce2b2ec4a05f"
+    },
+    {
+      "version": "20261102213705",
+      "applied_name": "restrict_blog_images_to_sharkania_super_admin_20261102",
+      "file": "20261102213705_restrict_blog_images_to_sharkania_super_admin_20261102.sql",
+      "git_blob_sha1": "4dc8b0d01587b6151448ebd38412451eb93ca4cd"
+    }
+  ]
+}
