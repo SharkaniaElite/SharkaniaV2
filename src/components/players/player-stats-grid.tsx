@@ -8,12 +8,24 @@ interface PlayerStatsGridProps {
   player: PlayerWithRoom;
   hasAccess?: boolean;
   hideUpsell?: boolean;
+  financialComparable?: boolean;
+  financialCurrency?: string | null;
 }
 
-export function PlayerStatsGrid({ player, hasAccess = false, hideUpsell = false }: PlayerStatsGridProps) {
+export function PlayerStatsGrid({
+  player, hasAccess = false, hideUpsell = false,
+  financialComparable = true, financialCurrency,
+}: PlayerStatsGridProps) {
   const itm = calcItm(player.total_cashes, player.total_tournaments);
   const roi = calcRoi(player.total_prize_won, player.total_buy_ins_spent);
   const profit = player.total_prize_won - player.total_buy_ins_spent;
+  const financialDisplay = (value: string) =>
+    hasAccess && !financialComparable
+      ? <span title="Se necesitan conversiones verificables para combinar monedas">No comparable</span>
+      : renderPremiumValue(value);
+  const money = financialCurrency
+    ? `${financialCurrency} ${Math.abs(profit).toLocaleString("es-CL", { maximumFractionDigits: 2 })}`
+    : formatCurrency(Math.abs(profit));
 
   const renderPremiumValue = (val: string) => {
     if (hasAccess) return val;
@@ -56,13 +68,13 @@ export function PlayerStatsGrid({ player, hasAccess = false, hideUpsell = false 
         />
         <StatCard
           label="ROI"
-          value={renderPremiumValue(`${roi >= 0 ? "+" : ""}${formatPercent(roi)}`)}
+          value={financialDisplay(`${roi >= 0 ? "+" : ""}${formatPercent(roi)}`)}
           accent={roi >= 0 ? "green" : "default"}
         />
         <StatCard
           label="Profit"
-          value={renderPremiumValue(formatCurrency(Math.abs(profit)))}
-          delta={hasAccess ? (profit >= 0 ? "Positivo" : "Negativo") : undefined}
+          value={financialDisplay(money)}
+          delta={hasAccess && financialComparable ? (profit >= 0 ? "Positivo" : "Negativo") : undefined}
           deltaDirection={profit >= 0 ? "up" : "down"}
         />
         <StatCard
@@ -71,6 +83,12 @@ export function PlayerStatsGrid({ player, hasAccess = false, hideUpsell = false 
           accent="gold"
         />
       </div>
+
+      {hasAccess && !financialComparable && (
+        <p role="status" className="text-sk-xs text-sk-text-3 px-2 py-1">
+          El historial incluye resultados en distintas monedas o carece de moneda verificable. ROI y Profit global no se calculan sin conversión documentada.
+        </p>
+      )}
 
       {/* CTA para desbloquear */}
       {!hasAccess && !hideUpsell && (
