@@ -38,6 +38,15 @@ const MORE_LINKS = [
   { label: "Tienda", href: "/shop" },
 ];
 
+const ARENA_MAIN_LINKS = [
+  { label: "Ranking ELO", href: "/ranking" },
+  { label: "Torneos", href: "/calendar" },
+  { label: "Clubes", href: "/clubs" },
+  { label: "Ligas", href: "/leagues" },
+  { label: "Noticias", href: "/noticias" },
+  { label: "Promociones", href: "/promociones" },
+];
+
 const ALL_LINKS = [...MAIN_LINKS, ...MORE_LINKS];
 
 const MENU_BG: React.CSSProperties = {
@@ -56,7 +65,7 @@ const MENU_BG: React.CSSProperties = {
   overflowY: "auto",
 };
 
-export function Navbar() {
+export function Navbar({variant = "standard"}: {variant?: "standard" | "arena"}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -110,19 +119,18 @@ export function Navbar() {
         )}
       >
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 no-underline shrink-0 min-w-0">
+        <Link to="/" className="flex items-center gap-2 no-underline shrink-0 min-w-0" aria-label={variant === "arena" ? "Sharkania Arena - inicio" : "Sharkania - inicio"}>
           <svg width="26" height="26" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M7,36 L18,4 L38,24 L33,36 Z" fill="#22d3ee"/>
           </svg>
-          <span className="text-sk-md font-extrabold text-sk-text-1 tracking-tight">
-            Sharkania
-          </span>
+          <span className="text-sk-md font-extrabold text-sk-text-1 tracking-tight">Sharkania</span>
+          {variant === "arena" && <span className="arena-nav-badge">ARENA</span>}
         </Link>
 
         {/* Desktop links */}
         <div className="hidden lg:flex items-center gap-0.5">
           {/* 1. Enlaces Principales */}
-          {MAIN_LINKS.map((link) => (
+          {(variant === "arena" ? ARENA_MAIN_LINKS : MAIN_LINKS).map((link) => (
             <Link
               key={link.href}
               to={link.href}
