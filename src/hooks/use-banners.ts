@@ -23,12 +23,13 @@ export function useBanners(): BannersConfig {
  * la configuración de Supabase, evitando saltos de layout (CLS).
  * Comparte cache con useBanners mediante la misma queryKey.
  */
-export function useBannersWithStatus(): { banners: BannersConfig; loading: boolean } {
+export function useBannersWithStatus(enabled = true): { banners: BannersConfig; loading: boolean } {
   const { data, isPending } = useQuery({
     queryKey: ["site-settings-banners"],
     queryFn: getBannersConfig,
     staleTime: 1000 * 60 * 10,
     retry: 1,
+    enabled,
   });
-  return { banners: data ?? DEFAULT_BANNERS, loading: isPending };
+  return { banners: data ?? DEFAULT_BANNERS, loading: enabled && isPending };
 }
