@@ -16,9 +16,8 @@ test("Preview QA is isolated to Pages preview host and cannot run on production 
 
 test("Preview synthetic QA never signs in or writes to Supabase", () => {
   const qa = src("src/pages/arena-preview-qa.tsx");
-  assert.match(qa, /createDemoHand\(\)/);
-  assert.match(qa, /<PokerTable state=\{state\}/);
-  assert.match(qa, /<ReplayControls/);
+  assert.match(qa, /<PreviewPlayer\/>/);
+  assert.doesNotMatch(qa, /<ReplayControls|<PokerTable|PreviewHand/);
   assert.doesNotMatch(qa, /\bsupabase\./);
   assert.doesNotMatch(qa, /\bsignIn\(|\bsignUp\(|\bfetch\(/);
   assert.match(qa, /No inicia sesión, no cambia cuentas/);
@@ -53,10 +52,14 @@ test("Login, signup, recovery and password changes do not submit to production o
   assert.match(frame, /to="\/__arena-qa"/);
 });
 
-test("Synthetic poker playback uses the actual state engine without sharing hands", () => {
+test("Retired hand replayer is absent from catalog, Shark Coins shop and Preview showcase", () => {
+  const tools = src("src/pages/tools.tsx");
+  const shop = src("src/pages/shop.tsx");
   const qa = src("src/pages/arena-preview-qa.tsx");
-  for (const symbol of ["initReplayState", "stepForward", "stepBackward", "goToStep", "onSetSpeed", "onTogglePlay", "requestFullscreen"]) {
-    assert.ok(qa.includes(symbol), "Missing demo playback contract: " + symbol);
-  }
-  assert.doesNotMatch(qa, /saveHandForShare|loadHandFromShare/);
+  assert.doesNotMatch(tools, /\/tools\/replayer|Replayer de Manos/);
+  assert.doesNotMatch(shop, /tool_replayer|Ir al Replayer/);
+  assert.doesNotMatch(qa, /Replayer de póker|<ReplayControls|<PokerTable/);
+  // Keep old links functioning for owners of previously shared hands or purchases.
+  const routes = src("src/App.tsx");
+  assert.match(routes, /path="\/tools\/replayer\/h\/:id"/);
 });
