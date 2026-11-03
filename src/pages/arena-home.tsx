@@ -174,7 +174,9 @@ export function ArenaHomePage() {
   return <PageShell variant="arena">
     <SEOHead title="Sharkania Arena | Ranking ELO, torneos y póker competitivo" description="El centro de competición de Sharkania. Explora el ranking ELO, los jugadores destacados, clubes, ligas y próximos torneos." path="/" />
     <div className="arena">
-      <section className="arena-hero" aria-labelledby="arena-hero-title">
+      <section className="arena-hero arena-scene" aria-labelledby="arena-hero-title">
+        <img className="arena-scene-photo" src="/images/arena/home-hero.webp" alt="" aria-hidden="true" width={720} height={240} decoding="async" fetchPriority="low" />
+        <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-hero-aura" aria-hidden="true" />
         <div className="arena-hero-grid">
           <div className="arena-hero-copy">
@@ -197,7 +199,9 @@ export function ArenaHomePage() {
         <div className="arena-hero-footer"><span>EST. 2026 &nbsp;/&nbsp; LATINOAMÉRICA</span><span>COMPETIR · MEDIR · EVOLUCIONAR</span><span className="arena-hero-scroll">DESCUBRE SHARKANIA ↓</span></div>
       </section>
 
-      <section className="arena-hub" aria-label="Explorar las funciones de Sharkania">
+      <section className="arena-hub arena-scene" aria-label="Explorar las funciones de Sharkania">
+        <img className="arena-scene-photo" src="/images/arena/home-ranking.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
+        <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
           <SectionHeading eyebrow="TU PUNTO DE PARTIDA" title="Todo empieza en la arena." supporting="Tres puertas de entrada a un mismo ecosistema." />
           <div className="arena-pillar-grid">
@@ -213,7 +217,9 @@ export function ArenaHomePage() {
         </div>
       </section>
 
-      <section className="arena-circuit" ref={circuit.ref}>
+      <section className="arena-circuit arena-scene" ref={circuit.ref}>
+        <img className="arena-scene-photo" src="/images/arena/home-tournaments.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
+        <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
           <SectionHeading eyebrow="AGENDA COMPETITIVA" title="Lo que viene en las mesas." supporting="Próximos eventos registrados en la plataforma." href="/calendar" linkText="Calendario completo"/>
           <div className="arena-circuit-grid">
@@ -232,7 +238,9 @@ export function ArenaHomePage() {
         </div>
       </section>
 
-      <section className="arena-editorial" ref={editorial.ref}>
+      <section className="arena-editorial arena-scene" ref={editorial.ref}>
+        <img className="arena-scene-photo" src="/images/arena/home-editorial.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
+        <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
           <SectionHeading eyebrow="DENTRO DEL CIRCUITO" title="Historias que importan." supporting="Actualidad, estrategia y promociones verificadas; sin confundir publicidad con resultados." href="/noticias" linkText="Explorar noticias"/>
           <div className="arena-story-grid">
@@ -245,7 +253,9 @@ export function ArenaHomePage() {
         </div>
       </section>
 
-      <section className="arena-final">
+      <section className="arena-final arena-scene">
+        <img className="arena-scene-photo" src="/images/arena/home-final.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
+        <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
           <div className="arena-final-inner"><div><div className="arena-eyebrow"><span className="arena-cross">✳</span> TU HISTORIA EMPIEZA AQUÍ</div><h2>El próximo nombre en el ranking<br/><em>podría ser el tuyo.</em></h2><p>Explora resultados, descubre tu circuito y participa en la comunidad.</p></div><Link to="/register">Crear cuenta <ArrowUpRight size={18}/></Link></div>
         </div>
