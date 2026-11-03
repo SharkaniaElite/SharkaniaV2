@@ -46,8 +46,8 @@ export function ArenaPageHero({
         )}
       </div>
       <div className="arena-page-hero-bottom" aria-hidden="true">
-        <span>COMPETIR / MEDIR / EVOLUCIONAR</span>
-        <span>EL CIRCUITO COMPETITIVO</span>
+        <span>TORNEOS / JUGADORES / RANKING ELO</span>
+        <span>PÓKER COMPETITIVO</span>
       </div>
     </header>
   );
