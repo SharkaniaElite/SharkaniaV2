@@ -146,7 +146,7 @@ export async function getPlayerTournamentResults(
   let query = supabase
     .from("tournament_results")
     .select(
-      `${BASE_TOURNAMENT_RESULT_SELECT}, tournaments(id, name, slug, buy_in, start_datetime, clubs!club_id(id, name, slug))`
+      `${BASE_TOURNAMENT_RESULT_SELECT}, tournaments(id, name, slug, buy_in, currency, start_datetime, clubs!club_id(id, name, slug))`
     )
     .eq("player_id", playerId)
     .order("created_at", { ascending: false });
@@ -289,7 +289,7 @@ export async function getUnifiedTournamentResults(
   let query = supabase
     .from("tournament_results")
     .select(
-      `${BASE_TOURNAMENT_RESULT_SELECT}, tournaments(id, name, slug, buy_in, start_datetime, clubs!club_id(id, name, slug)), players(nickname)`
+      `${BASE_TOURNAMENT_RESULT_SELECT}, tournaments(id, name, slug, buy_in, currency, start_datetime, clubs!club_id(id, name, slug)), players(nickname)`
     )
     .in("player_id", ids)
     .order("created_at", { ascending: false });
