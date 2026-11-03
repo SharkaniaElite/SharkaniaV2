@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaToolHeader } from "../components/arena/arena-tool-header";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import {
   BrainCircuit,
-  ArrowLeft,
   ArrowRight,
   RotateCcw,
   Target,
@@ -192,22 +192,21 @@ export function RoomProfilerPage() {
   const { topRoom, runnerUp } = getResults();
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
-        title="Perfilador de Salas de Poker — Sharkania"
-        description="Descubre qué sala de poker online se adapta mejor a tu perfil psicológico, nivel de habilidad y preferencias tecnológicas."
+        title="Comparador de salas de póker | Perfilador"
+        description="Cuestionario orientativo para explorar salas de póker online según tus preferencias, formatos de juego y herramientas. Comprueba elegibilidad por país."
         path="/tools/perfilador-salas"
       />
 
-      <div className="pt-20 pb-16 min-h-[90vh] flex flex-col">
-        <div className="max-w-[700px] mx-auto w-full px-6 flex-1 flex flex-col justify-center">
+      <div className="arena-interior arena-tool-page arena-profiler-page">
+        <div className="arena-interior-container arena-profiler-container">
+          <ArenaToolHeader icon={BrainCircuit} eyebrow="SALAS / PREFERENCIAS" title="PERFILADOR DE SALAS DE PÓKER" subtitle="Descubre opciones según tu estilo" description="Explora características de distintas salas de póker online mediante un cuestionario orientativo. Revisa siempre las condiciones, la disponibilidad y la legalidad aplicable en tu país." />
+          <div className="arena-tool-content">
           
           {/* Header persistente (excepto en intro) */}
           {started && !finished && (
             <div className="mb-8 animate-in fade-in slide-in-from-top-4">
-              <Link to="/tools" className="inline-flex items-center gap-1.5 text-sk-sm text-sk-text-3 hover:text-sk-text-1 transition-colors mb-6">
-                <ArrowLeft size={14} /> Herramientas
-              </Link>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sk-xs font-mono font-bold text-sk-accent uppercase tracking-widest">
                   Pregunta {currentQ + 1} de {QUESTIONS.length}
@@ -228,11 +227,11 @@ export function RoomProfilerPage() {
               <div className="w-20 h-20 mx-auto bg-sk-accent/10 border border-sk-accent/20 rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,211,238,0.15)]">
                 <BrainCircuit size={36} className="text-sk-accent" />
               </div>
-              <h1 className="text-sk-3xl sm:text-4xl font-extrabold text-sk-text-1 tracking-tight mb-4">
-                Encuentra la <span className="text-transparent bg-clip-text bg-gradient-to-r from-sk-accent to-sk-purple">sala adecuada para tu estilo</span>.
-              </h1>
+              <h2 className="text-sk-2xl sm:text-3xl font-extrabold text-sk-text-1 tracking-tight mb-4">
+                Encuentra opciones según tus <span className="text-sk-accent">preferencias de juego</span>.
+              </h2>
               <p className="text-sk-md text-sk-text-2 mb-8 max-w-lg mx-auto leading-relaxed">
-                No juegues donde juegan los profesionales si buscas divertirte. No juegues en salas básicas si eres un analista de datos. Descubre tu hábitat natural en menos de 1 minuto.
+                Completa algunas preguntas sobre tu experiencia, formatos y preferencias. El resultado es una orientación general; no garantiza rentabilidad ni reemplaza la comprobación de condiciones.
               </p>
               <Button variant="accent" size="lg" onClick={() => setStarted(true)} className="px-8 text-lg shadow-sk-lg shadow-sk-accent/20">
                 Iniciar Test <ArrowRight size={18} className="ml-2" />
@@ -384,6 +383,7 @@ export function RoomProfilerPage() {
             </div>
           )}
 
+          </div>
         </div>
       </div>
     </PageShell>
