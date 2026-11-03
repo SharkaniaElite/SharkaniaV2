@@ -56,7 +56,7 @@ export function LeagueDetailPage() {
 
   if (isLoading) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex items-center justify-center">
           <Spinner size="lg" />
         </div>
@@ -66,7 +66,7 @@ export function LeagueDetailPage() {
 
   if (!league) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4">
           <span className="text-5xl">🏆</span>
           <h1 className="text-sk-2xl font-bold text-sk-text-1">Liga no encontrada</h1>
@@ -144,14 +144,14 @@ export function LeagueDetailPage() {
   };
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title={`${league.name} — Liga`}
         description={`Liga de poker ${league.name}. Tabla de posiciones, calendario y resultados.`}
         path={`/leagues/${leagueSlug}`}
       />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[1200px] mx-auto px-6">
+      <div className="arena-interior">
+        <div className="arena-interior-container">
           <Link
             to="/leagues"
             className="inline-flex items-center gap-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 transition-colors mb-6"
@@ -160,7 +160,7 @@ export function LeagueDetailPage() {
           </Link>
 
           {/* 🔥 Header con Imagen de Fondo Arreglada */}
-          <div className="relative bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6 overflow-hidden min-h-[160px] flex flex-col justify-center shadow-md">
+          <header className="arena-detail-banner arena-detail-banner--league relative bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6 overflow-hidden min-h-[160px] flex flex-col justify-center shadow-md">
             
             {/* 1. Imagen de fondo (Opacidad limpia y pura, sin mix-blend) */}
             {bannerUrl && (
@@ -175,8 +175,9 @@ export function LeagueDetailPage() {
             
             {/* 3. Contenido de la cabecera (por encima del fondo) */}
             <div className="relative z-20">
+              <p className="arena-detail-kicker">SHARKANIA ARENA / CIRCUITO DE LIGAS</p>
               <div className="flex justify-between items-start mb-3">
-                <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight drop-shadow-md">
+                <h1 className="arena-detail-title text-sk-2xl font-extrabold text-sk-text-1 tracking-tight drop-shadow-md">
                   {league.name}
                 </h1>
                 <Badge variant={status.variant} className="shadow-sm">{status.label}</Badge>
@@ -213,7 +214,7 @@ export function LeagueDetailPage() {
                 ))}
               </div>
             </div>
-          </div>
+          </header>
 
           {/* Campeón Finalizado */}
           {currentStatus === "finished" && champion && (
