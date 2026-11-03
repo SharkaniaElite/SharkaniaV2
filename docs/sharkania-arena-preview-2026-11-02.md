@@ -136,3 +136,30 @@ Inspección de metadatos `pg_policies`, `pg_proc` y `has_column_privilege` de Su
 - Cloudflare Preview desplegó cambios de división de código y prioridad del hero; últimas revisiones de integración quedan sometidas a QA de la vista previa final.
 - Supabase proyecto de producción: **solo consultas SQL de lectura**; no se alteró una sola tabla, función, RLS ni permiso. No existen branches de Supabase disponibles para probar una migración sin crear un entorno nuevo.
 
+
+
+## Etapa 7 — editorial, herramientas y aprendizaje (3 de noviembre de 2026)
+
+Implementado **solo en la rama Preview del PR #64**, sin merge ni SQL en producción.
+
+### Diseño y páginas
+- **/blog**: portada de Biblioteca con cabecera Arena y cifra de artículos reales, búsqueda/categorías, resumen de resultados y tarjetas con foco visible; se preservan Proof of Work, recompensas y paginación.
+- **/noticias**: cabecera y grilla Arena, fichas destacadas y filtros con `aria-pressed`; se corrigen los destinos internos para usar `getEditorialPath(category, slug)` (ruta de la sección real), sin cambiar slugs ni canonical.
+- **/tools**: catálogo con hero Arena, número de herramientas, estado de Shark Coins y navegación hacia login mediante enlaces únicos (sin `button` anidado dentro de `Link`); no se cambia el acceso a los recursos ni los precios existentes.
+- **/glosario**: índice con buscador, filtros de categoría, fichas adaptables y número de términos de la base de datos; se mantiene la ruta individual existente.
+- **/glosario/:slug**: nueva cabecera semántica para cada definición; permanecen intactos JSON-LD DefinedTerm, breadcrumbs, definiciones y enlaces relacionados.
+- **/academia**: nuevo hero y cantidad real de módulos; se conservan progreso, rachas, contenido, permisos y accesos a lecciones. La metadescripción ahora describe las autoevaluaciones opcionales (coherente con la UI existente).
+- **/sistema-elo**: cabecera integrada y columna de lectura optimizada, conservando la explicación, el CTA al simulador y la clasificación.
+
+### Componentes y CSS
+- `ArenaPageHero` admite variantes `blog`, `news`, `tools`, `glossary`, `academy` y `elo`.
+- Estilos en `arena-interior.css` aislados con `.arena-editorial`, `.arena-content-card`, `.arena-tools-grid`, `.arena-glossary-grid` y `.arena-learning-body`.
+- Se reutilizan las cinco imágenes WebP ya incluidas en GitHub, sin añadir imágenes ni bibliotecas.
+- Nuevo test automatizado `tests/arena-editorial-contract.test.mjs` para comprobar shell, SEO, navegación y controles de categorías.
+
+### Verificación y límites
+- La **primera tanda** (blog/noticias/tools) superó 4/4 flujos GitHub Actions y desplegó en Cloudflare Preview.
+- El último código educativo también superó 4/4 flujos GitHub Actions; reconfirmar después del commit del nuevo test.
+- Falta inspección visual humana y tests de interacción real en móvil 320px/390px y escritorio 1440px para todas las rutas nuevas; no presentar el prototipo como validado visualmente sin esta inspección.
+- Otras rutas no cubiertas todavía: detalle editorial `/:category/:slug`, `/tools/*` (herramientas internas), `/academia/:moduleSlug`, `/academia/:moduleSlug/:lessonSlug`, comparación `/compare` y autenticación.
+- No modifica políticas de Supabase, compras, Workers, sitemap, ni el flag de Stats Espía. **Mantener PR #64 en borrador sin fusionar**.
