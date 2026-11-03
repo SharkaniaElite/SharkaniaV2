@@ -4,7 +4,7 @@ import { test } from 'node:test';
 
 const file = new URL('../docs/security/sharkania-non-sharktv-rls-hardening-2026-11-03.proposal.sql', import.meta.url);
 const sql = readFileSync(file, 'utf8');
-const create = [...sql.matchAll(/CREATE POLICY "([^"]+)"\s+ON public\.([a-z_]+) FOR (ALL|INSERT|UPDATE|DELETE) TO authenticated([\s\S]*?)\n\);/gm)];
+const create = [...sql.matchAll(/CREATE POLICY "([^"]+)"\s+ON public\.([a-z_]+) FOR (ALL|INSERT|UPDATE|DELETE) TO authenticated([\s\S]*?);/gm)];
 const drops = [...sql.matchAll(/DROP POLICY IF EXISTS "([^"]+)" ON public\.([a-z_]+);/g)];
 const protectedTables = new Set([
   'tournament_clubs', 'acc_payouts', 'acc_player_promo_config',
