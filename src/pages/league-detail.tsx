@@ -126,7 +126,7 @@ export function LeagueDetailPage() {
   const nextNovemberDateLabel = nextNovemberDate
     ? new Intl.DateTimeFormat("es-CL", {
         weekday: "long", day: "numeric", month: "long",
-        hour: "2-digit", minute: "2-digit", timeZone: "America/Santiago"
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "America/Santiago"
       }).format(new Date(nextNovemberDate.start_datetime))
     : null;
 
