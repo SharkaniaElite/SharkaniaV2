@@ -11,6 +11,7 @@ import { ScrollToTop } from "./components/layout/scroll-to-top";
 import { FloatingCTA } from "./components/marketing/FloatingCTA";
 import { Spinner } from "./components/ui/spinner";
 import { AgeVerificationModal } from "./components/layout/age-verification-modal";
+import { isArenaPreviewAuthBlocked } from "./lib/arena-preview";
 
 // Route-level splitting: avoid downloading promotions, admin, TV and articles on Arena initial load.
 const EloSystemPage = lazy(() => import("./pages/elo-system").then(m => ({ default: m.EloSystemPage })));
@@ -87,6 +88,18 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
   const initialized = useAuthStore((s) => s.initialized);
 
   useEffect(() => {
+    if (isArenaPreviewAuthBlocked()) {
+      // A public preview may still use the production project for anonymous
+      // read-only catalog pages. Never initialize a real Auth session there.
+      useAuthStore.setState({
+        user: null,
+        profile: null,
+        isAuthenticated: false,
+        isLoading: false,
+        initialized: true,
+      });
+      return;
+    }
     if (!initialized) {
       const cleanup = initialize();
       return cleanup;
