@@ -57,7 +57,7 @@ export function AcademyLessonPage() {
 
   if (lessonLoading) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div ref={topRef} className="pt-20 min-h-screen flex items-center justify-center">
           <Spinner size="lg" />
         </div>
@@ -67,7 +67,7 @@ export function AcademyLessonPage() {
 
   if (!lesson) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div ref={topRef} className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4">
           <span className="text-5xl">📖</span>
           <h1 className="text-sk-2xl font-bold text-sk-text-1">Lección no encontrada</h1>
@@ -101,14 +101,15 @@ export function AcademyLessonPage() {
   };
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
-        title={`${lesson.title} — Sharkania Academy`}
-        description={lesson.subtitle ?? `Aprende ${lesson.title} en la academia de poker de Sharkania.`}
+        title={`${lesson.title} | Lección de póker`}
+        description={lesson.subtitle ?? `Estudia ${lesson.title} en la Academia de póker de Sharkania. Lecciones y autoevaluación.`}
         path={`/academia/${moduleSlug}/${lessonSlug}`}
       />
-      <div ref={topRef} className="pt-20 pb-16">
-        <div className="max-w-[720px] mx-auto px-6">
+      <div ref={topRef} className="arena-interior arena-editorial arena-learning-page">
+        <div className="arena-interior-container">
+          <div className="arena-learning-body">
 
           {/* Back */}
           <Link
@@ -119,8 +120,9 @@ export function AcademyLessonPage() {
             {module?.title ?? "Volver al módulo"}
           </Link>
 
-          {/* Lesson header */}
-          <div className="mb-8">
+          {/* Cabecera contextual, sin duplicar el H1 de la lección. */}
+          <div className="arena-learning-panel arena-lesson-header rounded-2xl p-5 sm:p-8 mb-8">
+            <p className="arena-lesson-eyebrow">SHARKANIA ARENA / ACADEMIA DE PÓKER</p>
             <div className="flex items-center gap-2 mb-3">
               {module && (
                 <span className="font-mono text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full bg-sk-accent-dim text-sk-accent">
@@ -160,7 +162,7 @@ export function AcademyLessonPage() {
           </div>
 
           {/* Lesson content */}
-          <div className="mb-10">
+          <div className="arena-learning-panel arena-lesson-content rounded-2xl p-5 sm:p-8 mb-10">
             <LessonBlockRenderer
               blocks={lesson.body}
               glossaryTerms={lesson.glossary_terms}
@@ -172,7 +174,7 @@ export function AcademyLessonPage() {
 
           {/* Quiz section */}
           {lesson.quiz.length > 0 && (
-            <div className="mt-10 pt-8 border-t border-sk-border-2">
+            <div className="arena-learning-panel rounded-2xl mt-10 p-5 sm:p-8">
               {!user ? (
                 <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-8 text-center shadow-lg relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-40 h-40 bg-sk-accent/10 blur-3xl rounded-full pointer-events-none" />
@@ -235,6 +237,7 @@ export function AcademyLessonPage() {
             )}
           </div>
 
+          </div>
         </div>
       </div>
     </PageShell>
