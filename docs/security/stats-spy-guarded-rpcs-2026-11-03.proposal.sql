@@ -199,7 +199,7 @@ BEGIN
       r.created_at,
       jsonb_build_object(
         'id', t.id, 'name', t.name, 'slug', t.slug,
-        'buy_in', t.buy_in, 'start_datetime', t.start_datetime,
+        'buy_in', t.buy_in, 'currency', t.currency, 'start_datetime', t.start_datetime,
         'clubs',
           CASE WHEN c.id IS NULL THEN NULL
           ELSE jsonb_build_object('id', c.id, 'name', c.name, 'slug', c.slug)
