@@ -15,7 +15,7 @@ import { EmptyState } from "../components/ui/empty-state";
 import { useLeagueBySlug, useLeagueStandings } from "../hooks/use-leagues";
 import { useTournamentsByLeague } from "../hooks/use-tournaments";
 import { FlagIcon } from "../components/ui/flag-icon";
-import { ArrowLeft, Trophy, Crown, Download } from "lucide-react";
+import { ArrowLeft, ArrowRight, Trophy, Crown, Download } from "lucide-react";
 import type { TournamentWithDetails } from "../types";
 import { cn } from "../lib/cn";
 import { SEOHead } from "../components/seo/seo-head";
