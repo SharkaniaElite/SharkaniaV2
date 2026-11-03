@@ -30,6 +30,7 @@ export interface StatsSpyHistoryEntry {
   created_at: string;
   position: number;
   prize_won: number;
+  bounties_won: number;
   buy_ins_count: number | null;
   elo_change: number | null;
   ccp_club: string | null;
