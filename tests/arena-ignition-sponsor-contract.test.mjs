@@ -35,7 +35,6 @@ test("Floating global promotions cannot overlay the Ignition league", () => {
 test("League keeps the existing enrollment, anti-abuse and SEO features", () => {
   const page = read("src/pages/ignition-championship.tsx");
   for (const feature of [
-    "check_ignition_duplicate",
     "ignition_league_player",
     "turnstileRef",
     "captchaToken",
@@ -49,6 +48,10 @@ test("League keeps the existing enrollment, anti-abuse and SEO features", () => 
   assert.match(page, /<Turnstile/);
   assert.match(page, /arena-ignition-hero/);
   assert.match(page, /LIGA DE PÓKER/);
+  const dashboard = read("src/pages/player-dashboard.tsx");
+  assert.match(dashboard, /check_ignition_duplicate/);
+  assert.match(dashboard, /ignition_status: 'pending'/);
+  assert.match(page, /No necesitas registrarte nuevamente/);
 });
 
 test("Sponsor style is scoped to Ignition and mobile layout", () => {
