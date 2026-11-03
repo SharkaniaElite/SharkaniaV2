@@ -31,7 +31,7 @@ CREATE TABLE public.tournaments(
 );
 CREATE TABLE public.tournament_results(
  id uuid PRIMARY KEY,tournament_id uuid NOT NULL,player_id uuid NOT NULL,
- position integer,prize_won numeric,buy_ins_count integer,elo_change numeric,
+ position integer,prize_won numeric,bounties_won numeric NOT NULL DEFAULT 0,buy_ins_count integer,elo_change numeric,
  ccp_club text,created_at timestamptz NOT NULL
 );
 INSERT INTO public.profiles(id,role) VALUES
@@ -60,6 +60,12 @@ INSERT INTO public.tournament_results(id,tournament_id,player_id,position,prize_
  ('00000000-0000-0000-0000-000000000092','00000000-0000-0000-0000-000000000072','00000000-0000-0000-0000-000000000051',2,100,1,-5,'CCP',now()-interval '2 days'),
  ('00000000-0000-0000-0000-000000000093','00000000-0000-0000-0000-000000000073','00000000-0000-0000-0000-000000000052',3,5000,1,0,'CCP',now()-interval '1 day'),
  ('00000000-0000-0000-0000-000000000094','00000000-0000-0000-0000-000000000074','00000000-0000-0000-0000-000000000053',1,30000,2,20,'CCP',now());
+-- Cash prizes and bounty awards are separate columns, but both contribute
+-- to total money won, as in the existing ELO accumulation rules.
+UPDATE public.tournament_results SET bounties_won=5
+ WHERE id='00000000-0000-0000-0000-000000000091';
+UPDATE public.tournament_results SET bounties_won=5000
+ WHERE id='00000000-0000-0000-0000-000000000094';
 
 -- The guarded SECURITY DEFINER endpoints execute as the fixture owner.
 -- No direct SELECT on synthetic financial tables is needed by callers.
