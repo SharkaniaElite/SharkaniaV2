@@ -47,3 +47,14 @@ Convertir el cálculo en una **operación transaccional server-side**, invocable
 - [ ] Revisión de logs y aprobación para despliegue productivo.
 
 **NO-GO en producción mientras estas pruebas no pasen. Sin trabajo sobre módulos que se retirarán.**
+## Avance: RPC transaccional propuesta y verificada con PostgreSQL sintético
+
+Implementación propuesta, **no aplicada**: [elo-transactional-guarded-rpc-2026-11-03.proposal.sql](elo-transactional-guarded-rpc-2026-11-03.proposal.sql). Declara `calculate_tournament_elo_guarded(uuid)` como `SECURITY DEFINER`, con `search_path` fijado, autorización por `auth.uid()` + club/superadmin, revocación `EXECUTE` a `PUBLIC`/`anon`, y concesión explícita a `authenticated`. No recibe ELO ni ganancias desde el navegador.
+
+Una única llamada PostgreSQL bloquea torneo/jugadores/resultados, valida posiciones, comprueba historial y evita reprocesar `results_uploaded=true`; actualiza estadísticas, historial, ELO unificado y estado del torneo, revirtiendo todo ante errores de la transacción. La ecuación reproduce el TypeScript existente, sin cambiar sus factores.
+
+**Pruebas de ejecución real PostgreSQL 17 aislado:** `tests/fixtures/sharkania-elo-qa-setup.sql`, `tests/fixtures/sharkania-elo-qa-assert.sql`, integradas en `.github/workflows/core-supabase-rls-qa.yml`. Escenarios: anónimo, jugador normal, admin de club ajeno, admin dueño, doble procesamiento, cálculo numérico (2 jugadores ELO 1200, buy-in 10: ELO final 1223,08 y 1176,92), premios y contadores, historial y perfiles, historial anterior parcial.
+
+El paso de ejecución del RPC en CI terminó `success` en el run `41712846518`, commit `645536f80b86c2b49447a03977886e389f9c86b4`. Es una **prueba de PostgreSQL con roles ficticios**, no Supabase QA completo. La UI sigue usando el motor anterior porque la RPC no ha sido publicada: mantener ese estado hasta autorizar el cambio.
+
+**Pendiente crítico:** probar conflictos entre torneos concurrentes, todos los tipos de perfiles/alias, moneda/cálculo financiero, triggers productivos, `reverseElo` y el flujo de cargas reales. En particular, no publicar la RPC sin haber probado previamente el esquema completo de Supabase; no activar un flag de cliente o revocar `players.UPDATE` antes de cutover validado.
