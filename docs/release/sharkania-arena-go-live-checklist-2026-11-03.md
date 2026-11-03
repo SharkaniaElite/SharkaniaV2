@@ -101,3 +101,10 @@ Se recuperó una **fotografía de solo metadatos del estado actual** de PostgreS
 - Extracción DDL completa y **sin datos** preparada para ejecución autenticada local en Windows: `scripts/export-supabase-schema-only.ps1`. El SQL no se sube automáticamente a GitHub y se revisará antes de usarlo.
 
 **Estado del P0 de base de datos:** NO-GO; las definiciones exactas del esquema anteriores a `20260320132525` aún no están disponibles en el acceso conectado. La foto actual no equivale al baseline histórico y no debe insertarse delante de las 50 migraciones. Requiere exportación DDL y reconstrucción/validación aislada. No se creó otra rama QA ni se aplicaron cambios SQL en producción.
+
+
+## Actualización: dos dumps SQL privados completos (3 noviembre 2026)
+
+El propietario exportó en Ubuntu/WSL 2 con `pg_dump 18.6` **solo el esquema** de PostgreSQL 17.6, usando conexión Session pooler IPv4. Se verificaron `public` (64 tablas, 185 políticas RLS, 22 triggers) y `private` (1 tabla `hand_view_cooldowns`, FK a `public.shared_hands` y `auth.users`). Ambos dumps permanecen fuera del repositorio; se añadieron únicamente **hashes, recuentos, documentación y un validador offline** `scripts/verify-supabase-schema-snapshots.mjs`.
+
+**Persisten los gates de NO-GO:** snapshot es posterior a las 50 migraciones, sin historial inicial; falta ensayar restauración en QA Supabase y recomponer permisos/roles/extensiones, porque los dumps tienen `--no-acl --no-owner`. Además de Stats Espía, se identificaron políticas RLS demasiado abiertas en `tournament_clubs`, SharkTV, tablas ACC de pagos y varias tablas de administración. No se aplicó SQL ni se creó una rama con cobro.
