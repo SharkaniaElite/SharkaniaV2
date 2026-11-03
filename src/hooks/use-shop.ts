@@ -58,11 +58,12 @@ export function usePurchaseProduct() {
 
 export function useFeatureAccess(featureKey: string) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const viewerId = useAuthStore((s) => s.user?.id ?? null);
 
   return useQuery({
-    queryKey: ["feature-access", featureKey],
+    queryKey: ["feature-access", featureKey, viewerId],
     queryFn: () => checkFeatureAccess(featureKey),
-    enabled: isAuthenticated && !!featureKey,
+    enabled: isAuthenticated && !!viewerId && !!featureKey,
     staleTime: 1000 * 60 * 2, // 2 min — chequear relativamente seguido
   });
 }
@@ -71,11 +72,12 @@ export function useFeatureAccess(featureKey: string) {
 
 export function useProductAccess(productId: string) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const viewerId = useAuthStore((s) => s.user?.id ?? null);
 
   return useQuery({
-    queryKey: ["product-access", productId],
+    queryKey: ["product-access", productId, viewerId],
     queryFn: () => checkProductAccess(productId),
-    enabled: isAuthenticated && !!productId,
+    enabled: isAuthenticated && !!viewerId && !!productId,
     staleTime: 1000 * 60 * 2, // 2 min
   });
 }
@@ -84,11 +86,12 @@ export function useProductAccess(productId: string) {
 
 export function useUserPurchases() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const viewerId = useAuthStore((s) => s.user?.id ?? null);
 
   return useQuery({
-    queryKey: ["user-purchases"],
+    queryKey: ["user-purchases", viewerId],
     queryFn: getUserPurchases,
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!viewerId,
   });
 }
 
@@ -96,11 +99,12 @@ export function useUserPurchases() {
 
 export function useCreditTransactions() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const viewerId = useAuthStore((s) => s.user?.id ?? null);
 
   return useQuery({
-    queryKey: ["credit-transactions"],
+    queryKey: ["credit-transactions", viewerId],
     queryFn: getCreditTransactions,
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!viewerId,
   });
 }
 
@@ -108,11 +112,12 @@ export function useCreditTransactions() {
 
 export function useSharkCoinsBalance() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const viewerId = useAuthStore((s) => s.user?.id ?? null);
 
   return useQuery({
-    queryKey: ["shark-coins-balance"],
+    queryKey: ["shark-coins-balance", viewerId],
     queryFn: getSharkCoinsBalance,
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!viewerId,
     staleTime: 1000 * 30, // 30 seg — el balance puede cambiar seguido
   });
 }
