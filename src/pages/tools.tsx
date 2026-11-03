@@ -12,7 +12,6 @@ import {
   TrendingUp,
   Wallet,
   ChevronRight,
-  Play,
   Target,
   Eye,
   Gift,
@@ -104,19 +103,6 @@ const TOOLS: ToolCard[] = [
     available: true,
     requiresAuth: true,
     priceLabel: "Desde 50",
-  },
-  {
-    slug: "/tools/replayer",
-    title: "Replayer de Manos",
-    description:
-      "Sube tu historial y revive cualquier mano paso a paso. Analiza tamaños de apuesta, detecta fugas de dinero y comparte la acción.",
-    image: "/bg/replayer.webp",
-    icon: Play,
-    color: "#f87171", // Red
-    available: true,
-    requiresAuth: true,
-    priceLabel: "Desde 300",
-    freeTierLabel: "1 Análisis Diario Gratis",
   },
   {
     slug: "/ranking",
@@ -255,7 +241,7 @@ export function ToolsPage() {
     <PageShell variant="arena">
       <SEOHead
         title="Herramientas de póker | Calculadoras y simuladores"
-        description="Explora herramientas de póker para estudiar decisiones: calculadora ICM, simulador ELO, gestión de banca, análisis y reproducción de manos."
+        description="Explora las herramientas de póker de Sharkania: calculadora ICM, simulador ELO, gestión de banca, cuestionarios y análisis de estadísticas."
         path="/tools"
       />
 
