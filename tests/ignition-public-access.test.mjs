@@ -7,7 +7,8 @@ const ignition = readFileSync("src/pages/ignition-championship.tsx", "utf8");
 test("signed-in users can read public league rules without forced redirection", () => {
   assert.doesNotMatch(ignition, /useEffect\(\(\) => \{\s*if \(isAuthenticated\)/);
   assert.match(ignition, /\{isAuthenticated \? \(/);
-  assert.match(ignition, /Ya eres parte de Sharkania/);
+  assert.match(ignition, /Ya tienes cuenta en SHARKANIA/);
+  assert.match(ignition, /No tienes que registrarte otra vez para la liga/);
   assert.match(ignition, /to="\/dashboard\?highlight=ignition"/);
 });
 
