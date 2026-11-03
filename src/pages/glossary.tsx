@@ -46,8 +46,8 @@ export function GlossaryPage() {
   return (
     <PageShell variant="arena">
       <SEOHead
-        title="Glosario de Poker"
-        description="Diccionario completo de términos de poker: ELO, ICM, GTO, ROI, ITM, bankroll, tilt y más. Aprende el vocabulario del poker competitivo en clubes privados."
+        title="Glosario de póker | Términos y definiciones"
+        description="Diccionario de póker con definiciones de ELO, ICM, GTO, ROI, ITM, bankroll, tilt y otros términos usados en torneos."
         path="/glosario"
       />
       <div className="arena-interior arena-editorial">
@@ -55,8 +55,8 @@ export function GlossaryPage() {
           <ArenaPageHero
             section="glossary"
             eyebrow="DICCIONARIO / PÓKER"
-            heading="HABLA EL"
-            highlight="IDIOMA DEL JUEGO."
+            heading="GLOSARIO"
+            highlight="DE PÓKER."
             icon={BookOpen}
             description="Encuentra definiciones, conceptos y términos técnicos de póker. Cada ficha tiene una URL propia para estudiar y compartir."
             count={isLoading ? undefined : (terms?.length ?? 0)}
