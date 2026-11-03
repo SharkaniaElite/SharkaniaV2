@@ -3,12 +3,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, Lock, CheckCircle2 } from "lucide-react";
 import { ArenaAuthFrame } from "../components/arena/arena-auth-frame";
+import { isArenaPreviewAuthBlocked } from "../lib/arena-preview";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import { supabase } from "../lib/supabase"; // 👈 Importado
 import { translateAuthError } from "../lib/format"; // 👈 Importado
 
 export function UpdatePasswordPage() {
+  const previewBlocked = isArenaPreviewAuthBlocked();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -18,6 +20,7 @@ export function UpdatePasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (previewBlocked) return;
     setError(null);
 
     if (password.length < 6) {
@@ -138,6 +141,7 @@ export function UpdatePasswordPage() {
           variant="accent"
           className="w-full flex justify-center items-center gap-2"
           isLoading={isLoading}
+          disabled={previewBlocked || isLoading}
         >
           Actualizar contraseña <Lock size={16} />
         </Button>
