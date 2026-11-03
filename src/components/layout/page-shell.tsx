@@ -11,10 +11,12 @@ import { GlobalChampionsTicker } from "./global-champions-ticker";
 
 interface PageShellProps {
   children: ReactNode;
+  variant?: "standard" | "arena";
 }
 
-export function PageShell({ children }: PageShellProps) {
-  const { banners, loading: bannersLoading } = useBannersWithStatus();
+export function PageShell({ children, variant = "standard" }: PageShellProps) {
+  const isArena = variant === "arena";
+  const { banners, loading: bannersLoading } = useBannersWithStatus(!isArena);
   
   // 1. TOP GLOBAL (Destacado Principal)
   const topGlobal = banners?.slots?.top_global;
@@ -38,11 +40,11 @@ export function PageShell({ children }: PageShellProps) {
       <div style={{ height: "56px", flexShrink: 0 }} />
 
       {/* 🌟 TICKER STICKY: Se queda pegado a 56px del tope (justo debajo del Navbar) */}
-      <div className="sticky top-[56px] left-0 right-0 w-full h-10 shrink-0 z-[90] shadow-md border-b border-sk-border-2 bg-sk-bg-2">
+      {!isArena && <div className="sticky top-[56px] left-0 right-0 w-full h-10 shrink-0 z-[90] shadow-md border-b border-sk-border-2 bg-sk-bg-2">
         <GlobalChampionsTicker />
-      </div>
+      </div>}
 
-      <div className="relative left-0 right-0 w-full z-[80] flex flex-col bg-sk-bg-0">
+      {!isArena && <div className="relative left-0 right-0 w-full z-[80] flex flex-col bg-sk-bg-0">
         {/* 🔥 TOP GLOBAL BANNER */}
         {hasTopBanner && (
           <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 shadow-md flex justify-center py-3 relative z-[45]">
@@ -63,7 +65,7 @@ export function PageShell({ children }: PageShellProps) {
 
         <VerifiedBannerStrip banners={banners} loading={bannersLoading} />
 
-      </div>
+      </div>}
 
       <main className="flex-1">{children}</main>
       <Footer />
