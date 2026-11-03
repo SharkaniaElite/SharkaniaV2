@@ -84,3 +84,38 @@ Referencia oficial: https://supabase.com/docs/guides/platform/manage-your-usage/
 - La propuesta de RPC resumen replica el cálculo heredado de buy-ins que contempla reentradas, con fallback a totales del jugador si los resultados son incompletos. Aún debe validarse el tratamiento de múltiples divisas antes de activar informes de ROI.
 
 **Criterio de salida:** solo desplegar fase final cuando exista prueba de cuatro identidades (anónimo, sin licencia, licencia activa y superadmin), permisos SQL explícitos, rollback ensayado y revisión del propietario.
+
+
+## Verificación adicional de moneda y licencia — 3 noviembre, revisión prepublicación
+
+Consultas de solo lectura al proyecto Supabase principal confirmaron que los resultados existentes están distribuidos en **tres monedas distintas**:
+
+| Moneda del torneo | Registros de resultados | Torneos con resultados |
+| --- | ---: | ---: |
+| EUR | 11.620 | 73 |
+| CLP | 6.833 | 148 |
+| USD | 1.979 | 26 |
+
+Hay **1.781 jugadores con resultados registrados**, de los cuales **263** participaron en al menos dos monedas diferentes. Los conteos son instantáneas del momento de la inspección, no cifras inmutables.
+
+**Hallazgo P0:** sumar USD, EUR y CLP directamente produce premios, ganancias y rentabilidad global sin significado financiero. La propuesta de función protegida fue corregida para devolver un `currency_breakdown` por divisa, moneda única cuando aplica, y `NULL` en totales/ROI/profit globales si hay varias divisas o si no consta ninguna. No se realiza conversión FX implícita. El cliente de perfil y el comparador pueden mostrar «No comparable» cuando no hay una base monetaria homogénea; el historial incluye cada moneda por evento.
+
+**Hallazgo de licencia:** el catálogo y los historiales usan `cosmetic_extended_stats`, pero el comparador consultaba `stats_espia`. Se alineó en el PR con el identificador existente. El RPC protegido sigue derivando al comprador de `auth.uid()` y `user_purchases`, no de un ID pasado por el cliente.
+
+**Límites del avance:** las funciones siguen como SQL de propuesta, y el interruptor `VITE_STATS_SPY_SECURE_RPC` permanece DESACTIVADO. Los cálculos históricos actuales siguen necesitando el corte de permisos SQL para impedir vías paralelas. Se reemplazaron los `SELECT *` del servicio central de jugadores por columnas explícitas, pero aún se incluyen campos financieros temporalmente para mantener compatibilidad hasta la migración coordinada.
+
+## Prueba QA preparada, no ejecutada
+
+`scripts/stats-spy-security-smoke.mjs`, ejecutable con `npm run qa:stats-spy`, verificará rechazo a anónimos y licencias ausentes/caducadas, autorización al comprador y al superadministrador, paginación, conservación del ranking público y nulidad del agregado financiero para monedas múltiples.
+
+El script bloquea expresamente el proyecto principal `nhpjzywfzljtlqaigzed` y requiere `QA_PROJECT_REF` distinto, una URL Supabase QA coincidente, clave **publicable**, cuentas ficticias y confirmación explícita `QA_ALLOW_REMOTE_SECURITY_TESTS=I_CONFIRM_ISOLATED_QA`. No imprime secretos ni cambia datos del proyecto.
+
+El costo consultado para una rama Micro de desarrollo es **USD 0,01344/h**. Dejarla activa todo un mes de 30 días supondría aproximadamente **USD 9,68 de cómputo** antes de otros consumos, por encima del límite previo de USD 5/mes. Por eso **no se creó**; debe utilizarse solo una rama temporal con eliminación verificada y costo expresamente aceptado, o un laboratorio local sin gasto remoto.
+
+Para que la QA sea válida hacen falta:
+- Un proyecto/base separado, sin cuentas ni compras reales, con esquema de migraciones y fixtures monetarios por CLP/USD/EUR.
+- Cuatro identidades de prueba (sin licencia, caducada, activa, superadmin), además del rol `anon`.
+- Migración de todos los consumidores del ranking, perfiles, comparador, exportaciones y panel administrativo antes de revocar grants.
+- Evidencia del smoke test y de la prueba de regresión de compra, logout, cambios de cuenta, expiración y errores HTTP.
+
+**No hay aprobación ni cambio SQL en producción.**
