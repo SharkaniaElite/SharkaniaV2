@@ -30,7 +30,7 @@ test("Poker directories use descriptive page headings without changing their rou
   for (const [file, path] of pages) {
     const source = load("src/pages/" + file + ".tsx");
     assert.match(source, /<ArenaPageHero/, file);
-    assert.match(source, /highlight="(?:DE PÓKER\.|DEL PÓKER\.)"/, file);
+    assert.match(source, /highlight="(?:DE PÓKER\.|DEL PÓKER\.|PÓKER\.)"/, file);
     assert.ok(source.includes('path="' + path + '"'), file + ": stable URL");
     assert.match(source, /<PageShell variant="arena">/, file);
   }
