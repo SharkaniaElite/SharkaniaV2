@@ -119,3 +119,19 @@ test("League distinguishes exclusive Sharkania bounty/monthly awards from Igniti
   assert.match(dashboard, /El bounty de cada fecha y los premios adicionales de fin de mes son exclusivos/);
   assert.match(dashboard, /Si ya lo hiciste antes, no te registres nuevamente/);
 });
+
+
+test("Ignition prize messaging distinguishes existing, pending and verified accounts", () => {
+  const ignition = read("src/pages/ignition-championship.tsx");
+  const dashboard = read("src/pages/player-dashboard.tsx");
+  const league = read("src/pages/league-detail.tsx");
+
+  assert.match(ignition, /Bounty de cada fecha y premios de fin de mes: exclusivos para inscritos mediante SHARKANIA/);
+  assert.match(ignition, /Iniciar sesión y revisar mi vinculación/);
+  assert.doesNotMatch(ignition, /Iniciar Sesión y Vincular/);
+  assert.match(ignition, /su verificación debe revisarse antes de adjudicar premios adicionales/);
+  assert.match(ignition, /Tu nickname debe quedar vinculado y revisado/);
+  assert.match(dashboard, /la vinculación debe confirmarse antes de determinar tu elegibilidad/);
+  assert.match(dashboard, /SHARKANIA comprobará también tu inscripción a la liga/);
+  assert.match(league, /Participar en los torneos de Ignition por sí solo no habilita para estos premios adicionales/);
+});
