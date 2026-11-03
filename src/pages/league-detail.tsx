@@ -243,6 +243,24 @@ export function LeagueDetailPage() {
             </div>
           </header>
 
+          {isNovemberSharkaniaLeague && (
+            <aside aria-label="Requisitos para recibir los premios de SHARKANIA" className="mb-6 rounded-xl border-2 border-sk-gold/50 bg-sk-gold/10 p-4 sm:p-5">
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-sk-gold">Importante · premios exclusivos SHARKANIA</p>
+              <h2 className="mt-2 text-lg font-extrabold text-sk-text-1">El bounty de cada fecha y los premios del ranking mensual requieren inscripción a través de SHARKANIA</h2>
+              <p className="mt-2 text-sm leading-relaxed text-sk-text-2">
+                Participar en los torneos de Ignition por sí solo no habilita para estos premios adicionales.
+                Debes estar registrado en la Liga SHARKANIA mediante este sitio y tener tu nickname vinculado
+                para acreditar tu participación.
+              </p>
+              <p className="mt-2 text-sm font-semibold leading-relaxed text-sk-text-1">
+                Si ya te registraste anteriormente y tu vinculación está guardada, no necesitas hacerlo de nuevo.
+              </p>
+              <Link to="/ignition" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-sk-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
+                Cómo inscribirse y verificar mi vinculación <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </aside>
+          )}
+
           {/* Ruta de acceso clara a la liga; se alimenta del calendario real. */}
           {isNovemberSharkaniaLeague && currentStatus !== "finished" && (
             <section className="mb-6 overflow-hidden rounded-xl border border-sk-accent/30 bg-gradient-to-br from-sk-bg-2 via-sk-bg-2 to-sk-accent/10 p-5 sm:p-7" aria-labelledby="sharkania-november-join-title">
