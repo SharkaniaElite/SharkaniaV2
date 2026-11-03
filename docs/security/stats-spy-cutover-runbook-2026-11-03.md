@@ -119,3 +119,11 @@ Para que la QA sea válida hacen falta:
 - Evidencia del smoke test y de la prueba de regresión de compra, logout, cambios de cuenta, expiración y errores HTTP.
 
 **No hay aprobación ni cambio SQL en producción.**
+
+## Avance QA SQL sintética — 3 noviembre, PostgreSQL 17 aislado
+
+- Se añadió la base `qa_stats` al workflow `.github/workflows/core-supabase-rls-qa.yml`, con tablas mínimas, **identidades y compras ficticias**, sin conectarse a Supabase.
+- `tests/fixtures/sharkania-stats-spy-qa-setup.sql` reproduce roles `anon` y `authenticated`, licencias activa, caducada e inactiva, alias de un mismo jugador, reentradas y torneos en CLP/EUR/USD.
+- `tests/fixtures/sharkania-stats-spy-qa-assert.sql` ejecuta **las dos funciones SQL originales de la propuesta**. Comprueba denegación de anónimo, usuario sin compra y suscripciones inactivas o vencidas; acceso con compra vigente y superadmin; paginación; asociación de alias; retorno NULL en ROI global para monedas mezcladas y desglose correcto por divisa.
+- **Resultado real:** workflow [41714867000](https://github.com/SharkaniaElite/SharkaniaV2/actions/runs/41714867000), job PostgreSQL `rls` concluido con **success**. No se crearon ramas facturables, ni se ejecutó SQL en producción.
+- **No confundir con el smoke test de Supabase Auth:** el script remoto `scripts/stats-spy-security-smoke.mjs` sigue **pendiente**. Los permisos completos de tablas, las RPC heredadas sin protección, la Data API real, los triggers y los demás consumidores pueden seguir exponiendo información. Hasta el corte coordinado de fase B y las pruebas con un proyecto Supabase aislado, sigue **NO-GO**.
