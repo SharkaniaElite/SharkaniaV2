@@ -51,7 +51,7 @@ test("HTML and structured data keep a clear poker platform description", () => {
 test("Comparison preserves its guest gate and premium controls", () => {
   const compare = load("src/pages/compare.tsx");
   assert.match(compare, /if \(!isAuthenticated\)/);
-  assert.match(compare, /useFeatureAccess\("stats_espia"\)/);
+  assert.match(compare, /useFeatureAccess\("cosmetic_extended_stats"\)/);
   assert.match(compare, /const canSearch = hasPremiumAccess/);
   assert.match(compare, /section="compare"/);
   assert.match(compare, /Comparador de jugadores de póker/);
