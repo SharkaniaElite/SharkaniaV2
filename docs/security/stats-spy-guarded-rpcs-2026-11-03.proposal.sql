@@ -7,6 +7,8 @@
 -- public.players/public.tournament_results or existing unguarded RPCs.
 --
 -- No secrets, service_role tokens, or caller-controlled user IDs are used.
+-- IMPORTANT: financial amounts are per-currency; mixed-currency ROI is NULL.
+-- Raw results may include EUR, CLP and USD; FX conversion is NOT performed.
 
 BEGIN;
 
@@ -26,7 +28,9 @@ DECLARE
   v_wins bigint;
   v_prizes numeric;
   v_buyins numeric;
-  v_calculated_buyins numeric;
+  v_currency_count integer := 0;
+  v_currency text;
+  v_currency_breakdown jsonb := '[]'::jsonb;
 BEGIN
   IF v_viewer IS NULL THEN
     RAISE EXCEPTION 'Se requiere iniciar sesión' USING ERRCODE = '42501';
@@ -71,21 +75,49 @@ BEGIN
   WHERE p.id = v_player_id
     OR (v_profile_id IS NOT NULL AND p.profile_id = v_profile_id);
 
-  -- Match the existing profile calculation: buy-in × recorded entries,
-  -- including re-entries. Fallback to player totals for older incomplete
-  -- results. Audit currencies and currency conversion before monetization.
-  SELECT COALESCE(SUM(
-    COALESCE(t.buy_in, 0) * COALESCE(NULLIF(r.buy_ins_count, 0), 1)
-  ), 0)
-  INTO v_calculated_buyins
-  FROM public.tournament_results r
-  JOIN public.players p ON p.id = r.player_id
-  JOIN public.tournaments t ON t.id = r.tournament_id
-  WHERE p.id = v_player_id
-    OR (v_profile_id IS NOT NULL AND p.profile_id = v_profile_id);
+  -- Currency-safe source of financial metrics.
+  -- CLP, EUR and USD are all present in registered tournaments; adding their
+  -- amounts produces meaningless ROI. Do not combine without dated FX rates.
+  -- The detail is computed within EACH source currency and returned as an
+  -- array for later presentation; cross-currency totals are deliberately NULL.
+  SELECT
+    count(*)::integer,
+    max(currency),
+    COALESCE(jsonb_agg(
+      jsonb_build_object(
+        'currency', currency,
+        'total_prize_won', prizes,
+        'total_buy_ins_spent', buyins,
+        'profit', prizes - buyins,
+        'roi_percent', CASE
+          WHEN buyins > 0 THEN round((prizes - buyins) / buyins * 100, 2)
+          ELSE NULL
+        END
+      ) ORDER BY currency
+    ), '[]'::jsonb)
+  INTO v_currency_count, v_currency, v_currency_breakdown
+  FROM (
+    SELECT
+      COALESCE(t.currency::text, 'SIN_MONEDA') AS currency,
+      COALESCE(SUM(r.prize_won), 0)::numeric AS prizes,
+      COALESCE(SUM(COALESCE(t.buy_in, 0) *
+        GREATEST(COALESCE(r.buy_ins_count, 1), 1)), 0)::numeric AS buyins
+    FROM public.tournament_results r
+    JOIN public.players p ON p.id = r.player_id
+    JOIN public.tournaments t ON t.id = r.tournament_id
+    WHERE p.id = v_player_id
+      OR (v_profile_id IS NOT NULL AND p.profile_id = v_profile_id)
+    GROUP BY COALESCE(t.currency::text, 'SIN_MONEDA')
+  ) AS financials;
 
-  IF v_calculated_buyins > 0 THEN
-    v_buyins := v_calculated_buyins;
+  IF v_currency_count = 1 THEN
+    v_prizes := (v_currency_breakdown->0->>'total_prize_won')::numeric;
+    v_buyins := (v_currency_breakdown->0->>'total_buy_ins_spent')::numeric;
+  ELSE
+    -- Also return NULL when no tournament result supports a reliable currency.
+    v_prizes := NULL;
+    v_buyins := NULL;
+    v_currency := NULL;
   END IF;
 
   RETURN jsonb_build_object(
@@ -94,12 +126,16 @@ BEGIN
     'total_wins', v_wins,
     'total_prize_won', v_prizes,
     'total_buy_ins_spent', v_buyins,
-    'profit', v_prizes - v_buyins,
+    'profit', CASE WHEN v_prizes IS NOT NULL AND v_buyins IS NOT NULL
+      THEN v_prizes - v_buyins ELSE NULL END,
     'roi_percent',
-      CASE WHEN v_buyins > 0
+      CASE WHEN v_buyins > 0 AND v_prizes IS NOT NULL
         THEN round(((v_prizes - v_buyins) / v_buyins) * 100, 2)
         ELSE NULL
-      END
+      END,
+    'currency', v_currency,
+    'mixed_currencies', v_currency_count > 1,
+    'currency_breakdown', v_currency_breakdown
   );
 END
 $body$;
