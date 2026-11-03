@@ -4,12 +4,14 @@ import { Turnstile } from "@marsidev/react-turnstile";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import { AlertCircle, ArrowRight, Mail } from "lucide-react";
 import { ArenaAuthFrame } from "../components/arena/arena-auth-frame";
+import { isArenaPreviewAuthBlocked } from "../lib/arena-preview";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import { resetPasswordForEmail } from "../lib/api/auth";
 import { translateAuthError } from "../lib/format";
 
 export function ForgotPasswordPage() {
+  const previewBlocked = isArenaPreviewAuthBlocked();
   const turnstileRef = useRef<TurnstileInstance>(null);
   const [email, setEmail] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -19,6 +21,7 @@ export function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (previewBlocked) return;
     setError(null);
 
     if (!captchaToken) {
@@ -83,7 +86,7 @@ export function ForgotPasswordPage() {
           />
         </div>
 
-        <div className="flex justify-center py-2 min-h-[65px]">
+        {!previewBlocked && <div className="flex justify-center py-2 min-h-[65px]">
           <Turnstile
             ref={turnstileRef}
             siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
@@ -92,7 +95,7 @@ export function ForgotPasswordPage() {
             onExpire={() => setCaptchaToken(null)}
             options={{ theme: "dark" }}
           />
-        </div>
+        </div>}
 
         {error && (
           <div role="alert" className="flex items-start gap-2 bg-sk-red-dim border border-sk-red/20 rounded-md p-3">
@@ -106,7 +109,7 @@ export function ForgotPasswordPage() {
           variant="accent"
           className="w-full flex justify-center items-center gap-2"
           isLoading={isLoading}
-          disabled={!captchaToken || isLoading}
+          disabled={previewBlocked || !captchaToken || isLoading}
         >
           Enviar enlace <ArrowRight size={16} />
         </Button>
