@@ -84,3 +84,29 @@ Se mantuvieron las consultas reales, URLs canónicas, paginación, filtros y ló
 - **Regresión:** ejecutar TypeScript, validadores SEO, limpieza y sitemap; probar anchos 320, 390 y 1440 px, enlaces a perfil, filtros de país/sala/nickname, detalles y bloqueo Stats Espía, así como nuevas consultas/transferencias en devtools.
 
 No fusionar PR #64 hasta inspección visual y funcional de las rutas anteriores en preview.
+
+
+## Etapa 4 — competiciones y revisión de permisos (3 nov 2026)
+
+### Clasificación de ligas
+- `LeagueStandingsTable`: tarjetas verticales móviles (puesto, nombre, club CCP, puntos, número de torneos, mejor posición y ELO); tabla de siete columnas completa en escritorio.
+- `ClubStandingsTable`: tarjetas móviles para equipos y tabla en escritorio; se conserva el cálculo de puntos por mejores aportes existente.
+- `ArenaLeagueDialog`: modal nativo `<dialog>` en un portal fuera de tablas con scroll, Escape, foco confinado/restaurado por navegador y botón de cierre accesible.
+- Desglose de jugadores con carga/errores/estado vacío y control de respuestas tardías; club con `scoreHistory.slice().sort(...)` para no mutar el arreglo que React comparte.
+- Tablas existentes, hooks, datos, RLS y consultas no fueron modificados por esta etapa.
+
+### Auditoría read-only de Stats Espía: **RIESGO REAL / prioridad P0**
+Inspección de metadatos `pg_policies`, `pg_proc` y `has_column_privilege` de Supabase sobre el proyecto de Sharkania:
+- `players`, `tournament_results` y `elo_history` tienen RLS habilitado, **pero políticas SELECT para `public` con condición `true`**. Permiten leer todas sus filas por las políticas aplicables, no solo registros autorizados de Stats Espía.
+- El rol `anon` tiene privilegio SELECT sobre `players.total_prize_won`, `players.total_buy_ins_spent`, `players.total_cashes`, `tournament_results.prize_won` y `tournament_results.buy_ins_count`.
+- `get_unified_player_stats(p_slug)` y `get_unified_elo_history(p_slug)` están definidos como `SECURITY DEFINER` y cuentan con EXECUTE para `anon` y `authenticated`. La lectura está basada en metadatos; **no se ha demostrado que las funciones validen la suscripción** (la búsqueda superficial de controles no equivale a auditoría de función completa).
+- `PlayerProfilePage` usa `useFeatureAccess("cosmetic_extended_stats")` para decidir qué mostrar; esconder columnas y filas desde React no equivale a restringir sus datos desde API.
+- Los resultados públicos deportivos deben seguir siendo públicos; **no conviene eliminar indiscriminadamente las políticas SELECT** porque se romperían rankings, perfiles, torneos y contenido indexable.
+
+**Plan de mitigación propuesto, no ejecutado:**
+1. Inventariar todo uso de campos y RPC que necesita la vista pública; definir explícitamente métricas públicas frente a métricas premium.
+2. Crear funciones/vistas públicas de mínimo privilegio y un endpoint autenticado que compruebe en servidor el derecho de Stats Espía; auditar el código de funciones SECURITY DEFINER (incluido `search_path`) y privilegios EXECUTE.
+3. Preparar migración reversible de grants, RLS, RPC y clientes en entorno de prueba; validar con roles `anon`, `authenticated` sin permiso, con licencia, dueño y superadmin.
+4. Solo tras aprobación del propietario, aplicar en producción con chequeos de regresión SEO, resultados, pagos y suscripciones.
+
+**No se aplicó SQL ni cambiaron permisos de producción.** El riesgo existe en la configuración de datos revisada y requiere tratamiento antes de anunciar protección de estadísticas premium como característica segura.
