@@ -182,7 +182,7 @@ export function LiveStreamPage() {
   }, []);
 
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead 
         title={`🔴 EN VIVO: ${streamTitle}`} 
         description={streamDesc}
