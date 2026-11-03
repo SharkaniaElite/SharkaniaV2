@@ -66,12 +66,10 @@ export function SEOHead({
     setMetaTag("twitter:description", description, true);
     setMetaTag("twitter:image", ogImage, true);
 
-    // Robots
-    if (noIndex) {
-      setMetaTag("robots", "noindex, nofollow", true);
-    } else {
-      setMetaTag("robots", "index, follow", true);
-    }
+    // Cloudflare Pages previews are for design reviews only: never index a preview hostname.
+    // This does not affect sharkania.com when this code eventually reaches production.
+    const isPreviewHost = window.location.hostname.endsWith(".pages.dev");
+    setMetaTag("robots", noIndex || isPreviewHost ? "noindex, nofollow" : "index, follow", true);
 
     // Canonical
     let canonical = document.querySelector('link[rel="canonical"]');
