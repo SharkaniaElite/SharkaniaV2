@@ -23,7 +23,7 @@ test("Legacy hand links remain accessible for existing purchasers without advert
 
 test("Arena navigation never fakes a live broadcast or reverts to an old navbar on /live", () => {
   const nav = read("src/components/layout/navbar.tsx");
-  assert.match(nav, /variant === "arena" \? "Transmisiones" : "En Vivo"/);
+  assert.match(nav, /hidden sm:inline">Transmisiones/);
   assert.match(nav, /variant !== "arena" && <span className="animate-ping/);
   assert.match(nav, /className="sm:hidden">TV/);
   const live = read("src/pages/live-stream.tsx");
