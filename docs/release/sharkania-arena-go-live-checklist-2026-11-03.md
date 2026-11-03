@@ -83,8 +83,8 @@ Control directo y solo lectura sobre Supabase `sharkania`:
 
 Con autorización para cómputo **USD 0,01344/h**, se creó una sola rama temporal Supabase `qa-stats-spy-20261103-temporal`, pero falló con `MIGRATIONS_FAILED`. El proyecto asociado no fue accesible; no se desplegaron las nuevas RPC ni se ejecutaron tests de seguridad. Se eliminó la rama con `success=true` y se verificó que `list_branches` vuelve a mostrar **solo main**.
 
-La auditoría cruzó 50 versiones de migración remotas y 22 archivos SQL en GitHub; faltan 29 versiones remotas en el repositorio, y existe un SQL con prefijo de 8 dígitos sin correspondencia de versión. No se ha confirmado la sentencia exacta que hizo fallar el aprovisionamiento.
+**Corrección posterior:** las 29 versiones faltantes se recuperaron desde las sentencias históricas registradas por Supabase; 11 espejos antiguos fueron alineados y el archivo duplicado inválido fue retirado. El repositorio cuenta ahora con **50 migraciones SQL preservadas y bloqueadas por hash**. El bloqueo persiste porque solo **10 de las 64 tablas públicas** tienen una creación registrada en esas migraciones; 54 pertenecen a un esquema inicial anterior no recuperado. No se ha confirmado la sentencia exacta que hizo fallar el aprovisionamiento.
 
-**Estado del gate P0:** BLOQUEADO. No repetir creación de rama con cargo hasta reparar/validar la reproducibilidad de migraciones y disponer de los logs de fallo. No modificar el historial remoto con `migration repair` ni generar un baseline ficticio en producción.
+**Estado del gate P0:** BLOQUEADO por **baseline inicial faltante**, no por archivos históricos ausentes. El chequeo `npm run qa:migrations:history` comprueba los 50 SQL; el preflight completo `npm run qa:migrations` continúa rechazando nuevas ramas hasta recuperar el esquema de origen. No repetir creación de rama con cargo hasta validar la reproducibilidad y los logs del fallo. No modificar el historial remoto con `migration repair` ni generar un baseline ficticio en producción.
 
 Detalles y trazabilidad: [Supabase QA branch failure](../security/supabase-qa-branch-failure-2026-11-03.md).
