@@ -4,6 +4,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Modal } from "../ui/modal";
 import { calculateElo } from "../../lib/api/elo-engine";
+import { GUARDED_ELO_RPC_ENABLED } from "../../lib/api/guarded-elo";
 import { applyLeaguePoints, prepareTournamentForReedit } from "../../lib/api/tournaments"; 
 import { forceRecalculateStandings } from "../../lib/api/leagues";
 import { supabase } from "../../lib/supabase";
@@ -184,6 +185,15 @@ export function ResultsUpload({
   };
 
   const handleResolveAndUpload = async () => {
+    // This legacy workflow writes players/results before calculating ELO.
+    // It cannot be used once the guarded RPC cutover is enabled.
+    if (GUARDED_ELO_RPC_ENABLED) {
+      setMessage({
+        text: "Carga detenida: falta habilitar el guardado transaccional de resultados en el servidor. No se modificó el torneo.",
+        type: "error",
+      });
+      return;
+    }
     const validationErrors: string[] = [];
 
     const emptyNicknames = rows.filter((r) => !r.nickname.trim());
