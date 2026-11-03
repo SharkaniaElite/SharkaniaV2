@@ -58,7 +58,7 @@ export function AcademyModulePage() {
 
   if (isLoading) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex items-center justify-center">
           <Spinner size="lg" />
         </div>
@@ -68,7 +68,7 @@ export function AcademyModulePage() {
 
   if (!module) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4">
           <span className="text-5xl">📚</span>
           <h1 className="text-sk-2xl font-bold text-sk-text-1">Módulo no encontrado</h1>
@@ -81,27 +81,28 @@ export function AcademyModulePage() {
   }
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
-        title={`${module.title} — Sharkania Academy`}
-        description={module.description ?? `Aprende ${module.title} con lecciones interactivas y quizzes.`}
+        title={`${module.title} | Módulo de póker`}
+        description={module.description ?? `Estudia ${module.title} en este módulo de la Academia de póker de Sharkania.`}
         path={`/academia/${moduleSlug}`}
       />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[700px] mx-auto px-6">
+      <div className="arena-interior arena-editorial arena-learning-page">
+        <div className="arena-interior-container">
+          <div className="arena-learning-body">
           <Link to="/academia" className="inline-flex items-center gap-2 text-sk-sm font-bold text-sk-text-3 hover:text-sk-accent transition-colors mb-8 group">
             <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
             Volver a la Central
           </Link>
 
-          {/* ══ EXPEDIENTE TÁCTICO ══ */}
-          <div className="mb-10 bg-sk-bg-2 border border-sk-border-2 rounded-2xl p-8 relative overflow-hidden shadow-sk-lg">
+          {/* Módulo de la Academia, con título y descripción conservados. */}
+          <div className="arena-learning-panel arena-module-header mb-10 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-sk-accent/5 blur-3xl rounded-full pointer-events-none" />
             
             <div className="flex items-center gap-3 mb-4 relative z-10">
               <span className="text-2xl">{module.icon}</span>
               <span className="px-3 py-1 bg-sk-bg-3 border border-sk-accent/20 rounded-md text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-sk-accent shadow-inner">
-                Expediente Nivel {module.sort_order}
+                ACADEMIA DE PÓKER / NIVEL {module.sort_order}
               </span>
             </div>
             
@@ -116,7 +117,7 @@ export function AcademyModulePage() {
               </p>
             )}
 
-            <div className="flex items-center gap-4 text-[11px] text-sk-text-3 font-mono border-t border-sk-border-2 pt-4 relative z-10">
+            <div className="arena-module-meta flex items-center gap-4 text-[11px] text-sk-text-3 font-mono border-t border-sk-border-2 pt-4 relative z-10">
               <span>{module.total_lessons} lecciones</span>
               <span>~{module.estimated_minutes} min total</span>
               {module.price_coins === 0 && <span className="text-sk-green font-bold bg-sk-green/10 px-2 py-0.5 rounded">ACCESO LIBRE</span>}
@@ -169,7 +170,7 @@ export function AcademyModulePage() {
           {/* Lessons list */}
           {isUnlocked && lessons && (
             <div className="space-y-2">
-              <h2 className="text-sk-sm font-bold text-sk-text-1 mb-3">Lecciones</h2>
+              <h2 className="text-sk-sm font-bold text-sk-text-1 mb-3">Lecciones de póker</h2>
               {lessons.map((lesson, i) => {
                 const progress = progressMap.get(lesson.id);
                 const isPassed = progress?.quiz_passed ?? false;
@@ -180,6 +181,10 @@ export function AcademyModulePage() {
                 return (
                   <div
                     key={lesson.id}
+                    role={canAccess ? "link" : undefined}
+                    tabIndex={canAccess ? 0 : -1}
+                    aria-label={canAccess ? `Abrir lección de póker: ${lesson.title}` : undefined}
+                    onKeyDown={(e) => { if (canAccess && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); navigate(`/academia/${moduleSlug}/${lesson.slug}`); } }}
                     onClick={() => canAccess && navigate(`/academia/${moduleSlug}/${lesson.slug}`)}
                     className={cn(
                       "bg-sk-bg-2 border border-sk-border-2 rounded-lg p-4 flex items-center gap-4 transition-all",
@@ -216,6 +221,7 @@ export function AcademyModulePage() {
               })}
             </div>
           )}
+          </div>
         </div>
       </div>
     </PageShell>
