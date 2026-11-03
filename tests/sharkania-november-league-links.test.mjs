@@ -14,7 +14,7 @@ test("November SHARKANIA league and Ignition info routes remain reachable in rou
 
 test("Ignition tournament cards link to nickname/ranking information instead of unrelated club", () => {
   const card = read("src/components/calendar/tournament-card.tsx");
-  assert.match(card, /t\.poker_rooms\?\.name\?\.trim\(\)\.toLowerCase\(\) === "ignition poker"/);
+  assert.match(card, /roomLabel === "ignition poker" \|\| roomLabel === "ignition póker"/);
   assert.match(card, /isIgnition\s*\? "\/ignition"/);
   assert.match(card, /to=\{participationLink\}/);
   assert.match(card, /t\.custom_link \?/); // Preserve explicitly configured external custom links
