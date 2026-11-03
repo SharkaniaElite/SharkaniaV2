@@ -1,12 +1,10 @@
-// src/components/calendar/tournament-card.tsx
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { Badge } from "../ui/badge";
 import { FlagIcon } from "../ui/flag-icon";
 import { formatCurrency } from "../../lib/format";
-import { Info, BarChart3, MousePointerClick } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Info, BarChart3, ArrowUpRight } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
 
 interface TournamentCardProps {
@@ -14,38 +12,36 @@ interface TournamentCardProps {
   onInfoClick?: () => void;
 }
 
-function cleanName(s: string) {
-  return s.replace(/^\[DEMO\]\s*/, "").replace(/⚠️ DATOS DEMO.*$/, "").trim();
+function cleanName(name: string) {
+  return name.replace(/^\[DEMO\]\s*/, "").replace(/⚠️ DATOS DEMO.*$/, "").trim();
 }
 
-function useCountdown(targetDate: string) {
-  const [diff, setDiff] = useState(() => {
-    const target = new Date(targetDate).getTime();
-    return Math.max(0, Math.floor((target - Date.now()) / 1000));
-  });
+function useCountdown(targetDate: string, running: boolean) {
+  const [seconds, setSeconds] = useState(() => Math.max(0, Math.floor((new Date(targetDate).getTime() - Date.now()) / 1000)));
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const target = new Date(targetDate).getTime();
-      const remaining = Math.max(0, Math.floor((target - Date.now()) / 1000));
-      setDiff(remaining);
-    }, 1000);
+    if (!running) return;
+    const tick = () => setSeconds(Math.max(0, Math.floor((new Date(targetDate).getTime() - Date.now()) / 1000)));
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [targetDate]);
+  }, [targetDate, running]);
 
-  const h = Math.floor(diff / 3600);
-  const m = Math.floor((diff % 3600) / 60);
-  const s = diff % 60;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const timeStr = h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-
-  return { timeStr, isExpired: diff <= 0 };
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return {
+    timeStr: hours > 0 ? `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}` : `${pad(minutes)}:${pad(remainingSeconds)}`,
+    isExpired: seconds <= 0,
+  };
 }
 
 export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardProps) {
-  const navigate = useNavigate();
+  const countdownEnabled = t.status === "scheduled" || t.status === "late_registration";
   const { timeStr, isExpired } = useCountdown(
-    t.status === "late_registration" && t.late_reg_end ? t.late_reg_end : t.start_datetime
+    t.status === "late_registration" && t.late_reg_end ? t.late_reg_end : t.start_datetime,
+    countdownEnabled
   );
 
   const isLive = t.status === "live";
@@ -53,156 +49,113 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
   const isCompleted = t.status === "completed" || (t.status === "late_registration" && isExpired);
   const isCancelled = t.status === "cancelled";
   const isUpcoming = t.status === "scheduled" && !isExpired;
-  const isDemo = (t as any).is_demo;
+  const isDemo = (t as { is_demo?: boolean }).is_demo;
 
   const statusBadge = isLive ? (
     <Badge variant="live">EN VIVO</Badge>
   ) : isLateReg ? (
-    <span className="font-mono text-[11px] font-semibold py-[3px] px-2 rounded-xs bg-sk-orange-dim text-sk-orange inline-flex items-center gap-1">
-      ⏳ LATE REG: {timeStr}
-    </span>
+    <span className="arena-tournament-status font-mono font-semibold bg-sk-orange-dim text-sk-orange">⏳ LATE REG: {timeStr}</span>
   ) : isCompleted ? (
     <div className="flex items-center gap-2">
-      {t.results_uploaded && (
-        <Badge variant="green" className="gap-1 px-1.5 py-0.5">
-          <BarChart3 size={10} /> RESULTADOS
-        </Badge>
-      )}
+      {t.results_uploaded && <Badge variant="green" className="gap-1 px-1.5 py-0.5"><BarChart3 size={12} /> RESULTADOS</Badge>}
       <Badge variant="muted">FINALIZADO</Badge>
     </div>
   ) : isCancelled ? (
     <Badge variant="red">Cancelado</Badge>
   ) : isUpcoming ? (
-    <span className="font-mono text-[11px] font-semibold py-[3px] px-2 rounded-xs bg-sk-accent-dim text-sk-accent inline-flex items-center gap-1">
-      ⏱ {timeStr}
-    </span>
+    <span className="arena-tournament-status font-mono font-semibold bg-sk-accent-dim text-sk-accent">⏱ {timeStr}</span>
   ) : (
     <Badge variant="muted">FINALIZADO</Badge>
   );
 
   const startDate = new Date(t.start_datetime);
-
-  // Fecha formateada: dd/MM
-  const dateLabel = startDate.toLocaleDateString("es-CL", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: t.timezone,
-  });
-
-  // Hora formateada en timezone del club
-  const timeZoneLabel = startDate.toLocaleTimeString("es-CL", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: t.timezone,
-  });
+  const dateLabel = startDate.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", timeZone: t.timezone });
+  const timeZoneLabel = startDate.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", timeZone: t.timezone });
+  const participationLink = ["ccp", "latin-allin-poker"].includes(t.clubs?.slug || "")
+    ? "/como-jugar-en-clubgg"
+    : `/clubs/${t.clubs?.slug ?? t.club_id}`;
 
   return (
-    <div
-      onClick={() => isCompleted && navigate(`/tournament/${t.slug}`)}
+    <article
       className={cn(
-        "bg-sk-bg-3 border border-sk-border-2 rounded-md p-3 px-4 transition-all",
-        (isLive || isLateReg) ? "border-l-2 border-l-sk-green hover:border-sk-border-3" : "hover:border-sk-accent/50",
-        isCompleted && "opacity-80 hover:opacity-100 cursor-pointer"
+        "arena-tournament-card bg-sk-bg-3 border border-sk-border-2 rounded-md p-3 px-4 transition-all",
+        (isLive || isLateReg) && "arena-tournament-card--live border-l-2 border-l-sk-green",
+        isCompleted && "arena-tournament-card--completed"
       )}
+      aria-labelledby={`arena-event-title-${t.id}`}
     >
-      {/* Row 1: Name + Status */}
-      <div className="flex justify-between items-center mb-1">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-semibold text-sk-text-1 text-sk-sm truncate">{cleanName(t.name)}</span>
+      <div className="arena-tournament-card-header flex justify-between items-center">
+        <div className="arena-tournament-card-title-wrap flex items-center gap-2 min-w-0">
+          <Link
+            to={`/tournament/${t.slug || t.id}`}
+            id={`arena-event-title-${t.id}`}
+            className="arena-tournament-card-title font-semibold text-sk-text-1 text-sk-sm"
+          >
+            {cleanName(t.name)}
+          </Link>
           {onInfoClick && (
             <button
-              onClick={(e) => {
-                e.stopPropagation(); // Evita que el clic en el botón navegue a la página de resultados
-                onInfoClick();
-              }}
-              className="w-[18px] h-[18px] rounded-full bg-white/[0.04] text-sk-text-3 hover:bg-sk-accent-dim hover:text-sk-accent text-[11px] flex items-center justify-center transition-colors shrink-0"
-              aria-label="Ver detalles del torneo"
+              type="button"
+              onClick={onInfoClick}
+              className="arena-tournament-info-button bg-white/[0.04] text-sk-text-3 hover:bg-sk-accent-dim hover:text-sk-accent flex items-center justify-center transition-colors shrink-0"
+              aria-label={`Ver información de ${cleanName(t.name)}`}
+              title="Información del torneo"
             >
-              <Info size={11} />
+              <Info size={15} aria-hidden="true" />
             </button>
           )}
-          {isDemo && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sk-gold-dim text-sk-gold uppercase tracking-wider shrink-0">
-              ⚠ Demo
-            </span>
-          )}
+          {isDemo && <span className="arena-tournament-demo font-bold text-sk-gold bg-sk-gold-dim">Demo</span>}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {statusBadge}
-        </div>
+        <div className="arena-tournament-badges flex items-center gap-2 shrink-0">{statusBadge}</div>
       </div>
 
-      {/* Row 2: Buy-in, GTD, Date + Time */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-4 text-[11px] text-sk-text-2">
+      <div className="arena-tournament-card-details flex justify-between items-center">
+        <div className="arena-tournament-financials flex gap-4 text-[11px] text-sk-text-2">
           <span>
             Buy-in:{" "}
-            <span className={cn("font-mono font-semibold", t.buy_in === 0 ? "text-sk-green" : "text-sk-text-1")}>
-              {t.buy_in === 0 ? "FREE" : <>{formatCurrency(t.buy_in)} <span className="text-[9px] text-sk-text-4 ml-0.5">{t.currency || 'USD'}</span></>}
-            </span>
+            <strong className={cn("font-mono", t.buy_in === 0 ? "text-sk-green" : "text-sk-text-1")}>
+              {t.buy_in === 0 ? "FREE" : <>{formatCurrency(t.buy_in)} <small>{t.currency || "USD"}</small></>}
+            </strong>
           </span>
-          {t.guaranteed_prize && (
+          {!!t.guaranteed_prize && (
             <span>
               GTD:{" "}
-              <span className="font-mono font-bold text-sk-gold">
-                {formatCurrency(t.guaranteed_prize)} <span className="text-[9px] text-sk-text-4 ml-0.5">{t.currency || 'USD'}</span>
-              </span>
+              <strong className="font-mono text-sk-gold">
+                {formatCurrency(t.guaranteed_prize)} <small>{t.currency || "USD"}</small>
+              </strong>
             </span>
           )}
         </div>
-        <span className="font-mono text-[11px] text-sk-text-1 flex items-center gap-1.5">
-          {dateLabel} · {timeZoneLabel} <FlagIcon countryCode={t.clubs?.country_code ?? null} />
+        <span className="arena-tournament-date font-mono text-[11px] text-sk-text-1 flex items-center gap-1.5">
+          {dateLabel} · {timeZoneLabel}
+          <FlagIcon countryCode={t.clubs?.country_code ?? null} />
         </span>
       </div>
 
-      {/* Row 3: Club/Room + League */}
-      <div className="mt-1 flex justify-between items-start">
+      <div className="arena-tournament-card-links flex justify-between items-start">
         {t.custom_link ? (
-          <a
-            href={t.custom_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex flex-col items-start gap-1"
-          >
-            <div className="text-[11px] text-sk-accent font-medium group-hover:text-sk-accent-hover transition-colors flex items-center gap-1">
-              <span className="text-sm">🌐</span> {t.poker_rooms?.name}
-            </div>
-            <div className="flex items-center gap-1 text-[10px] text-sk-accent font-bold group-hover:brightness-125 transition-all uppercase tracking-widest font-mono mt-0.5">
-              <MousePointerClick size={12} className="animate-bounce" />
-              <span>Click aquí para registrarte en la sala donde se juega este torneo</span>
-            </div>
+          <a href={t.custom_link} target="_blank" rel="noopener noreferrer" className="arena-tournament-participation group flex flex-col gap-1">
+            <span className="text-sk-accent text-xs font-semibold">🌐 {t.poker_rooms?.name}</span>
+            <span className="arena-tournament-participation-hint"><ArrowUpRight size={14} aria-hidden="true" /> Consultar cómo participar en el torneo</span>
           </a>
         ) : (
-          <Link
-            to={
-              ["ccp", "latin-allin-poker"].includes(t.clubs?.slug || "")
-                ? "/como-jugar-en-clubgg"
-                : `/clubs/${t.clubs?.slug ?? t.club_id}`
-            }
-            className="group flex flex-col items-start gap-1"
-          >
-            <div className="text-[11px] text-sk-accent font-medium group-hover:text-sk-accent-hover transition-colors flex items-center gap-1">
+          <Link to={participationLink} className="arena-tournament-participation group flex flex-col gap-1">
+            <span className="text-sk-accent text-xs font-semibold flex items-center gap-1.5">
               <FlagIcon countryCode={t.clubs?.country_code ?? null} /> {cleanName(t.clubs?.name ?? "")}
-            </div>
-            <div className="flex items-center gap-1 text-[10px] text-sk-accent font-bold group-hover:brightness-125 transition-all uppercase tracking-widest font-mono mt-0.5">
-              <MousePointerClick size={12} className="animate-bounce" />
-              <span>Click aquí para registrarte en la sala donde se juega este torneo</span>
-            </div>
+            </span>
+            <span className="arena-tournament-participation-hint"><ArrowUpRight size={14} aria-hidden="true" /> Consultar cómo participar en el torneo</span>
           </Link>
         )}
         {t.leagues ? (
-          <Link
-            to={`/leagues/${t.leagues?.slug ?? t.league_id}`}
-            className="text-[10px] text-sk-text-2 font-mono hover:text-sk-accent transition-colors mt-0.5"
-          >
+          <Link to={`/leagues/${t.leagues.slug ?? t.league_id}`} className="arena-tournament-league text-xs text-sk-text-2 hover:text-sk-accent transition-colors">
             Liga: {cleanName(t.leagues.name)}
           </Link>
         ) : t.actual_prize_pool ? (
-          <span className="text-[10px] text-sk-text-2 font-mono mt-0.5">
-            Prize: {formatCurrency(t.actual_prize_pool)} <span className="text-[9px] text-sk-text-4 ml-0.5">{t.currency || 'USD'}</span>
+          <span className="arena-tournament-league text-xs text-sk-text-2">
+            Premio: {formatCurrency(t.actual_prize_pool)} {t.currency || "USD"}
           </span>
         ) : null}
       </div>
-    </div>
+    </article>
   );
 }
