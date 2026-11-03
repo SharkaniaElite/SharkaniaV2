@@ -87,3 +87,25 @@ Evaluar el mecanismo documentado por Supabase para incorporar el baseline a su h
 - [ ] Pruebas de permisos y transacciones de Sharkania superadas.
 
 **Estado de publicación:** `NO-GO` de Stats Espía y de pruebas autenticadas hasta completar estas verificaciones.
+
+
+## Actualización: exportaciones de public y private recibidas y verificadas (3 noviembre)
+
+La exportación se completó mediante **PostgreSQL 18.6 / pg_dump**, conectado por **Session pooler IPv4** a la base PostgreSQL 17.6. No fue necesario instalar Docker Desktop ni crear recursos adicionales.
+
+Los archivos originales **quedaron fuera de GitHub**: son material privado de la auditoría. Nunca subir los cuerpos de funciones, contenidos JSON por defecto ni SQL de producción sin revisión de seguridad.
+
+| Snapshot local, solo DDL | Tamaño bytes | SHA-256 |
+| --- | ---: | --- |
+| `sharkania-public-2026-11-03.sql` | 228355 | `9315c5b57e539af6b49d4ce7d473702dc4bec220cdb42d56261de2c4ecd32c36` |
+| `sharkania-private-2026-11-03.sql` | 2062 | `d2a0c986738329e0e6d341fdf38ba571570219847e9a5ebafa84a9ec0fb4860f` |
+
+**Comprobación independiente:** 64 tablas públicas, 2 vistas, 57 funciones SQL definidas expresamente en el dump, 18 tipos enumerados, 22 triggers, 185 políticas RLS y 64 habilitaciones RLS; 1 tabla privada con RLS y dos FK a `auth.users` / `public.shared_hands`. Hay además referencias a `auth.uid()`, `public.vector` y `extensions.uuid_generate_v4`. Las 194 firmas de funciones del catálogo original incluyen funciones de extensiones; no confundirlas con las 57 `CREATE FUNCTION` explícitas exportadas.
+
+**Validador seguro:** `scripts/verify-supabase-schema-snapshots.mjs` acepta las rutas de dos archivos SQL privados y únicamente muestra conteos, hashes y advertencias (no contenidos ni credenciales). Verificado contra ambos archivos. No prueba ausencia completa de secretos ni reemplaza restauración real.
+
+**Bloqueos pendientes que ningún dump resuelve:** (1) los archivos incluyen `CREATE SCHEMA public` y corresponden al estado *posterior* a las 50 migraciones, por lo que no son el baseline histórico; (2) se exportaron con `--no-owner --no-acl` y NO incluyen permisos `GRANT/REVOKE` ni propietarios, que deberán reconstruirse y probarse; (3) el destino QA necesita `auth`, roles Supabase, extensiones y funciones relacionadas. Conservar la separación entre reconstruir un snapshot actualizado y reproducir cronológicamente las 50 migraciones.
+
+**Hallazgos P0 adicionales** (solo lectura de `pg_policies` y privilegios efectivos en producción): `tournament_clubs` concede `ALL` con RLS `true` a `PUBLIC`; `shark_tv_videos`, `acc_payouts`, `acc_player_promo_config`, `acc_player_promo_payouts`, `site_configs`, `live_polls`, `blog_embeddings` y `current_league_champion` contienen políticas de escritura para autenticados sin validación administrativa suficiente. Se suman a la exposición económica de Stats Espía. Preparar cambios de menor privilegio y pruebas con roles **solo en QA**, sin afectar producción ni derechos de compradores antiguos.
+
+**Estado:** exportaciones recuperadas y verificadas; restauración y permisos de QA no probados; reconstrucción histórica no resuelta; lanzamiento NO-GO. No crear rama facturable ni reparar historial en producción sin autorización específica.
