@@ -21,8 +21,8 @@ export function EloSystemPage() {
   return (
     <PageShell variant="arena">
       <SEOHead
-        title="Cómo funciona el Sistema ELO — Sharkania"
-        description="Descubre cómo Sharkania calcula la habilidad real de los jugadores de póker en torneos MTT aislando la varianza."
+        title="Sistema ELO en póker | Cómo funciona"
+        description="Conoce el sistema ELO de Sharkania para torneos de póker: resultados, puntuación esperada y factores que afectan la clasificación."
         path="/sistema-elo"
       />
 
@@ -32,8 +32,8 @@ export function EloSystemPage() {
           <ArenaPageHero
             section="elo"
             eyebrow="SISTEMA / PUNTUACIÓN"
-            heading="EL ELO"
-            highlight="EN SHARKANIA."
+            heading="SISTEMA ELO"
+            highlight="DE PÓKER."
             icon={TrendingUp}
             description="Conoce los criterios que utilizamos para ordenar el rendimiento competitivo y aprende a interpretar los cambios de puntuación."
             action={<Link to="/ranking">Explorar ranking ELO <ChevronRight size={16} /></Link>}
