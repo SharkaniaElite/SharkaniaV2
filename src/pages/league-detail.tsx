@@ -41,10 +41,10 @@ export function LeagueDetailPage() {
   // Durante la convocatoria la primera intención de búsqueda es conocer
   // la próxima fecha; después se preserva el ranking y las pestañas habituales.
   useEffect(() => {
-    if (league?.slug === "liga-sharkania-noviembre-2026" && league.status === "upcoming") {
+    if (league?.slug === "liga-sharkania-noviembre-2026" && league.status !== "finished" && !standings?.length) {
       setTab("upcoming");
     }
-  }, [league?.slug, league?.status]);
+  }, [league?.slug, league?.status, standings?.length]);
 
   const [ccpStandings, setCcpStandings] = useState<CCPClubRanking[]>([]);
   const [ccpLoading, setCcpLoading] = useState(false);
