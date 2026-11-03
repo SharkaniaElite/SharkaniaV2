@@ -1,10 +1,9 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { SEOHead } from "../components/seo/seo-head";
 import { useAuthStore } from "../stores/auth-store";
 import { useSharkCoinsBalance } from "../hooks/use-shop";
-import { Button } from "../components/ui/button";
 import { cn } from "../lib/cn";
 import {
   Sparkles,
@@ -141,19 +140,12 @@ const TOOLS: ToolCard[] = [
 
 function ToolCardComponent({ tool }: { tool: ToolCard }) {
   const { isAuthenticated } = useAuthStore();
-  const navigate = useNavigate();
   const redirectParam = encodeURIComponent(tool.slug);
-
-  const handleLoginClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigate(`/login?redirect=${redirectParam}`);
-  };
 
   const content = (
     <div
       className={cn(
-        "group relative border border-sk-border-2 rounded-xl flex flex-col h-full min-h-[340px] overflow-hidden transition-all duration-300",
+        "arena-content-card group relative flex flex-col h-full min-h-[315px] overflow-hidden transition-all duration-300",
         tool.available
           ? "hover:border-sk-accent/50 hover:shadow-[0_4px_30px_rgba(34,211,238,0.05)] cursor-pointer"
           : "opacity-60 grayscale-[50%] cursor-default"
@@ -220,14 +212,7 @@ function ToolCardComponent({ tool }: { tool: ToolCard }) {
 
           {/* Action Button */}
           {tool.requiresAuth && !isAuthenticated ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleLoginClick}
-              className="bg-sk-bg-0/80 backdrop-blur-sm hover:bg-sk-bg-3 gap-2"
-            >
-              <Lock size={14} /> Iniciar sesión
-            </Button>
+            <span className="arena-tool-login"><Lock size={14} /> Iniciar sesión</span>
           ) : tool.available ? (
             <div
               className="inline-flex items-center gap-1.5 text-sk-sm font-semibold transition-colors"
@@ -250,7 +235,7 @@ function ToolCardComponent({ tool }: { tool: ToolCard }) {
   );
 
   return tool.available ? (
-    <Link to={tool.slug} className="block h-full">
+    <Link to={tool.requiresAuth && !isAuthenticated ? `/login?redirect=${redirectParam}` : tool.slug} className="block h-full">
       {content}
     </Link>
   ) : (
@@ -263,78 +248,47 @@ function ToolCardComponent({ tool }: { tool: ToolCard }) {
 // ══════════════════════════════════════════════════════════
 
 export function ToolsPage() {
-  const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
   const user = useAuthStore((s) => s.user);
   const { data: balance } = useSharkCoinsBalance();
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title="Herramientas Tácticas"
         description="Analiza tu juego con herramientas de poker profesionales: Calculadora ICM, simulador de ELO, gestión de banca y replayer de manos."
         path="/tools"
       />
 
-      <div className="pt-20 pb-16">
-        <div className="max-w-[1000px] mx-auto px-6">
+      <div className="arena-interior arena-editorial">
+        <div className="arena-interior-container">
           
-          {/* ══ HERO SECTION ══ */}
-          <div className="bg-sk-bg-2 border border-sk-accent/20 rounded-2xl p-6 md:p-10 mb-10 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_0_40px_rgba(34,211,238,0.05)]">
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-sk-accent/10 blur-[50px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sk-accent/30 to-transparent" />
-
-            <div className="shrink-0 relative z-10">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute inset-0 bg-sk-accent/10 blur-xl rounded-full scale-150 group-hover:bg-sk-accent/20 transition-colors duration-500" />
-                <img
-                  src={`/mascot/shark-${mascotId}.webp`}
-                  alt="Sharkania Quartermaster"
-                  className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
+          <ArenaPageHero
+            section="tools"
+            eyebrow="LABORATORIO / HERRAMIENTAS"
+            heading="ANALIZA."
+            highlight="DECIDE MEJOR."
+            icon={Wrench}
+            description="Calculadoras, simuladores y recursos de análisis para estudiar decisiones de póker. Cada herramienta explica sus condiciones de acceso."
+            count={TOOLS.filter((tool) => tool.available).length}
+            countLabel="Herramientas disponibles"
+            action={<Link to="/sistema-elo">Conoce nuestro sistema ELO <ChevronRight size={15} /></Link>}
+          />
+          {user && (
+            <div className="arena-utility-strip" aria-label="Saldo de Shark Coins">
+              <p>Tus herramientas y accesos se gestionan desde <Link to="/shop">La Bóveda</Link>.</p>
+              <span className="arena-wallet-balance">
+                {balance ?? 0}
+                <img src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif" alt="Shark Coins" loading="lazy" />
+              </span>
             </div>
-
-            <div className="flex-1 text-center md:text-left relative z-10">
-              <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
-                <Wrench className="text-sk-accent" size={16} />
-                <p className="font-mono text-[11px] font-bold tracking-[0.15em] uppercase text-sk-accent">
-                  LABORATORIO TÁCTICO · ANÁLISIS
-                </p>
-                <Sparkles className="text-sk-accent animate-pulse" size={16} />
-              </div>
-
-              <h1 className="text-sk-3xl md:text-sk-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-4 leading-none">
-                Suite de Herramientas
-              </h1>
-
-              <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed">
-                El poker no es un juego de cartas, es matemáticas disfrazadas. Mide tu equity, gestiona tu riesgo y detecta fugas de dinero. El acceso ilimitado a estas herramientas se gestiona desde{" "}
-                <Link to="/shop" className="text-sk-text-1 font-bold hover:text-sk-accent hover:underline transition-colors">
-                  La Bóveda
-                </Link>.
-              </p>
-            </div>
-
-            {/* Saldo de Monedas */}
-            {user && (
-              <div className="shrink-0 bg-sk-bg-0/50 backdrop-blur-md border border-sk-border-2 rounded-xl p-5 text-center min-w-[160px] relative z-10 group-hover:border-sk-accent/40 transition-colors">
-                <p className="text-[10px] font-mono text-sk-text-3 font-bold uppercase tracking-widest mb-3">
-                  Tu Reserva
-                </p>
-                <div className="flex items-center justify-center gap-2 text-sk-3xl font-black text-sk-accent tracking-tighter leading-none mb-1">
-                  {balance ?? 0}
-                  <img
-                    src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif"
-                    alt="SC"
-                    className="w-7 h-7 drop-shadow-md"
-                  />
-                </div>
-              </div>
-            )}
+          )}
+          <div className="arena-section-intro">
+            <div><span>HERRAMIENTAS / ANÁLISIS</span><h2>Elige tu instrumento</h2><p>Accede a opciones gratuitas y recursos para usuarios registrados.</p></div>
+            <span>{TOOLS.length} recursos</span>
           </div>
 
           {/* Tools Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
+          <div className="arena-tools-grid">
             {TOOLS.map((tool) => (
               <ToolCardComponent key={tool.slug} tool={tool} />
             ))}
