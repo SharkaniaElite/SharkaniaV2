@@ -78,9 +78,9 @@ BEGIN
       (v_item->>'total_buy_ins_spent')::numeric = 5000 AND
       (v_item->>'roi_percent')::numeric = 0 THEN v_clp := true; END IF;
     IF v_item->>'currency' = 'EUR' AND
-      (v_item->>'total_prize_won')::numeric = 50 AND
+      (v_item->>'total_prize_won')::numeric = 55 AND
       (v_item->>'total_buy_ins_spent')::numeric = 20 AND
-      (v_item->>'roi_percent')::numeric = 150 THEN v_eur := true; END IF;
+      (v_item->>'roi_percent')::numeric = 175 THEN v_eur := true; END IF;
     IF v_item->>'currency' = 'USD' AND
       (v_item->>'total_prize_won')::numeric = 100 AND
       (v_item->>'total_buy_ins_spent')::numeric = 20 AND
@@ -111,10 +111,10 @@ BEGIN
   SELECT public.stats_spy_get_summary_v1('single-player') INTO v_result;
   IF v_result->>'mixed_currencies' <> 'false'
     OR v_result->>'currency' <> 'CLP'
-    OR (v_result->>'total_prize_won')::numeric <> 30000
+    OR (v_result->>'total_prize_won')::numeric <> 35000
     OR (v_result->>'total_buy_ins_spent')::numeric <> 20000
-    OR (v_result->>'profit')::numeric <> 10000
-    OR (v_result->>'roi_percent')::numeric <> 50
+    OR (v_result->>'profit')::numeric <> 15000
+    OR (v_result->>'roi_percent')::numeric <> 75
   THEN
     RAISE EXCEPTION 'QA FAIL: single-currency ROI or buy-in reentry count incorrect';
   END IF;
