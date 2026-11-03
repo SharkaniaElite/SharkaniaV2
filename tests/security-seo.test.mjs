@@ -267,16 +267,23 @@ test("PostHog privileged stats require an active super-admin session before vend
   assert.match(config, /\[functions\.posthog-stats\]/);
 });
 
-test("Ignition onboarding waits for login and only creates pending links", () => {
+test("Ignition registration is pending-only; existing player login preserves previous verification", () => {
   const page = readFileSync("src/pages/ignition-championship.tsx", "utf8");
+  const dashboard = readFileSync("src/pages/player-dashboard.tsx", "utf8");
   const auth = readFileSync("src/lib/api/auth.ts", "utf8");
   const migration = readFileSync("supabase/migrations/20261031181112_record_ignition_signup_as_pending_20261031.sql", "utf8");
-  assert.equal((page.match(/check_ignition_duplicate/g) || []).length, 1);
-  assert.ok(page.indexOf("signInWithPassword") < page.indexOf('supabase.rpc("check_ignition_duplicate"'));
-  assert.match(page, /if \(duplicateError\) throw duplicateError/);
-  assert.match(page, /ignition_status: 'pending'/);
-  assert.doesNotMatch(page, /ignition_status: 'verified'/);
-  assert.match(page, /if \(linkError\)/);
+  const loginStart = page.indexOf("if (isExistingUser) {");
+  const registrationStart = page.indexOf("// FLUJO 2: SIGN UP", loginStart);
+  assert.ok(loginStart >= 0 && registrationStart > loginStart);
+  const login = page.slice(loginStart, registrationStart);
+  assert.match(login, /signInWithPassword/);
+  assert.match(login, /getProfile\(data.session.user.id\)/);
+  assert.match(login, /navigate\("\/dashboard\?highlight=ignition"\)/);
+  assert.doesNotMatch(login, /check_ignition_duplicate|ignition_status: 'pending'|auth\.updateUser|from\('profiles'\)\.update/);
+  // New links are verified against duplicates inside the signed-in dashboard.
+  assert.equal((dashboard.match(/check_ignition_duplicate/g) || []).length, 1);
+  assert.ok(dashboard.indexOf("check_ignition_duplicate") < dashboard.indexOf("ignition_status: 'pending'"));
+  assert.match(dashboard, /if \(rpcError\) throw rpcError/);
   assert.match(auth, /if \(data\.user && data\.session\)/);
   assert.match(migration, /ignition_status = 'pending'/);
   assert.match(migration, /NEW\.raw_user_meta_data ->> 'ignition_league_player'/);
