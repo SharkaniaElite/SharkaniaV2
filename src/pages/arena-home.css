@@ -249,9 +249,10 @@
 }
 
 
-/* ARENA — poker atmospheres: real photographic scenes, not text-bearing banners.
-   Images are decorative with stable reserved dimensions and no scroll animation.
-   The foreground always sits above a contrast-preserving overlay. */
+/* ARENA — atmósferas visibles de póker competitivo.
+   Fotos decorativas servidas desde Cloudflare; contenido y tarjetas siempre por delante.
+   El oscurecimiento es intencionadamente asimétrico: protege el texto a la izquierda
+   y deja respirar la escena en el centro y a la derecha. */
 .arena-scene { position: relative; isolation: isolate; }
 .arena-scene > .arena-scene-photo {
   display: block;
@@ -261,11 +262,11 @@
   height: 100%;
   object-fit: cover;
   object-position: center 46%;
-  opacity: .62;
+  opacity: .93;
   z-index: 0;
   pointer-events: none;
   user-select: none;
-  filter: saturate(.82) contrast(1.04);
+  filter: saturate(1.04) brightness(1.24) contrast(1.06);
 }
 .arena-scene > .arena-scene-shade {
   display: block;
@@ -274,52 +275,93 @@
   z-index: 1;
   pointer-events: none;
   background:
-    linear-gradient(90deg,rgba(6,11,18,.77) 0%,rgba(6,11,18,.63) 44%,rgba(6,11,18,.66) 100%),
-    linear-gradient(180deg,rgba(6,11,18,.22) 0%,rgba(6,11,18,.18) 50%,rgba(6,11,18,.78) 100%);
+    linear-gradient(90deg, rgba(6,11,18,.65) 0%,rgba(6,11,18,.42) 49%,rgba(6,11,18,.40) 100%),
+    linear-gradient(180deg, rgba(6,11,18,.18) 0%,rgba(6,11,18,.14) 48%,rgba(6,11,18,.66) 100%);
 }
+/* Light spill is confined to the photograph layer: no glow over the text. */
 .arena-scene > .arena-section-wrap,
 .arena-scene > .arena-hero-grid,
 .arena-scene > .arena-hero-footer {
   position: relative;
   z-index: 2;
 }
-.arena-hero.arena-scene .arena-scene-photo { object-position: 60% center; opacity: .7; }
+.arena-scene .arena-heading h2,
+.arena-scene .arena-hero-copy h1,
+.arena-scene .arena-final h2 {
+  text-shadow: 0 2px 18px rgba(3,8,14,.65);
+}
+.arena-hero.arena-scene .arena-scene-photo {
+  object-position: 61% center;
+  opacity: .98;
+  filter: saturate(1.08) brightness(1.23) contrast(1.08);
+}
 .arena-hero.arena-scene .arena-scene-shade {
   background:
-    linear-gradient(90deg,rgba(5,10,17,.86),rgba(5,10,17,.67) 44%,rgba(5,10,17,.75)),
-    linear-gradient(180deg,rgba(5,10,17,.28),rgba(5,10,17,.62) 90%);
+    linear-gradient(90deg, rgba(4,9,15,.79) 0%,rgba(4,9,15,.61) 31%,rgba(4,9,15,.40) 68%,rgba(4,9,15,.34) 100%),
+    linear-gradient(180deg, rgba(5,10,17,.15) 0%,rgba(5,10,17,.08) 52%,rgba(5,10,17,.70) 100%);
 }
-.arena-hero.arena-scene::before { z-index: 1; }
+/* The existing geometric grid stays above the image, below the actual content. */
+.arena-hero.arena-scene::before,
 .arena-hero.arena-scene::after { z-index: 1; }
-.arena-hub.arena-scene .arena-scene-photo { object-position: 70% 46%; opacity: .62; }
+.arena-hub.arena-scene .arena-scene-photo {
+  object-position: 69% 46%;
+  opacity: .92;
+}
 .arena-hub.arena-scene .arena-scene-shade {
   background:
-    linear-gradient(180deg,rgba(8,14,21,.83),rgba(8,14,21,.72) 48%,rgba(8,14,21,.87)),
-    linear-gradient(90deg,rgba(8,14,21,.68),transparent 70%);
+    linear-gradient(90deg,rgba(7,13,20,.64),rgba(7,13,20,.35) 72%),
+    linear-gradient(180deg,rgba(7,13,20,.59),rgba(7,13,20,.35) 45%,rgba(7,13,20,.78));
 }
-.arena-circuit.arena-scene .arena-scene-photo { object-position: 57% 45%; opacity: .59; }
+.arena-circuit.arena-scene .arena-scene-photo {
+  object-position: 57% 45%;
+  opacity: .94;
+}
 .arena-circuit.arena-scene .arena-scene-shade {
-  background: linear-gradient(90deg,rgba(6,11,18,.86),rgba(6,11,18,.67) 55%,rgba(6,11,18,.8)),
-    linear-gradient(180deg,rgba(6,11,18,.56),rgba(6,11,18,.75));
+  background:
+    linear-gradient(90deg,rgba(6,11,18,.72),rgba(6,11,18,.36) 60%,rgba(6,11,18,.44)),
+    linear-gradient(180deg,rgba(6,11,18,.37),rgba(6,11,18,.23) 46%,rgba(6,11,18,.70));
 }
-.arena-editorial.arena-scene .arena-scene-photo { object-position: 54% 42%; opacity: .56; }
+.arena-editorial.arena-scene .arena-scene-photo {
+  object-position: 54% 42%;
+  opacity: .90;
+}
 .arena-editorial.arena-scene .arena-scene-shade {
-  background: linear-gradient(180deg,rgba(8,14,21,.84),rgba(8,14,21,.73) 40%,rgba(8,14,21,.93)),
-    linear-gradient(90deg,rgba(8,14,21,.55),transparent 80%);
+  background:
+    linear-gradient(90deg,rgba(8,14,21,.60),rgba(8,14,21,.35) 70%),
+    linear-gradient(180deg,rgba(8,14,21,.61),rgba(8,14,21,.37) 45%,rgba(8,14,21,.79));
 }
-.arena-final.arena-scene .arena-scene-photo { object-position: 56% 50%; opacity: .65; }
+.arena-final.arena-scene .arena-scene-photo {
+  object-position: 58% 50%;
+  opacity: .97;
+}
 .arena-final.arena-scene .arena-scene-shade {
-  background: linear-gradient(90deg,rgba(5,10,18,.89),rgba(5,10,18,.7) 58%,rgba(5,10,18,.72)),
-    linear-gradient(180deg,rgba(5,10,18,.25),rgba(5,10,18,.62));
+  background:
+    linear-gradient(90deg,rgba(5,10,18,.81),rgba(5,10,18,.45) 62%,rgba(5,10,18,.38)),
+    linear-gradient(180deg,rgba(5,10,18,.30),rgba(5,10,18,.16) 48%,rgba(5,10,18,.70));
 }
-@media(max-width:760px) {
-  .arena-hero.arena-scene .arena-scene-photo { object-position: 62% center; opacity: .53; }
-  .arena-hub.arena-scene .arena-scene-photo { object-position: 70% 40%; opacity: .47; }
-  .arena-circuit.arena-scene .arena-scene-photo { object-position: 60% 43%; opacity: .46; }
-  .arena-editorial.arena-scene .arena-scene-photo { object-position: 58% 40%; opacity: .46; }
-  .arena-final.arena-scene .arena-scene-photo { object-position: 66% center; opacity: .52; }
-  .arena-scene > .arena-scene-shade {
-    background: linear-gradient(180deg,rgba(7,12,19,.82),rgba(7,12,19,.71) 52%,rgba(7,12,19,.94));
+@media (max-width: 760px) {
+  /* With vertically stacked content, keep the image visible without placing
+     busy high-contrast details directly behind the copy. */
+  .arena-scene > .arena-scene-photo { filter: saturate(1.02) brightness(1.17) contrast(1.04); }
+  .arena-hero.arena-scene .arena-scene-photo { object-position: 62% center; opacity: .82; }
+  .arena-hub.arena-scene .arena-scene-photo { object-position: 70% 40%; opacity: .78; }
+  .arena-circuit.arena-scene .arena-scene-photo { object-position: 60% 43%; opacity: .80; }
+  .arena-editorial.arena-scene .arena-scene-photo { object-position: 58% 40%; opacity: .78; }
+  .arena-final.arena-scene .arena-scene-photo { object-position: 66% center; opacity: .85; }
+  .arena-hero.arena-scene .arena-scene-shade {
+    background:
+      linear-gradient(180deg,rgba(5,10,17,.70) 0%,rgba(5,10,17,.48) 42%,rgba(5,10,17,.68) 73%,rgba(5,10,17,.82) 100%),
+      linear-gradient(90deg,rgba(5,10,17,.32),rgba(5,10,17,.17));
+  }
+  .arena-hub.arena-scene .arena-scene-shade,
+  .arena-circuit.arena-scene .arena-scene-shade,
+  .arena-editorial.arena-scene .arena-scene-shade {
+    background:
+      linear-gradient(180deg,rgba(7,12,19,.67) 0%,rgba(7,12,19,.43) 39%,rgba(7,12,19,.60) 70%,rgba(7,12,19,.82) 100%);
+  }
+  .arena-final.arena-scene .arena-scene-shade {
+    background: linear-gradient(90deg,rgba(5,10,18,.72),rgba(5,10,18,.40)),
+      linear-gradient(180deg,rgba(5,10,18,.44),rgba(5,10,18,.55));
   }
 }
 @media (prefers-reduced-data: reduce) {
