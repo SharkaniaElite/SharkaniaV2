@@ -17,6 +17,7 @@ DECLARE
   v_n integer;
   v_joined_n integer;
   v_positions integer;
+  v_distinct_players integer;
   v_sum numeric;
   v_weight numeric;
   v_buy_in numeric;
@@ -81,19 +82,21 @@ BEGIN
     RAISE EXCEPTION 'At least two results required' USING ERRCODE='22023';
   END IF;
 
-  SELECT count(*)::integer, sum(p.elo_rating),count(DISTINCT tr.position)::integer
-    INTO v_joined_n,v_sum,v_positions
+  SELECT count(*)::integer, sum(p.elo_rating),
+         count(DISTINCT tr.position)::integer,
+         count(DISTINCT tr.player_id)::integer
+    INTO v_joined_n,v_sum,v_positions,v_distinct_players
   FROM public.tournament_results tr
   JOIN public.players p ON p.id=tr.player_id
   WHERE tr.tournament_id=p_tournament_id;
 
-  IF v_joined_n <> v_n OR v_positions <> v_n
+  IF v_joined_n <> v_n OR v_positions <> v_n OR v_distinct_players <> v_n
      OR EXISTS (
        SELECT 1 FROM public.tournament_results tr
        WHERE tr.tournament_id=p_tournament_id
          AND (tr.position < 1 OR tr.position > v_n)
      ) THEN
-    RAISE EXCEPTION 'Inconsistent tournament result positions or players'
+    RAISE EXCEPTION 'Inconsistent tournament result positions or duplicate/missing players'
       USING ERRCODE='22023';
   END IF;
 
