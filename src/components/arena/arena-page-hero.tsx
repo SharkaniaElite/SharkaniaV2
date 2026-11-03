@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowUpRight, type LucideIcon } from "lucide-react";
 
 type ArenaPageHeroProps = {
-  section: "ranking" | "calendar" | "clubs" | "leagues" | "blog" | "news" | "tools" | "glossary" | "academy" | "elo";
+  section: "ranking" | "calendar" | "clubs" | "leagues" | "blog" | "news" | "tools" | "glossary" | "academy" | "elo" | "compare";
   eyebrow: string;
   heading: string;
   highlight?: string;
