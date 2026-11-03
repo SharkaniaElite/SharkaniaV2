@@ -8,6 +8,8 @@ import { signUp } from "../lib/api/auth";
 import { useAuthStore } from "../stores/auth-store";
 import { getProfile } from "../lib/api/auth";
 import { translateAuthError } from "../lib/format";
+import { SEOHead } from "../components/seo/seo-head";
+import { ArenaAuthFrame } from "../components/arena/arena-auth-frame";
 
 type RegistrationType = "player" | "club";
 
@@ -140,28 +142,26 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-sk-bg-1 flex items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <span className="text-3xl">🦈</span>
-            <span className="text-sk-xl font-extrabold text-sk-text-1 tracking-tight">Sharkania</span>
-          </Link>
-          <p className="text-sk-sm text-sk-text-2">Crea tu cuenta</p>
-        </div>
+    <ArenaAuthFrame mode="register" title="Únete a Sharkania" description="Registra tu perfil como jugador de póker o envía una solicitud para administrar un club.">
+      <SEOHead
+        title="Crear cuenta | Jugadores y clubes de póker"
+        description="Crea tu cuenta en Sharkania Arena para consultar el ranking ELO, torneos de póker y gestionar solicitudes de clubes."
+        path="/register"
+      />
+      <div className="arena-auth-form-stack">
 
         {/* Selector de tipo */}
         {!regType && !success && (
-          <div className="space-y-3">
+          <div className="arena-auth-account-choices">
             <button
               onClick={() => setRegType("player")}
               className="w-full bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5 text-left hover:border-sk-accent hover:bg-sk-bg-3 transition-all"
             >
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-2xl">🎮</span>
-                <span className="text-sk-md font-bold text-sk-text-1">Soy Jugador</span>
+                <span className="text-sk-md font-bold text-sk-text-1">Soy jugador de póker</span>
               </div>
-              <p className="text-sk-sm text-sk-text-2">Quiero ver mi ranking, stats y participar en torneos.</p>
+              <p className="text-sk-sm text-sk-text-2">Quiero consultar mi ranking ELO, mis resultados y los torneos registrados.</p>
             </button>
             <button
               onClick={() => setRegType("club")}
@@ -169,16 +169,16 @@ export function RegisterPage() {
             >
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-2xl">🏛️</span>
-                <span className="text-sk-md font-bold text-sk-text-1">Quiero Registrar un Club</span>
+                <span className="text-sk-md font-bold text-sk-text-1">Represento un club de póker</span>
               </div>
-              <p className="text-sk-sm text-sk-text-2">Soy organizador y quiero gestionar torneos y ligas.</p>
+              <p className="text-sk-sm text-sk-text-2">Quiero solicitar el registro de un club para administrar torneos y ligas.</p>
             </button>
           </div>
         )}
 
         {/* Success */}
         {success && (
-          <div className="bg-sk-green-dim border border-sk-green/20 rounded-lg p-5 text-center">
+          <div role="status" className="arena-auth-status bg-sk-green-dim border border-sk-green/20 rounded-lg p-5 text-center">
             <span className="text-3xl block mb-3">✅</span>
             <p className="text-sk-sm text-sk-green">{success}</p>
             <Link to="/login">
@@ -199,9 +199,11 @@ export function RegisterPage() {
             </button>
 
             <div>
-              <label className={labelClass}>Nombre *</label>
+              <label htmlFor="arena-register-name" className={labelClass}>Nombre *</label>
               <input
+                id="arena-register-name"
                 type="text"
+                autoComplete="name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 required
@@ -211,9 +213,11 @@ export function RegisterPage() {
             </div>
 
             <div>
-              <label className={labelClass}>Email *</label>
+              <label htmlFor="arena-register-email" className={labelClass}>Correo electrónico *</label>
               <input
+                id="arena-register-email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -223,8 +227,9 @@ export function RegisterPage() {
             </div>
 
             <div>
-              <label className={labelClass}>Contraseña *</label>
+              <label htmlFor="arena-register-password" className={labelClass}>Contraseña *</label>
               <input
+                id="arena-register-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -241,14 +246,16 @@ export function RegisterPage() {
             </div>
 
             <div>
-              <label className={labelClass}>
+              <label htmlFor="arena-register-whatsapp" className={labelClass}>
                 WhatsApp *{" "}
                 <span className="text-sk-text-3 font-normal tracking-normal lowercase">
                    (incluye código de país)
                 </span>
               </label>
               <input
+                id="arena-register-whatsapp"
                 type="tel"
+                autoComplete="tel"
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
                 required
@@ -258,8 +265,9 @@ export function RegisterPage() {
             </div>
 
             <div>
-              <label className={labelClass}>País de nacionalidad *</label>
+              <label htmlFor="arena-register-country" className={labelClass}>País de nacionalidad *</label>
               <select
+                id="arena-register-country"
                 value={countryCode}
                 onChange={(e) => { setCountryCode(e.target.value); setCountryOther(""); }}
                 required
@@ -292,9 +300,10 @@ export function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Nombre del Club *</label>
+                  <label htmlFor="arena-register-club-name" className={labelClass}>Nombre del club *</label>
                   <input
                     type="text"
+                    id="arena-register-club-name"
                     value={clubName}
                     onChange={(e) => setClubName(e.target.value)}
                     required
@@ -304,8 +313,9 @@ export function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>País del Club *</label>
+                  <label htmlFor="arena-register-club-country" className={labelClass}>País del club *</label>
                   <select
+                    id="arena-register-club-country"
                     value={clubCountry}
                     onChange={(e) => { setClubCountry(e.target.value); setClubCountryOther(""); }}
                     required
@@ -342,7 +352,7 @@ export function RegisterPage() {
             )}
 
             {error && (
-              <div className="bg-sk-red-dim border border-sk-red/20 rounded-md p-3 text-sk-sm text-sk-red">
+              <div role="alert" className="arena-auth-status bg-sk-red-dim border border-sk-red/20 rounded-md p-3 text-sk-sm text-sk-red">
                 {error}
               </div>
             )}
@@ -383,6 +393,6 @@ export function RegisterPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </ArenaAuthFrame>
   );
 }
