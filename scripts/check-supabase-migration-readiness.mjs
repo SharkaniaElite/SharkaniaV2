@@ -38,12 +38,14 @@ if (!existsSync(dir) || !existsSync(lockPath)) {
     return gitBlobSha(readFileSync(join(dir,m.file),"utf8")) !== m.git_blob_sha1;
   });
   const allSql = names.map(n => readFileSync(join(dir,n),"utf8")).join("\n");
-  // Core tables existed before 2026-03-20 and must be created by an authentic,
-  // schema-only baseline when reproducing a database from zero.
-  const requiredBaselineObjects = [
-    "players", "profiles", "tournaments", "tournament_results",
-    "clubs", "club_admins", "leagues", "user_purchases"
-  ];
+  // Full inventory of public tables from production metadata (no row data).
+  // The initial schema is older than the oldest recorded migration. This is a
+  // necessary table-only check; views, roles, functions and RLS also need QA.
+  const inventory = JSON.parse(readFileSync(resolve("supabase/schema-baseline-requirements.json"), "utf8"));
+  const requiredBaselineObjects = inventory.current_public_tables;
+  if (!Array.isArray(requiredBaselineObjects) || requiredBaselineObjects.length < 64) {
+    throw new Error("QA NO-GO: incomplete public table inventory");
+  }
   const missingBaselineObjects = requiredBaselineObjects.filter(table => {
     const matcher = new RegExp("CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(?:public\\.)?\"?" + table + "\"?\\b","i");
     return !matcher.test(allSql);
@@ -64,7 +66,8 @@ if (!existsSync(dir) || !existsSync(lockPath)) {
     console.log("PASS: all 50 historically applied migration files match the recovered SQL hashes.");
     if (!historyOnly) {
       if (missingBaselineObjects.length) {
-        console.error("QA NO-GO: no initial schema CREATE TABLE found for: " + missingBaselineObjects.join(", "));
+        console.error("QA NO-GO: schema baseline lacks CREATE TABLE for " + missingBaselineObjects.length + " / " + requiredBaselineObjects.length + " public tables.");
+        console.error("Examples: " + missingBaselineObjects.slice(0, 15).join(", "));
         console.error("Existing production tables predate the first recorded migration; an approved, schema-only baseline is required.");
         console.error("Do NOT create another billed Supabase branch or repair production migration history yet.");
         process.exitCode = 2;
