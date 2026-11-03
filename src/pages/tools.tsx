@@ -42,7 +42,7 @@ const TOOLS: ToolCard[] = [
     slug: "/tools/perfilador-salas",
     title: "Matchmaker de Salas",
     description:
-      "Descubre qué sala de poker online se adapta perfectamente a tu psicología, nivel y dispositivo en menos de 1 minuto.",
+      "Explora opciones de salas de póker online según tus preferencias y experiencia. Comprueba disponibilidad y condiciones en tu país.",
     image: "/images/tools/tool-sala-quiz.avif",
     icon: Target,
     color: "#ec4899", // Fucsia
@@ -56,7 +56,7 @@ const TOOLS: ToolCard[] = [
     slug: "/tools/quiz",
     title: "¿Qué tipo de jugador eres?",
     description:
-      "Enfréntate a 10 situaciones reales de torneo. Descubre tu perfil competitivo, tus debilidades estructurales y compártelo.",
+      "Responde diez situaciones de torneo para explorar tu estilo de decisión. El resultado es orientativo y puedes compartirlo.",
     image: "/bg/quiz.webp", // 👈 AQUÍ ACTUALIZAMOS LA RUTA DE LA IMAGEN
     icon: Brain,
     color: "#a78bfa", // Purple
@@ -70,7 +70,7 @@ const TOOLS: ToolCard[] = [
     slug: "/tools/calculadora-icm",
     title: "Calculadora ICM",
     description:
-      "Convierte tus fichas en dinero real. Calcula tu equity exacta en burbuja y mesa final usando el algoritmo Malmuth-Harville.",
+      "Estima el valor ICM de los stacks en burbuja y mesa final mediante el modelo Malmuth-Harville y la estructura de premios.",
     image: "/bg/icm.webp",
     icon: Calculator,
     color: "#22d3ee", // Cyan
@@ -83,7 +83,7 @@ const TOOLS: ToolCard[] = [
     slug: "/tools/simulador-elo",
     title: "Simulador de ELO",
     description:
-      "Proyecta cómo cambiaría tu ranking global según tu posición en distintos torneos. Simula escenarios contra cualquier field.",
+      "Simula cómo podría cambiar tu puntuación ELO en Sharkania según distintas posiciones y parámetros de torneo.",
     image: "/bg/elo.webp",
     icon: TrendingUp,
     color: "#34d399", // Green
@@ -96,7 +96,7 @@ const TOOLS: ToolCard[] = [
     slug: "/tools/calculadora-banca",
     title: "Calculadora de Banca",
     description:
-      "Ingresa tu bankroll y perfil de riesgo. Te dictamos qué buy-ins jugar y calculamos tu riesgo de ruina matemático con precisión.",
+      "Explora escenarios de gestión de banca según tu bankroll, los buy-ins y tus supuestos de riesgo. No garantiza resultados.",
     image: "/bg/bankroll.webp",
     icon: Wallet,
     color: "#fbbf24", // Gold
@@ -108,11 +108,11 @@ const TOOLS: ToolCard[] = [
     slug: "/ranking",
     title: "Stats Espía (Rayos X)",
     description:
-      "Desbloquea las estadísticas ocultas del field: Cashes, ITM%, ROI y Profit. Ve lo que tus rivales no quieren que veas.",
+      "Consulta indicadores y comparaciones avanzadas de jugadores y torneos de póker. Algunas métricas requieren acceso de pago.",
     image: "/bg/stats.webp",
     icon: Eye,
     color: "#a855f7", // Purple-500
-    badge: "Exclusivo",
+    badge: "Análisis avanzado",
     available: true,
     requiresAuth: true,
     priceLabel: "100 / mes",
