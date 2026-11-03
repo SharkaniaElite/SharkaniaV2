@@ -93,7 +93,7 @@ export async function getPlayerById(
     throw error;
   }
 
-  return data as PlayerWithRoom;
+  return data as unknown as PlayerWithRoom;
 }
 
 export async function getPlayerBySlug(
@@ -110,7 +110,7 @@ export async function getPlayerBySlug(
     throw error;
   }
 
-  return data as PlayerWithRoom;
+  return data as unknown as PlayerWithRoom;
 }
 
 export async function getPlayerEloHistory(
@@ -126,21 +126,32 @@ export async function getPlayerEloHistory(
   return (data as EloHistory[]) ?? [];
 }
 
+/**
+ * The untyped PostgREST client cannot infer singular nested FK joins from
+ * template-literal SELECTs. Cast only at this shared boundary; it does not
+ * bypass server-side authorization or validate the database response.
+ */
+type PlayerTournamentResult = TournamentResult & {
+  ccp_club?: string | null;
+  buy_ins_count?: number | null;
+  tournaments: {
+    id: string;
+    name: string;
+    slug: string;
+    buy_in: number;
+    currency?: string | null;
+    start_datetime: string;
+    clubs: { id: string; name: string; slug: string } | null;
+  };
+};
+type UnifiedPlayerTournamentResult = PlayerTournamentResult & {
+  players: { nickname: string };
+};
+
 export async function getPlayerTournamentResults(
   playerId: string,
   hasFullAccess = true
-): Promise<
-  (TournamentResult & {
-    tournaments: {
-      id: string;
-      name: string;
-      slug: string;
-      buy_in: number;
-      start_datetime: string;
-      clubs: { id: string; name: string; slug: string };
-    };
-  })[]
-> {
+): Promise<PlayerTournamentResult[]> {
   // UI/transfer optimization only. Underlying table access must be hardened
   // at the database level before this is a genuine subscription boundary.
   let query = supabase
@@ -154,7 +165,7 @@ export async function getPlayerTournamentResults(
 
   const { data, error } = await query;
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as unknown as PlayerTournamentResult[];
 }
 
 export async function searchPlayers(
@@ -169,7 +180,7 @@ export async function searchPlayers(
     .limit(limit);
 
   if (error) throw error;
-  return (data as PlayerWithRoom[]) ?? [];
+  return (data as unknown as PlayerWithRoom[]) ?? [];
 }
 
 /**
@@ -188,7 +199,7 @@ export async function updatePlayer(
     .single();
 
   if (error) throw error;
-  return data as PlayerWithRoom;
+  return data as unknown as PlayerWithRoom;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -264,19 +275,7 @@ export async function getUnifiedEloHistory(
 export async function getUnifiedTournamentResults(
   profileId: string,
   hasFullAccess = true
-): Promise<
-  (TournamentResult & {
-    tournaments: {
-      id: string;
-      name: string;
-      slug: string;
-      buy_in: number;
-      start_datetime: string;
-      clubs: { id: string; name: string; slug: string };
-    };
-    players: { nickname: string };
-  })[]
-> {
+): Promise<UnifiedPlayerTournamentResult[]> {
   const { data: playerIds } = await supabase
     .from("players")
     .select("id")
@@ -297,7 +296,7 @@ export async function getUnifiedTournamentResults(
 
   const { data, error } = await query;
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as unknown as UnifiedPlayerTournamentResult[];
 }
 
 // ══════════════════════════════════════════════════════════
