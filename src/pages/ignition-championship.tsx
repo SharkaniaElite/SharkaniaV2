@@ -291,6 +291,10 @@ export function IgnitionChampionshipPage() {
               Regístrate para recibir la contraseña de acceso.
             </p>
 
+            <a href="#vincular-nickname" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-orange-500 px-5 py-3 text-center text-sm font-extrabold text-black shadow-lg shadow-orange-500/15 transition-colors hover:bg-orange-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+              Ir al formulario de vinculación <ChevronRight size={17} aria-hidden="true" />
+            </a>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-black/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm hover:border-orange-500/50 transition-colors">
                 <div className="text-orange-500 mb-2"><Trophy size={24} /></div>
@@ -393,7 +397,7 @@ export function IgnitionChampionshipPage() {
           </div>
 
           {/* COLUMNA DERECHA: Formulario */}
-          <div className="relative">
+          <div id="vincular-nickname" className="relative scroll-mt-24">
             <div className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-red-600 rounded-2xl blur-xl opacity-20 animate-pulse" />
             <div className="bg-[#111] border border-white/10 rounded-2xl p-6 sm:p-8 relative shadow-2xl">
               
