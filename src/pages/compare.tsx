@@ -11,6 +11,8 @@ import {
 } from "../hooks/use-players";
 import { useAuthStore } from "../stores/auth-store";
 import { useFeatureAccess, useSharkCoinsBalance } from "../hooks/use-shop";
+import { useSecureStatsSpySummary } from "../hooks/use-stats-spy";
+import { SECURE_STATS_SPY_MODE } from "../lib/api/stats-spy";
 import { FlagIcon } from "../components/ui/flag-icon";
 import {
   formatElo,
@@ -124,7 +126,7 @@ function CompareRow({
     if (isPremium && !hasAccess) {
       return (
         <div className={`relative inline-flex items-center ${isA ? "justify-end" : "justify-start"} w-full`}>
-          <span className="blur-[6px] select-none opacity-60 pointer-events-none">{val}</span>
+          <span className="text-sk-xs text-sk-text-3 font-semibold">Bloqueado</span>
           <Lock size={12} className="absolute text-sk-text-1 opacity-80" />
         </div>
       );
@@ -241,12 +243,12 @@ function DualEloChart({ historyA, historyB, nameA, nameB }: { historyA: EloHisto
 
 // ── Main Page ──
 export function ComparePage() {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, profile } = useAuthStore();
   const { data: balance } = useSharkCoinsBalance();
   
   // Licencia real publicada en La Bóveda; debe coincidir con el control del RPC de Stats Espía.
   const { data: premiumAccess } = useFeatureAccess("cosmetic_extended_stats");
-  const hasPremiumAccess = premiumAccess?.has_access ?? false;
+  const hasPremiumAccess = profile?.role === "super_admin" || !!premiumAccess?.has_access;
 
   // 👇 1. Leemos el disco duro del navegador (localStorage) para ver si ya vino hoy
   const [hasUsedFreeDaily, setHasUsedFreeDaily] = useState(() => {
@@ -270,6 +272,8 @@ export function ComparePage() {
 
   const { data: playerA, isLoading: loadingA } = usePlayer(idA ?? undefined);
   const { data: playerB, isLoading: loadingB } = usePlayer(idB ?? undefined);
+  const securedA = useSecureStatsSpySummary(playerA?.slug, hasPremiumAccess);
+  const securedB = useSecureStatsSpySummary(playerB?.slug, hasPremiumAccess);
   const { data: historyA } = usePlayerEloHistory(idA ?? undefined);
   const { data: historyB } = usePlayerEloHistory(idB ?? undefined);
 
@@ -344,10 +348,34 @@ export function ComparePage() {
     ? (() => {
         const itmA = calcItm(playerA.total_cashes, playerA.total_tournaments);
         const itmB = calcItm(playerB.total_cashes, playerB.total_tournaments);
-        const roiA = calcRoi(playerA.total_prize_won, playerA.total_buy_ins_spent);
-        const roiB = calcRoi(playerB.total_prize_won, playerB.total_buy_ins_spent);
-        const profitA = playerA.total_prize_won - playerA.total_buy_ins_spent;
-        const profitB = playerB.total_prize_won - playerB.total_buy_ins_spent;
+        // In guarded mode, financial values must come exclusively from licensed
+        // server RPCs, not from public.players or from a visually blurred value.
+        const roiA = SECURE_STATS_SPY_MODE
+          ? securedA.data?.roi_percent ?? null
+          : calcRoi(playerA.total_prize_won, playerA.total_buy_ins_spent);
+        const roiB = SECURE_STATS_SPY_MODE
+          ? securedB.data?.roi_percent ?? null
+          : calcRoi(playerB.total_prize_won, playerB.total_buy_ins_spent);
+        const profitA = SECURE_STATS_SPY_MODE
+          ? securedA.data?.profit ?? null
+          : playerA.total_prize_won - playerA.total_buy_ins_spent;
+        const profitB = SECURE_STATS_SPY_MODE
+          ? securedB.data?.profit ?? null
+          : playerB.total_prize_won - playerB.total_buy_ins_spent;
+        const roiComparable = roiA !== null && roiB !== null &&
+          (!SECURE_STATS_SPY_MODE || (
+            !!securedA.data?.currency && !!securedB.data?.currency &&
+            !securedA.data.mixed_currencies && !securedB.data.mixed_currencies
+          ));
+        const profitComparable = roiComparable && profitA !== null && profitB !== null &&
+          (!SECURE_STATS_SPY_MODE || securedA.data?.currency === securedB.data?.currency);
+        const renderROI = (v: number | null) =>
+          v === null || !roiComparable ? "No comparable" : `${v >= 0 ? "+" : ""}${formatPercent(v)}`;
+        const renderProfit = (v: number | null) =>
+          v === null || !profitComparable ? "No comparable" :
+          (SECURE_STATS_SPY_MODE
+            ? `${securedA.data?.currency} ${v.toLocaleString("es-CL", { maximumFractionDigits: 2 })}`
+            : formatCurrency(v));
 
         return [
           { label: "ELO Rating", a: formatElo(playerA.elo_rating), b: formatElo(playerB.elo_rating), aWins: playerA.elo_rating > playerB.elo_rating, premium: false },
@@ -356,8 +384,8 @@ export function ComparePage() {
           { label: "Victorias", a: formatNumber(playerA.total_wins), b: formatNumber(playerB.total_wins), aWins: playerA.total_wins > playerB.total_wins, premium: false },
           { label: "Cashes", a: formatNumber(playerA.total_cashes), b: formatNumber(playerB.total_cashes), aWins: playerA.total_cashes > playerB.total_cashes, premium: true },
           { label: "ITM %", a: formatPercent(itmA), b: formatPercent(itmB), aWins: itmA > itmB, premium: true },
-          { label: "ROI", a: `${roiA >= 0 ? "+" : ""}${formatPercent(roiA)}`, b: `${roiB >= 0 ? "+" : ""}${formatPercent(roiB)}`, aWins: roiA > roiB, premium: true },
-          { label: "Profit", a: formatCurrency(profitA), b: formatCurrency(profitB), aWins: profitA > profitB, premium: true },
+          { label: "ROI", a: renderROI(roiA), b: renderROI(roiB), aWins: roiComparable ? roiA! > roiB! : null, premium: true },
+          { label: "Profit", a: renderProfit(profitA), b: renderProfit(profitB), aWins: profitComparable ? profitA! > profitB! : null, premium: true },
         ];
       })()
     : [];
@@ -458,9 +486,9 @@ export function ComparePage() {
                     <div className="w-full h-px my-6 bg-gradient-to-r from-transparent via-sk-border-3 to-transparent" />
 
                     <div>
-                      {/* Le pasamos true a hasAccess porque si llegó aquí, el paywall ya le dio permiso */}
+                      {/* Legacy daily compare remains; guarded mode never exposes financial values without entitlement. */}
                       {compareData.map((row) => (
-                        <CompareRow key={row.label} label={row.label} valueA={row.a} valueB={row.b} aWins={row.aWins} isPremium={false} hasAccess={true} />
+                        <CompareRow key={row.label} label={row.label} valueA={row.a} valueB={row.b} aWins={row.aWins} isPremium={row.premium && SECURE_STATS_SPY_MODE} hasAccess={hasPremiumAccess} />
                       ))}
                     </div>
                   </div>
