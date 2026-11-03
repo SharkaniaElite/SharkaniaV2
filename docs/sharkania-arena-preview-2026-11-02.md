@@ -273,3 +273,30 @@ Hallazgo inicial: las rutas comerciales y de video seguían montando `<PageShell
 - Reiteración de seguridad: rediseñar el dashboard NO modifica la exposición SQL pendiente de `Stats Espía`. Se mantiene el runbook de migración a RPC segura y pruebas aisladas antes de fusionar.
 
 Próxima prioridad: QA funcional autenticado con cuentas de prueba, consistencia del área privada, y posteriormente cierre de seguridad Stats Espía. No fusionar PR #64 aún.
+
+
+## Etapa 13 — acceso Preview, diagnóstico Turnstile y demostración segura (3 noviembre 2026)
+
+**Motivación:** el propietario no podía iniciar sesión en `*.sharkaniav2.pages.dev/login` para probar el panel y el Replayer. La captura mostraba espacio vacío donde debía estar la verificación.
+
+### Diagnóstico de infraestructura (consultas read-only)
+- Cloudflare Pages `sharkaniav2`: en `deployment_configs.preview.env_vars` se encontraban `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, **pero faltaba `VITE_TURNSTILE_SITE_KEY`**. La variable está presente solo en la configuración de producción.
+- Widget Turnstile «Sharkania Prod & Dev»: hostnames permitidos `sharkania.com`, `www.sharkania.com`, `localhost` y `127.0.0.1`; **ningún hostname de Pages Preview**. El sitekey es público, pero agregarlo al Preview por sí solo no solucionaría la restricción de host.
+- Cliente `src/lib/supabase.ts` de Preview ya está configurado mediante variables (valores protegidos), pero no existe evidencia de que se trate de un backend de autenticación aislado: no asumir independencia del proyecto real. Auth confirma/recovery utilizan `window.location.origin` como retorno, que además requiere URLs de redirección autorizadas si se configurara un backend de pruebas.
+- La lista de Supabase branches no mostraba una rama de desarrollo independiente; `main` aparecía como rama predeterminada. **No se creó ninguna rama ni se incurrió en costos.**
+
+### Corrección segura ya incorporada en el PR #64
+- `src/lib/arena-preview.ts`: identifica exclusivamente hosts `*.sharkaniav2.pages.dev`; en ellos mantiene operaciones autenticadas bloqueadas, salvo autorización explícita futura por variable de build `VITE_ARENA_ALLOW_PREVIEW_AUTH=true` **solo después** de tener Supabase Auth independiente, Turnstile/hostnames correctos y flujos de correo aislados.
+- `ProtectedRoute`: redirige a `/__arena-qa` en Preview. No permite llegar por error a dashboard, admin o herramientas que usan cuentas reales.
+- `/login`, `/register`, `/forgot-password`, `/update-password`: rechazan submit autenticado desde Preview no configurado; botones inhabilitados, Turnstile no se muestra en ausencia de entorno válido. `ArenaAuthFrame` explica el motivo y enlaza a demostración.
+- `/__arena-qa`: ruta solo visible en Pages Preview, `noindex` y redirección a home en producción. Incluye panel ficticio con estilos Arena (nickname, país, Shark Coins, nivel, XP y estado de Ignition completamente **sintéticos**) y editor de nombre local, junto a **Replayer funcional en navegador** que utiliza el motor real `createDemoHand`, `stepForward`, `stepBackward`, `goToStep`, `PokerTable`, `ReplayControls` y fullscreen. No guarda ni lee datos de cuentas reales, no envía correos ni comparte manos a Supabase.
+- Estilos responsive `arena-preview-qa.css` y aviso `arena-workspaces.css`.
+- Test `tests/arena-preview-auth-isolation.test.mjs`: asegura exclusividad de host, no autenticación/escrituras y conservación de controles del Replayer. 4/4 GitHub Actions verdes; Vite compilado correctamente por Cloudflare.
+
+### Validación realizada y pasos pendientes
+- Se detectó un despliegue Preview previo bloqueado en `initialize` sin logs. Se eliminó **solo ese intento anterior**, tras validar que era Preview, no producción, sin alias y no el último de la rama. La cola se liberó y la build actual pasó a `deploy:success`.
+- Renderización real a 390px validó `/__arena-qa?view=panel`, `/__arena-qa?view=replayer` y `/login` con nuevo aviso y link. No se capturaron credenciales ni se autenticó a una cuenta real.
+- **Pendiente para pruebas funcionales reales:** crear/configurar un Supabase Auth aislado con usuarios inventados; configurar Turnstile adecuado para el dominio de pruebas, sus secretos solo en el proveedor y allowlists de URLs; y presupuestar y limitar el costo del entorno. No basta copiar una sitekey pública ni desactivar CAPTCHA.
+- **No se modificaron** el widget Turnstile de producción, el Supabase Auth real, las claves públicas/privadas, el dominio principal ni el PR (todavía DRAFT) mediante merge.
+
+Enlace de Preview confirmado para revisar visualmente el entorno sin login: `/__arena-qa`.
