@@ -1,33 +1,76 @@
 /**
- * Read-only migration-preflight: check whether this checkout can initialize
- * a fresh Supabase QA database before creating a billed branch.
+ * Fail-closed, offline Supabase migration readiness check.
  *
- * No Supabase credentials, network calls or writes. EXIT 2 means QA NOT READY.
+ *   npm run qa:migrations:history   -> verifies all historical SQL files and hashes
+ *   npm run qa:migrations           -> also requires an initial schema baseline
+ *
+ * No credentials, network calls, SQL execution, costs or database writes.
+ * A green history check alone is NOT proof fresh QA database creation will work.
  */
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
+
 const dir = resolve("supabase/migrations");
-if (!existsSync(dir)) {
-  console.error("QA NO-GO: supabase/migrations is missing.");
+const lockPath = resolve("supabase/migration-history.lock.json");
+const historyOnly = process.argv.includes("--history-only");
+
+function gitBlobSha(source) {
+  const bytes = Buffer.from(source, "utf8");
+  return createHash("sha1")
+    .update(Buffer.from("blob " + bytes.length + "\0"))
+    .update(bytes)
+    .digest("hex");
+}
+
+if (!existsSync(dir) || !existsSync(lockPath)) {
+  console.error("QA NO-GO: required migrations or migration-history.lock.json not found.");
   process.exitCode = 2;
 } else {
-  const names = readdirSync(dir).filter(n => n.toLowerCase().endsWith(".sql")).sort();
+  const lock = JSON.parse(readFileSync(lockPath, "utf8"));
+  const names = readdirSync(dir).filter(n => n.endsWith(".sql")).sort();
   const malformed = names.filter(n => !/^\d{14}_[a-zA-Z0-9_-]+\.sql$/.test(n));
-  const duplicateVersions = names.map(n => n.slice(0,14)).filter((v,i,a)=>a.indexOf(v)!==i);
-  const text = names.map(n => readFileSync(join(dir,n),"utf8")).join("\n");
-  const missingBaselineObjects = ["players","profiles","tournaments","tournament_results","clubs"]
-    .filter(table => !new RegExp("CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(?:public\\.)?[\x22]?" + table + "[\x22]?\\b","i").test(text));
-  console.log("Supabase migration preflight: " + names.length + " SQL files.");
-  if (malformed.length) console.error("Malformed migration versions:\n"+malformed.map(n=>"  - "+n).join("\n"));
-  if (duplicateVersions.length) console.error("Duplicate version prefixes: "+[...new Set(duplicateVersions)].join(", "));
-  if (missingBaselineObjects.length) {
-    console.error("Required baseline CREATE TABLE statements not found in local migrations: "+missingBaselineObjects.join(", "));
-    console.error("This is a static check, not proof of the exact provider migration failure.");
-  }
-  if (malformed.length || duplicateVersions.length || missingBaselineObjects.length) {
-    console.error("QA NO-GO: inspect remote migration history, recover an approved schema baseline, and test locally before creating a billed Supabase branch.");
+  const duplicates = names.map(n => n.slice(0,14)).filter((v,i,a) => a.indexOf(v) !== i);
+  const historical = lock.applied_migrations || [];
+  const missing = historical.filter(m => !names.includes(m.file));
+  const altered = historical.filter(m => {
+    if (!names.includes(m.file)) return false;
+    return gitBlobSha(readFileSync(join(dir,m.file),"utf8")) !== m.git_blob_sha1;
+  });
+  const allSql = names.map(n => readFileSync(join(dir,n),"utf8")).join("\n");
+  // Core tables existed before 2026-03-20 and must be created by an authentic,
+  // schema-only baseline when reproducing a database from zero.
+  const requiredBaselineObjects = [
+    "players", "profiles", "tournaments", "tournament_results",
+    "clubs", "club_admins", "leagues", "user_purchases"
+  ];
+  const missingBaselineObjects = requiredBaselineObjects.filter(table => {
+    const matcher = new RegExp("CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(?:public\\.)?\"?" + table + "\"?\\b","i");
+    return !matcher.test(allSql);
+  });
+  console.log("Sharkania: " + historical.length + " locked applied migrations; " + names.length + " SQL files.");
+
+  if (malformed.length) console.error("Malformed migration names: " + malformed.join(", "));
+  if (duplicates.length) console.error("Duplicate migration versions: " + [...new Set(duplicates)].join(", "));
+  if (missing.length) console.error("Missing applied SQL: " + missing.map(m => m.version).join(", "));
+  if (altered.length) console.error("Previously applied SQL was changed: " + altered.map(m => m.version).join(", "));
+
+  const historicalOk = !malformed.length && !duplicates.length && !missing.length && !altered.length
+    && historical.length === 50;
+  if (!historicalOk) {
+    console.error("QA NO-GO: the recorded production migration history is not faithfully preserved.");
     process.exitCode = 2;
   } else {
-    console.log("Local filename and baseline shape checks passed. Still validate against remote history and a local PostgreSQL instance.");
+    console.log("PASS: all 50 historically applied migration files match the recovered SQL hashes.");
+    if (!historyOnly) {
+      if (missingBaselineObjects.length) {
+        console.error("QA NO-GO: no initial schema CREATE TABLE found for: " + missingBaselineObjects.join(", "));
+        console.error("Existing production tables predate the first recorded migration; an approved, schema-only baseline is required.");
+        console.error("Do NOT create another billed Supabase branch or repair production migration history yet.");
+        process.exitCode = 2;
+      } else {
+        console.log("Preliminary schema checks passed; a fresh local database reset and test user flows are still required.");
+      }
+    }
   }
 }
