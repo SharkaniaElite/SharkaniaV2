@@ -150,6 +150,7 @@ function LivePollPanel() {
 // ── PÁGINA PRINCIPAL ──────────────────────────────────────────────────────
 export function LiveStreamPage() {
   const [videoUrl, setVideoUrl] = useState("");
+  const [configLoaded, setConfigLoaded] = useState(false);
   const [streamTitle, setStreamTitle] = useState("Transmisión en Vivo");
   const [streamDesc, setStreamDesc] = useState("Acompaña a nuestros especialistas en el análisis de las mejores manos.");
 
@@ -166,8 +167,9 @@ export function LiveStreamPage() {
           if (conf.key === "live_stream_description" && conf.value) setStreamDesc(conf.value);
         });
       }
+      setConfigLoaded(true);
     };
-    fetchConfigs();
+    void fetchConfigs().catch(() => setConfigLoaded(true));
 
     const channel = supabase.channel('stream_live_configs')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_configs' }, 
@@ -184,7 +186,7 @@ export function LiveStreamPage() {
   return (
     <PageShell variant="arena" showMarketing>
       <SEOHead 
-        title={`🔴 EN VIVO: ${streamTitle}`} 
+        title="Transmisiones de póker" 
         description={streamDesc}
         path="/live"
       />
@@ -194,20 +196,30 @@ export function LiveStreamPage() {
         {/* 🎬 AREA DEL STREAMING (Izquierda) */}
         <div className="flex-1 flex flex-col overflow-y-auto scrollbar-thin">
           <div className="w-full bg-black relative aspect-video border-b border-sk-border-2 shadow-2xl">
-            <iframe
-              src={formatStreamUrl(videoUrl)}
-              className="absolute inset-0 w-full h-full"
-              frameBorder="0"
-              allowFullScreen
-            />
+            {videoUrl.trim() ? (
+              <iframe
+                src={formatStreamUrl(videoUrl)}
+                title={`Transmisión de póker: ${streamTitle}`}
+                className="absolute inset-0 w-full h-full"
+                frameBorder="0"
+                allowFullScreen
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-gradient-to-br from-[#092233] to-[#061018]" role="status">
+                <Tv size={38} className="text-sk-accent" aria-hidden="true" />
+                <p className="text-sk-md font-bold text-sk-text-1">{configLoaded ? "No hay una transmisión configurada en este momento" : "Consultando las transmisiones disponibles"}</p>
+                <p className="text-sk-sm text-sk-text-3">Consulta SharkTV para ver los contenidos de póker publicados.</p>
+                <Link to="/tv" className="text-sk-accent text-sk-sm font-semibold hover:underline">Ir a SharkTV</Link>
+              </div>
+            )}
           </div>
 
           <div className="p-6 md:p-8 max-w-5xl mx-auto w-full">
             <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
               <div>
                 <div className="flex items-center gap-3 mb-3">
-                  <Badge variant="accent" className="bg-red-500/10 text-red-500 border-red-500/20 animate-pulse flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full" /> TRANSMISIÓN OFICIAL
+                  <Badge variant="accent" className="bg-sk-accent/10 text-sk-accent border-sk-accent/20 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-sk-accent rounded-full" /> CANAL DE TRANSMISIONES
                   </Badge>
                   <span className="text-sk-xs text-sk-text-3 font-mono flex items-center gap-1 bg-sk-bg-2 px-2 py-1 rounded border border-sk-border-2">
                     <Tv size={12} className="text-sk-accent" /> Pokerkai x Sharkania
