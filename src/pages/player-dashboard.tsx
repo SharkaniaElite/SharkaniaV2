@@ -404,6 +404,9 @@ export function PlayerDashboardPage() {
                 <p className="text-sk-sm text-sk-text-3">
                   Vincula tu <strong className="text-orange-400">Email y Nickname</strong> de Ignition Póker para participar en la Liga SHARKANIA: buy-in US$3,30, US$100 garantizados por fecha, reentry y registro tardío durante 60 minutos. Recibirás el acceso a los torneos y podrás sumar puntos para el ranking mensual. La vinculación es necesaria para acreditar tus posiciones y premios.
                 </p>
+                <p className="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 p-3 text-xs font-semibold leading-relaxed text-amber-100">
+                  El bounty de cada fecha y los premios adicionales de fin de mes son exclusivos para quienes se inscribieron a la Liga SHARKANIA a través de este sitio y tienen su nickname de Ignition vinculado. Si ya lo hiciste antes, no te registres nuevamente; revisa tu estado aquí.
+                </p>
 
                 {!isIgnitionLinked && (
                   <a 
