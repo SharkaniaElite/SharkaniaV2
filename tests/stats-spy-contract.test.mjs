@@ -120,6 +120,17 @@ test("QA role test harness is syntactically valid and explicitly blocks producti
 });
 
 // Pending cross-system security work is intentionally visible, not falsely green.
+
+test("Legacy financial display suppresses ROI when currencies are mixed or history is incomplete", () => {
+  assert.match(profile, /legacyCurrencySet/);
+  assert.match(profile, /legacyHistoryComplete/);
+  assert.match(profile, /legacyFinancialComparable/);
+  assert.match(profile, /legacyCurrencySet\.size === 1/);
+  assert.match(profile, /legacyCurrencySet\.has\("SIN_MONEDA"\)/);
+  assert.match(profile, /legacyPrizes/);
+  assert.match(profile, /financialCurrency=\{useGuardedPremium/);
+});
+
 test.todo("Cut over public player select-star queries to explicitly allowed columns");
 test.todo("Revoke premium column access and legacy SQL RPC bypasses after all clients migrate");
 test.todo("Run live anon / expired / paid / superadmin role checks in isolated Supabase database");
