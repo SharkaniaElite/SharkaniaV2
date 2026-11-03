@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom"; // 👈 Añadido useLo
 import { Spinner } from "../ui/spinner";
 import { useAuthStore } from "../../stores/auth-store";
 import type { UserRole } from "../../types";
+import { isArenaPreviewAuthBlocked } from "../../lib/arena-preview";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,6 +13,12 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, profile } = useAuthStore();
   const location = useLocation(); // 👈 Capturamos la ubicación actual
+
+  // Never render authenticated production-backed pages in public preview deployments.
+  // The synthetic QA route remains public and uses no account data.
+  if (isArenaPreviewAuthBlocked()) {
+    return <Navigate to="/__arena-qa" replace />;
+  }
 
   if (isLoading) {
     return (
