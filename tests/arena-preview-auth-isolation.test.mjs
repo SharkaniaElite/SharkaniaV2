@@ -8,6 +8,9 @@ test("Preview QA is isolated to Pages preview host and cannot run on production 
   const gates = src("src/lib/arena-preview.ts");
   assert.match(gates, /hostname\.endsWith\("\.sharkaniav2\.pages\.dev"\)/);
   assert.match(gates, /VITE_ARENA_ALLOW_PREVIEW_AUTH !== "true"/);
+  assert.match(gates, /VITE_ARENA_QA_SUPABASE_REF/);
+  assert.match(gates, /actualRef !== "nhpjzywfzljtlqaigzed"/);
+  assert.match(gates, /VITE_TURNSTILE_SITE_KEY/);
   const qa = src("src/pages/arena-preview-qa.tsx");
   assert.match(qa, /if \(!isArenaPreviewHost\(\)\) return <Navigate to="\/" replace\/>/);
   assert.match(qa, /noIndex/);
