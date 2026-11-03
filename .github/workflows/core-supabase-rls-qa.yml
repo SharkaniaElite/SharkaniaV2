@@ -1,4 +1,4 @@
-name: Validate core Supabase RLS proposal (isolated PostgreSQL)
+name: Validate core Supabase RLS and guarded ELO proposals (isolated PostgreSQL)
 on:
   pull_request:
     branches: [main]
@@ -41,3 +41,9 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-rls-qa-setup.sql
       - name: Test actual SQL proposal under anonymous, player, club-admin, finance and superadmin
         run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-rls-qa-assert.sql
+      - name: Create separate PostgreSQL 17 ELO test database (synthetic data only)
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_elo'
+      - name: Prepare synthetic results, users and permissions for guarded ELO
+        run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-setup.sql
+      - name: Exercise real guarded ELO RPC on fake data (authorization, formula, retries)
+        run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-assert.sql
