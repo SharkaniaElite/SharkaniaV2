@@ -207,6 +207,9 @@ export function ReplayControls({
 
   return (
     <div
+      role="region"
+      aria-label="Acciones y controles de reproducción de póker"
+      className="arena-replay-controls"
       style={{
         width: "100%",
         maxWidth: "780px",
@@ -219,6 +222,7 @@ export function ReplayControls({
     >
       {/* ── Panel superior: log + sparkline ──────────── */}
       <div
+        className="arena-replay-controls-summary"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 200px",
