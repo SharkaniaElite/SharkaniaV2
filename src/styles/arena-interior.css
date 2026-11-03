@@ -1093,3 +1093,13 @@
   .arena-learning-page .arena-module-header{padding:20px}
   .arena-article-page .arena-article-content{padding-top:30px}
 }
+
+/* A 13-letter title must fit at 320–390px; do not split "HERRAMIENTAS" mid-word. */
+@media(max-width:560px){
+  .arena-page-hero--tools .arena-page-title{
+    font-size:clamp(27px,7.5vw,35px);
+    letter-spacing:-.06em;
+    overflow-wrap:normal;
+    word-break:normal;
+  }
+}
