@@ -36,8 +36,8 @@ export function EloChart({ history, isLoading }: EloChartProps) {
     elo: Math.round(h.elo_after),
     change: Math.round(h.elo_change),
   }));
-  const firstElo = chartData[0].elo;
-  const latestElo = chartData[chartData.length - 1].elo;
+  const firstElo = chartData[0]?.elo ?? 0;
+  const latestElo = chartData[chartData.length - 1]?.elo ?? 0;
   const delta = latestElo - firstElo;
 
   return (
