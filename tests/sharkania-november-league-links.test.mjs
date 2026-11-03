@@ -70,3 +70,36 @@ test("Ignition landing has a keyboard-accessible shortcut to its nickname form",
   assert.match(ignition, /Ir al formulario de vinculación/);
   assert.match(ignition, /<Turnstile/);
 });
+
+
+test("Ignition clearly distinguishes download via Sharkania from a returning league participant", () => {
+  const ignition = read("src/pages/ignition-championship.tsx");
+  assert.match(ignition, /Descarga Ignition desde el enlace de SHARKANIA/);
+  assert.match(ignition, /Descargar Ignition desde SHARKANIA/);
+  assert.match(ignition, /No necesitas registrarte nuevamente/);
+  assert.match(ignition, /Si ya tienes una cuenta SHARKANIA con tu nickname de Ignition vinculado o pendiente de revisión/);
+  assert.match(ignition, /Ya tengo cuenta: iniciar sesión/);
+  assert.match(ignition, /rel="sponsored noopener noreferrer"/);
+});
+
+test("Existing-account login cannot overwrite a previously verified Ignition nickname or status", () => {
+  const ignition = read("src/pages/ignition-championship.tsx");
+  const loginStart = ignition.indexOf("if (isExistingUser) {");
+  const signupStart = ignition.indexOf("// FLUJO 2: SIGN UP", loginStart);
+  assert.ok(loginStart >= 0 && signupStart > loginStart);
+  const loginFlow = ignition.slice(loginStart, signupStart);
+  assert.match(loginFlow, /signInWithPassword/);
+  assert.match(loginFlow, /getProfile\(data.session.user.id\)/);
+  assert.match(loginFlow, /navigate\("\/dashboard\?highlight=ignition"\)/);
+  assert.doesNotMatch(loginFlow, /ignition_status: 'pending'/);
+  assert.doesNotMatch(loginFlow, /from\('profiles'\)\.update/);
+  assert.doesNotMatch(loginFlow, /auth\.updateUser/);
+  assert.doesNotMatch(loginFlow, /check_ignition_duplicate/);
+});
+
+test("League detail also explains that pre-registered participants do not enroll again", () => {
+  const league = read("src/pages/league-detail.tsx");
+  assert.match(league, /descárgalo usando el enlace de SHARKANIA/);
+  assert.match(league, /No necesitas registrarte nuevamente/);
+  assert.match(league, /Descargar Ignition y vincular nickname/);
+});
