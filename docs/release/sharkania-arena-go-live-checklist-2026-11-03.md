@@ -117,3 +117,30 @@ Por decisión del propietario, **no invertir más tiempo en auditoría/remediaci
 **Prioridad técnica nueva:** permisos P0 de `tournament_clubs`, tablas ACC de pagos, `site_configs`, `live_polls` y `blog_embeddings`; Stats Espía mantiene bloqueo P0. La propuesta RLS **no aplicada** y la matriz de roles están en [Plan RLS sin SharkTV](../security/non-sharktv-rls-hardening-plan-2026-11-03.md). El modelo de permisos de `current_league_champion`, `players` y `leagues` requiere revisión funcional antes de cambiarlo.
 
 **Estado:** solo documentación, tests estáticos y propuesta de SQL en rama Preview. CI de frontend no certifica RLS en producción. Faltan pruebas reales en ambiente aislado y aprobación para cambios SQL. NO-GO.
+
+
+## Auditoría incremental de preparación final — 3 de noviembre (continuación PR #64)
+
+### Corregido en Preview; no aplicado sobre producción
+
+- **Acceso /ignition:** el formulario público estaba fuera de `ProtectedRoute` y no comprobaba `isArenaPreviewAuthBlocked()`. Ya se bloquean login y registro en Preview cuando usa el proyecto productivo. El `AuthInitializer` evita crear una sesión autenticada allí.
+- **Motor ELO:** cuando `VITE_ELO_GUARDED_RPC=true`, los formularios legados de alta/edición ahora rechazan la operación **antes de crear jugadores, resetear torneos o insertar resultados**, evitando escrituras parciales durante un corte prematuro. No es la implementación definitiva del flujo protegido; el interruptor **permanece apagado** hasta que exista un endpoint transaccional de alta, edición y reversión.
+- **Datos financieros:** la propuesta Stats Espía suma `prize_won + bounties_won` por moneda, y los tests SQL de PostgreSQL 17 comprueban esas cantidades junto con reentradas. El perfil antiguo marca como no comparable el ROI cuando el historial está incompleto o mezcla monedas. No se retocó ningún saldo histórico.
+- **CI / Cloudflare:** las pruebas de contratos, el TypeScript estricto y el SQL sintético se ejecutan sin datos reales. Cloudflare Preview publica commits del PR automáticamente; eso **no publica** `main`.
+
+### P0 aún abiertos — no confundir CI verde con GO
+
+1. **Estructura Supabase:** 50 migraciones históricas preservadas, pero faltan objetos anteriores a la primera migración; las exportaciones de 2026-11-03 son snapshots posteriores sin propietarios ni ACL. No ejecutar `migration repair` en producción ni crear otra rama facturable antes de diseñar restauración limpia.
+2. **Stats Espía / grants:** PostgreSQL productivo conserva `anon SELECT` de cifras financieras y `get_unified_player_stats` ejecutable por anónimos. Las RPC premium nuevas aún NO están instaladas. La vista protegida solo será privada tras retirar las rutas SQL alternativas y probar todos los clientes en QA.
+3. **Integridad ELO:** `calculateElo` heredado sigue procesando resultados mediante múltiples llamadas; el SQL protegido es propuesta, no código activo. Los formularios de carga, edición y las operaciones de reset deben migrar **en conjunto** a escritura transaccional autorizada. La función existente `reset_tournament_impact` reconstruye historial usando orden por identificador de `elo_history`, no por cronología; requiere ensayo específico de edición retroactiva para no corromper estadísticas posteriores.
+4. **Auth / compras:** Turnstile, registro, login, verificación y recuperación de cuenta, expiración de licencia, pago, Shark Coins y vinculación Ignition no han superado aún E2E contra Supabase QA aislado.
+5. **Release:** pendientes revisión visual y de enlaces comerciales/SEO en 320/390/1440 px y aprobación de la última versión, captura de SHA de producción para rollback y autorización explícita de merge.
+
+### Dependencias y orden de corte
+
+- **Primero** resolver el baseline en equipo confiable, con los dumps `public` y `private` ya exportados. Las pruebas de CI sintéticas no reemplazan la restauración completa.
+- **Después** levantar QA independiente sin datos personales, habilitar Turnstile de prueba, probar los SQL propuestos y los permisos de roles; simular nueva inscripción, torneo con reentradas y edición de un torneo anterior con historial posterior.
+- **Luego** completar el frontend y el backend transaccional, limitar SELECT/UPDATE directos, revisar ranking/ligas/perfiles/comparador/compras y ejecutar regresiones contra la misma versión que se pretende publicar.
+- **Finalmente** aprobar merge y mantener rollback documentado; no modificar producción por esta lista.
+
+**Decisión actual: NO-GO.** Código adicional en Preview no resuelve por sí mismo los bloqueos P0 de Supabase/Auth. Ninguna aprobación de tests sintéticos debe usarse como autorización para cambiar privilegios de producción.
