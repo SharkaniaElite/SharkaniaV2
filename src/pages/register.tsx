@@ -10,6 +10,7 @@ import { getProfile } from "../lib/api/auth";
 import { translateAuthError } from "../lib/format";
 import { SEOHead } from "../components/seo/seo-head";
 import { ArenaAuthFrame } from "../components/arena/arena-auth-frame";
+import { isArenaPreviewAuthBlocked } from "../lib/arena-preview";
 
 type RegistrationType = "player" | "club";
 
@@ -39,6 +40,7 @@ const LATAM_COUNTRIES = [
 ];
 
 export function RegisterPage() {
+  const previewBlocked = isArenaPreviewAuthBlocked();
   const [regType, setRegType] = useState<RegistrationType | null>(null);
 
   // Campos comunes
@@ -76,6 +78,7 @@ export function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (previewBlocked) return;
     setError("");
     setSuccess("");
 
@@ -357,7 +360,7 @@ export function RegisterPage() {
               </div>
             )}
 
-            <div className="flex justify-center py-2 min-h-[65px]">
+            {!previewBlocked && <div className="flex justify-center py-2 min-h-[65px]">
               <Turnstile
                 ref={turnstileRef}
                 siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
@@ -366,7 +369,7 @@ export function RegisterPage() {
                 onExpire={() => setCaptchaToken(null)}
                 options={{ theme: "dark" }}
               />
-            </div>
+            </div>}
 
             <Button
               type="submit"
@@ -374,7 +377,7 @@ export function RegisterPage() {
               size="lg"
               className="w-full"
               isLoading={loading}
-              disabled={!captchaToken || loading}
+              disabled={previewBlocked || !captchaToken || loading}
             >
               {regType === "player" ? "Crear Cuenta" : "Enviar Solicitud"}
             </Button>
