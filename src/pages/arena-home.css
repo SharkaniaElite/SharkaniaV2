@@ -51,7 +51,7 @@
 .arena-hero-mark { display: flex; align-items: baseline; gap: 5px; font-size: 11px; color: var(--arena-gold); letter-spacing: .1em; margin-top: 40px; height: 15px; }
 .arena-hero h1 {
   font-family: var(--sk-font, system-ui); font-weight: 900; letter-spacing: -.078em;
-  font-size: clamp(62px, 7.6vw, 112px); line-height: .94;
+  font-size: clamp(56px, 6vw, 86px); line-height: 1.01;
   color: var(--arena-white); margin: 14px 0 28px;
 }
 .arena-hero h1 em { color: var(--arena-cyan); font-style: normal; }
