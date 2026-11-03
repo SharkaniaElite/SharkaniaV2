@@ -154,50 +154,66 @@ export function RankingPage() {
             </Link>
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            <div className="flex-1">
-              <Input
-                variant="search"
-                placeholder="Buscar jugador..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-              />
+          <section className="arena-ranking-filters" aria-label="Filtros del ranking">
+            <div className="arena-ranking-filters-head">
+              <div>
+                <strong>Explorar clasificación</strong>
+                <p>Encuentra jugadores por nombre, país o plataforma.</p>
+              </div>
+              <button
+                type="button"
+                className="arena-ranking-reset"
+                disabled={!search && !countryCode && !roomId}
+                onClick={() => { setSearch(""); setCountryCode(""); setRoomId(""); setPage(1); }}
+              >
+                Limpiar filtros
+              </button>
             </div>
+            <div className="arena-ranking-filter-grid">
+              <div className="arena-ranking-filter-field">
+                <label htmlFor="arena-ranking-search">Jugador</label>
+                <Input
+                  id="arena-ranking-search"
+                  variant="search"
+                  placeholder="Buscar por nickname..."
+                  autoComplete="off"
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                />
+              </div>
+              <div className="arena-ranking-filter-field">
+                <label htmlFor="arena-ranking-country">País</label>
+                <select
+                  id="arena-ranking-country"
+                  value={countryCode}
+                  onChange={(e) => { setCountryCode(e.target.value); setPage(1); }}
+                >
+                  {COUNTRIES.map((country) => (
+                    <option key={country.code} value={country.code}>{country.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="arena-ranking-filter-field">
+                <label htmlFor="arena-ranking-room">Plataforma</label>
+                <select
+                  id="arena-ranking-room"
+                  value={roomId}
+                  onChange={(e) => { setRoomId(e.target.value); setPage(1); }}
+                >
+                  <option value="">Todas las salas</option>
+                  {roomsData?.map((room) => (
+                    <option key={room.id} value={room.id}>{room.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </section>
 
-            <select
-              value={countryCode}
-              onChange={(e) => {
-                setCountryCode(e.target.value);
-                setPage(1);
-              }}
-              className="bg-sk-bg-2 border border-sk-border-2 rounded-md px-3 py-2.5 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={roomId}
-              onChange={(e) => {
-                setRoomId(e.target.value);
-                setPage(1);
-              }}
-              className="bg-sk-bg-2 border border-sk-border-2 rounded-md px-3 py-2.5 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
-            >
-              <option value="">Todas las salas</option>
-              {roomsData?.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.name}
-                </option>
-              ))}
-            </select>
+          <div className="arena-ranking-results-heading" aria-live="polite">
+            <strong>Tabla de clasificación</strong>
+            <span>
+              {isFetching ? "Actualizando resultados…" : `${totalCount.toLocaleString("es-CL")} jugadores · Página ${page} de ${totalPages}`}
+            </span>
           </div>
 
           {/* Table */}
