@@ -6,6 +6,7 @@ import { Modal } from "../ui/modal";
 import { Spinner } from "../ui/spinner";
 import { FlagIcon } from "../ui/flag-icon";
 import { calculateElo } from "../../lib/api/elo-engine";
+import { GUARDED_ELO_RPC_ENABLED } from "../../lib/api/guarded-elo";
 import { getTournamentResults, prepareTournamentForReedit, applyLeaguePoints } from "../../lib/api/tournaments";
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/cn";
@@ -237,6 +238,15 @@ export function ResultsEditor({
 
   // 🔥 EL CEREBRO DE LA OPERACIÓN (BORRÓN Y CUENTA NUEVA)
   const handleSave = async () => {
+    // Refuse BEFORE any delete/insert while the secure ELO cutover is active.
+    // Partial resets would desynchronize existing ELO and league standings.
+    if (GUARDED_ELO_RPC_ENABLED) {
+      setMessage({
+        text: "Edición detenida: todavía falta la reversión y recarga transaccional protegida. No se modificó el torneo.",
+        type: "error",
+      });
+      return;
+    }
     const errors: string[] = [];
 
     // Validaciones básicas
