@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth-store";
 import {
-  getStatsSpyHistory,
+  getStatsSpyHistoryPage,
+  STATS_SPY_HISTORY_PAGE_SIZE,
   getStatsSpySummary,
   SECURE_STATS_SPY_MODE,
 } from "../lib/api/stats-spy";
@@ -20,9 +21,14 @@ export function useSecureStatsSpySummary(slug: string | undefined, hasFeatureAcc
 
 export function useSecureStatsSpyHistory(slug: string | undefined, hasFeatureAccess: boolean) {
   const viewerId = useAuthStore(s => s.user?.id ?? null);
-  return useQuery({
-    queryKey: ["stats-spy-v1-history", slug, viewerId],
-    queryFn: () => getStatsSpyHistory(slug!),
+  return useInfiniteQuery({
+    queryKey: ["stats-spy-v1-history-pages", slug, viewerId],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => getStatsSpyHistoryPage(slug!, pageParam, STATS_SPY_HISTORY_PAGE_SIZE),
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === STATS_SPY_HISTORY_PAGE_SIZE
+        ? allPages.length * STATS_SPY_HISTORY_PAGE_SIZE
+        : undefined,
     enabled: SECURE_STATS_SPY_MODE && !!slug && !!viewerId && hasFeatureAccess,
     staleTime: 60_000,
     retry: false,
