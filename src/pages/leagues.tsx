@@ -53,8 +53,8 @@ export function LeaguesPage() {
   return (
     <PageShell variant="arena">
       <SEOHead
-        title="Ligas de Poker"
-        description="Ligas organizadas con tabla de posiciones, puntos y premios. Compite en temporadas de poker competitivo."
+        title="Ligas de póker | Temporadas y resultados"
+        description="Explora ligas de póker registradas en Sharkania: temporadas activas, tablas de posiciones, puntos y resultados históricos."
         path="/leagues"
       />
       <div className="arena-interior">
@@ -62,10 +62,10 @@ export function LeaguesPage() {
           <ArenaPageHero
             section="leagues"
             eyebrow="TEMPORADAS / LIGAS"
-            heading="LIGAS"
-            highlight="COMPETITIVAS."
+            heading="LIGAS DE"
+            highlight="PÓKER."
             icon={Shield}
-            description="Temporadas organizadas y resultados registrados. Sigue las ligas activas o consulta su historial competitivo."
+            description="Sigue las ligas de póker activas y consulta sus clasificaciones, temporadas y resultados históricos."
             count={isLoading ? undefined : (leagues?.length ?? 0)}
             countLabel="Temporadas registradas"
           />
