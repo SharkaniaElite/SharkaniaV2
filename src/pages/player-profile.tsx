@@ -53,10 +53,11 @@ export function PlayerProfilePage() {
   // Tournament Results: unificado si tiene aliases, individual si no
   const { data: unifiedResults, isLoading: unifiedResultsLoading } =
     useUnifiedTournamentResults(
-      hasAliases ? unifiedStats?.profile_id : undefined
+      hasAliases ? unifiedStats?.profile_id : undefined,
+      hasFullAccess
     );
   const { data: individualResults, isLoading: individualResultsLoading } =
-    usePlayerTournamentResults(!hasAliases ? player?.id : undefined);
+    usePlayerTournamentResults(!hasAliases ? player?.id : undefined, hasFullAccess);
 
   // Seleccionar los datos correctos
   const eloHistory = hasAliases
@@ -79,6 +80,11 @@ export function PlayerProfilePage() {
   const resultsLoading = hasAliases
     ? unifiedResultsLoading
     : individualResultsLoading;
+
+  // The free preview only downloads two rows. Use the aggregate count to
+  // preserve the upgrade prompt without fetching the remaining result records.
+  const hasHiddenHistory = !hasFullAccess &&
+    (hasAliases ? (unifiedStats?.total_tournaments ?? 0) : (player?.total_tournaments ?? 0)) > 2;
 
   // 🔥 CÁLCULO DE GASTO REAL (ROI & PROFIT FIX)
   // Recorremos el historial y multiplicamos el costo del torneo por las reentradas
@@ -324,6 +330,7 @@ export function PlayerProfilePage() {
               results={tournamentResults as never[]}
               isLoading={resultsLoading}
               hasAccess={hasFullAccess}
+              hasMoreHistory={hasHiddenHistory}
             />
           </div>
         </div>
