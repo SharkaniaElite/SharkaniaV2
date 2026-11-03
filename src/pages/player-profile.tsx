@@ -89,8 +89,10 @@ export function PlayerProfilePage() {
   const publicOrLegacyResults = hasAliases
     ? unifiedResults ?? []
     : individualResults ?? [];
+  // Premium history is read in small authorized pages, not fetched in bulk.
+  const secureHistoryRows = secureHistoryQuery.data?.pages.flat() ?? [];
   const tournamentResults = useGuardedPremium
-    ? secureHistoryQuery.data ?? []
+    ? secureHistoryRows
     : publicOrLegacyResults;
   const resultsLoading = useGuardedPremium
     ? secureHistoryQuery.isLoading
@@ -368,6 +370,9 @@ export function PlayerProfilePage() {
               isLoading={resultsLoading}
               hasAccess={verifiedPremiumAccess}
               hasMoreHistory={hasHiddenHistory}
+              canLoadMore={useGuardedPremium && !!secureHistoryQuery.hasNextPage}
+              isLoadingMore={useGuardedPremium && secureHistoryQuery.isFetchingNextPage}
+              onLoadMore={useGuardedPremium ? () => { void secureHistoryQuery.fetchNextPage(); } : undefined}
             />
           </div>
         </div>
