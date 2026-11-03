@@ -96,10 +96,7 @@ export function IgnitionChampionshipPage() {
     setLoading(true);
 
     try {
-      const emailToLink = email.trim();
-      const nickToLink = displayName.trim();
-
-      // Duplicate checks require a valid session: run after login, not before it.
+      // El inicio de sesión no debe modificar una vinculación previa.
       if (isExistingUser) {
         // FLUJO 1: LOGIN
         const { data, error: loginError } = await supabase.auth.signInWithPassword({
