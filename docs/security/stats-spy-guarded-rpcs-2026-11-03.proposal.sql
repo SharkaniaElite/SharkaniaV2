@@ -99,7 +99,7 @@ BEGIN
   FROM (
     SELECT
       COALESCE(t.currency::text, 'SIN_MONEDA') AS currency,
-      COALESCE(SUM(r.prize_won), 0)::numeric AS prizes,
+      COALESCE(SUM(COALESCE(r.prize_won,0) + COALESCE(r.bounties_won,0)), 0)::numeric AS prizes,
       COALESCE(SUM(COALESCE(t.buy_in, 0) *
         GREATEST(COALESCE(r.buy_ins_count, 1), 1)), 0)::numeric AS buyins
     FROM public.tournament_results r
@@ -193,6 +193,7 @@ BEGIN
       r.id,
       r.position,
       r.prize_won,
+      r.bounties_won,
       r.buy_ins_count,
       r.elo_change,
       r.ccp_club,
