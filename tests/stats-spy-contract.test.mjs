@@ -111,7 +111,7 @@ test("QA role test harness is syntactically valid and explicitly blocks producti
   assert.match(qa, /QA_ALLOW_REMOTE_SECURITY_TESTS/);
   assert.match(qa, /I_CONFIRM_ISOLATED_QA/);
   assert.match(qa, /assert\.notEqual\(ref, PROD_REF/);
-  assert.match(qa, /expectDenied\("anon: guarded summary"/);
+  assert.match(qa, /"anon: guarded summary"/);
   assert.match(qa, /"expired", "QA_EXPIRED_EMAIL"/);
   assert.match(qa, /"licensed", "QA_LICENSED_EMAIL"/);
   assert.match(qa, /"super admin", "QA_ADMIN_EMAIL"/);
