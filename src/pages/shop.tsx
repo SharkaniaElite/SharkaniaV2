@@ -410,7 +410,7 @@ export function ShopPage() {
           <ArenaPageHero
             section="shop"
             eyebrow="LA BÓVEDA / SHARK COINS"
-            heading="HERRAMIENTAS"
+            heading="TIENDA"
             highlight="DE PÓKER."
             icon={Lock}
             description="Explora recursos de análisis, usos y desbloqueos disponibles mediante Shark Coins. Consulta qué funcionalidades están activas y cuáles siguen en desarrollo."
