@@ -204,7 +204,14 @@ export function LeagueDetailPage() {
               </div>
               
               {league.description && (
-                <p className="text-sk-sm text-sk-text-2 mb-4 max-w-3xl drop-shadow-sm">{league.description}</p>
+                <div className="mb-4 max-w-3xl">
+                  <p className="text-sk-sm text-sk-text-2 leading-relaxed line-clamp-3 sm:line-clamp-4 drop-shadow-sm">
+                    {league.description}
+                  </p>
+                  <a href="#league-tabs" onClick={() => setTab("info")} className="mt-2 inline-flex items-center text-xs font-bold text-sk-accent hover:underline focus-visible:outline-2 focus-visible:outline-sk-accent">
+                    Leer descripción y condiciones completas
+                  </a>
+                </div>
               )}
               
               <div className="flex items-center gap-3 flex-wrap mb-3 drop-shadow-sm">
@@ -376,6 +383,12 @@ export function LeagueDetailPage() {
             <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6">
               <h3 className="text-sk-md font-bold text-sk-text-1 mb-4">Información de la Liga</h3>
               <div className="space-y-3 text-sk-sm text-sk-text-2">
+                {league.description && (
+                  <div className="rounded-lg border border-sk-border-2 bg-sk-bg-3 p-4">
+                    <h4 className="mb-2 font-bold text-sk-text-1">Descripción y condiciones de la liga</h4>
+                    <p className="whitespace-pre-line leading-relaxed">{league.description}</p>
+                  </div>
+                )}
                 <p><span className="text-sk-text-1 font-semibold">Nombre:</span> {league.name}</p>
                 <p><span className="text-sk-text-1 font-semibold">Estado:</span> {status.label}</p>
                 <p><span className="text-sk-text-1 font-semibold">Periodo:</span> {league.start_date} — {league.end_date}</p>
