@@ -86,7 +86,7 @@ export function usePlayerEloHistory(playerId: string | undefined) {
   });
 }
 
-export function usePlayerTournamentResults(playerId: string | undefined, hasFullAccess = false) {
+export function usePlayerTournamentResults(playerId: string | undefined, hasFullAccess = true) {
   const viewerId = useAuthStore((s) => s.user?.id ?? "anonymous");
   return useQuery({
     queryKey: ["player-tournament-results", playerId, hasFullAccess, viewerId],
@@ -124,7 +124,7 @@ export function useUnifiedEloHistory(slug: string | undefined) {
   });
 }
 
-export function useUnifiedTournamentResults(profileId: string | undefined, hasFullAccess = false) {
+export function useUnifiedTournamentResults(profileId: string | undefined, hasFullAccess = true) {
   const viewerId = useAuthStore((s) => s.user?.id ?? "anonymous");
   return useQuery({
     queryKey: ["unified-tournament-results", profileId, hasFullAccess, viewerId],
