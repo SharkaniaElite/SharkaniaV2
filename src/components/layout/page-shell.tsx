@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from "react";
+import "../../styles/arena-interior.css";
 import { Navbar } from "./navbar";
 import { Footer } from "./footer";
 import { AdminAccessBanner } from "./admin-access-banner";
