@@ -25,13 +25,15 @@ interface TournamentHistoryEntry {
 interface TournamentHistoryTableProps {
   results: TournamentHistoryEntry[];
   isLoading: boolean;
-  hasAccess?: boolean; 
+  hasAccess?: boolean;
+  hasMoreHistory?: boolean;
 }
 
 export function TournamentHistoryTable({
   results,
   isLoading,
-  hasAccess = false, 
+  hasAccess = false,
+  hasMoreHistory = false,
 }: TournamentHistoryTableProps) {
   if (isLoading) {
     return (
@@ -178,7 +180,7 @@ export function TournamentHistoryTable({
         </table>
       </div>
 
-      {!hasAccess && results.length > 2 && (
+      {!hasAccess && (hasMoreHistory || results.length > 2) && (
         <div className="arena-history-paywall">
           <div className="arena-history-paywall-icon" aria-hidden="true"><Lock size={19} /></div>
           <div>
