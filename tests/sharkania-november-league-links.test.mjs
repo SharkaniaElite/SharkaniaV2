@@ -103,3 +103,19 @@ test("League detail also explains that pre-registered participants do not enroll
   assert.match(league, /No necesitas registrarte nuevamente/);
   assert.match(league, /Descargar Ignition y vincular nickname/);
 });
+
+
+test("League distinguishes exclusive Sharkania bounty/monthly awards from Ignition tournament prize pool", () => {
+  const ignition = read("src/pages/ignition-championship.tsx");
+  const league = read("src/pages/league-detail.tsx");
+  const dashboard = read("src/pages/player-dashboard.tsx");
+  assert.match(ignition, /Bounty de cada fecha y premios de fin de mes: exclusivos para inscritos mediante SHARKANIA/);
+  assert.match(ignition, /Jugar el torneo en Ignition sin registrarte en SHARKANIA no te habilita para esos premios/);
+  assert.match(ignition, /El pozo garantizado regular de cada torneo se rige por las condiciones de Ignition Poker/);
+  assert.match(ignition, /no tienes que volver[\s\S]*a inscribirte/);
+  assert.match(league, /El bounty de cada fecha y los premios del ranking mensual requieren inscripción a través de SHARKANIA/);
+  assert.match(league, /Participar en los torneos de Ignition por sí solo no habilita para estos premios adicionales/);
+  assert.match(league, /no necesitas hacerlo de nuevo/);
+  assert.match(dashboard, /El bounty de cada fecha y los premios adicionales de fin de mes son exclusivos/);
+  assert.match(dashboard, /Si ya lo hiciste antes, no te registres nuevamente/);
+});
