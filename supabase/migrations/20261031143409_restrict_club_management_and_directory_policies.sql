@@ -1,7 +1,4 @@
--- Applied to Sharkania production at Supabase migration 20261031143409.
--- Preserved with the identical migration version for reproducible environments.
--- Restricts club creation and manager assignments to super admins.
--- Club admins may edit club contact information but not ownership/status.
+BEGIN;
 
 DROP POLICY IF EXISTS "Clubs: insertar autenticado" ON public.clubs;
 DROP POLICY IF EXISTS "Clubs: insertar super administrador" ON public.clubs;
@@ -11,7 +8,6 @@ WITH CHECK ((SELECT public.is_super_admin()));
 
 DROP POLICY IF EXISTS "Club admins: lectura publica" ON public.club_admins;
 DROP POLICY IF EXISTS "Club admins: gestionar select" ON public.club_admins;
-DROP POLICY IF EXISTS "Club admins: lectura solo integrantes y super" ON public.club_admins;
 CREATE POLICY "Club admins: lectura solo integrantes y super"
 ON public.club_admins FOR SELECT TO authenticated
 USING (
@@ -21,20 +17,17 @@ USING (
 );
 
 DROP POLICY IF EXISTS "Club admins: gestionar insert" ON public.club_admins;
-DROP POLICY IF EXISTS "Club admins: insercion solo super" ON public.club_admins;
 CREATE POLICY "Club admins: insercion solo super"
 ON public.club_admins FOR INSERT TO authenticated
 WITH CHECK ((SELECT public.is_super_admin()));
 
 DROP POLICY IF EXISTS "Club admins: gestionar update" ON public.club_admins;
-DROP POLICY IF EXISTS "Club admins: actualizacion solo super" ON public.club_admins;
 CREATE POLICY "Club admins: actualizacion solo super"
 ON public.club_admins FOR UPDATE TO authenticated
 USING ((SELECT public.is_super_admin()))
 WITH CHECK ((SELECT public.is_super_admin()));
 
 DROP POLICY IF EXISTS "Club admins: gestionar delete" ON public.club_admins;
-DROP POLICY IF EXISTS "Club admins: eliminacion solo super" ON public.club_admins;
 CREATE POLICY "Club admins: eliminacion solo super"
 ON public.club_admins FOR DELETE TO authenticated
 USING ((SELECT public.is_super_admin()));
@@ -72,3 +65,5 @@ EXECUTE FUNCTION public.guard_club_sensitive_fields();
 
 REVOKE EXECUTE ON FUNCTION public.guard_club_sensitive_fields()
 FROM PUBLIC, anon, authenticated;
+
+COMMIT;
