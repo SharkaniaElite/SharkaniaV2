@@ -51,3 +51,13 @@ test("November league detail prominently links to Ignition and initially shows s
   assert.match(page, /id="league-tabs"/);
   assert.match(page, /currentStatus !== "finished"/);
 });
+
+
+test("League hero keeps the long source description reachable without flooding mobile layout", () => {
+  const page = read("src/pages/league-detail.tsx");
+  assert.match(page, /line-clamp-3 sm:line-clamp-4/);
+  assert.match(page, /Leer descripción y condiciones completas/);
+  assert.match(page, /onClick=\{\(\) => setTab\("info"\)\}/);
+  assert.match(page, /Descripción y condiciones de la liga/);
+  assert.match(page, /whitespace-pre-line leading-relaxed/);
+});
