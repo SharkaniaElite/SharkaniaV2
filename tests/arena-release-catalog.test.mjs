@@ -28,4 +28,7 @@ test("Arena navigation never fakes a live broadcast or reverts to an old navbar 
   assert.match(nav, /className="sm:hidden">TV/);
   const live = read("src/pages/live-stream.tsx");
   assert.match(live, /<PageShell variant="arena" showMarketing>/);
+  assert.match(live, /videoUrl\.trim\(\) \? \(/);
+  assert.match(live, /configLoaded \? "No hay una transmisión configurada/);
+  assert.doesNotMatch(live, /🔴 EN VIVO:/);
 });
