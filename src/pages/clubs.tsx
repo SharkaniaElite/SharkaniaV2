@@ -25,8 +25,8 @@ export function ClubsPage() {
   return (
     <PageShell variant="arena">
     <SEOHead
-      title="Clubes de Poker"
-      description="Encuentra clubes de poker online verificados de toda Latinoamérica y el mundo. PPPoker, PokerBros, ClubGG y más."
+      title="Clubes de póker online"
+      description="Explora clubes de póker online registrados en Sharkania, sus plataformas y torneos disponibles. Consulta el directorio de clubes."
       path="/clubs"
     />
       <div className="arena-interior">
@@ -34,10 +34,10 @@ export function ClubsPage() {
           <ArenaPageHero
             section="clubs"
             eyebrow="COMUNIDAD / CLUBES"
-            heading="CLUBES Y"
-            highlight="CIRCUITOS."
+            heading="CLUBES DE"
+            highlight="PÓKER."
             icon={Building2}
-            description="Descubre los clubes registrados en Sharkania, conoce sus plataformas y encuentra tu próximo circuito de competición."
+            description="Descubre clubes de póker registrados en Sharkania, conoce sus plataformas y explora sus torneos y ligas."
             count={isLoading ? undefined : (clubs?.length ?? 0)}
             countLabel="Clubes registrados"
           />
