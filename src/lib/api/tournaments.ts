@@ -1,5 +1,6 @@
 // src/lib/api/tournaments.ts
 import { supabase } from "../supabase";
+import { GUARDED_ELO_RPC_ENABLED } from "./guarded-elo";
 import { isPublicTournamentVisible, publicTournamentCutoffIso } from "../tournament-lifecycle";
 import type {
   TournamentWithDetails,
@@ -242,6 +243,11 @@ export async function applyLeaguePoints(tournamentId: string, leagueId: string) 
 }
 
 export async function prepareTournamentForReedit(tournamentId: string) {
+  // The historical reset is not part of the guarded ELO transaction.
+  // Never mix it with secure calculation until its own server-only cutover.
+  if (GUARDED_ELO_RPC_ENABLED) {
+    throw new Error("La edición de resultados requiere un reseteo protegido pendiente de validación.");
+  }
   const { data, error } = await supabase.rpc('reset_tournament_impact', { tournament_id_to_reset: tournamentId });
   if (error) throw error;
   return data;
