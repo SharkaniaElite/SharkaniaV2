@@ -251,7 +251,7 @@ export function IgnitionChampionshipPage() {
             <p className="text-lg text-gray-300 leading-relaxed max-w-lg">
               La Liga SHARKANIA comienza el jueves 5 de noviembre de 2026 en Ignition Poker.
               Cada jueves a las <strong className="text-orange-300">21:00 hora de Chile</strong> compite por un pozo garantizado de US$100,
-              participa del bounty al host y suma puntos para los premios mensuales.
+              el bounty al host y los premios mensuales son exclusivos para quienes se inscribieron a la Liga SHARKANIA a través de este sitio y vincularon su nickname.
               Si eres nuevo, utiliza el enlace de Sharkania para descargar Ignition y crear tu cuenta.
               Si ya te registraste para la liga y tu vinculación está guardada, no necesitas registrarte otra vez.
             </p>
