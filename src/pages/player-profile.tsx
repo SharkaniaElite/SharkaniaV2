@@ -301,6 +301,12 @@ export function PlayerProfilePage() {
             </div>
           </div>
 
+          {useGuardedPremium && (secureSummaryQuery.isLoading || secureHistoryQuery.isLoading) && (
+            <div role="status" className="mb-5 rounded-lg border border-sk-accent/30 bg-sk-accent/10 text-sk-text-2 p-4 text-sk-sm">
+              Verificando tu acceso a Stats Espía y cargando el historial autorizado…
+            </div>
+          )}
+
           {useGuardedPremium && (secureSummaryQuery.isError || secureHistoryQuery.isError) && (
             <div role="alert" className="mb-5 rounded-lg border border-sk-red/40 bg-sk-red/10 text-sk-red p-4 text-sk-sm">
               No se pudo verificar la información de Stats Espía desde el servidor.
@@ -326,6 +332,7 @@ export function PlayerProfilePage() {
                   : player
               }
               hasAccess={verifiedPremiumAccess}
+              hideUpsell={useGuardedPremium}
             />
           </div>
 
