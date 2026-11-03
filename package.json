@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "qa:stats-spy": "node scripts/stats-spy-security-smoke.mjs"
+    "qa:stats-spy": "node scripts/stats-spy-security-smoke.mjs",
+    "qa:migrations": "node scripts/check-supabase-migration-readiness.mjs"
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.4.2",
