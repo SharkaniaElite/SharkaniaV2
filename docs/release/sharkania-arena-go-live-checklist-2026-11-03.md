@@ -90,3 +90,14 @@ Con autorización para cómputo **USD 0,01344/h**, se creó una sola rama tempor
 Detalles y trazabilidad: [Supabase QA branch failure](../security/supabase-qa-branch-failure-2026-11-03.md).
 
 **Procedimiento de recuperación del baseline (solo esquema, sin datos):** [Supabase initial schema recovery](../security/supabase-initial-schema-recovery-2026-11-03.md).
+
+
+## Actualización del catálogo estructural y obtención del esquema (3 noviembre 2026)
+
+Se recuperó una **fotografía de solo metadatos del estado actual** de PostgreSQL, no una copia de filas: 64 tablas, 567 columnas, 184 restricciones, 138 índices, 194 firmas de funciones (sin cuerpos), 22 triggers, 185 políticas (sin predicados), 2 vistas, 77 etiquetas de enumerados y 9 extensiones. Una expresión de default potencialmente sensible se excluyó de la captura pública.
+
+- Archivo de referencia: [Catálogo actual del esquema](../security/supabase-schema-catalog-2026-11-03.json).
+- Test de integridad: `tests/supabase-schema-catalog.test.mjs`; incluye pruebas del preflight que debe rechazar una nueva rama cobrada sin baseline histórico.
+- Extracción DDL completa y **sin datos** preparada para ejecución autenticada local en Windows: `scripts/export-supabase-schema-only.ps1`. El SQL no se sube automáticamente a GitHub y se revisará antes de usarlo.
+
+**Estado del P0 de base de datos:** NO-GO; las definiciones exactas del esquema anteriores a `20260320132525` aún no están disponibles en el acceso conectado. La foto actual no equivale al baseline histórico y no debe insertarse delante de las 50 migraciones. Requiere exportación DDL y reconstrucción/validación aislada. No se creó otra rama QA ni se aplicaron cambios SQL en producción.
