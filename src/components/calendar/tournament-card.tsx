@@ -71,9 +71,14 @@ export function TournamentCard({ tournament: t, onInfoClick }: TournamentCardPro
   const startDate = new Date(t.start_datetime);
   const dateLabel = startDate.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", timeZone: t.timezone });
   const timeZoneLabel = startDate.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", timeZone: t.timezone });
-  const participationLink = ["ccp", "latin-allin-poker"].includes(t.clubs?.slug || "")
-    ? "/como-jugar-en-clubgg"
-    : `/clubs/${t.clubs?.slug ?? t.club_id}`;
+  // Torneos de Ignition: la ficha debe llevar a la guía de vinculación de
+  // nickname/ranking existente, nunca al perfil genérico de un club.
+  const isIgnition = t.poker_rooms?.name?.trim().toLowerCase() === "ignition poker";
+  const participationLink = isIgnition
+    ? "/ignition"
+    : ["ccp", "latin-allin-poker"].includes(t.clubs?.slug || "")
+      ? "/como-jugar-en-clubgg"
+      : `/clubs/${t.clubs?.slug ?? t.club_id}`;
 
   return (
     <article
