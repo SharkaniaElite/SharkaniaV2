@@ -604,3 +604,34 @@ Se generó y verificó en el contenedor de artefactos `SHARKANIA_QA_integrado_mu
 5. Verifica restauración de recuentos/policies/grants después de `ROLLBACK`.
 
 **Decisión de diseño provisional**: «solo administrador del club principal puede ejecutar recálculo manual de una liga multiclub, pero cualquier club participante puede gestionar sus propios torneos». Requiere revisión funcional; no es migración. Concurrencia transaccional real de dos procesos, PostgREST/UI, monedas históricas en diferentes ligas, reconciliación y publicación siguen pendientes. No habilitar flag, no fusionar PR, no tocar producción: **NO-GO**.
+
+
+## QA integrado PASS y hallazgo confirmado: escalada de membresía multiclub; barrera USD/CLP (4 nov 2026)
+
+El operador ejecutó `SHARKANIA_QA_multiclub_monedas_local_v1.sh` en `supabase_db_sharkania-qa` con 64 tablas, dos identidades ficticias y `BEGIN...ROLLBACK`. Evidencia:
+
+```text
+PASS: ligas A/B/CLP, dos clubes, dos admins y resultados sinteticos preparados
+CONFIRMADO EN QA: admin B pudo vincularse unilateralmente a liga A ajena
+CONFIRMADO EN QA: admin B pudo autoasignarse is_primary=true
+CONFIRMADO EN QA: vinculacion unilateral habilito UPDATE de liga A
+PASS: admin B ya no puede modificar su asociacion ni promoverse
+PASS: nuevo autovinculo indebido a liga CLP rechazado
+PASS: admin B participante no puede editar liga compartida A
+PASS: solo organizador principal puede recalcular manualmente
+PASS: admin B conserva resultados del torneo B, pero no puede editar torneo A
+PASS: admin A recalcula liga compartida USD: puntos 190/100, entradas 5/2, CCP conservado
+PASS: liga exclusivamente CLP calcula puntos y 3 entradas sin conversion monetaria inventada
+PASS: mezcla USD+CLP para mismos jugadores bloqueada sin crear tipo de cambio ficticio
+PASS: denegacion por monedas deja el ranking anterior intacto
+ROLLBACK
+PASS FINAL: multiclub y monedas verificadas en QA transaccional. No quedaron cambios persistentes.
+```
+
+**NUEVA VULNERABILIDAD DE AUTORIZACIÓN CONFIRMADA** (séptima superficie, si se contabiliza una por bloque): admin B de club no asociado podía `INSERT league_clubs(B, liga de A)`, `UPDATE is_primary=true` y `UPDATE leagues` de A; posible toma administrativa de liga vía vinculación unilateral. Las policies y grants de producción deben corregirse **coordinadamente con el flujo legítimo de invitación/vinculación**. No aplicar `REVOKE` por separado; ensayo QA solo.
+
+**Mitigación QA superada:** retirar DML directo de `league_clubs` para clientes, limitar UPDATE/DELETE de `leagues` a organizador principal verificado y RPC de recálculo que exige club principal. Participantes siguen administrando resultados de torneos propios. Este criterio es una **política de producto provisional** y debe validarse con dueño del negocio antes de release.
+
+**Monedas:** escenarios independientes USD y CLP aprobados sin conversión; combinación de ambas monedas para el mismo jugador en una liga se rechaza sin mutar su clasificación. Esto es **fail-closed, no soporte de ligas monetarias multimoneda ni reconciliación histórica**. Falta definición de unidades para `total_buy_ins_spent` vs entradas y actualización del modelo de moneda en otras tablas.
+
+**Siguiente gate:** concurrencia real de dos sesiones (mismos jugadores / mismo torneo en paralelo), HTTP/PostgREST/UI y procedimiento de migración/backups; producción NO modificada y PR #64 sigue draft **NO-GO**.
