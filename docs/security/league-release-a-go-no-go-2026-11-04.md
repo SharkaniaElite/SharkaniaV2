@@ -6,7 +6,7 @@
 
 - Vulnerabilidad reproducida: club secundario podía autovincularse a una liga ajena, marcarse `is_primary` y editarla; políticas de `league_rooms` tenían INSERT/DELETE amplio.
 - El usuario ejecutó suites locales sobre 64 tablas Supabase QA con `BEGIN ... ROLLBACK`: mitigación de membresías, clonación sin herencia de clubes, formulario de creación/edición transaccional, controles de fechas, sala inválida, protección del club principal y recuperación sin cambios parciales: **PASS**.
-- Suite sintética PostgreSQL 17 + PostgREST HTTP/JWT: PASS en PR #64 para ligas, clonación y guardado integral; se añadieron ahora controles nuevos de eliminación segura que **deben superar CI propia y prueba de 64 tablas**.
+- CI del PR #65 independiente: **5/5 SUCCESS** en el commit `e5255efe135e353c52b3b17c6171188f0546051d`, incluyendo PostgreSQL 17, PostgREST HTTP/JWT sintético y eliminación segura. El operador completó también QA local con **64 tablas reales** para borrado de ligas vacías versus ligas con torneos, comprobando `ROLLBACK` total y preservación de FK `tournaments.league_id`.
 - Supabase producción se ha consultado SOLO en lectura. Las 32 ligas actuales tienen exactamente un organizador principal. `idx_leagues_slug` ya garantiza la unicidad del slug.
 - Detectada vía FK de solo lectura una consecuencia peligrosa de `DELETE public.leagues`: `tournaments.league_id` queda NULL por `ON DELETE SET NULL`; `league_standings`, `league_clubs` y `league_rooms` se eliminan por `ON DELETE CASCADE`. Por esto Release A **revoca DELETE directo** y ofrece `delete_empty_league_guarded`, que rechaza ligas con torneos, plantillas, standings o campeón.
 
@@ -18,8 +18,8 @@
 
 ## Gates obligatorios ANTES de aprobar producción
 
-- [ ] CI de este PR independiente en PASS (TypeScript + SQL PG17 + HTTP PostgREST + contratos).
-- [ ] Ejecutar **nueva** prueba de borrado seguro sobre esquema local Supabase QA con `ROLLBACK` y sin persistencia, además de los casos de creación/edición ya aprobados; revisar las políticas efectivas del esquema actualizado.
+- [x] CI de este PR independiente en PASS (TypeScript + SQL PG17 + HTTP PostgREST + contratos) — commit `e5255efe135e353c52b3b17c6171188f0546051d`, 5/5 SUCCESS.
+- [x] Ejecutar prueba específica de borrado seguro sobre esquema local Supabase QA: PASS `SHARKANIA_QA_eliminacion_segura_ligas_64tablas_v1.sh`, ROLLBACK completo. Se mantienen pendientes las verificaciones sobre la instancia preproducción completamente integrada y el preflight definitivo del esquema de producción justo antes de migrar.
 - [ ] Comprobar en una **instancia no productiva completa** que el frontend con Auth REAL permite crear, editar, duplicar, administrar salas, ver ligas compartidas y borrar solo ligas vacías; que jugador, B ajeno y B secundario no pueden modificar las ligas de A; que el superadmin funciona desde la vista de club participante.
 - [ ] Definir política de invitación entre **administradores de distintos clubes**. Por ahora `add_league_club_guarded` solo permite superadmin o un usuario que administre ambos clubes; no existe un flujo de aceptación diferida. Mantener esa función restringida y no fingir compatibilidad con invitaciones aún no implementadas.
 - [ ] Revisar todas las rutas legacy de `league_clubs`, `league_rooms`, `leagues`, `recalculate_league_standings` y acciones de backoffice; comprobar que no hay dependencias no cubiertas con revocación de DML.
@@ -42,3 +42,23 @@
 **Release B**, ELO/publicación segura, queda en **NO-GO**: `publish_tournament_results_guarded` solo admite USD; 221 de 247 torneos publicados son CLP/EUR; 263 jugadores tienen resultados multimoneda. La fórmula actual altera K según el buy-in numérico sin conversión ni normalización y suma acumulados monetarios incompatibles. Requiere decisión de negocio, modo sombra, backtest, nuevas agregaciones por divisa y QA independiente. Ver PR #64.
 
 **En ningún momento ejecutar migraciones ni modificar producción sin autorización.**
+
+## Plan de aceptación E2E del panel — aún SIN EJECUTAR
+
+En una instancia **NO productiva** con aplicación y Supabase Auth completos, preparar cuentas ficticias de (A) admin de club organizador, (B) admin de club secundario, (C) jugador corriente y (D) superadmin; sin copiar datos personales productivos. Ejecutar y registrar URL del preview, SHA frontend/backend, momento de cada prueba y resultado HTTP:
+
+| Actor / ruta | Acción esperada | Criterio PASS |
+|---|---|---|
+| Anónimo / directorio | Consultar ligas, clubes asociados y salas | HTTP 200; sin escritura |
+| A / panel del club A | Crear liga con fechas, reglamento y dos salas | 1 liga, 1 principal A, 2 salas, sin escrituras parciales |
+| A / panel del club A | Editar y reemplazar salas | 1 operación; cambios coherentes |
+| A / panel del club A | Duplicar liga con B como participante | Replica configuración y salas, **no** copia B automáticamente |
+| B / panel del club B | Ver liga compartida A | Solo lectura; Editar/Duplicar/Eliminar ocultos |
+| B / API autenticada | Intentar alterar membresía, propietario o salas de liga A | HTTP 403; snapshot inalterado |
+| C / API autenticada | Intentar crear/modificar liga ajena | HTTP 403; snapshot inalterado |
+| D / panel desde club B | Editar liga compartida con principal A | Usa ID principal A real y persiste el cambio autorizado |
+| A / panel del club A | Borrar liga con torneos o clasificaciones | HTTP 409, muestra explicación, conserva `tournaments.league_id` |
+| A / panel del club A | Borrar liga nueva vacía | HTTP 200; desaparecen solo liga/club principal/salas de la nueva liga |
+| Todos / pantallas existentes | Consultar torneos/rankings/ligas | Sin regresiones ni pérdida de relaciones |
+
+**Diferencia crítica:** los tests PostgREST en CI crean JWT sintéticos; esta fase E2E exige Auth real de Supabase y navegador, no se considera cumplida por CI. El borrador SQL no debe aplicarse a producción antes de superar esta tabla y documentar respaldo/restauración. Si no hay entorno de preproducción completo, ese es el bloqueo a resolver primero.
