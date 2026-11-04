@@ -467,3 +467,28 @@ La función QA propuesta verifica Auth, pertenencia al club, estado processed, h
 Se generó en la conversación `SHARKANIA_QA_reversion_ultimo_torneo_atomica_local_v1.zip` (script Bash + README). Archivo verificado con `bash -n` y prueba de integridad ZIP; **SQL todavía NO ejecutado por operador**.
 
 Características y límites: simula una RPC `reset_latest_tournament_atomic_guarded_qa(uuid)` con Auth y permisos de club; rechaza históricos posteriores; solo fixtures USD, usuarios sin profile_id vinculado, sin ligas compartidas; ejecuta en una única transacción borrado de historia y resultados del último torneo, marca `results_uploaded=false`/estado programado, recompone ELO rating/peak por historia temporal, premios y buy-ins por número real de entradas, y recalc de liga con CCP/reentradas/último torneo. Valida usuario no admin rechazado, admin rechazado en torneo intermedio, éxito en último, segundo intento rechazado, preservación de otros torneos. Finaliza en `ROLLBACK`, restaura funciones y grants. **Es un prototipo QA, no migración ni solución completa**: faltan perfiles con ELO unificado, otros currencies, reglas de ligas multiclub, edición/republicación de resultados completa, fallas concurrentes y pruebas de frontend/PostgREST. Cualquier fallo de QA debe examinarse antes de ampliar alcance. PR sigue draft, **NO-GO**, nada en producción.
+
+
+## QA local PASS: reversión atómica de último torneo — 4 nov 2026
+
+El operador ejecutó `SHARKANIA_QA_reversion_ultimo_torneo_atomica_local_v1.sh` en Supabase CLI local, con dos usuarios ficticios, un club, tres fechas y dos jugadores sin perfiles vinculados. Salida:
+
+```text
+PASS: contenedor aislado, estructura y dos cuentas QA verificadas.
+PASS: tres fechas sinteticas, historia completa y 2 jugadores sin perfil vinculado
+PASS: usuario sin club no puede revertir
+PASS: admin no puede revertir torneo con ELO posterior
+PASS: rechazo cronologico mantiene torneo intermedio intacto
+PASS: ultimo torneo revertido atomica y coherentemente; ELO 1320/1170, buy-ins 100/40, liga 230/30
+PASS: CCP, reentradas, ultimo torneo e indicadores results_uploaded/status coherentes
+PASS: segundo reset denegado sin doble descuento
+PASS: el historial ELO de otros torneos permanece intacto
+ROLLBACK
+PASS FINAL: reversión atomica de ultimo torneo probada SOLO en QA; ROLLBACK restaura el entorno.
+```
+
+Esta prueba valida un prototipo de **reset total** del último torneo, no su edición ni republicación. El RPC provisional no está instalado en producción; todas las operaciones QA fueron revertidas.
+
+**Nuevo prototipo preparado y AÚN NO probado contra Supabase CLI:** archivo generado `SHARKANIA_QA_republicacion_ultimo_torneo_atomica_local_v1.zip` con Bash y README. Se verificó sintaxis `bash -n` e integridad ZIP. Incluye el reset QA ya probado, importa `calculate_tournament_elo_guarded` desde commit GitHub FIJO `b059bf388a2088a3c2a2807e3262e27454e4089e` con validación de hash Git y ensaya una `republish_latest_tournament_guarded_qa(uuid,jsonb)` transaccional. QA: solo dos jugadores existentes, USD, sin perfiles vinculados, liga simple; rechaza rol extraño, torneo intermedio e intentos cliente de escribir ELO; simula error después del reset para comprobar reversión de toda la llamada; publica nuevos resultados, recalcula ELO y standings CCP/buy-ins y comprueba repetición sin doble acumulación. Ejecuta todo bajo `BEGIN...ROLLBACK`. **Pendiente de ejecución y corrección según resultados reales de PostgreSQL.** No migración de producción, no activa feature flags, no resuelve clubes múltiples, monedas distintas, nuevos jugadores, perfiles enlazados ni pruebas concurrentes.
+
+**Release sigue NO-GO**. Se requiere después validar flujo completo por UI/PostgREST, historial/ELO unificado, multiclub/multimoneda, locking concurrente y procedimiento de corte con rollback/backup antes de autorizar PR.
