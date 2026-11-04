@@ -99,6 +99,15 @@ jobs:
           psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_publish_http'
           psql -v ON_ERROR_STOP=1 -d qa_publish_http -f tests/fixtures/sharkania-tournament-publication-qa-setup.sql
           psql -v ON_ERROR_STOP=1 -d qa_publish_http <<'SQL'
+          -- PostgREST >=14 supplies one JSON GUC; the older synthetic
+          -- SQL fixtures used per-claim GUCs from direct-psql QA only.
+          CREATE OR REPLACE FUNCTION auth.uid()
+          RETURNS uuid LANGUAGE sql STABLE AS $auth$
+            SELECT NULLIF(coalesce(
+              NULLIF(current_setting('request.jwt.claim.sub',true),''),
+              current_setting('request.jwt.claims',true)::jsonb->>'sub'
+            ),'')::uuid
+          $auth$;
           CREATE ROLE qa_rest_authenticator WITH LOGIN PASSWORD 'fake_local_http_qa_only_2026';
           GRANT authenticated TO qa_rest_authenticator;
           GRANT anon TO qa_rest_authenticator;
