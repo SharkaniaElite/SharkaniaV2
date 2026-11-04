@@ -585,3 +585,22 @@ PASS FINAL: alta de jugador nuevo y republicacion multialias atomica probadas SO
 **Gate adicional superado:** creación autorizada de tercer jugador durante republicación con restablecimiento transaccional incluso del alta y `profiles.unified_elo`, ELO cliente bloqueado, repetición sin duplicados. **No se instaló ningún SQL persistente y no se modificó producción.**
 
 **Pendientes prioritarios para release NO-GO:** (1) asociaciones de ligas con múltiples clubes y regla de permisos; (2) CLP/USD y semántica de reentradas/monedas; (3) concurrencia y bloqueo para publicación/reedición/reposiciones; (4) flujos completos PostgREST/Frontend bajo sesiones Auth reales; (5) estrategia de corte, migraciones, reconciliación histórica, respaldos, pruebas de rollback de despliegue y QA final. Los cinco son bloques temáticos, no un número garantizado de scripts. Consolidar pruebas restantes en suites integradas para no sobrecargar al operador con descargas individuales. Mantener feature flag ELO inactivo y PR draft.
+
+
+## QA integrado preparado (pendiente de ejecución): membresía multiclub + barrera CLP/USD — 4 nov 2026
+
+El usuario confirmó PASS en `SHARKANIA_QA_republicacion_alta_jugador_nuevo_local_v1.sh` (dos alias de mismo perfil; tercer participante nuevo creado con ELO servidor 1228.08, unified Elo 1262.22, standings 290/80/100, falla inyectada revierte alta, y repetición idempotente; `ROLLBACK` final). No hubo cambios productivos.
+
+Revisión **estática del snapshot de policies del proyecto** reveló posible escalada adicional no probada aún:
+- `public.league_clubs` política INSERT solo valida `is_club_admin(club_id)`, **no la autoridad sobre `league_id`**. UPDATE permite actualizar `is_primary` para el club propio sin comprobar autoridad del organizador principal.
+- `public.leagues` UPDATE y DELETE confían en existencia de cualquier `league_clubs` asociado al club administrado, sin comprobar `is_primary`. Por tanto, hipotéticamente un admin de club B podría autovincular B a liga A, promoverse a `is_primary` y modificar A; **esto todavía no está confirmado por DML; el kit lo reproduce en local antes de declarar hallazgo**.
+- `league_rooms` también tiene políticas permisivas para autenticados y requerirá auditoría posterior durante el cutover, no modificar a ciegas.
+
+Se generó y verificó en el contenedor de artefactos `SHARKANIA_QA_integrado_multiclub_monedas_local_v1.zip` (Bash + README; `bash -n` y test de ZIP aprobados; SQL PostgreSQL **sin ejecutar aún**). Script aislado `supabase_db_sharkania-qa`, 64 tablas, 2 cuentas Auth confirmadas, 0 admins iniciales, solo loopback, `BEGIN...ROLLBACK`:
+1. Reproduce tentativa de autovínculo B→liga A y elevación `is_primary`/UPDATE de liga.
+2. Simula REVOKE DML de `league_clubs`, nueva policy de edición/eliminación solo por club `is_primary`, RPC QA de recálculo solo para organizador principal que bloquea `EXECUTE` legacy y DML directo a standings; verificará que B siga gestionando resultados de torneos B pero no los de A.
+3. Recalcula liga compartida solo USD (puntos 190/100, 5/2 entradas, CCP), y liga separada CLP sin conversiones.
+4. Cambia ficticiamente torneo B a CLP, comprueba rechazo de recálculo mixto con standings previos intactos, **no implementa modelo monetario multimoneda**.
+5. Verifica restauración de recuentos/policies/grants después de `ROLLBACK`.
+
+**Decisión de diseño provisional**: «solo administrador del club principal puede ejecutar recálculo manual de una liga multiclub, pero cualquier club participante puede gestionar sus propios torneos». Requiere revisión funcional; no es migración. Concurrencia transaccional real de dos procesos, PostgREST/UI, monedas históricas en diferentes ligas, reconciliación y publicación siguen pendientes. No habilitar flag, no fusionar PR, no tocar producción: **NO-GO**.
