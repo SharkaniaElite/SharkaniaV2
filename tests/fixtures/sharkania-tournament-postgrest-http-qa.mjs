@@ -83,12 +83,18 @@ console.log("SHARKANIA / synthetic PostgREST HTTP + JWT QA (no production).");
 assertDenied(await callRpc({
   body: { p_tournament_id: id.first, p_results: results },
 }), "anonymous publication");
-assertDenied(await callRpc({
+const unlinkedPlayer = await callRpc({
   sub: id.player, body: { p_tournament_id: id.first, p_results: results },
-}), "normal player publication");
-assertDenied(await callRpc({
+});
+assertDenied(unlinkedPlayer, "normal player publication");
+assert.equal(unlinkedPlayer.json.message, "Club admin required",
+  "HTTP JWT was recognized but the player must fail the club authorization, not auth.uid");
+const wrongClub = await callRpc({
   sub: id.foreignAdmin, body: { p_tournament_id: id.first, p_results: results },
-}), "foreign club administrator publication");
+});
+assertDenied(wrongClub, "foreign club administrator publication");
+assert.equal(wrongClub.json.message, "Club admin required",
+  "other club must fail authorization, not authentication");
 assertDenied(await callRpc({
   sub: id.clubAdmin, name: "calculate_tournament_elo_guarded",
   body: { p_tournament_id: id.first },
