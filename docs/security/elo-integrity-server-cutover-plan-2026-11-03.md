@@ -561,3 +561,27 @@ Tras el PASS de la republicación multialias anterior se generó un ensayo incre
 - simula revocaciones transaccionales y restituye todos los privilegios/fixtures mediante `ROLLBACK`. `curl` descarga SQL ELO de commit fijo con hash Git blob.
 
 **Estado del kit:** generado en el entorno de trabajo; `bash -n` aprobado y verificación de integridad ZIP superada. **NO se ejecutó PostgreSQL real para este nuevo kit**: cualquier error real del operador debe revisarse sin forzar cambios. Solo QA con usuarios ficticios, USD, torneo final y una liga. No contiene migración ni es apto para producción; faltan cambios arbitrarios de roster, ligas compartidas, monedas, concurrencia, PostgREST/UI y protocolo de despliegue. **NO-GO**.
+
+
+## QA local PASS: alta de jugador nuevo durante republicación atómica y ELO multialias — 4 nov 2026
+
+El operador ejecutó `SHARKANIA_QA_republicacion_alta_jugador_nuevo_local_v1.sh` en el contenedor Supabase QA local. Evidencia textual:
+```text
+PASS: entorno local validado; propuesta ELO fijada por SHA de GitHub.
+PASS: tres fechas sinteticas, historia completa y 2 aliases del mismo perfil con ELO unificado 1280
+PASS: usuario sin club no puede crear fichas por RPC
+PASS: cuenta ajena no puede republicar
+PASS: ni club admin puede insertar jugador con ELO via tabla
+PASS: rechazo de torneo intermedio con estado intacto
+PASS: campos ELO de cliente rechazados
+PASS: fallo inyectado despues de reset, transaccion interna revertida
+PASS: fallo intermedio revierte tambien creacion del jugador y ELO unificado
+PASS: nuevo participante creado y calculado con ELO servidor 1228.08, 1 perfil multialias 1262.22; resultados 3 y standings 290/80/100
+PASS: segunda republicacion sin duplicados, ELO unificado estable
+ROLLBACK
+PASS FINAL: alta de jugador nuevo y republicacion multialias atomica probadas SOLO en QA; ROLLBACK completo.
+```
+
+**Gate adicional superado:** creación autorizada de tercer jugador durante republicación con restablecimiento transaccional incluso del alta y `profiles.unified_elo`, ELO cliente bloqueado, repetición sin duplicados. **No se instaló ningún SQL persistente y no se modificó producción.**
+
+**Pendientes prioritarios para release NO-GO:** (1) asociaciones de ligas con múltiples clubes y regla de permisos; (2) CLP/USD y semántica de reentradas/monedas; (3) concurrencia y bloqueo para publicación/reedición/reposiciones; (4) flujos completos PostgREST/Frontend bajo sesiones Auth reales; (5) estrategia de corte, migraciones, reconciliación histórica, respaldos, pruebas de rollback de despliegue y QA final. Los cinco son bloques temáticos, no un número garantizado de scripts. Consolidar pruebas restantes en suites integradas para no sobrecargar al operador con descargas individuales. Mantener feature flag ELO inactivo y PR draft.
