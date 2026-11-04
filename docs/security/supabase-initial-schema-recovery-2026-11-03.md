@@ -123,3 +123,25 @@ Se recibieron otra vez, por el canal privado de conversación, las exportaciones
 - **Estado veraz:** QA estructural local *preparada, aún no ejecutada*; baseline histórico *no reconstruido*; pruebas E2E de Auth/Stats Espía/ELO *no ejecutadas*. **NO-GO**, sin cambios sobre producción y sin crear ramas facturables.
 
 Próxima verificación objetiva: ejecutar el paquete **solo en PostgreSQL 17+pgvector local y desechable**; conservar errores SQL, ajustar dependencias y reproducir las aserciones. Después diseñar explícitamente la estrategia de migraciones normalizadas sin borrar historia de producción.
+
+
+## Resultado reportado por el propietario: restauración local de PostgreSQL 17 (3–4 nov 2026, hora Chile)
+
+**Nueva evidencia del equipo Windows/Ubuntu (WSL 2):** el propietario ejecutó el kit privado mediante \`bash RUN_LOCAL_WSL.sh\` desde \`/mnt/c/Users/andyd/Downloads/SHARKANIA_QA_ESTRUCTURA_2026-11-03/out\`. Compartió la salida completa visible de la terminal:
+
+- Imagen \`pgvector/pgvector:pg17\` descargada correctamente.
+- \`CREATE DATABASE\` completado.
+- Etapas \`00-bootstrap.sql\`, \`01-public.sql\`, \`02-private.sql\` y \`03-assertions.sql\` ejecutadas sin errores mostrados.
+- Mensaje final: **\`PASS: structural restore completed on disposable local PostgreSQL 17 (not full Supabase E2E).\`**
+
+**Nuevo estado:** la **restauración estructural del snapshot actual pasó** en PostgreSQL 17 local desechable, según la evidencia de la terminal aportada por el propietario. Los artefactos privados no se publicaron. Este resultado **no es la prueba del baseline previo a 50 migraciones**: es restauración de un snapshot posterior. Tampoco valida ACL/GRANT reales, Auth/GoTrue real, RLS por rol con sesiones auténticas, integración de pagos, transacciones ELO/Stats Espía ni las pruebas de frontend end-to-end.
+
+**Gates separados:**
+- [x] Restauración local del *snapshot estructural actual* en PostgreSQL 17 + pgvector, con aserciones estructurales (salida aportada por propietario).
+- [ ] Reproducción de las 50 migraciones históricas desde una base vacía y diseño de un baseline compatible.
+- [ ] Roles y permisos reales de Supabase; Auth, Turnstile, compras y expiraciones.
+- [ ] Pruebas transaccionales ELO y Stats Espía con estructura, grants y datos sintéticos completos.
+- [ ] Pruebas de seguridad de operaciones administrativas, incluyendo reversión/edición retroactiva.
+- [ ] Aprobación y plan de reversión de producción, sin alterar el historial de migraciones a ciegas.
+
+**Decisión de publicación: NO-GO** hasta los gates de integración. No crear rama facturable; no ejecutar migraciones, cambios de permisos ni reseteos en producción.
