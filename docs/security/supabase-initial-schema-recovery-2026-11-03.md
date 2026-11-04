@@ -215,3 +215,10 @@ Operador ejecutó `SHARKANIA_QA_prueba_registro_local_v1.sh` con una dirección 
 El operador comprobó `supabase/config.toml` con dos claves `enable_confirmations = false` (líneas 228 y 264, de distintos proveedores, esperablemente email/SMS). El catálogo local `auth.users` contiene **1 usuario sintético, 1 email confirmado y 0 pendientes**. Esto es coherente con el comportamiento de registro local sin exigencia de confirmación, **no demuestra entrega ni aceptación de correo**. La prueba previa de signup sigue siendo válida para Auth + trigger de perfil, pero no para la política de verificación del email.
 
 Próximo gate: modificar **únicamente** `[auth.email].enable_confirmations = true` en `~/sharkania-qa/supabase/config.toml` (no tocar SMS), reiniciar la pila local con la red loopback ya validada, dar de alta un **segundo usuario sintético nuevo**, comprobar que nace sin `email_confirmed_at`, recuperar el mensaje en el buzón local puerto 54324, confirmar y revalidar sesión/perfil. No reutilizar el usuario sintético ya confirmado ni tocar producción. Estado NO-GO para despliegue.
+
+
+### Registro con confirmación activa — entrega Mailpit y estado pendiente PASS (4 nov 2026)
+
+Se habilitó únicamente `[auth.email].enable_confirmations = true` en el `supabase/config.toml` del equipo Windows/Ubuntu de QA, reiniciando Supabase CLI local sin `db reset`. El operador repitió el alta sintética vía API local `127.0.0.1:54321`, obtuvo HTTP 200 y verificó un perfil `player` con 100 Shark Coins. La captura confirma **un correo de verificación “Confirm your email address” en Mailpit** en `127.0.0.1:54324`. El conteo de `auth.users` mostró **2 usuarios ficticios**, **1 confirmado** y **1 pendiente**.
+
+**Gate aprobado:** con confirmaciones habilitadas, Auth envía mensaje a buzón capturado localmente y mantiene la cuenta nueva sin `email_confirmed_at` hasta confirmación. **Gate pendiente:** clicar el enlace y demostrar transición de `pendientes=1` a `pendientes=0`, con nuevo login autenticado y pruebas RLS. No divulgar URL/token de confirmación. El resultado no certifica seguridad de pagos ni producción. **NO-GO**.
