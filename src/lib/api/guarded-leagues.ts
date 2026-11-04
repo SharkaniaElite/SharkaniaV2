@@ -149,6 +149,30 @@ export async function duplicateLeagueGuarded(
 }
 
 /**
+ * Delete only a truly empty league. The server rejects any league that
+ * still has tournaments, standings, champions or tournament templates.
+ * Never fall back to direct browser DELETE on a denied request.
+ */
+export async function deleteEmptyLeagueGuarded(leagueId: string): Promise<void> {
+  assertGuardedLeagueEnabled();
+  const { data, error } = await supabase.rpc("delete_empty_league_guarded", {
+    p_league_id: requireUuid(leagueId, "liga"),
+  });
+  if (error) {
+    if (error.code === "PT409") {
+      throw new Error("Esta liga tiene torneos, plantillas o resultados vinculados. No puede eliminarse.");
+    }
+    if (error.code === "42501") {
+      throw new Error("Solo el club organizador principal puede eliminar una liga vacía.");
+    }
+    throw new Error("No se pudo verificar una eliminación segura. La liga permanece sin cambios.");
+  }
+  if (data !== true) {
+    throw new Error("Respuesta inesperada al eliminar la liga. Comprueba su estado.");
+  }
+}
+
+/**
  * Coordinated membership requires a superadmin or a user who administers
  * BOTH the organizer and the new club. General invitation is a later feature.
  */
