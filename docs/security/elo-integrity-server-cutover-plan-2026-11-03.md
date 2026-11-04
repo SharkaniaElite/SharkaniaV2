@@ -291,3 +291,19 @@ El operador recuperó `pg_get_functiondef` en Supabase CLI local (solo lectura).
 **Modelo multi-club**: el frontend clona relaciones `league_clubs(club_id,is_primary)` y `league_rooms(room_id)`, de modo que **no se debe asumir que `leagues` contiene un `club_id` único**. La autorización del futuro motor tendrá que mapear exactamente administrador de liga principal, superadmin y/o administradores de clubes participantes de acuerdo a reglas verificadas; nunca derivarla solo del parámetro de cliente.
 
 **Plan de corrección (no aplicado):** prueba sintética local de invocación por usuario sin clubes, comprobar que una función autorizada lo rechaza; generar nueva versión segura con firma apropiada, permisos `REVOKE EXECUTE FROM PUBLIC,anon`, validación de club autorizante, `search_path` endurecido y recálculo íntegramente transaccional incluyendo campos complementarios y consistencia de `league_standings`. Revisar preservación de fórmula, claves y bloqueos concurrentes. NO limitarse a revocar DML antes de sustituir `applyLeaguePoints()` y reparación posterior de `forceRecalculateStandings()`, porque se romperían rankings actuales. **NO-GO**.
+
+
+## Explotación confirmada: invocación no autorizada de recálculo destruye clasificación ajena (4 nov 2026)
+
+El propietario ejecutó en Supabase CLI local un ensayo SQL con `BEGIN`, dos cuentas Auth `@example.test`, una liga, una ficha de jugador y una fila en `league_standings` (sin resultados de torneos), seguido por `SET LOCAL ROLE authenticated` con `request.jwt.claim.sub` de usuario normal sin administrar clubes. Invocó `public.recalculate_league_standings(league_id)`.
+
+**Salida real:**
+```text
+NOTICE: PASS: liga ficticia preparada sin administrador
+NOTICE: ALERTA: usuario normal ejecuto RPC y elimino posicion ficticia
+ROLLBACK
+```
+
+**Conclusión:** no solo hay INSERT/UPDATE/DELETE directos sobre `league_standings`; el usuario sin club puede invocar el RPC invoker sin guardias y causar un recálculo destructivo de una liga ajena. La función borró una fila sintética porque no había resultados de torneos (comportamiento normal del algoritmo con ese conjunto de datos), pero ese recálculo debió ser denegado por autorización. La prueba terminó en `ROLLBACK`, no modificó producción.
+
+**Quinta superficie de integridad confirmada.** Corrección coordinada requerida: restringir `EXECUTE` del RPC actual, quitar DML arbitrario de `league_standings`, y sustituir por recálculo transaccional con validación de asociación `league_clubs`/administración, preservación de datos CCP/buy-ins y compatibilidad con carga/edición/reversión. No hacer revocaciones aisladas en producción. **NO-GO**.
