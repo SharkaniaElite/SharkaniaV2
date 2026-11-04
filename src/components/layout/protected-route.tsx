@@ -17,11 +17,14 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   // PRODUCTION Supabase URL. Never let an accidental login navigate into
   // authenticated management pages of this preview.
   // This is defense-in-depth only: RLS/server privileges remain authoritative.
+  const configuredSupabaseUrl = String(import.meta.env.VITE_SUPABASE_URL ?? "");
   const previewUsingProduction = (
     typeof window !== "undefined" &&
     window.location.hostname.endsWith(".pages.dev") &&
-    String(import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\\/$/, "") ===
-      "https://nhpjzywfzljtlqaigzed.supabase.co"
+    (
+      configuredSupabaseUrl === "https://nhpjzywfzljtlqaigzed.supabase.co" ||
+      configuredSupabaseUrl === "https://nhpjzywfzljtlqaigzed.supabase.co/"
+    )
   );
   if (previewUsingProduction) {
     return (
