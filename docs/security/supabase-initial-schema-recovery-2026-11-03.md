@@ -256,3 +256,19 @@ ROLLBACK
 **Gate aprobado por evidencia del operador:** un jugador normal no puede autoasignarse `super_admin` ni aumentar `shark_coins_balance`, y RLS bloquea UPDATE sobre perfil ajeno. Los dos primeros intentos devolvieron SQLSTATE 42501, capturado por el harness; el tercero afectó cero filas. No quedaron cambios confirmados (`ROLLBACK`). Sigue pendiente probar por REST con JWT reales y la regresión sobre otras tablas financieras/torneos.
 
 **Observación de seguimiento independiente (metadatos producción, solo lectura, sin cambio):** `public.elo_history` tiene INSERT `TO PUBLIC WITH CHECK (auth.uid() IS NOT NULL)`, con GRANT INSERT a usuarios autenticados, y no se observan triggers no internos en esa tabla. Esto es una **superficie de riesgo que requiere prueba negativa de integridad ELO**, no constituye todavía una explotación confirmada ni valida que el frontend exponga la operación. Se prioriza comprobar, solo en local, qué protege la inserción directa de eventos ELO, separando rechazos RLS, FK y validaciones de aplicación. **No cambiar producción sin aprobación.** Estado de despliegue: **NO-GO**.
+
+
+### Finanzas negativas: PASS; inserción ELO llega a FK (4 nov 2026)
+
+El operador reportó una transacción QA `BEGIN` y `ROLLBACK`, con `SET LOCAL ROLE authenticated` y JWT subject sintético, cuyos mensajes fueron:
+```text
+NOTICE: PASS: insercion de creditos bloqueada
+NOTICE: PASS: compra ficticia bloqueada
+NOTICE: ATENCION: ELO supero RLS, pero fue rechazado por las claves foraneas
+ROLLBACK
+```
+**Gate aprobado:** los intentos probados de insertar créditos en `credit_transactions` y una compra inventada en `user_purchases` fueron rechazados. **Advertencia fundamentada:** la inserción de `elo_history` pasó RLS, pero el FK rechazó ambos UUID inexistentes.
+
+Verificación adicional exclusivamente de **catálogo productivo** confirma que `elo_history` tiene política `INSERT WITH CHECK auth.uid() IS NOT NULL`, GRANT INSERT para `authenticated`, **sin triggers propios**, y solo FK sobre `players(id)` y `tournaments(id)`; no existe una comprobación de propiedad o rol del club dentro del predicado de esa política. Estas observaciones sustentan un **riesgo de integridad a comprobar con FK válidas**, no acreditan todavía que un usuario haya modificado datos ni que el puntaje agregado final pueda manipularse.
+
+Próximo gate: crear **solo dentro de una transacción no confirmada** un `poker_room`, un `club`, un `player` y un `tournament` sintéticos localmente como `postgres` para satisfacer FK; asumir `authenticated` con ID sintético y probar `INSERT elo_history`; terminar en `ROLLBACK`. Prohibido usar IDs o datos productivos. Evaluar impacto sobre rankings/funciones en pruebas separadas. **NO-GO**.
