@@ -324,6 +324,163 @@ BEGIN
 END;
 $func$;
 
+-- Atomic replacement for LeagueForm: both create and edit are server-side.
+-- Prevent the browser's historical 2-4 separate writes from leaving a
+-- league without its organizer or with a partially updated room list.
+CREATE OR REPLACE FUNCTION public.save_league_guarded(
+  p_league_id uuid,
+  p_primary_club_id uuid,
+  p_name text,
+  p_slug text,
+  p_fields jsonb,
+  p_room_ids uuid[]
+) RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
+AS $func$
+DECLARE
+  v_name text := nullif(pg_catalog.btrim(p_name),'');
+  v_slug text := nullif(pg_catalog.btrim(p_slug),'');
+  v_fields jsonb := coalesce(p_fields,'{}'::jsonb);
+  v_rooms uuid[] := coalesce(p_room_ids,ARRAY[]::uuid[]);
+  v_total integer;
+  v_best integer;
+  v_league uuid;
+  v_primary uuid;
+  v_actor uuid := (SELECT auth.uid());
+BEGIN
+  IF v_actor IS NULL THEN
+    RAISE EXCEPTION 'Authentication required' USING ERRCODE='42501';
+  END IF;
+  IF v_name IS NULL OR pg_catalog.length(v_name) NOT BETWEEN 3 AND 150 THEN
+    RAISE EXCEPTION 'Invalid league name' USING ERRCODE='PT422';
+  END IF;
+  IF pg_catalog.jsonb_typeof(v_fields)<>'object' OR EXISTS (
+    SELECT 1 FROM pg_catalog.jsonb_object_keys(v_fields) AS k(name)
+    WHERE k.name NOT IN (
+      'description','start_date','end_date','rules_url','status',
+      'total_dates','best_dates_to_count'
+    )
+  ) THEN
+    RAISE EXCEPTION 'Invalid league field names' USING ERRCODE='PT422';
+  END IF;
+  IF (v_fields->>'status') IS NULL OR
+     (v_fields->>'status') NOT IN ('upcoming','active','finished') THEN
+    RAISE EXCEPTION 'Invalid league status' USING ERRCODE='PT422';
+  END IF;
+  IF pg_catalog.length(coalesce(v_fields->>'description',''))>5000 OR
+     pg_catalog.length(coalesce(v_fields->>'rules_url',''))>2000 OR
+     (v_fields->>'rules_url' IS NOT NULL AND v_fields->>'rules_url' !~ '^https?://')
+  THEN
+    RAISE EXCEPTION 'Description or rules URL invalid' USING ERRCODE='PT422';
+  END IF;
+  IF (v_fields->>'start_date' IS NOT NULL AND
+      v_fields->>'start_date' !~ '^\\d{4}-\\d{2}-\\d{2}$')
+     OR (v_fields->>'end_date' IS NOT NULL AND
+      v_fields->>'end_date' !~ '^\\d{4}-\\d{2}-\\d{2}$')
+  THEN
+    RAISE EXCEPTION 'Invalid date format' USING ERRCODE='PT422';
+  END IF;
+  IF (v_fields->>'total_dates' IS NOT NULL AND
+      v_fields->>'total_dates' !~ '^[1-9][0-9]{0,2}$')
+     OR (v_fields->>'best_dates_to_count' IS NOT NULL AND
+      v_fields->>'best_dates_to_count' !~ '^[1-9][0-9]{0,2}$')
+  THEN
+    RAISE EXCEPTION 'Invalid league date counts' USING ERRCODE='PT422';
+  END IF;
+  v_total := (v_fields->>'total_dates')::integer;
+  v_best := (v_fields->>'best_dates_to_count')::integer;
+  IF (v_total IS NOT NULL AND v_total>365)
+     OR (v_best IS NOT NULL AND v_best>365)
+     OR (v_best IS NOT NULL AND v_total IS NOT NULL AND v_best>v_total)
+     OR (v_fields->>'start_date' IS NOT NULL
+          AND v_fields->>'end_date' IS NOT NULL
+          AND (v_fields->>'start_date')::date>(v_fields->>'end_date')::date)
+  THEN
+    RAISE EXCEPTION 'Inconsistent league dates' USING ERRCODE='PT422';
+  END IF;
+  IF pg_catalog.cardinality(v_rooms)>32 OR
+     pg_catalog.array_position(v_rooms,NULL) IS NOT NULL OR
+     (SELECT count(DISTINCT x.id) FROM pg_catalog.unnest(v_rooms) AS x(id))
+      <>pg_catalog.cardinality(v_rooms)
+     OR EXISTS (SELECT 1 FROM pg_catalog.unnest(v_rooms) AS x(id)
+       WHERE NOT EXISTS (SELECT 1 FROM public.poker_rooms r WHERE r.id=x.id))
+  THEN
+    RAISE EXCEPTION 'Invalid league rooms' USING ERRCODE='PT422';
+  END IF;
+
+  IF p_league_id IS NULL THEN
+    IF v_slug IS NULL OR pg_catalog.length(v_slug)>160
+       OR v_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$' THEN
+      RAISE EXCEPTION 'Invalid league slug' USING ERRCODE='PT422';
+    END IF;
+    IF NOT ((SELECT public.is_super_admin())
+       OR (SELECT public.is_club_admin(p_primary_club_id)))
+       OR NOT EXISTS (SELECT 1 FROM public.clubs c
+                      WHERE c.id=p_primary_club_id) THEN
+      RAISE EXCEPTION 'Primary club administration required'
+        USING ERRCODE='42501';
+    END IF;
+    PERFORM pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended('league_slug:'||v_slug,0)
+    );
+    IF EXISTS (SELECT 1 FROM public.leagues WHERE slug=v_slug) THEN
+      RAISE EXCEPTION 'League slug already exists' USING ERRCODE='PT409';
+    END IF;
+    INSERT INTO public.leagues (
+      name,slug,description,start_date,end_date,rules_url,
+      total_dates,best_dates_to_count,status
+    ) VALUES (
+      v_name,v_slug,nullif(v_fields->>'description',''),
+      (v_fields->>'start_date')::date,(v_fields->>'end_date')::date,
+      nullif(v_fields->>'rules_url',''),v_total,v_best,
+      (v_fields->>'status')::public.league_status
+    ) RETURNING id INTO v_league;
+    INSERT INTO public.league_clubs(league_id,club_id,is_primary)
+    VALUES (v_league,p_primary_club_id,true);
+  ELSE
+    SELECT l.id INTO v_league FROM public.leagues l
+    WHERE l.id=p_league_id FOR UPDATE;
+    IF v_league IS NULL THEN
+      RAISE EXCEPTION 'League not found' USING ERRCODE='PT404';
+    END IF;
+    SELECT lc.club_id INTO v_primary FROM public.league_clubs lc
+    WHERE lc.league_id=v_league AND lc.is_primary;
+    IF v_primary IS NULL OR
+       (SELECT count(*) FROM public.league_clubs lc
+        WHERE lc.league_id=v_league AND lc.is_primary)<>1 THEN
+      RAISE EXCEPTION 'League ownership incomplete' USING ERRCODE='PT409';
+    END IF;
+    IF p_primary_club_id IS DISTINCT FROM v_primary THEN
+      RAISE EXCEPTION 'Cannot reassign primary ownership' USING ERRCODE='42501';
+    END IF;
+    IF NOT ((SELECT public.is_super_admin()) OR
+       (SELECT public.is_club_admin(v_primary))) THEN
+      RAISE EXCEPTION 'Primary club administration required'
+        USING ERRCODE='42501';
+    END IF;
+    -- Do not permit client changes to league slug, membership or score
+    -- system IDs during the form edit. The UI uses original slug.
+    IF v_slug IS DISTINCT FROM (SELECT l.slug FROM public.leagues l WHERE l.id=v_league) THEN
+      RAISE EXCEPTION 'Slug changes require a separate authorized flow'
+        USING ERRCODE='PT422';
+    END IF;
+    UPDATE public.leagues l SET
+      name=v_name,description=nullif(v_fields->>'description',''),
+      start_date=(v_fields->>'start_date')::date,
+      end_date=(v_fields->>'end_date')::date,
+      rules_url=nullif(v_fields->>'rules_url',''),
+      total_dates=v_total,best_dates_to_count=v_best,
+      status=(v_fields->>'status')::public.league_status
+    WHERE l.id=v_league;
+  END IF;
+
+  DELETE FROM public.league_rooms lr WHERE lr.league_id=v_league;
+  INSERT INTO public.league_rooms(league_id,room_id)
+  SELECT v_league,x.id FROM pg_catalog.unnest(v_rooms) AS x(id);
+  RETURN v_league;
+END;
+$func$;
+
 -- New SECURITY DEFINER functions grant EXECUTE to PUBLIC by default:
 -- close the opening in the SAME TRANSACTION and grant authenticated only.
 REVOKE ALL ON FUNCTION public.create_league_guarded(uuid,text,text)
@@ -342,6 +499,11 @@ GRANT EXECUTE ON FUNCTION public.set_league_rooms_guarded(uuid,uuid[])
 REVOKE ALL ON FUNCTION public.duplicate_league_guarded(uuid,text,text)
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.duplicate_league_guarded(uuid,text,text)
+  TO authenticated;
+
+REVOKE ALL ON FUNCTION public.save_league_guarded(uuid,uuid,text,text,jsonb,uuid[])
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.save_league_guarded(uuid,uuid,text,text,jsonb,uuid[])
   TO authenticated;
 
 COMMIT;
