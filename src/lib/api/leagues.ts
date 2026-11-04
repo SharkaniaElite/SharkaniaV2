@@ -1,5 +1,6 @@
 // src/lib/api/leagues.ts
 import { supabase } from "../supabase";
+import { GUARDED_LEAGUE_RPC_ENABLED } from "./guarded-leagues";
 import type {
   League,
   LeagueWithClubs,
@@ -130,6 +131,9 @@ export async function searchLeagues(
   })) as League[];
 }
 export async function forceRecalculateStandings(leagueId: string): Promise<boolean> {
+  if (GUARDED_LEAGUE_RPC_ENABLED) {
+    throw new Error("El recálculo manual de ligas requiere la futura RPC autorizada; no se ejecutaron escrituras heredadas.");
+  }
   const { error } = await supabase.rpc('recalculate_league_standings', {
     p_league_id: leagueId
   });
@@ -187,6 +191,9 @@ export async function forceRecalculateStandings(leagueId: string): Promise<boole
 
 // ── 👯‍♂️ MOTOR DE CLONACIÓN DE LIGAS ──
 export async function duplicateLeague(leagueId: string, newName: string): Promise<boolean> {
+  if (GUARDED_LEAGUE_RPC_ENABLED) {
+    throw new Error("La duplicación protegida de ligas aún no está implementada. No se creó ninguna liga.");
+  }
   // 1. Obtener la liga original con sus relaciones (clubes y salas)
   const { data: original, error: fetchError } = await supabase
     .from("leagues")
