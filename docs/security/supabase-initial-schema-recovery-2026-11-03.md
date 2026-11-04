@@ -199,3 +199,12 @@ PASS: local QA function ACL and Auth registration trigger restored atomically.
 Por tanto, **gates aprobados**: 4/4 funciones críticas con hash idéntico a producción; restauración local transaccional de ACL de funciones y del trigger Auth según reglas de catálogo. No se han importado datos reales ni cambiado ACL productivas.
 
 Próximo gate: verificar `/auth/v1/signup` local con **usuario sintético**, comprobar el alta en `auth.users` y su perfil en `public.profiles` con `role=player` y saldo de bienvenida definido en `public.handle_new_user`; no revelar claves locales ni contraseña. Se preparó `SHARKANIA_QA_prueba_registro_local_v1.sh` en conversación privada, preflight de contenedores y puertos loopback, clave local capturada internamente sin imprimirla, y únicamente un alta sintética. **Aún no ejecutado** por el operador. Un registro correcto no certifica confirmación de correo, RLS, compras, ELO ni pagos. **NO-GO** para producción.
+
+
+### Primer signup real en QA: PASS (4 nov 2026)
+
+Operador ejecutó `SHARKANIA_QA_prueba_registro_local_v1.sh` con una dirección sintética `@example.test` y contraseña aleatoria, únicamente contra `http://127.0.0.1:54321/auth/v1/signup`. La salida compartida confirmó `HTTP 200`, **1 registro en `auth.users`**, **1 perfil correspondiente en `public.profiles`**, `role='player'`, `shark_coins_balance=100`. El trigger `on_auth_user_created` real operó correctamente en este flujo local. Los identificadores de prueba y contraseñas no se incorporan al repositorio.
+
+**Gate aprobado:** signup Auth real + creación de perfil. **No se ha comprobado** la confirmación por email, estados de sesión, RLS por dos usuarios, compras, Stats Espía ni ELO; no deducir aprobación E2E general.
+
+**Próximo paso no destructivo:** verificar `auth.email.enable_confirmations` en `supabase/config.toml` y el estado agregado de `email_confirmed_at` en el Auth local, antes de pruebas de email y de sesiones. Mantener **NO-GO** en producción.
