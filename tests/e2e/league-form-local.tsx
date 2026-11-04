@@ -19,14 +19,22 @@ const SAFE_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1):\d+\/?$/i.test(BACKEND);
 const SAFE_HOST = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 const ALLOWED = import.meta.env.DEV && SAFE_HOST && SAFE_ORIGIN && GUARDED_LEAGUE_RPC_ENABLED;
 
+// Keep the selected club (the view) separate from the league's actual
+// primary organizer (the authority). Secondary clubs can view a league but
+// cannot reassign its organizer during a guarded edit.
+type QaLeague = League & {
+  primary_club_id: string | null;
+  is_primary_for_club: boolean;
+};
+
 function Harness() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [clubs, setClubs] = useState<{ id: string; name: string }[]>([]);
   const [clubId, setClubId] = useState("");
-  const [leagues, setLeagues] = useState<League[]>([]);
-  const [edit, setEdit] = useState<League | null | undefined>(undefined);
+  const [leagues, setLeagues] = useState<QaLeague[]>([]);
+  const [edit, setEdit] = useState<QaLeague | null | undefined>(undefined);
   const [notice, setNotice] = useState("");
   const [refresh, setRefresh] = useState(0);
 
@@ -75,13 +83,22 @@ function Harness() {
     if (!ALLOWED || !sessionId || !clubId) return;
     let current=true;
     supabase.from("league_clubs")
-      .select("leagues(*)")
+      .select("is_primary, leagues(*, league_clubs(club_id, is_primary))")
       .eq("club_id", clubId)
       .then(({data,error}) => {
         if(!current) return;
         if(error){setNotice(error.message);return;}
-        const entries=(data??[]).flatMap((r:any) =>
-          Array.isArray(r.leagues)?r.leagues:r.leagues?[r.leagues]:[]) as League[];
+        const entries: QaLeague[] = (data ?? []).flatMap((r: any) => {
+          const linked = Array.isArray(r.leagues)
+            ? r.leagues : r.leagues ? [r.leagues] : [];
+          return linked.map((league: League & {
+            league_clubs?: { club_id: string; is_primary: boolean }[];
+          }) => ({
+            ...league,
+            primary_club_id: league.league_clubs?.find((m) => m.is_primary)?.club_id ?? null,
+            is_primary_for_club: r.is_primary === true,
+          }));
+        });
         setLeagues(entries);
       });
     return () => {current=false;};
@@ -124,11 +141,13 @@ function Harness() {
           <button type="button" disabled={!clubId} onClick={()=>setRefresh(x=>x+1)}>Actualizar lista</button>
           <h2>Ligas visibles para este club</h2>
           <ul>{leagues.map(l=><li key={l.id}>{l.name}{" "}
-            <button type="button" onClick={()=>setEdit(l)}>Editar en QA</button>
+            <small>({l.is_primary_for_club ? "organizador" : "participante"})</small>{" "}
+            <button type="button" disabled={!l.primary_club_id}
+              onClick={()=>setEdit(l)}>Editar en QA</button>
           </li>)}</ul>
           {clubId && edit!==undefined && <LeagueForm
             isOpen onClose={()=>setEdit(undefined)} onSaved={()=>{setEdit(undefined);setRefresh(x=>x+1);}}
-            clubId={clubId} league={edit} />}
+            clubId={edit ? (edit.primary_club_id ?? "") : clubId} league={edit} />}
         </>}
     {notice && <p role="status">{notice}</p>}
     <hr style={{margin:"24px 0"}}/>
