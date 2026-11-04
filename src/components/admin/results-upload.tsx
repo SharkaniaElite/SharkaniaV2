@@ -5,6 +5,7 @@ import { Badge } from "../ui/badge";
 import { Modal } from "../ui/modal";
 import { calculateElo } from "../../lib/api/elo-engine";
 import { GUARDED_ELO_RPC_ENABLED } from "../../lib/api/guarded-elo";
+import { GUARDED_RESULTS_RPC_ENABLED, publishTournamentResultsGuarded } from "../../lib/api/guarded-results";
 import { applyLeaguePoints, prepareTournamentForReedit } from "../../lib/api/tournaments"; 
 import { forceRecalculateStandings } from "../../lib/api/leagues";
 import { supabase } from "../../lib/supabase";
@@ -185,6 +186,40 @@ export function ResultsUpload({
   };
 
   const handleResolveAndUpload = async () => {
+    // Once QA has enabled the complete RPC, do not resolve/create players
+    // or write results, ELO or standings in separate browser requests.
+    if (GUARDED_RESULTS_RPC_ENABLED) {
+      setUploading(true);
+      setMessage({ text: "Publicando los resultados con una sola operación protegida...", type: "info" });
+      try {
+        const publication = await publishTournamentResultsGuarded(
+          tournament.id,
+          rows.map((row) => ({
+            playerId: row.playerId || null,
+            nickname: row.nickname,
+            countryCode: tournament.clubs?.country_code ?? null,
+            position: row.position,
+            prizeWon: row.prizeWon,
+            bountiesWon: 0,
+            leaguePoints: row.leaguePoints,
+            ccpClub: row.ccpClub,
+            buyInsCount: row.buyInsCount,
+          })),
+        );
+        if (!publication.success) {
+          setMessage({ text: publication.message, type: "error" });
+          return;
+        }
+        setMessage({ text: publication.message, type: "success" });
+        onComplete();
+        onClose();
+      } catch {
+        setMessage({ text: "Falló la publicación protegida. Revisa el torneo antes de reintentar.", type: "error" });
+      } finally {
+        setUploading(false);
+      }
+      return;
+    }
     // This legacy workflow writes players/results before calculating ELO.
     // It cannot be used once the guarded RPC cutover is enabled.
     if (GUARDED_ELO_RPC_ENABLED) {
