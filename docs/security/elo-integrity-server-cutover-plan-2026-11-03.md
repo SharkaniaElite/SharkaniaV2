@@ -420,3 +420,25 @@ El operador facilitó la definición SQL íntegra recuperada mediante `pg_get_fu
 **Kit de reproducción creado, no ejecutado:** `SHARKANIA_QA_reversion_torneo_legacy_integridad_local_v1.zip` (`.sh` + README), chequeado por `bash -n` e integridad ZIP. Con dos usuarios ficticios, club/ligas y tres torneos ficticios, la fecha intermedia es objetivo; el script ensaya RPC legacy como admin autorizado con resultados e historial posterior, UUID ordenados al revés, reentradas y standings. Espera demostrar estado `results_uploaded=true` sin resultados, subcuenta de buy-ins, peak ELO por orden UUID, no replay de ELO posterior y puntos de liga desactualizados. Toda prueba es `BEGIN...ROLLBACK`, preflight local estricto, **pendiente de ejecutar**.
 
 **Siguiente diseño:** reemplazar `reset_tournament_impact` y `reverseElo` solo dentro del cutover de publicación/reedición de resultados de servidor; asegurar transacción, control de ligas multi-club, ELO posterior (rechazar explícitamente o replay total validado), periodo y currency y efectos secundarios antes de activar `VITE_ELO_GUARDED_RPC`. No cambiar producción, mantener PR draft **NO-GO**.
+
+
+## QA local: cinco anomalías de reversión legacy reproducidas — 4 nov 2026
+
+El operador ejecutó `SHARKANIA_QA_reversion_torneo_legacy_integridad_local_v1.sh` sobre el contenedor Supabase QA (dos usuarios `@example.test`, 64 tablas, 0 `club_admins` iniciales), creó 3 torneos sintéticos con resultados e historia ELO posterior y llamó la RPC legacy `reset_tournament_impact(uuid)` como administrador autorizado. La prueba confirmó:
+
+```text
+PASS: tres torneos sinteticos (uno intermedio), resultados, ELO y standings preparados
+CONFIRMADO: se borran resultados pero results_uploaded continua true
+CONFIRMADO: buy-in total tras reset = 40.00 (correcto por 2+3 entradas a 20: 100)
+CONFIRMADO: ORDER BY elo_history.id (UUID) produce peak 1200.00 aunque fecha anterior alcanzo 1300
+CONFIRMADO: torneo posterior conserva elo_before=1320 tras borrar el intermedio; no hubo replay ELO
+CONFIRMADO: liga conserva 300 puntos pese a eliminar 150 del torneo intermedio
+ROLLBACK
+PASS FINAL: anomalías legacy reproducidas solo en transaccion local; ningun cambio persistente.
+```
+
+**Conclusión:** la llamada a la función SQL existente es atómica por sí misma, pero sus operaciones dejan estado de negocio inconsistente si se revierte un torneo intermedio. En particular, no limpia `results_uploaded` ni recompone ELO posterior, suma `t.buy_in` en vez de `buy_in * tr.buy_ins_count`, calcula `elo_peak` recorriendo UUID en lugar de línea temporal y no actualiza standings. El frontend `prepareTournamentForReedit` contiene un preflight de ELO posterior (hasta 1.000 filas por consulta) pero está fuera de la RPC y puede ser omitido al llamarla directamente. **Autorización club/superadmin sí está presente en RPC legacy**; el fallo no es que usuarios normales puedan ejecutarla con éxito.
+
+**Ruta segura prioritaria:** bloquear dentro de la misma transacción del servidor re-edición/reversión de un torneo con ELO posterior de jugadores afectados hasta que exista replay cronológico integrado, sin confiar en preflight de frontend. Migrar todas las rutas de edición a una operación de servidor que haga atomically borrar/reemplazar resultados, recalcular métricas ELO/estadísticas, standings CCP y buy-ins, ELO unificado, estado del torneo y validaciones financieras, con locking/idempotencia/errores. No desplegar cambios de permisos solos.
+
+**Nuevo kit preparado, pero AÚN NO ejecutado por operador:** `SHARKANIA_QA_guardia_reversion_cronologica_local_v1.zip` probado con `bash -n` e integridad ZIP. Crea temporalmente una función `assert_tournament_reedit_chronology_guarded_qa(uuid)` (solo verificación, no hace reset), simula revocar EXECUTE de ruta legacy, valida rechazo al no-admin, rechazo a admin sobre torneo intermedio con histórico posterior, permite SOLO inspección preliminar de último torneo, verifica no mutación de datos y restaura todo por `ROLLBACK`. No constituye solución total ni cubre concurrencia/currency/multiclub. **NO-GO**.
