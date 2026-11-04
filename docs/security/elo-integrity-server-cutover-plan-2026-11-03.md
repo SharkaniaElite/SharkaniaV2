@@ -442,3 +442,28 @@ PASS FINAL: anomalías legacy reproducidas solo en transaccion local; ningun cam
 **Ruta segura prioritaria:** bloquear dentro de la misma transacción del servidor re-edición/reversión de un torneo con ELO posterior de jugadores afectados hasta que exista replay cronológico integrado, sin confiar en preflight de frontend. Migrar todas las rutas de edición a una operación de servidor que haga atomically borrar/reemplazar resultados, recalcular métricas ELO/estadísticas, standings CCP y buy-ins, ELO unificado, estado del torneo y validaciones financieras, con locking/idempotencia/errores. No desplegar cambios de permisos solos.
 
 **Nuevo kit preparado, pero AÚN NO ejecutado por operador:** `SHARKANIA_QA_guardia_reversion_cronologica_local_v1.zip` probado con `bash -n` e integridad ZIP. Crea temporalmente una función `assert_tournament_reedit_chronology_guarded_qa(uuid)` (solo verificación, no hace reset), simula revocar EXECUTE de ruta legacy, valida rechazo al no-admin, rechazo a admin sobre torneo intermedio con histórico posterior, permite SOLO inspección preliminar de último torneo, verifica no mutación de datos y restaura todo por `ROLLBACK`. No constituye solución total ni cubre concurrencia/currency/multiclub. **NO-GO**.
+
+
+## QA local PASS: guardia de reversión cronológica en el servidor (4 nov 2026)
+
+El operador ejecutó `SHARKANIA_QA_guardia_reversion_cronologica_local_v1.sh` con 64 tablas públicas, dos usuarios QA confirmados y cero administradores iniciales. Salida:
+
+```text
+PASS: Docker local, 64 tablas, dos cuentas ficticias, cero club admins y funciones esperadas.
+PASS: fixtures sinteticas con historia ELO completa y torneo posterior
+PASS: anon sin guardia y authenticated sin EXECUTE a reset legacy
+PASS: usuario normal sin club rechazado desde servidor
+PASS: admin LEGITIMO rechazado al intentar revertir torneo intermedio con ELO posterior
+PASS: ultimo torneo cumple la guardia de cronologia (solo plan; NO se ejecuta reset)
+PASS: rechazos no borraron resultados, historial, estado ni posiciones
+ROLLBACK
+PASS FINAL: guardia cronologica en servidor ensayada; ROLLBACK total; ninguna reversion ejecutada.
+```
+
+La función QA propuesta verifica Auth, pertenencia al club, estado processed, historia ELO completa y ausencia de partidas/historial posterior con bloqueos de filas. El preflight pasó para el último torneo de los dos jugadores, pero **no se hizo ninguna reversión real**. Todos los cambios temporales fueron revertidos. El cliente puede omitir su propio preflight; estos controles deben residir dentro de la transacción de la RPC protegida de edición o reversión.
+
+## Preparado siguiente ensayo local: reversión atómica de ÚLTIMO torneo
+
+Se generó en la conversación `SHARKANIA_QA_reversion_ultimo_torneo_atomica_local_v1.zip` (script Bash + README). Archivo verificado con `bash -n` y prueba de integridad ZIP; **SQL todavía NO ejecutado por operador**.
+
+Características y límites: simula una RPC `reset_latest_tournament_atomic_guarded_qa(uuid)` con Auth y permisos de club; rechaza históricos posteriores; solo fixtures USD, usuarios sin profile_id vinculado, sin ligas compartidas; ejecuta en una única transacción borrado de historia y resultados del último torneo, marca `results_uploaded=false`/estado programado, recompone ELO rating/peak por historia temporal, premios y buy-ins por número real de entradas, y recalc de liga con CCP/reentradas/último torneo. Valida usuario no admin rechazado, admin rechazado en torneo intermedio, éxito en último, segundo intento rechazado, preservación de otros torneos. Finaliza en `ROLLBACK`, restaura funciones y grants. **Es un prototipo QA, no migración ni solución completa**: faltan perfiles con ELO unificado, otros currencies, reglas de ligas multiclub, edición/republicación de resultados completa, fallas concurrentes y pruebas de frontend/PostgREST. Cualquier fallo de QA debe examinarse antes de ampliar alcance. PR sigue draft, **NO-GO**, nada en producción.
