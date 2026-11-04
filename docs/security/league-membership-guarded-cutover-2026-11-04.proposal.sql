@@ -283,32 +283,7 @@ BEGIN
   END IF;
   IF v_name IS NULL OR pg_catalog.length(v_name) NOT BETWEEN 3 AND 150
      OR v_slug IS NULL OR pg_catalog.length(v_slug)>160
-     OR v_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*
--- close the opening in the SAME TRANSACTION and grant authenticated only.
-REVOKE ALL ON FUNCTION public.create_league_guarded(uuid,text,text)
-  FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.create_league_guarded(uuid,text,text)
-  TO authenticated;
-REVOKE ALL ON FUNCTION public.add_league_club_guarded(uuid,uuid)
-  FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.add_league_club_guarded(uuid,uuid)
-  TO authenticated;
-REVOKE ALL ON FUNCTION public.set_league_rooms_guarded(uuid,uuid[])
-  FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.set_league_rooms_guarded(uuid,uuid[])
-  TO authenticated;
-
-REVOKE ALL ON FUNCTION public.duplicate_league_guarded(uuid,text,text)
-  FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.duplicate_league_guarded(uuid,text,text)
-  TO authenticated;
-
-COMMIT;
-
--- This is a cutover PLAN; do NOT execute until admin UI / duplication flow
--- are migrated and legitimate league editing is verified against real QA.
--- Never turn on the tournament publisher flag merely because this passes CI.
- THEN
+     OR v_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$' THEN
     RAISE EXCEPTION 'Invalid cloned league name or slug'
       USING ERRCODE='PT422';
   END IF;
@@ -361,6 +336,11 @@ GRANT EXECUTE ON FUNCTION public.add_league_club_guarded(uuid,uuid)
 REVOKE ALL ON FUNCTION public.set_league_rooms_guarded(uuid,uuid[])
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.set_league_rooms_guarded(uuid,uuid[])
+  TO authenticated;
+
+REVOKE ALL ON FUNCTION public.duplicate_league_guarded(uuid,text,text)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.duplicate_league_guarded(uuid,text,text)
   TO authenticated;
 
 COMMIT;
