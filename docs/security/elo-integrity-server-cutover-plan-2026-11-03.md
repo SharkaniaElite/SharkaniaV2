@@ -183,3 +183,22 @@ ROLLBACK
 El diseño de privilegios finos es factible en local, **pero la prueba solo examinó GRANT efectivos y no ejecutó aún UPDATE real del administrador o la interfaz**. No aplicar esta revocación a producción antes del corte transaccional de administración, uploads/edición/reversión ELO y consultas por roles.
 
 Nueva superficie detectada por inspección de código + catálogo productivo de solo lectura: `src/components/admin/results-upload.tsx` y `results-editor.tsx` insertan directamente en `players` con el navegador, inicialmente fijando `elo_rating=1200`. La policy `Players: club admin crear` tiene `WITH CHECK (auth.uid() IS NOT NULL)`, sin validación de administrador de club, y rol `authenticated` posee INSERT de tabla y columnas ELO/premios. **Riesgo no reproducido todavía:** usuario autenticado normal podría crear jugadores con ELO/premios arbitrarios y sin aprobación de club. Preparar prueba local reversible con sala sintética y cuenta ficticia, concluyendo `ROLLBACK` antes de establecer hallazgo. Se necesita diseñar mecanismo seguro de alta de jugadores sin perder la autonomía de clubes. **NO-GO**.
+
+
+## Vulnerabilidad adicional: INSERT arbitrario en `players` confirmado (4 nov 2026)
+
+**Evidencia reportada por el operador en Supabase CLI QA local (Auth real, sin afectar producción):**
+
+```text
+PASS: usuario normal sin permisos de club preparado
+ALERTA: usuario normal pudo crear jugador con ELO y premios falsificados
+ROLLBACK
+```
+
+El ensayo creó una sala temporal y, bajo `SET LOCAL ROLE authenticated` y un `request.jwt.claim.sub` de usuario de prueba sin `club_admins`, efectuó `INSERT INTO public.players(nickname,room_id,elo_rating,elo_peak,total_prize_won)` con valores ficticios `9999,9999,123456`; la inserción fue aceptada. **Hallazgo confirmado en esquema local:** la policy `Players: club admin crear` solo comprueba `auth.uid() IS NOT NULL`, sin condición de club, y el rol `authenticated` tiene INSERT completo en la tabla, incluidas métricas derivadas. La prueba terminó en `ROLLBACK`.
+
+**Mitigación propuesta, no aplicada:** sustituir escritura directa desde el navegador por RPC `ensure_tournament_player_guarded(tournament_id,nickname,country_code)`, `SECURITY DEFINER` con `search_path=''`, autenticar por `auth.uid()`, verificar `is_super_admin()` o `is_club_admin(tournament.club_id)`, obtener `room_id` del torneo, deduplicar por nickname/sala, e insertar exclusivamente `nickname,room_id,country_code` con defaults de ELO/premios. Rechazar intento anónimo, usuario normal y admin de club ajeno. En el cutover revocar INSERT directo de `anon/authenticated/PUBLIC`, eliminar la policy demasiado amplia, sustituir `resolvePlayer` en `results-upload.tsx` y `results-editor.tsx`, conservar la edición legítima nickname/país de administradores mediante permisos precisos y ejecutar exclusivamente cálculo ELO transaccional autorizado. Todos los privilegios deben ensayarse contra la carga/edición/reversión antes de deploy.
+
+Preparado un **kit de QA reproducible** `SHARKANIA_QA_PLAYER_GUARDED_2026-11-04.zip` que incluye SQL de propuesta y shell con preflight estricto para el contenedor local `supabase_db_sharkania-qa`. Ejecuta DDL/DML y revocaciones solo en **BEGIN ... ROLLBACK**, revisa cuenta sintética y 64 tablas, y comprueba autorización/falsificación/deduplicación. **Se validaron Bash con `bash -n` y estructura ZIP, no se ejecutó todavía el SQL sobre la instancia local del operador.** Si falla el ensayo, analizar y corregir en QA, no aplicar a producción.
+
+Estado: tres vulnerabilidades de escritura confirmadas en QA; ELO RPC protegida pasó pruebas de cálculo; alta protegida aún pendiente de ejecución; **NO-GO**.
