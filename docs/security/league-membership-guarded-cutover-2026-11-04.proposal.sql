@@ -240,6 +240,114 @@ BEGIN
 END;
 $func$;
 
+-- A league duplicate cannot inherit arbitrary member clubs. Only the
+-- SOURCE primary club is attached to the NEW league. Existing room selection
+-- and scoring/schedule configuration are retained. Historic tournaments,
+-- standing entries, participants, payments and results are NOT cloned.
+CREATE OR REPLACE FUNCTION public.duplicate_league_guarded(
+  p_source_league_id uuid,
+  p_new_name text,
+  p_new_slug text
+) RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path TO ''
+AS $func$
+DECLARE
+  v_name text := nullif(pg_catalog.btrim(p_new_name),'');
+  v_slug text := nullif(pg_catalog.btrim(p_new_slug),'');
+  v_primary uuid;
+  v_new uuid;
+BEGIN
+  IF (SELECT auth.uid()) IS NULL THEN
+    RAISE EXCEPTION 'Authentication required' USING ERRCODE='42501';
+  END IF;
+  -- Serialize operations against the source before copying relationships.
+  PERFORM l.id FROM public.leagues l
+  WHERE l.id=p_source_league_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'League not found' USING ERRCODE='PT404';
+  END IF;
+  SELECT lc.club_id INTO v_primary FROM public.league_clubs lc
+  WHERE lc.league_id=p_source_league_id AND lc.is_primary
+  ORDER BY lc.id LIMIT 1;
+  IF v_primary IS NULL OR
+     (SELECT count(*) FROM public.league_clubs lc
+      WHERE lc.league_id=p_source_league_id AND lc.is_primary)<>1 THEN
+    RAISE EXCEPTION 'Source league primary ownership is ambiguous'
+      USING ERRCODE='PT409';
+  END IF;
+  IF NOT ((SELECT public.is_super_admin()) OR
+          (SELECT public.is_club_admin(v_primary))) THEN
+    RAISE EXCEPTION 'Only primary club admin may duplicate this league'
+      USING ERRCODE='42501';
+  END IF;
+  IF v_name IS NULL OR pg_catalog.length(v_name) NOT BETWEEN 3 AND 150
+     OR v_slug IS NULL OR pg_catalog.length(v_slug)>160
+     OR v_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*
+-- close the opening in the SAME TRANSACTION and grant authenticated only.
+REVOKE ALL ON FUNCTION public.create_league_guarded(uuid,text,text)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.create_league_guarded(uuid,text,text)
+  TO authenticated;
+REVOKE ALL ON FUNCTION public.add_league_club_guarded(uuid,uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.add_league_club_guarded(uuid,uuid)
+  TO authenticated;
+REVOKE ALL ON FUNCTION public.set_league_rooms_guarded(uuid,uuid[])
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.set_league_rooms_guarded(uuid,uuid[])
+  TO authenticated;
+
+REVOKE ALL ON FUNCTION public.duplicate_league_guarded(uuid,text,text)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.duplicate_league_guarded(uuid,text,text)
+  TO authenticated;
+
+COMMIT;
+
+-- This is a cutover PLAN; do NOT execute until admin UI / duplication flow
+-- are migrated and legitimate league editing is verified against real QA.
+-- Never turn on the tournament publisher flag merely because this passes CI.
+ THEN
+    RAISE EXCEPTION 'Invalid cloned league name or slug'
+      USING ERRCODE='PT422';
+  END IF;
+  IF (SELECT count(*) FROM public.league_rooms lr
+      WHERE lr.league_id=p_source_league_id)>32 THEN
+    RAISE EXCEPTION 'Source league has too many rooms for this flow'
+      USING ERRCODE='PT422';
+  END IF;
+
+  -- The existing table lacks a unique slug index. Guarded create/duplicate
+  -- share this advisory lock, but legacy direct writers must be revoked at
+  -- cutover. A unique slug constraint is still recommended separately.
+  PERFORM pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('league_slug:'||v_slug,0)
+  );
+  IF EXISTS (SELECT 1 FROM public.leagues WHERE slug=v_slug) THEN
+    RAISE EXCEPTION 'League slug already used' USING ERRCODE='PT409';
+  END IF;
+
+  INSERT INTO public.leagues(
+    name,description,rules_url,start_date,end_date,status,
+    scoring_system_id,total_dates,best_dates_to_count,slug
+  )
+  SELECT v_name,l.description,l.rules_url,l.start_date,l.end_date,
+         'upcoming',l.scoring_system_id,l.total_dates,
+         l.best_dates_to_count,v_slug
+  FROM public.leagues l WHERE l.id=p_source_league_id
+  RETURNING id INTO v_new;
+
+  INSERT INTO public.league_clubs(league_id,club_id,is_primary)
+  VALUES(v_new,v_primary,true);
+
+  INSERT INTO public.league_rooms(league_id,room_id)
+  SELECT v_new,lr.room_id FROM public.league_rooms lr
+  WHERE lr.league_id=p_source_league_id;
+  RETURN v_new;
+END;
+$func$;
+
 -- New SECURITY DEFINER functions grant EXECUTE to PUBLIC by default:
 -- close the opening in the SAME TRANSACTION and grant authenticated only.
 REVOKE ALL ON FUNCTION public.create_league_guarded(uuid,text,text)
