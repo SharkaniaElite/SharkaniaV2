@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { deleteTournamentSafe, getTournamentsByClub } from "../lib/api/tournaments"; // 👈 Agregamos getTournamentsByClub
 import { duplicateLeague } from "../lib/api/leagues";
+import { GUARDED_LEAGUE_RPC_ENABLED } from "../lib/api/guarded-leagues";
 import { formatCurrency } from "../lib/format";
 import { getTournamentLifecyclePhase } from "../lib/tournament-lifecycle";
 import { cn } from "../lib/cn";
@@ -125,12 +126,21 @@ export function ClubAdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("league_clubs")
-        .select("leagues(*)")
+        .select("is_primary, leagues(*)")
         .eq("club_id", firstClubId!);
       if (error) throw error;
+      // Preserve each club's PRIMARY vs PARTICIPANT membership in the admin UI.
+      // The server remains the sole source of authorization.
       return (data ?? [])
-        .flatMap((d: any) => d.leagues)
-        .filter(Boolean) as unknown as League[];
+        .flatMap((d: any) => {
+          const nested = Array.isArray(d.leagues)
+            ? d.leagues
+            : d.leagues ? [d.leagues] : [];
+          return nested.map((l: League) => ({
+            ...l,
+            is_primary_for_club: d.is_primary === true,
+          }));
+        }) as (League & { is_primary_for_club: boolean })[];
     },
     enabled: !!firstClubId,
   });
@@ -549,6 +559,11 @@ export function ClubAdminPage() {
                       displayStatus = "active";
                     }
 
+                    // A participating club can use the league for its
+                    // tournaments but cannot change the organizer's settings.
+                    const canManageLeague =
+                      !GUARDED_LEAGUE_RPC_ENABLED || isSuperAdmin || l.is_primary_for_club;
+
                     return (
                       <div key={l.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-4 flex items-center justify-between">
                         <div>
@@ -557,18 +572,24 @@ export function ClubAdminPage() {
                             {l.start_date && l.end_date ? `${l.start_date} — ${l.end_date}` : "Fechas por definir"} · <Badge variant={displayStatus === "active" ? "green" : displayStatus === "finished" ? "muted" : "accent"}>{displayStatus}</Badge>
                           </p>
                         </div>
-                        <div className="flex gap-1">
-                          <button 
-                            onClick={() => handleDuplicateLeague(l)} 
-                            disabled={duplicatingLeague === l.id} 
-                            className="text-sk-text-2 hover:text-sk-text-1 p-1 transition-colors disabled:opacity-50" 
-                            title="Duplicar Liga"
-                          >
-                            <Copy size={13} />
-                          </button>
-                          <button onClick={() => setEditLeague(l)} className="text-sk-text-2 hover:text-sk-accent p-1 transition-colors" title="Editar Liga"><Pencil size={13} /></button>
-                          <button onClick={() => handleDeleteLeague(l)} className="text-sk-text-2 hover:text-sk-red p-1 transition-colors" title="Eliminar Liga"><Trash2 size={13} /></button>
-                        </div>
+                        {canManageLeague ? (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleDuplicateLeague(l)}
+                              disabled={duplicatingLeague === l.id}
+                              className="text-sk-text-2 hover:text-sk-text-1 p-1 transition-colors disabled:opacity-50"
+                              title="Duplicar Liga"
+                            >
+                              <Copy size={13} />
+                            </button>
+                            <button onClick={() => setEditLeague(l)} className="text-sk-text-2 hover:text-sk-accent p-1 transition-colors" title="Editar Liga"><Pencil size={13} /></button>
+                            <button onClick={() => handleDeleteLeague(l)} className="text-sk-text-2 hover:text-sk-red p-1 transition-colors" title="Eliminar Liga"><Trash2 size={13} /></button>
+                          </div>
+                        ) : (
+                          <span className="text-sk-xs text-sk-text-3" title="Solo el club organizador puede modificar esta liga">
+                            Club participante · sin permisos de edición
+                          </span>
+                        )}
                       </div>
                     );
                   })}
