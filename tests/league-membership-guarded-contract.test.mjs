@@ -82,9 +82,11 @@ test("league form sends all data in a single guarded RPC before legacy writes", 
 });
 
 test("club admin distinguishes organizer vs participant before showing league edit controls", () => {
-  assert.match(clubAdmin, /\.select\("is_primary, leagues\(\*\)"\)/);
+  assert.match(clubAdmin, /\.select\("is_primary, leagues\(\*, league_clubs\(club_id, is_primary\)\)"\)/);
   assert.match(clubAdmin, /is_primary_for_club: d\.is_primary === true/);
-  assert.match(clubAdmin, /!GUARDED_LEAGUE_RPC_ENABLED \|\| isSuperAdmin \|\| l\.is_primary_for_club/);
+  assert.match(clubAdmin, /!GUARDED_LEAGUE_RPC_ENABLED \|\| l\.is_primary_for_club \|\| \(isSuperAdmin && !!l\.primary_club_id\)/);
   assert.match(clubAdmin, /\{canManageLeague \? \(/);
   assert.match(clubAdmin, /Club participante · sin permisos de edición/);
+  assert.match(clubAdmin, /primary_club_id: l\.league_clubs\?\.find\(\(lc\) => lc\.is_primary\)\?\.club_id/);
+  assert.match(clubAdmin, /editLeague\.primary_club_id \?\? firstClubId!/);
 });
