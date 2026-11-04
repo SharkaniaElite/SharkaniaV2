@@ -241,6 +241,44 @@ EXCEPTION WHEN object_not_in_prerequisite_state THEN
 END;
 $qa$;
 RESET ROLE;
+
+-- A new (not previously processed) tournament with an earlier date must
+-- also fail closed after a later date has been committed.
+INSERT INTO public.tournaments(id,club_id,buy_in,league_id,start_datetime)
+VALUES ('00000000-0000-0000-0000-000000000013',
+        '00000000-0000-0000-0000-000000000021',10,
+        '00000000-0000-0000-0000-000000000041',
+        '2026-10-30 12:00+00'::timestamptz);
+-- The SQL Elo/financial model is USD-only until CLP calibration is approved.
+INSERT INTO public.tournaments(id,club_id,buy_in,league_id,start_datetime,currency)
+VALUES ('00000000-0000-0000-0000-000000000014',
+        '00000000-0000-0000-0000-000000000021',10,
+        '00000000-0000-0000-0000-000000000041',
+        '2026-11-03 12:00+00'::timestamptz,'CLP');
+
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $qa$
+BEGIN
+  PERFORM public.publish_tournament_results_guarded(
+    '00000000-0000-0000-0000-000000000013',
+    (SELECT payload FROM qa_payload WHERE name='initial'));
+  RAISE EXCEPTION 'FAIL: backdated first publication was accepted';
+EXCEPTION WHEN object_not_in_prerequisite_state THEN
+  RAISE NOTICE 'PASS: initial backdated tournament rejected by server';
+END;
+$qa$;
+DO $qa$
+BEGIN
+  PERFORM public.publish_tournament_results_guarded(
+    '00000000-0000-0000-0000-000000000014',
+    (SELECT payload FROM qa_payload WHERE name='initial'));
+  RAISE EXCEPTION 'FAIL: unsupported CLP ELO was accepted';
+EXCEPTION WHEN object_not_in_prerequisite_state THEN
+  RAISE NOTICE 'PASS: unsupported CLP publication rejected without conversion';
+END;
+$qa$;
+RESET ROLE;
 DO $qa$
 BEGIN
   IF (SELECT count(*) FROM public.elo_history)<>5
