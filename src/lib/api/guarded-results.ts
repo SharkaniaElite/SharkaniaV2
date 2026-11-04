@@ -58,7 +58,7 @@ export function buildGuardedTournamentResults(
 
     const id = row.playerId?.trim() || null;
     if (id !== null) {
-      if (!/^[a-f0-9]{8}-[a-f0-9-]{27,}$/i.test(id) || ids.has(id)) {
+      if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id) || ids.has(id)) {
         throw new Error("Hay identificadores de jugador inválidos o duplicados.");
       }
       ids.add(id);
