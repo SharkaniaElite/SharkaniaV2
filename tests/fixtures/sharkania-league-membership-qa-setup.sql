@@ -18,6 +18,8 @@ CREATE TABLE public.leagues(
   status public.league_status NOT NULL DEFAULT 'upcoming',
   scoring_system_id uuid, total_dates integer, best_dates_to_count integer
 );
+-- Production already has this unique index; mirror it in the fake schema.
+CREATE UNIQUE INDEX idx_leagues_slug ON public.leagues(slug);
 CREATE TABLE public.league_clubs(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   league_id uuid NOT NULL REFERENCES public.leagues(id) ON DELETE CASCADE,
