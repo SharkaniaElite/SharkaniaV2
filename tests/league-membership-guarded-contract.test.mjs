@@ -110,7 +110,7 @@ test("production-backed Cloudflare previews block authenticated UI and browser Q
   // QA harness must pass the real organizer club (not the selected
   // participant club) to the guarded RPC. This keeps the superadmin
   // scenario valid without granting edit rights to a secondary admin.
-  assert.match(localHarness, /league_clubs\\(club_id, is_primary\\)/);
-  assert.match(localHarness, /primary_club_id: league\\.league_clubs\\?\\.find/);
-  assert.match(localHarness, /clubId=\\{edit \\? \\(edit\\.primary_club_id/);
+  assert.ok(localHarness.includes('league_clubs(club_id, is_primary)'));
+  assert.ok(localHarness.includes('primary_club_id: league.league_clubs?.find((m) => m.is_primary)?.club_id ?? null'));
+  assert.ok(localHarness.includes('clubId={edit ? (edit.primary_club_id ?? "") : clubId}'));
 });
