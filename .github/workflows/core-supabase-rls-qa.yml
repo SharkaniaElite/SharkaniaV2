@@ -85,6 +85,13 @@ jobs:
           wait "$pid_b" || { cat /tmp/elo-concurrent-b.log; exit 1; }
           psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -f tests/fixtures/sharkania-elo-qa-concurrency-assert.sql
 
+      - name: Create separate PostgreSQL 17 tournament-publication database (synthetic only)
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_publish'
+      - name: Install proposed single-RPC tournament publish/republish on fake identities
+        run: psql -v ON_ERROR_STOP=1 -d qa_publish -f tests/fixtures/sharkania-tournament-publication-qa-setup.sql
+      - name: Validate atomic publish, rollback, Elo chronology and new-player republish
+        run: psql -v ON_ERROR_STOP=1 -d qa_publish -f tests/fixtures/sharkania-tournament-publication-qa-assert.sql
+
       - name: Create separate PostgreSQL 17 Stats Espia database (synthetic data only)
         run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_stats'
       - name: Prepare synthetic purchases, players, currencies and authorization roles
