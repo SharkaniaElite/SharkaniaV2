@@ -338,28 +338,6 @@ BEGIN
 END;
 $qa$;
 
--- It is still safe to remove a newly created EMPTY league, including its
--- primary membership and room selection, in a single transaction.
-SET ROLE authenticated;
-SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
-DO $qa$
-DECLARE v_id uuid;
-BEGIN
-  SELECT id INTO v_id FROM public.leagues WHERE slug='qa-form-created';
-  IF v_id IS NULL THEN
-    RAISE EXCEPTION 'FAIL: expected synthetic empty league missing';
-  END IF;
-  IF public.delete_empty_league_guarded(v_id) IS DISTINCT FROM true
-  THEN RAISE EXCEPTION 'FAIL: protected empty deletion returned false'; END IF;
-  IF EXISTS (SELECT 1 FROM public.leagues WHERE id=v_id)
-     OR EXISTS (SELECT 1 FROM public.league_clubs WHERE league_id=v_id)
-     OR EXISTS (SELECT 1 FROM public.league_rooms WHERE league_id=v_id)
-  THEN RAISE EXCEPTION 'FAIL: empty delete left stale membership or room'; END IF;
-  RAISE NOTICE 'PASS: organizer deletes truly empty league without orphans';
-END;
-$qa$;
-RESET ROLE;
-
 -- Even privileged buggy code must not be able to create TWO primary
 -- organizers. This is an integrity invariant independent from client RLS.
 DO $qa$
@@ -495,6 +473,29 @@ BEGIN
   RAISE NOTICE 'PASS: rejected form submission leaves earlier league and rooms intact';
 END;
 $qa$;
+
+-- It is still safe to remove a newly created EMPTY league, including its
+-- primary membership and room selection, in a single transaction.
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $qa$
+DECLARE v_id uuid;
+BEGIN
+  SELECT id INTO v_id FROM public.leagues WHERE slug='qa-form-created';
+  IF v_id IS NULL THEN
+    RAISE EXCEPTION 'FAIL: expected synthetic empty league missing';
+  END IF;
+  IF public.delete_empty_league_guarded(v_id) IS DISTINCT FROM true
+  THEN RAISE EXCEPTION 'FAIL: protected empty deletion returned false'; END IF;
+  IF EXISTS (SELECT 1 FROM public.leagues WHERE id=v_id)
+     OR EXISTS (SELECT 1 FROM public.league_clubs WHERE league_id=v_id)
+     OR EXISTS (SELECT 1 FROM public.league_rooms WHERE league_id=v_id)
+  THEN RAISE EXCEPTION 'FAIL: empty delete left stale membership or room'; END IF;
+  RAISE NOTICE 'PASS: organizer deletes truly empty league without orphans';
+END;
+$qa$;
+RESET ROLE;
+
 
 DO $qa$
 BEGIN
