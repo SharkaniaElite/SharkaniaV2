@@ -635,3 +635,17 @@ PASS FINAL: multiclub y monedas verificadas en QA transaccional. No quedaron cam
 **Monedas:** escenarios independientes USD y CLP aprobados sin conversión; combinación de ambas monedas para el mismo jugador en una liga se rechaza sin mutar su clasificación. Esto es **fail-closed, no soporte de ligas monetarias multimoneda ni reconciliación histórica**. Falta definición de unidades para `total_buy_ins_spent` vs entradas y actualización del modelo de moneda en otras tablas.
 
 **Siguiente gate:** concurrencia real de dos sesiones (mismos jugadores / mismo torneo en paralelo), HTTP/PostgREST/UI y procedimiento de migración/backups; producción NO modificada y PR #64 sigue draft **NO-GO**.
+
+
+## QA de concurrencia ELO preparado para Supabase Docker local — 4 nov 2026
+
+Se generó `SHARKANIA_QA_concurrencia_ELO_local_v1.zip` (script Bash + README) en esta conversación; archivo creado y verificado mediante `bash -n` y verificación de integridad del ZIP. **No se ha ejecutado todavía en el Docker local del usuario.** No repetir las pruebas previas de autenticación/creación/edición.
+
+- Preflight sobre `supabase_db_sharkania-qa` (puerto loopback, 64 tablas, exactamente 2 Auth `@example.test` confirmados, sin `club_admins`). No modifica la base original.
+- Crea una **base de datos temporal aislada con nombre aleatorio** en ese mismo contenedor PostgreSQL, con tablas mínimas/roles simulados para el motor ELO, IDs 100% ficticios; se elimina mediante `DROP DATABASE ... WITH (FORCE)` al finalizar. Dispone de `trap` de limpieza y reporta falla si no puede eliminarse. No contiene información real de Sharkania.
+- Descarga de GitHub el SQL original de ELO protegido del commit fijo `b059bf388a2088a3c2a2807e3262e27454e4089e`, verifica SHA Git del blob antes de ejecutar el experimento.
+- Carreras con **dos sesiones PostgreSQL reales en paralelo**: dos clubes distintos calculan torneos con los mismos dos jugadores; sesión A retiene locks ocho segundos, B se conecta y espera; exige observar un `wait_event_type='Lock'` real y verificar historias ELO serializadas, totales premios/buy-ins, estados y perfil unificado.
+- Segunda carrera: dos solicitudes simultáneas al mismo torneo; exige una respuesta `already_processed=false` y otra `true`, ELO exactamente una vez, 6 filas totales de historia y buy-ins acumulados correctos para reentradas.
+- Si no puede observarse un bloqueo, la prueba se declara **no concluyente**, no PASS.
+
+**Límites claros:** este kit prueba concurrencia de la función `calculate_tournament_elo_guarded` contra un **subconjunto sintético del esquema**, no todavía concurrencia de la republicación integrada, ni una instancia completa de Supabase Auth/PostgREST. Para release se necesita probar la RPC final de republicación y el flujo UI con concurrencia, además de la política multiclub y monedas. **NO-GO; no aplicar cambios productivos.**
