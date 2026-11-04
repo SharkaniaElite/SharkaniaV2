@@ -147,3 +147,22 @@ Esta batería supera el alcance del antiguo PostgreSQL sintético: aquí la RPC 
 **Gate aprobado (local):** autorización de jugador normal/administrador de club, permiso INSERT directo revocado, rechazo `anon`, fórmula determinista de dos jugadores (1223,08 / 1176,92), idempotencia, consistencia básica de historial y acumulados, rollback local.
 
 **Gates aún pendientes antes de publicación:** ejecución desde API Supabase/PostgREST con JWT reales; permisos adversariales con administradores de clubes ajenos; carga y edición de torneos con la UI; reversión y reapertura transaccionales; sincronización de alias múltiples; reentradas/comprobación por moneda y comparación histórica; concurrencia en esquema completo; controles de Stats Espía. En particular, `src/components/admin/results-upload.tsx` / `results-editor.tsx` todavía escriben resultados desde el navegador y `reverseElo` / `prepareTournamentForReedit` se bloquean al activar el flag. **NO-GO.**
+
+
+## Hallazgo adicional: UPDATE directo de métricas en `players` con identidad propia — confirmado en QA (4 nov 2026)
+
+El operador ejecutó la prueba sintética local sobre Supabase CLI con un `player` recién creado y vinculado a un usuario ficticio confirmado de `auth.users`. Después de `SET LOCAL ROLE authenticated` con `request.jwt.claim.sub` de ese usuario, `UPDATE public.players SET elo_rating=9999, total_prize_won=123456 WHERE id=<jugador ficticio>` afectó una fila. Evidencia textual reportada:
+
+```text
+NOTICE: PASS: jugador ficticio vinculado a su cuenta
+NOTICE: ALERTA: jugador pudo falsificar ELO y premios
+ROLLBACK
+```
+
+**Confirmado en QA:** la política UPDATE `Players: editar propio` y privilegios existentes permiten a un usuario autenticado alterar directamente estadísticas derivadas de su jugador vinculado, no solo insertar ELO en `elo_history`. Ninguna modificación persistente: el test y su fixture cerraron con `ROLLBACK`.
+
+**Corroboración solamente de catálogo productivo** (sin ejecutar DML): `information_schema.role_table_grants` muestra `UPDATE` a `anon` y `authenticated` sobre toda `public.players`; `has_column_privilege('authenticated','public.players','elo_rating','UPDATE')=true`, igualmente `total_prize_won`. Las políticas UPDATE incluyen `Players: editar propio` (`profile_id=auth.uid()`), y otras para administradores de club/super. Los triggers existentes son slug, sincronización de país y `updated_at`, sin guardia de métricas ELO. **El alcance concreto probado fue la escritura directa local con datos válidos; no se realizó ataque sobre producción.**
+
+**Implicación de migración:** un GRANT de tabla `UPDATE` concede UPDATE sobre todas las columnas; no basta revocar una columna individual si persiste el permiso de tabla. Probar exclusivamente en transacción QA `REVOKE UPDATE ON public.players FROM PUBLIC, anon, authenticated` y `GRANT UPDATE (nickname,country_code) ... TO authenticated`, verificando que datos editables sigan funcionando y que ELO/premios sean denegados. Esto es **solo experimento**, NO una migración apta para producción: los admins y el motor ELO legado requieren escrituras, hay otras columnas y rutas que deben inventariarse y migrarse a RPC/servicio transaccional con cobertura de tests de regresión.
+
+**Prioridad ALTA**, pendiente de mitigación completa y aprobación de publicación. **NO-GO**.
