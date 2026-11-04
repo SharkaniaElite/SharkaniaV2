@@ -7,6 +7,8 @@ const guarded = read("src/lib/api/guarded-leagues.ts");
 const leagueForm = read("src/components/admin/league-form.tsx");
 const clubAdmin = read("src/pages/club-admin.tsx");
 const legacy = read("src/lib/api/leagues.ts");
+const resultUpload = read("src/components/admin/results-upload.tsx");
+const resultEditor = read("src/components/admin/results-editor.tsx");
 const sql = read("docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql");
 const fixture = read("tests/fixtures/sharkania-league-membership-qa-assert.sql");
 const workflow = read(".github/workflows/qa-league-security-release.yml");
@@ -113,4 +115,25 @@ test("production-backed Cloudflare previews block authenticated UI and browser Q
   assert.ok(localHarness.includes('league_clubs(club_id, is_primary)'));
   assert.ok(localHarness.includes('primary_club_id: league.league_clubs?.find((m) => m.is_primary)?.club_id ?? null'));
   assert.ok(localHarness.includes('clubId={edit ? (edit.primary_club_id ?? "") : clubId}'));
+});
+
+test("release A guarded flag blocks league result writes before any mutation", () => {
+  // The secure standings recalculation RPC belongs to a later integration.
+  // These two legacy handlers must fail CLOSED before creating players,
+  // resetting tournament impact, replacing results or modifying ELO.
+  for (const [source, handler, firstWrite] of [
+    [resultUpload, "const handleResolveAndUpload = async () => {", "await resolvePlayer("],
+    [resultEditor, "const handleSave = async () => {", "await prepareTournamentForReedit("],
+  ]) {
+    assert.ok(source.includes('import { GUARDED_LEAGUE_RPC_ENABLED } from "../../lib/api/guarded-leagues";'));
+    const start = source.indexOf(handler);
+    assert.ok(start !== -1, "result handler must exist");
+    const code = source.slice(start);
+    const guard = code.indexOf("if (GUARDED_LEAGUE_RPC_ENABLED && tournament.league_id) {");
+    assert.ok(guard >= 0 && guard < code.indexOf(firstWrite),
+      "guarded-mode block must occur before the first mutation");
+    const beforeWrites = code.slice(guard, code.indexOf(firstWrite));
+    assert.match(beforeWrites, /setMessage\(\{[\s\S]*?type: "error",[\s\S]*?\}\);\s*return;\s*\}/);
+  }
+  assert.match(legacy, /if \(GUARDED_LEAGUE_RPC_ENABLED\) \{\s*throw new Error\("El recálculo manual de ligas requiere/);
 });
