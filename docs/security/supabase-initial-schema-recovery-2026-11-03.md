@@ -181,3 +181,21 @@ El propietario informó `COINCIDE` en el `md5(pg_get_functiondef(...))` local fr
 Se generó un script privado `SHARKANIA_reparar_ACL_y_Auth_SOLO_LOCAL_v1.sh` (ZIP distribuido solo al operador), **aún no ejecutado**. Su preflight exige el contenedor exacto `supabase_db_sharkania-qa`, puerto restringido a loopback, base local `postgres`, `auth.users` vacío, 64 tablas y 185 políticas, cero triggers personalizados en `auth.users`, y la huella idéntica de las **57 funciones**; si alguna comprobación falla, aborta. Luego, en una **sola transacción**, revoca permisos heredados de `PUBLIC` en las 38 funciones restringidas, da ejecución a `service_role` y a `authenticated` solo donde producción lo permite, y crea el trigger `on_auth_user_created` en `auth.users` apuntando a `public.handle_new_user()`. Verifica conteos finales 38/14 y trigger activo; cualquier fallo revierte todo. Se comprobó la sintaxis del shell y la integridad ZIP, **no se realizó ejecución real del SQL**.
 
 **NO-GO** para producción permanece. Próximo paso: pedir al operador que ejecute script en Ubuntu WSL y comparta su salida; si pasa, comenzar QA Auth con usuarios ficticios y verificación RLS. Nunca usar este script sobre producción.
+
+### ACL QA restauradas — verificación del operador (4 nov 2026)
+
+El operador ejecutó `bash SHARKANIA_reparar_ACL_y_Auth_SOLO_LOCAL_v1.sh` sobre el contenedor exclusivo `supabase_db_sharkania-qa`; compartió la salida:
+
+```text
+BEGIN
+SET
+SET
+NOTICE: PASS: 38 anon restrictions, 14 authenticated restrictions, 1 Auth trigger; definitions unchanged.
+DO
+COMMIT
+PASS: local QA function ACL and Auth registration trigger restored atomically.
+```
+
+Por tanto, **gates aprobados**: 4/4 funciones críticas con hash idéntico a producción; restauración local transaccional de ACL de funciones y del trigger Auth según reglas de catálogo. No se han importado datos reales ni cambiado ACL productivas.
+
+Próximo gate: verificar `/auth/v1/signup` local con **usuario sintético**, comprobar el alta en `auth.users` y su perfil en `public.profiles` con `role=player` y saldo de bienvenida definido en `public.handle_new_user`; no revelar claves locales ni contraseña. Se preparó `SHARKANIA_QA_prueba_registro_local_v1.sh` en conversación privada, preflight de contenedores y puertos loopback, clave local capturada internamente sin imprimirla, y únicamente un alta sintética. **Aún no ejecutado** por el operador. Un registro correcto no certifica confirmación de correo, RLS, compras, ELO ni pagos. **NO-GO** para producción.
