@@ -26,7 +26,7 @@
 
 ## Pendientes de liberación — NO GO
 
-1. Probar **backup RESTAURABLE** en una tercera base aislada, con verificación de recuentos, Auth, funciones, RLS/grants; un `pg_restore --list` no basta.
+1. **Parcialmente cumplido:** backup de QA restaurado íntegramente en un tercer clúster temporal sin red (ver Etapas 6A–6C más abajo). **Pendiente:** comprobar propietarios, roles, GRANT/ACL efectivos, `ALTER DEFAULT PRIVILEGES` y permisos en un ensayo representativo de producción; la restauración actual usa `--no-owner/--no-acl`.
 2. Comparar **preflight de producción SOLO LECTURA** (tablas/FK, organización primaria, roles, índices, políticas, dependencias de todas las rutas legacy) contra el SQL definitivo.
 3. Preparar migración **versionada** (la propuesta del PR no es una migración), sincronizar backend y frontend, verificar SECURITY DEFINER, search_path y permisos efectivos.
 4. Comprobar que ninguna ruta de creación/edición/duplicación legacy depende de DML revocado; resolver invitación entre administradores de clubes si se requiere flujo multipartes.
@@ -34,3 +34,15 @@
 6. Mantener Release B (ELO/publicación) totalmente fuera de este corte.
 
 **Aviso:** `VITE_LEAGUE_GUARDED_RPC` permanece apagado en producción; el preview Cloudflare identificado previamente no está aislado de Supabase productivo y NO debe utilizarse para escribir datos de QA.
+
+
+## Respaldo local y recuperación aislada — Etapas 6A–6C (4 nov 2026)
+
+**Fuente de evidencia:** salidas de terminal aportadas por el operador en la sesión de QA; resultados documentados como observados, **no reejecutados independientemente** por el asistente. Todas estas operaciones usaron datos ficticios, no producción.
+
+- **6A — PASS reportado:** `pg_dump` 18.6 contra PostgreSQL 17.11 de la **segunda** preproducción local. Archivo custom privado de **902.286 bytes**, con **1.650 objetos** en el índice y SHA-256 `c69b1131f6a07f75fbe2d438726953ab85d8ccf7212f86c91f78a1c77752cc6c`. Se validó el índice con `pg_restore`. No publicar el dump ni los usuarios ficticios con credenciales.
+- **6B — STOP con limpieza:** restauración en una tercera *base* del segundo clúster falló por `permission denied to set parameter "log_min_messages"` en funciones internas `realtime.list_changes` y `realtime.list_changes_sync`, cuyo SQL incluye `SET log_min_messages TO 'fatal'`. La base temporal se eliminó; el dump quedó intacto.
+- **6C v1 — STOP seguro:** comprobación demasiado estricta de puertos Docker causó falso bloqueo; contenedor de ensayo eliminado.
+- **6C v2 — PASS reportado:** restauración del **dump original** en un **tercer clúster PostgreSQL 17.11** temporal, `--network none`, sin puertos publicados ni bind mounts. Se verificaron checksum, independencia del clúster, `pg_restore` completo sin errores SQL y recuperación de **64 tablas**, cuentas ficticias, ligas, torneos, RLS y funciones de Realtime. Contenedor y datos desechables eliminados tras el ensayo.
+
+**Límite de esta validación:** la restauración 6C usó `--no-owner/--no-acl`, por lo que **NO** demuestra equivalencia de propietarios ni permisos efectivos del origen, especialmente los **24 `ALTER DEFAULT PRIVILEGES`** ajenos que no pudieron reproducirse en el esquema inicial de QA. Tampoco demuestra que exista un **respaldo productivo recuperable** o un procedimiento de rollback del corte. Registrar evidencia de roles/grants/policies/SECURITY DEFINER, revisar esquema de producción solo en lectura y preparar migración versionada antes de GO. Mantener **NO GO** y separación estricta de Release B.
