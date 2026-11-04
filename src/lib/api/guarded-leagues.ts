@@ -57,6 +57,65 @@ export async function createLeagueGuarded(input: {
   return data;
 }
 
+export interface GuardedLeagueFormFields {
+  description: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  rules_url: string | null;
+  total_dates: number | null;
+  best_dates_to_count: number | null;
+  status: "upcoming" | "active" | "finished";
+}
+
+/**
+ * Save the league metadata, primary organizer and full room list in ONE RPC.
+ * No automatic fallback to the old three-call browser sequence.
+ */
+export async function saveLeagueGuarded(input: {
+  leagueId: string | null;
+  primaryClubId: string;
+  name: string;
+  slug: string;
+  fields: GuardedLeagueFormFields;
+  roomIds: readonly string[];
+}): Promise<string> {
+  assertGuardedLeagueEnabled();
+  const clubId = requireUuid(input.primaryClubId, "club principal");
+  const leagueId = input.leagueId ? requireUuid(input.leagueId, "liga") : null;
+  const name = input.name.trim();
+  const slug = input.slug.trim();
+  if (name.length < 3 || name.length > 150 ||
+      slug.length > 160 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    throw new Error("Nombre o URL de liga inválidos.");
+  }
+  if (input.roomIds.length > 32 ||
+      input.roomIds.some((id) => !UUID_PATTERN.test(id)) ||
+      new Set(input.roomIds).size !== input.roomIds.length) {
+    throw new Error("Salas duplicadas o inválidas.");
+  }
+  const { data, error } = await supabase.rpc("save_league_guarded", {
+    p_league_id: leagueId,
+    p_primary_club_id: clubId,
+    p_name: name,
+    p_slug: slug,
+    p_fields: input.fields,
+    p_room_ids: [...input.roomIds],
+  });
+  if (error) {
+    if (error.code === "PT409" || error.code === "23505") {
+      throw new Error("Ya existe una liga con esa URL o se produjo un conflicto de edición.");
+    }
+    if (error.code === "42501") {
+      throw new Error("No tienes autorización sobre el club organizador de esta liga.");
+    }
+    throw new Error("No se pudo guardar la liga en una sola operación. No se aplicaron cambios parciales.");
+  }
+  if (typeof data !== "string" || !UUID_PATTERN.test(data)) {
+    throw new Error("Respuesta inesperada del servidor. Revisa la liga antes de reintentar.");
+  }
+  return data;
+}
+
 /**
  * Clone settings and room associations atomically, but NOT membership of
  * secondary clubs. New secondary clubs must independently be authorized.
