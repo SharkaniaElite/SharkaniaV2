@@ -524,3 +524,26 @@ La republicación QA anterior se aprobó con `profile_id IS NULL`. Al revisar el
 Se construyó `SHARKANIA_QA_republicacion_ELO_unificado_multialias_local_v1.zip` (script Bash y README), partiendo del ensayo aprobado y modificándolo **solo para QA**: dos fichas con `profile_id` idéntico de uno de los usuarios ficticios, historial ELO unificado inicial 1280; actualiza `profiles.unified_elo` en el mismo subproceso SQL del reset y lo vuelve a sincronizar por `calculate_tournament_elo_guarded` al republicar; verifica rollback ante falla inyectada sin cambiar unified_elo anterior, nuevo unified_elo 1290 después de republicación, y segunda llamada sin doble conteo. Mantiene controles de autorización, cronología, ELO controlado por servidor, standings y reentradas, moneda USD y preflight local; concluye en `ROLLBACK`.
 
 Se verificaron **`bash -n` y la integridad ZIP**. **NO se ha ejecutado PostgreSQL en el Supabase local del operador ni se ha comprobado la funcionalidad real de esta variante; puede requerir correcciones según resultados.** No es migración, no es producción; todavía faltan multi-perfil, altas nuevas, multi-moneda, liga compartida, concurrencia, frontend/PostgREST, backup y rollback de despliegue. **NO-GO**.
+
+
+## QA local PASS: republicación atómica con ELO unificado de perfil multialias (4 nov 2026)
+
+El operador ejecutó `SHARKANIA_QA_republicacion_ELO_unificado_multialias_local_v1.sh` contra su Supabase local: tres torneos sintéticos, dos nicknames vinculados al mismo perfil de prueba, cuenta Auth ficticia y moneda USD. Evidencia entregada:
+
+```text
+PASS: entorno local validado; propuesta ELO fijada por SHA de GitHub.
+PASS: tres fechas sinteticas, historia completa y 2 aliases del mismo perfil con ELO unificado 1280
+PASS: cuenta ajena no puede republicar
+PASS: rechazo de torneo intermedio con estado intacto
+PASS: campos ELO de cliente rechazados
+PASS: fallo inyectado despues de reset, transaccion interna revertida
+PASS: la falla de mitad de operacion no deja resultados parciales
+PASS: ultimo torneo republicado atomico: ELO 1285.46 / 1204.54, perfil multi-alias unificado 1290, liga 290/130
+PASS: segunda republicacion conserva ELO unificado 1290 y no duplica conteos
+ROLLBACK
+PASS FINAL: republicacion con ELO unificado multi-alias probada SOLO en QA; ROLLBACK completo.
+```
+
+**Gate local aprobado:** prototipo de sustitución de resultados, recálculo ELO/standings y sincronización de `profiles.unified_elo` para dos nicknames del mismo usuario. Comprueba rollback forzado tras reset, rechazo a clientes con campos ELO y administradores ajenos, cronología y idempotencia de segunda republicación. Todo termina con `ROLLBACK`. No migración ni cambio permanente.
+
+**Release NO-GO:** faltan altas de jugadores nuevos desde el mismo flujo transaccional, ligas multiclub y política de autorización, varias monedas/sus diferencias semánticas, concurrencia de procesos y pruebas por HTTP/PostgREST y UI, además de plan de migración y restauración. No aplicar SQL del kit local a producción ni activar `VITE_ELO_GUARDED_RPC`.
