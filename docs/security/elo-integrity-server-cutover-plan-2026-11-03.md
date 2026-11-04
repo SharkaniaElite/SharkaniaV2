@@ -379,3 +379,25 @@ Tras PASS en conservación transaccional de liga, siguiente componente priorizad
 Se preparó `SHARKANIA_QA_resultados_campos_ELO_local_v1.zip` (`.sh` + README), se verificó `bash -n` y estructura ZIP; SQL **aún sin ejecutar**. El script hace preflight Docker loopback, 64 tablas, dos identidades sintéticas confirmadas, cero admins, verifica grants originales. En `BEGIN...` crea club, torneo, tres jugadores, admin y resultado ficticios, comprueba si admin puede forjar ELO vía UPDATE e INSERT; simula `REVOKE INSERT, UPDATE` de tabla y `GRANT` por columnas de resultados legítimos excluyendo ELO, comprueba rechazo de escrituras ELO, permanencia de INSERT y UPDATE de premio autorizado, denegación de usuario no admin, concluye `ROLLBACK` con verificación de recuentos/grants. **No apto como migración de producción**: las operaciones de admin actuales y ELO legacy requieren un corte coordinado.
 
 El paso posterior será construir/ensayar RPC de guardado transaccional de resultados, ELO y posiciones que no dependa de múltiples escrituras del navegador, incorpore edit/reversión y manejo seguro de torneos posteriores; mantener `VITE_ELO_GUARDED_RPC=false` y PR #64 draft hasta gate integral. **NO-GO**.
+
+
+## QA local PASS: bloqueo de columnas ELO dentro de `tournament_results` — 4 nov 2026
+
+El operador ejecutó `SHARKANIA_QA_resultados_campos_ELO_local_v1.sh` contra Supabase local con 64 tablas, dos cuentas QA y permisos originales, un club, un torneo, tres jugadores y admin sintéticos. Salida textual:
+
+```text
+PASS: contenedor local, 64 tablas, dos cuentas ficticias y permisos originales verificados.
+PASS: un club, un torneo, tres jugadores y un admin sinteticos creados
+CONFIRMADO: admin podia falsificar los campos ELO del resultado por UPDATE e INSERT directos
+PASS: ELO pasa a exclusivo del servidor; columnas de resultados permitidas al admin
+PASS: UPDATE de elo_after denegado
+PASS: INSERT con elo_change denegado
+PASS: admin conserva INSERT resultado y UPDATE premio de su propio torneo
+PASS: usuario sin club no edita resultados ajenos
+ROLLBACK
+PASS FINAL: escritura ELO bloqueada por columnas en QA, resultados legitimos conservados; ROLLBACK completo.
+```
+
+**Sexta superficie de integridad confirmada en QA**: incluso admin autorizado de club podía alterar arbitrariamente `elo_before`, `elo_after`, `elo_change` mediante `INSERT/UPDATE` completos a `public.tournament_results`. La simulación de `REVOKE` de tabla y `GRANT` por columnas bloquea esos campos, conserva operaciones legítimas y políticas de pertenencia. Todo dentro de transacción `ROLLBACK`, sin modificación de producción. No desplegar permisos restringidos aisladamente, pues cálculo legacy desde cliente necesita escribir ELO en `tournament_results`.
+
+**Estado release:** permisos/fórmula ELO, alta de players, edición simple, recálculo de standings y metadatos todos ensayados por separado; **no existe todavía un flujo transaccional único publicado**. El frontend `src/components/admin/results-upload.tsx` y `results-editor.tsx` realizan muchas escrituras separadas (crean players, reset, borran/insertan tournament_results, aplican liga, calculan ELO) y el modo `GUARDED_ELO_RPC_ENABLED` bloquea esas rutas deliberadamente. Primero revisar la función legacy `reset_tournament_impact(uuid)` y `reverseElo` para identificar semántica y dependencias históricas; diseñar RPC atómica de publicación y RPC de re-edición/reversión con protección a torneos posteriores, recalcular ELO/standings bajo mismas cerraduras y sin fallback a cliente. **NO-GO, PR permanece draft.**
