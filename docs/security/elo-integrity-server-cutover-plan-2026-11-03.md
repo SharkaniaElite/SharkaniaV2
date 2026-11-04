@@ -274,3 +274,20 @@ recalculate_league_standings p_league_id uuid   f                     t         
 ```
 
 Interpretación precisa: la función es `SECURITY INVOKER` (no definer), y los roles `anon` y `authenticated` tienen `EXECUTE`. **No prueba ejecución exitosa por anon ni modificación:** faltan análisis del cuerpo, roles, RLS y ensayos. El catálogo y la QA ya prueban que `authenticated` puede efectuar INSERT/UPDATE/DELETE arbitrarios en `league_standings`; potencialmente puede activar un recálculo de una liga ajena. Siguiente paso: obtener `pg_get_functiondef` **solo en local** y revisar validación de autorización/algoritmo; diseñar RPC protegida y migrar escrituras del navegador antes de revocar permisos en producción. No ejecutar `SECURITY DEFINER` sin guardas internas o solo como cambio cosmético. **NO-GO**.
+
+
+## Inspección de `recalculate_league_standings(uuid)`: sin autorización y recálculo destructivo — 4 nov 2026
+
+El operador recuperó `pg_get_functiondef` en Supabase CLI local (solo lectura). Código observado:
+
+- `LANGUAGE plpgsql`, `SECURITY INVOKER`, `search_path='pg_catalog','public','extensions'`, parámetro `p_league_id uuid`.
+- Consulta `leagues.best_dates_to_count` sin `auth.uid()` ni verificación `is_super_admin()`/club.
+- Ejecuta `DELETE FROM league_standings WHERE league_id=p_league_id` y `INSERT INTO league_standings (...) SELECT ... FROM tournament_results JOIN tournaments ... WHERE t.league_id=p_league_id`; después recalcula `rank_position`.
+- Reconstituye `total_points` con suma de fechas TOP-N por `league_points_earned`, `tournaments_played`, mejor posición y número de mesas finales. El SQL no incluye `ccp_club`, `total_buy_ins_spent` ni `last_tournament_id`, por lo que esos valores se pierden por DELETE/INSERT.
+- Concedido `EXECUTE` a `anon` y `authenticated` según prueba de catálogo local. El alcance práctico anónimo sigue sin validarse; los INSERT/UPDATE/DELETE de `authenticated` a `league_standings` **ya fueron confirmados vulnerables en QA**.
+
+**Cruce con frontend del PR #64**: `src/lib/api/leagues.ts` `forceRecalculateStandings()` llama a la RPC y después restaura parcialmente `ccp_club` y `total_buy_ins_spent` mediante múltiples `UPDATE` a `league_standings` **desde el navegador** (`lines ~132–185`). Los campos no forman parte de una sola transacción; cualquier error/concurrencia puede dejar resultados incompletos. Peor, la lectura para esa reparación filtra `tournament_results.ccp_club IS NOT NULL`, así que algunas reentradas sin club CCP pueden quedar fuera de los conteos. `last_tournament_id` no se restaura ahí. `src/lib/api/tournaments.ts` `applyLeaguePoints()` también hace INSERT/UPDATE directo en `league_standings`.
+
+**Modelo multi-club**: el frontend clona relaciones `league_clubs(club_id,is_primary)` y `league_rooms(room_id)`, de modo que **no se debe asumir que `leagues` contiene un `club_id` único**. La autorización del futuro motor tendrá que mapear exactamente administrador de liga principal, superadmin y/o administradores de clubes participantes de acuerdo a reglas verificadas; nunca derivarla solo del parámetro de cliente.
+
+**Plan de corrección (no aplicado):** prueba sintética local de invocación por usuario sin clubes, comprobar que una función autorizada lo rechaza; generar nueva versión segura con firma apropiada, permisos `REVOKE EXECUTE FROM PUBLIC,anon`, validación de club autorizante, `search_path` endurecido y recálculo íntegramente transaccional incluyendo campos complementarios y consistencia de `league_standings`. Revisar preservación de fórmula, claves y bloqueos concurrentes. NO limitarse a revocar DML antes de sustituir `applyLeaguePoints()` y reparación posterior de `forceRecalculateStandings()`, porque se romperían rankings actuales. **NO-GO**.
