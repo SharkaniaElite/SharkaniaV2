@@ -348,3 +348,25 @@ Se creó `SHARKANIA_QA_ligas_metadata_transaccional_local_v1.zip` para el Supaba
 Prueba propuesta: dos torneos/fechas y dos jugadores ficticios con puntos 200/130, 2 participaciones cada uno, CCP original y 5/3 buy-ins. Antes de aplicar el prototipo, ejecuta una sola vez la `recalculate_league_standings` legada **dentro de BEGIN...ROLLBACK** y verifica la pérdida de los tres metadatos (`ccp_club`, `total_buy_ins_spent` y `last_tournament_id`). Después crea una wrapper temporal `recalculate_league_standings_metadata_guarded_qa(uuid)` SECURITY DEFINER con `search_path=''`, validación de `auth.uid()` y club asociado, advisory lock, y llamada al algoritmo de puntos legada, **reconstituyendo dentro de la misma transacción** CCP histórico primero no nulo, suma de todas las `buy_ins_count` y última fecha por `start_datetime` de resultados. Simula revocaciones de EXECUTE legada y INSERT/UPDATE/DELETE directo; exige denegación de usuario sin club, autorización del admin, metadata consistente en ejecución y repetición idempotente. ROLLBACK y verificación de restauración final.
 
 **No es migración de producción, ni cubre carga/edición/reversión de resultados**, y hay decisiones por aprobar: regla de autorización de ligas compartidas y `total_buy_ins_spent` se usa actualmente como número de reentradas, NO gasto monetario. La función QA demuestra viabilidad y riesgos de semántica, sin publicar. Estado **NO-GO**.
+
+
+## QA local PASS: integridad transaccional de metadatos de ligas (4 nov 2026)
+
+Operador ejecutó `SHARKANIA_QA_ligas_metadata_transaccional_local_v1.sh` en el contenedor `supabase_db_sharkania-qa`. Evidencia textual íntegra de los controles principales:
+
+```text
+PASS: Docker local, 64 tablas, dos usuarios QA y funcion de recalc disponibles.
+PASS: dos fechas, dos jugadores, buy-ins 5/3 y clubes CCP ficticios preparados
+CONFIRMADO: recalculo antiguo pierde CCP, buy-ins y ultimo torneo aun con resultados validos
+PASS: EXECUTE antiguo y escrituras directas bloqueados; anon sin RPC nueva
+PASS: usuario normal no administra liga
+PASS: admin recalcula total_points 200/130, CCP, buy-ins 5/3 y ultimo torneo, en una transaccion
+PASS: segundo recalc no duplica ni pierde datos (idempotencia)
+PASS: UPDATE directo denegado incluso a club admin
+ROLLBACK
+PASS FINAL: perdida legacy demostrada y prototipo de recalc con CCP/buy-ins/ultimo torneo verificado; ROLLBACK completo.
+```
+
+**Gate de integridad aprobado en QA local**: reprodujo pérdida destructiva de metadatos con función legacy **incluso con resultados de torneo válidos**; wrapper provisional autorizada por club asociado reconstruyó metadata dentro de la misma transacción, preservó puntos y fue idempotente con dos ejecuciones. Rechazó usuario sin club y UPDATE directo. `ROLLBACK` revirtió todos los cambios. **No significa que la función provisional esté desplegada o apta para producción**: falta probar formalmente concurrentes, seguridad de ligas multiclub, reglas de propietario de CCP, diferencias buy-ins vs gasto monetario, reentradas y extremo a extremo de carga/edición/reversión con ELO.
+
+**Siguiente gate de publicación:** flujo protegido y atómico de resultados `tournament_results` + ELO `players`/`elo_history` + `league_standings` con permisos adecuados de administrador del club; ensayar re-subida, re-edición, reversión y consecuencias de torneos posteriores, además de escenarios de fallos. Mantener bandera del ELO nuevo apagada y PR sin fusionar; **NO-GO**.
