@@ -58,12 +58,12 @@ test("PostgreSQL QA replays pre-patch attack and verifies blocked escalation", (
 });
 
 test("league form sends all data in a single guarded RPC before legacy writes", () => {
-  assert.match(guarded, /supabase\\.rpc\\("save_league_guarded"/);
-  assert.match(guarded, /p_room_ids: \[\.\.\.input\\.roomIds\]/);
-  assert.match(leagueForm, /if \\(GUARDED_LEAGUE_RPC_ENABLED\\) \\{/);
-  assert.match(leagueForm, /await saveLeagueGuarded\\(\\{/);
-  assert.match(leagueForm, /fields:\\s*\\{/);
-  assert.match(leagueForm, /roomIds: form\\.room_ids/);
+  assert.match(guarded, /supabase\.rpc\("save_league_guarded"/);
+  assert.match(guarded, /p_room_ids: \[\.\.\.input\.roomIds\]/);
+  assert.match(leagueForm, /if \(GUARDED_LEAGUE_RPC_ENABLED\) \{/);
+  assert.match(leagueForm, /await saveLeagueGuarded\(\{/);
+  assert.match(leagueForm, /fields:\s*\{/);
+  assert.match(leagueForm, /roomIds: form\.room_ids/);
   assert.ok(
     leagueForm.indexOf("await saveLeagueGuarded({") <
     leagueForm.indexOf('supabase.from("leagues").insert(payload)'),
@@ -74,8 +74,8 @@ test("league form sends all data in a single guarded RPC before legacy writes", 
     leagueForm.indexOf('supabase.from("league_rooms").delete()'),
     "guarded edit cannot first delete rooms through browser API",
   );
-  assert.match(sql, /public\\.save_league_guarded/);
-  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\\.save_league_guarded/);
+  assert.match(sql, /public\.save_league_guarded/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.save_league_guarded/);
   assert.match(fixture, /guarded form creates metadata, organizer and rooms atomically/);
   assert.match(fixture, /rejected form submission leaves earlier league and rooms intact/);
 });
