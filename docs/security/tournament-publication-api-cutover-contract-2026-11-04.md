@@ -130,3 +130,38 @@ Se generó `SHARKANIA_QA_publicacion_esquema_real_local_v1.zip` en la conversaci
 En **una única transacción** `BEGIN ... ROLLBACK`, añade clubes, liga, torneos, dos usuarios administradores, jugadores con perfil multialias; revoca temporalmente los `EXECUTE` de auxiliares y rutas legacy; prueba rechazo de actor de club ajeno, JSON con ELO, posiciones fraccionarias, acceso directo a helper ELO/alta; publicación inicial; registro de ELO, premios, reentradas, perfil y standings; fallo inyectado en INSERT de `elo_history` tras el reset; recuperación de la operación incluyendo alta nueva; republicación de 3 jugadores; reintento sin doble acumulación; publicación de una fecha posterior y rechazos de edición histórica, alta retroactiva y CLP; verificación de conteos/permisos recuperados tras ROLLBACK. El Bash/ZIP no constituyen prueba PostgreSQL y cualquier error de este ensayo debe documentarse como fallo sin desplegar cambios.
 
 **Pendientes:** ejecutar el ZIP sobre el Docker local real del operador; analizar PostgreSQL output y corregir si fuese necesario; probar HTTP/PostgREST, concurrencia real de la RPC integrada, concesión/revocación de la migración coordinada, y reglas comerciales multiclub/multimoneda. Release permanece NO-GO y todos los flags desactivados.
+
+
+## 9. QA real de 64 tablas: PASS (4 nov 2026)
+
+El operador ejecutó `SHARKANIA_QA_publicacion_esquema_real_local_v1.sh` en Ubuntu/WSL contra el contenedor exclusivo `supabase_db_sharkania-qa`, con DOS identidades Auth ficticias confirmadas. Se verificaron aislamiento local, 64 tablas, versiones exactas de tres SQL fijadas por hashes Git. El propio programa emitió:
+
+```text
+PASS: aislamiento local, 64 tablas, cuentas QA y tres archivos SQL fijados por hash.
+PASS: dos clubes/admins, 4 torneos, dos alias vinculados, liga y datos QA creados
+PASS: administrador de club ajeno rechazado
+PASS: campos ELO desde navegador rechazados
+PASS: posiciones fraccionarias rechazadas
+PASS: helper ELO inaccesible directamente
+PASS: helper alta de jugador inaccesible directamente
+PASS: controles de autorizacion, privilegios y formato sobre esquema QA
+PASS: publicacion inicial integrada en esquema de 64 tablas
+PASS: historia ELO, premios, reentradas, perfil multi-alias y standings coherentes
+PASS: error ELO provocado dentro de la republicacion
+PASS: la falla revierte borrados, nueva ficha y ELO sin estado parcial
+PASS: republicacion con jugador nuevo completada en una operacion
+PASS: jugador nuevo y cifras corregidas sin duplicados ni perdida de CCP
+PASS: reintento deja acumulados sin doble conteo
+PASS: un segundo torneo publica historial cronologico
+PASS: rechazo a editar torneo con ELO posterior
+PASS: rechazo a publicar por primera vez una fecha antigua
+PASS: CLP bloqueado sin conversion ficticia
+PASS: integracion completa sobre esquema QA, lista para probar HTTP mas adelante
+PASS FINAL: RPC integrada comprobada en las 64 tablas de Supabase QA; transaccion ROLLBACK completa, sin cambios persistentes.
+```
+
+**Gate aprobado:** la RPC integrada funciona, en condiciones de fixture y roles reales del esquema QA, dentro de una sola transacción que termina en `ROLLBACK`; revocación temporal de helpers, autorización, protección de columnas ELO, rechazo de parámetros malformados, creación de fichas, ELO histórico/unificado, standings, CCP, reentradas, fallo inyectado con reversión completa, cronología y USD-only.
+
+**NO significa:** que esa RPC esté desplegada, que HTTP/PostgREST/Auth esté probado, ni que se hayan corregido permisos inseguros de producción. El script ejercitó SQL directamente dentro de una transacción PostgreSQL; los cambios nunca fueron visibles a otra conexión y se revirtieron íntegramente. El próximo gate es un servicio HTTP/PostgREST sobre base aislada, necesariamente con RPC/fixtures COMMIT solo en ese clon efímero, seguido de destrucción del clon; no es posible probar la RPC por HTTP desde otra conexión mientras el SQL temporal sigue sin commit en una transacción que luego hace rollback.
+
+**Release NO-GO**: faltan PostgREST (roles y JWT distintos), concurrencia de la republicación integrada vía API, cierre coordinado real de GRANT/RLS y flujos admin/UI/preview. El PR sigue draft, flags desactivados.
