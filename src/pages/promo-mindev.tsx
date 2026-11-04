@@ -1,5 +1,6 @@
 // src/pages/promo-mindev.tsx
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaRouteTrail } from "../components/arena/arena-route-trail";
 import { SEOHead } from "../components/seo/seo-head";
 import { RevealSection } from "../components/landing/reveal-section";
 import { Button } from "../components/ui/button";
@@ -19,7 +20,7 @@ export function PromoMindevPage() {
   const affiliateLink = "https://mindev-ia.cl/?ref=sharkania";
 
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead 
         title="Acelera tu aprendizaje sin GTO | Sharkania x MindEV" 
         description="La herramienta definitiva para jugadores de torneos de póker que no quieren perder tiempo. Aprende rápido, descubre qué hiciste bien y qué hiciste mal sin estudiar tablas aburridas." 
@@ -32,7 +33,8 @@ export function PromoMindevPage() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#d4af37]/5 blur-[120px] rounded-full" />
       </div>
 
-      <div className="relative z-10 pt-24 pb-20">
+      <div className="arena-public-bridge arena-partner-route arena-mindev-route relative z-10">
+        <ArenaRouteTrail section="Promociones de póker" current="MindEV" />
         
         {/* ══ HERO CO-BRANDING ══ */}
         <section className="max-w-[1000px] mx-auto px-6 text-center mb-20">

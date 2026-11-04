@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { SEOHead } from "../components/seo/seo-head";
 import { Link } from "react-router-dom";
-import { Gift, ArrowRight, Zap, Sparkles, Clock } from "lucide-react"; // 👈 Añadimos Clock
+import { Gift, ArrowRight, Zap, Clock } from "lucide-react"; // 👈 Añadimos Clock
 import { cn } from "../lib/cn";
 import { supabase } from "../lib/supabase"; // Importación de DB agregada
 import { formatBlogDate } from "../lib/api/blog"; // 👈 Importamos el formateador
@@ -23,7 +24,6 @@ function promoPhase(promo: { tags?: string[] | null }, today: string): "verified
 }
 
 export function PromotionsPage() {
-  const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
   const [promotions, setPromotions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,56 +55,32 @@ export function PromotionsPage() {
   }, []);
 
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead
         title="Promociones de póker verificadas"
         description="Promociones de póker verificadas, condiciones de bonos y próximos torneos. Consulta la fecha de revisión, requisitos y disponibilidad por país."
         path="/promociones"
       />
       
-      <div className="pt-20 pb-20">
-        <div className="max-w-6xl mx-auto px-6">
+      <div className="arena-public-bridge arena-promo-hub">
+        <div className="arena-bridge-content">
           
-          {/* ══ HERO SECTION CON TIBURÓN ══ */}
-          <div className="bg-sk-bg-2 border border-sk-accent/20 rounded-2xl p-6 md:p-10 mb-12 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_0_40px_rgba(34,211,238,0.05)]">
-            <div className="absolute -top-10 -left-10 w-40 h-40 bg-sk-accent/10 blur-[50px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sk-accent/30 to-transparent" />
-
-            <div className="shrink-0 relative z-10">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute inset-0 bg-sk-accent/10 blur-xl rounded-full scale-150 group-hover:bg-sk-accent/20 transition-colors duration-500" />
-                <img
-                  src={`/mascot/shark-${mascotId}.webp`}
-                  alt="Sharkania Mascot"
-                  className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 text-center md:text-left relative z-10">
-              <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
-                <Gift className="text-sk-accent" size={16} />
-                <p className="font-mono text-[11px] font-bold tracking-[0.15em] uppercase text-sk-accent">
-                  ALIANZAS Y RECOMPENSAS
-                </p>
-                <Sparkles className="text-sk-accent animate-pulse" size={16} />
-              </div>
-
-              <h1 className="text-sk-3xl md:text-sk-4xl font-black tracking-tighter text-sk-text-1 mb-4 leading-none">
-                Zona de <span className="text-transparent bg-clip-text bg-gradient-to-r from-sk-accent to-blue-400 pr-2">Promociones</span>
-              </h1>
-
-              <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed">
-                Explora promociones, tutoriales y oportunidades publicadas por Sharkania. Comprueba siempre la vigencia, los requisitos y la disponibilidad según tu país antes de participar.
-              </p>
-            </div>
-          </div>
-
-          <p className="mb-5 text-xs text-sk-text-3">
+          <ArenaPageHero
+            section="promotions"
+            eyebrow="PROMOCIONES / PÓKER ONLINE"
+            heading="PROMOCIONES"
+            highlight="DE PÓKER."
+            icon={Gift}
+            description="Consulta campañas, beneficios y eventos publicados por Sharkania. Diferenciamos las ofertas revisadas del archivo histórico y recomendamos comprobar siempre las condiciones oficiales."
+            count={loading ? undefined : currentPromos.length}
+            countLabel="Ofertas y eventos revisados"
+            action={<Link to="/noticias">Ver actualidad del póker <ArrowRight size={15} /></Link>}
+          />
+          <p className="arena-bridge-disclosure">
             Algunas publicaciones corresponden a campañas anteriores; su fecha de publicación no acredita que la oferta siga vigente. Los enlaces comerciales pueden generar una comisión para Sharkania.
           </p>
-          <h2 className="text-xl font-bold text-sk-text-1 mb-5">Ofertas verificadas y próximos eventos</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="arena-bridge-section-intro"><div><span className="arena-bridge-kicker">PROMOCIONES / CONDICIONES</span><h2>Ofertas verificadas y próximos eventos</h2><p>Información editorial basada en las fechas y condiciones registradas.</p></div></div>
+          <div className="arena-bridge-grid grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loading ? (
               <div className="col-span-full text-center text-sk-text-3 py-10">
                 <div className="w-6 h-6 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin mx-auto mb-3" />
@@ -119,7 +95,7 @@ export function PromotionsPage() {
                 <Link 
                   key={promo.id} 
                   to={`/promociones/${promo.slug}`}
-                  className="group flex flex-col bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/40 transition-colors duration-200 shadow-sm"
+                  className="arena-bridge-card group flex flex-col hover:border-sk-accent/40 transition-colors duration-200"
                 >
                   <div className="h-48 sm:h-52 overflow-hidden relative border-b border-sk-border-2">
                     {/* Etiqueta superior izquierda */}

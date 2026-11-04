@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { Button } from "../components/ui/button";
 import { Spinner } from "../components/ui/spinner";
 import {
@@ -10,6 +11,8 @@ import {
 } from "../hooks/use-players";
 import { useAuthStore } from "../stores/auth-store";
 import { useFeatureAccess, useSharkCoinsBalance } from "../hooks/use-shop";
+import { useSecureStatsSpySummary } from "../hooks/use-stats-spy";
+import { SECURE_STATS_SPY_MODE } from "../lib/api/stats-spy";
 import { FlagIcon } from "../components/ui/flag-icon";
 import {
   formatElo,
@@ -20,7 +23,7 @@ import {
   calcRoi,
 } from "../lib/format";
 import { cn } from "../lib/cn";
-import { Search, Lock, Zap, Target, TrendingUp, Sparkles, Scale, Unlock, Clock } from "lucide-react";
+import { Search, Lock, Zap, Target, TrendingUp, Sparkles, Scale, Unlock, Clock, ChevronRight } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { format } from "date-fns";
 import type { PlayerWithRoom, EloHistory } from "../types";
@@ -123,7 +126,7 @@ function CompareRow({
     if (isPremium && !hasAccess) {
       return (
         <div className={`relative inline-flex items-center ${isA ? "justify-end" : "justify-start"} w-full`}>
-          <span className="blur-[6px] select-none opacity-60 pointer-events-none">{val}</span>
+          <span className="text-sk-xs text-sk-text-3 font-semibold">Bloqueado</span>
           <Lock size={12} className="absolute text-sk-text-1 opacity-80" />
         </div>
       );
@@ -136,7 +139,7 @@ function CompareRow({
   };
 
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center py-2.5 border-b border-sk-border-2 last:border-b-0">
+    <div className="arena-compare-row grid grid-cols-[1fr_auto_1fr] gap-4 items-center py-2.5 border-b border-sk-border-2 last:border-b-0">
       {renderValue(valueA, aWins === true, true)}
       <div className="text-[11px] text-sk-text-2 text-center min-w-[120px] uppercase tracking-wider font-semibold">
         {label}
@@ -240,15 +243,12 @@ function DualEloChart({ historyA, historyB, nameA, nameB }: { historyA: EloHisto
 
 // ── Main Page ──
 export function ComparePage() {
-  // 👇 Tiburón táctico aleatorio (1 al 10) que cambia en cada visita
-  const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
-
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, profile } = useAuthStore();
   const { data: balance } = useSharkCoinsBalance();
   
-  // 👇 Verificamos si tiene la suscripción mensual "Stats Espía"
-  const { data: premiumAccess } = useFeatureAccess("stats_espia");
-  const hasPremiumAccess = premiumAccess?.has_access ?? false;
+  // Licencia real publicada en La Bóveda; debe coincidir con el control del RPC de Stats Espía.
+  const { data: premiumAccess } = useFeatureAccess("cosmetic_extended_stats");
+  const hasPremiumAccess = profile?.role === "super_admin" || !!premiumAccess?.has_access;
 
   // 👇 1. Leemos el disco duro del navegador (localStorage) para ver si ya vino hoy
   const [hasUsedFreeDaily, setHasUsedFreeDaily] = useState(() => {
@@ -272,6 +272,8 @@ export function ComparePage() {
 
   const { data: playerA, isLoading: loadingA } = usePlayer(idA ?? undefined);
   const { data: playerB, isLoading: loadingB } = usePlayer(idB ?? undefined);
+  const securedA = useSecureStatsSpySummary(playerA?.slug, hasPremiumAccess);
+  const securedB = useSecureStatsSpySummary(playerB?.slug, hasPremiumAccess);
   const { data: historyA } = usePlayerEloHistory(idA ?? undefined);
   const { data: historyB } = usePlayerEloHistory(idB ?? undefined);
 
@@ -300,63 +302,40 @@ export function ComparePage() {
     }
   }, [idA, idB, hasPremiumAccess, currentPair]);
 
-  // 🚨 VISTA 1: USUARIO NO REGISTRADO (El vendedor)
+  // Guest: clear purpose and CTA; no access rules or paid calculations change.
   if (!isAuthenticated) {
     return (
-      <PageShell>
-        <SEOHead title="Comparador de Jugadores" description="Compara estadísticas de dos jugadores de poker: ELO, ITM%, ROI, torneos jugados y evolución histórica." path="/compare" />
-        <div className="pt-24 pb-16 min-h-[80vh] flex items-center justify-center px-6">
-          <div className="max-w-[900px] w-full">
-            {/* ══ BANNER DE INTELIGENCIA (NO REGISTRADOS) ══ */}
-            <div className="bg-sk-bg-2 border border-sk-gold/20 rounded-2xl p-6 md:p-10 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_0_30px_rgba(251,191,36,0.05)]">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-sk-gold/5 blur-[50px] rounded-full pointer-events-none" />
-              <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sk-gold/20 to-transparent" />
-
-              <div className="shrink-0 relative z-10">
-                <div className="relative flex items-center justify-center">
-                  <div className="absolute inset-0 bg-sk-accent/10 blur-xl rounded-full scale-150 group-hover:bg-sk-gold/15 transition-colors duration-500" />
-                  <img 
-                    src={`/mascot/shark-${mascotId}.webp`} 
-                    alt="Sharkania Tactical Analyst" 
-                    className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
-                  />
+      <PageShell variant="arena">
+        <SEOHead
+          title="Comparador de jugadores de póker | ELO y resultados"
+          description="Compara jugadores de póker registrados en Sharkania: ELO, volumen de torneos y estadísticas según el nivel de acceso de tu cuenta."
+          path="/compare"
+        />
+        <div className="arena-interior arena-editorial arena-compare">
+          <div className="arena-interior-container">
+            <ArenaPageHero
+              section="compare"
+              eyebrow="COMPARACIÓN / PÓKER COMPETITIVO"
+              heading="COMPARA"
+              highlight="JUGADORES DE PÓKER."
+              icon={Scale}
+              description="Explora las diferencias de ELO y trayectoria entre dos jugadores. Las métricas ampliadas se muestran según los permisos de cada cuenta."
+            />
+            <section className="arena-learning-panel arena-compare-guest p-6 sm:p-10" aria-labelledby="arena-compare-access-title">
+              <div className="arena-compare-guest-intro">
+                <span className="arena-compare-guest-symbol"><Lock size={24} aria-hidden="true" /></span>
+                <div>
+                  <p className="text-sk-accent text-xs font-mono font-bold uppercase tracking-widest mb-2">Acceso con cuenta Sharkania</p>
+                  <h2 id="arena-compare-access-title" className="text-sk-xl sm:text-sk-2xl font-black text-sk-text-1 mb-3">Tu próxima comparación comienza aquí</h2>
+                  <p className="text-sk-sm text-sk-text-2 leading-relaxed max-w-xl">Inicia sesión para seleccionar dos jugadores y contrastar sus resultados de torneos de póker. Algunas estadísticas requieren un acceso adicional.</p>
                 </div>
               </div>
-
-              <div className="flex-1 text-center md:text-left relative z-10">
-                <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
-                  <Lock className="text-sk-gold" size={16} />
-                  <p className="font-mono text-[11px] font-bold tracking-[0.15em] uppercase text-sk-gold">
-                    ACCESO RESTRINGIDO · NIVEL: LA BÓVEDA
-                  </p>
-                  <Sparkles className="text-sk-gold animate-pulse" size={16} />
-                </div>
-
-                <h1 className="text-sk-3xl md:text-sk-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-4 leading-none">
-                  Comparador de Élite
-                </h1>
-
-                <div className="space-y-3 max-w-2xl text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed mb-6">
-                  <p>
-                    <strong className="text-sk-text-1">"Disecciona a tu rival antes del primer showdown."</strong> Contrasta el ELO, volumen, victorias y métricas ocultas lado a lado.
-                  </p>
-                  <p className="text-sk-accent font-semibold">
-                    Crea tu cuenta ahora y obtén 1 USO GRATUITO al día, además de <strong className="text-sk-gold">100 Shark Coins de regalo</strong> para desbloquear reportes completos.
-                  </p>
-                </div>
-
-                <div className="flex gap-3 justify-center md:justify-start flex-wrap">
-                  <Link to="/register">
-                    <Button variant="accent" className="font-bold tracking-wide shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-                      Reclamar mis 100 SC
-                    </Button>
-                  </Link>
-                  <Link to="/login">
-                    <Button variant="secondary">Iniciar Sesión</Button>
-                  </Link>
-                </div>
+              <div className="flex flex-wrap gap-3 mt-7">
+                <Link to="/register" className="arena-compare-primary">Crear cuenta <ChevronRight size={16}/></Link>
+                <Link to="/login" className="arena-compare-secondary">Iniciar sesión</Link>
+                <Link to="/ranking" className="arena-compare-secondary">Ver ranking público</Link>
               </div>
-            </div>
+            </section>
           </div>
         </div>
       </PageShell>
@@ -369,10 +348,34 @@ export function ComparePage() {
     ? (() => {
         const itmA = calcItm(playerA.total_cashes, playerA.total_tournaments);
         const itmB = calcItm(playerB.total_cashes, playerB.total_tournaments);
-        const roiA = calcRoi(playerA.total_prize_won, playerA.total_buy_ins_spent);
-        const roiB = calcRoi(playerB.total_prize_won, playerB.total_buy_ins_spent);
-        const profitA = playerA.total_prize_won - playerA.total_buy_ins_spent;
-        const profitB = playerB.total_prize_won - playerB.total_buy_ins_spent;
+        // In guarded mode, financial values must come exclusively from licensed
+        // server RPCs, not from public.players or from a visually blurred value.
+        const roiA = SECURE_STATS_SPY_MODE
+          ? securedA.data?.roi_percent ?? null
+          : calcRoi(playerA.total_prize_won, playerA.total_buy_ins_spent);
+        const roiB = SECURE_STATS_SPY_MODE
+          ? securedB.data?.roi_percent ?? null
+          : calcRoi(playerB.total_prize_won, playerB.total_buy_ins_spent);
+        const profitA = SECURE_STATS_SPY_MODE
+          ? securedA.data?.profit ?? null
+          : playerA.total_prize_won - playerA.total_buy_ins_spent;
+        const profitB = SECURE_STATS_SPY_MODE
+          ? securedB.data?.profit ?? null
+          : playerB.total_prize_won - playerB.total_buy_ins_spent;
+        const roiComparable = roiA !== null && roiB !== null &&
+          (!SECURE_STATS_SPY_MODE || (
+            !!securedA.data?.currency && !!securedB.data?.currency &&
+            !securedA.data.mixed_currencies && !securedB.data.mixed_currencies
+          ));
+        const profitComparable = roiComparable && profitA !== null && profitB !== null &&
+          (!SECURE_STATS_SPY_MODE || securedA.data?.currency === securedB.data?.currency);
+        const renderROI = (v: number | null) =>
+          v === null || !roiComparable ? "No comparable" : `${v >= 0 ? "+" : ""}${formatPercent(v)}`;
+        const renderProfit = (v: number | null) =>
+          v === null || !profitComparable ? "No comparable" :
+          (SECURE_STATS_SPY_MODE
+            ? `${securedA.data?.currency} ${v.toLocaleString("es-CL", { maximumFractionDigits: 2 })}`
+            : formatCurrency(v));
 
         return [
           { label: "ELO Rating", a: formatElo(playerA.elo_rating), b: formatElo(playerB.elo_rating), aWins: playerA.elo_rating > playerB.elo_rating, premium: false },
@@ -381,70 +384,36 @@ export function ComparePage() {
           { label: "Victorias", a: formatNumber(playerA.total_wins), b: formatNumber(playerB.total_wins), aWins: playerA.total_wins > playerB.total_wins, premium: false },
           { label: "Cashes", a: formatNumber(playerA.total_cashes), b: formatNumber(playerB.total_cashes), aWins: playerA.total_cashes > playerB.total_cashes, premium: true },
           { label: "ITM %", a: formatPercent(itmA), b: formatPercent(itmB), aWins: itmA > itmB, premium: true },
-          { label: "ROI", a: `${roiA >= 0 ? "+" : ""}${formatPercent(roiA)}`, b: `${roiB >= 0 ? "+" : ""}${formatPercent(roiB)}`, aWins: roiA > roiB, premium: true },
-          { label: "Profit", a: formatCurrency(profitA), b: formatCurrency(profitB), aWins: profitA > profitB, premium: true },
+          { label: "ROI", a: renderROI(roiA), b: renderROI(roiB), aWins: roiComparable ? roiA! > roiB! : null, premium: true },
+          { label: "Profit", a: renderProfit(profitA), b: renderProfit(profitB), aWins: profitComparable ? profitA! > profitB! : null, premium: true },
         ];
       })()
     : [];
 
   // 🚨 VISTA 2: USUARIOS REGISTRADOS
   return (
-    <PageShell>
-      <SEOHead title="Comparador de Jugadores" path="/compare" />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[900px] mx-auto px-6">
+    <PageShell variant="arena">
+      <SEOHead title="Comparador ELO de jugadores de póker" description="Compara jugadores de póker registrados en Sharkania: ELO, resultados y otras estadísticas según tu nivel de acceso." path="/compare" />
+      <div className="arena-interior arena-editorial arena-compare">
+        <div className="arena-interior-container">
           
-          {/* ══ HERO SECTION UNIFICADO ══ */}
-          <div className="bg-sk-bg-2 border border-sk-accent/20 rounded-2xl p-6 md:p-10 mb-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_0_40px_rgba(34,211,238,0.05)]">
-            <div className="absolute -top-10 -left-10 w-40 h-40 bg-sk-accent/10 blur-[50px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sk-accent/30 to-transparent" />
-
-            <div className="shrink-0 relative z-10">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute inset-0 bg-sk-accent/10 blur-xl rounded-full scale-150 group-hover:bg-sk-accent/20 transition-colors duration-500" />
-                <img
-                  src={`/mascot/shark-${mascotId}.webp`}
-                  alt="Sharkania Quartermaster"
-                  className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
+          <ArenaPageHero
+            section="compare"
+            eyebrow="ANÁLISIS / JUGADORES"
+            heading="COMPARADOR"
+            highlight="DE PÓKER."
+            icon={Scale}
+            description="Elige dos jugadores del circuito y compara su ELO, volumen de torneos y evolución. Las métricas ampliadas dependen del acceso de tu cuenta."
+          />
+          {user && (
+            <div className="arena-utility-strip">
+              <p>Compara perfiles y revisa los resultados. <strong>Consulta los permisos y condiciones de Stats Espía antes de acceder a sus métricas ampliadas.</strong></p>
+              <span className="arena-wallet-balance">
+                {balance ?? 0}
+                <img src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif" alt="Shark Coins" loading="lazy" />
+              </span>
             </div>
-
-            <div className="flex-1 text-center md:text-left relative z-10">
-              <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
-                <Target className="text-sk-accent" size={16} />
-                <p className="font-mono text-[11px] font-bold tracking-[0.15em] uppercase text-sk-accent">
-                  INTELIGENCIA COMPETITIVA
-                </p>
-                <Sparkles className="text-sk-accent animate-pulse" size={16} />
-              </div>
-
-              <h1 className="text-sk-3xl md:text-sk-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-4 leading-none">
-                Comparador de Élite
-              </h1>
-
-              <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed">
-                Enfrenta a dos rivales y descubre quién domina la mesa.
-              </p>
-            </div>
-
-            {/* Saldo de Monedas */}
-            {user && (
-              <div className="shrink-0 bg-sk-bg-0/50 backdrop-blur-md border border-sk-border-2 rounded-xl p-5 text-center min-w-[160px] relative z-10 group-hover:border-sk-accent/40 transition-colors">
-                <p className="text-[10px] font-mono text-sk-text-3 font-bold uppercase tracking-widest mb-3">
-                  Tu Reserva
-                </p>
-                <div className="flex items-center justify-center gap-2 text-sk-3xl font-black text-sk-accent tracking-tighter leading-none mb-1">
-                  {balance ?? 0}
-                  <img
-                    src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif"
-                    alt="SC"
-                    className="w-7 h-7 drop-shadow-md"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* 🧠 ESTADO DE ACCESO (Badges Tácticos) */}
           <div className="mb-8 flex justify-center">
@@ -517,9 +486,9 @@ export function ComparePage() {
                     <div className="w-full h-px my-6 bg-gradient-to-r from-transparent via-sk-border-3 to-transparent" />
 
                     <div>
-                      {/* Le pasamos true a hasAccess porque si llegó aquí, el paywall ya le dio permiso */}
+                      {/* Legacy daily compare remains; guarded mode never exposes financial values without entitlement. */}
                       {compareData.map((row) => (
-                        <CompareRow key={row.label} label={row.label} valueA={row.a} valueB={row.b} aWins={row.aWins} isPremium={false} hasAccess={true} />
+                        <CompareRow key={row.label} label={row.label} valueA={row.a} valueB={row.b} aWins={row.aWins} isPremium={row.premium && SECURE_STATS_SPY_MODE} hasAccess={hasPremiumAccess} />
                       ))}
                     </div>
                   </div>

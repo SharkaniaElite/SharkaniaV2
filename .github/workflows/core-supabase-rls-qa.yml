@@ -1,0 +1,222 @@
+name: Validate core Supabase RLS and guarded ELO proposals (isolated PostgreSQL)
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rls:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_local_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: qa_local_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL client available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+          psql --version
+      - name: Create fake identities and isolated row-level-security fixtures
+        run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-rls-qa-setup.sql
+      - name: Test actual SQL proposal under anonymous, player, club-admin, finance and superadmin
+        run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-rls-qa-assert.sql
+      - name: Create separate PostgreSQL 17 ELO test database (synthetic data only)
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_elo'
+      - name: Prepare synthetic results, users and permissions for guarded ELO
+        run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-setup.sql
+      - name: Exercise real guarded ELO RPC on fake data (authorization, formula, retries)
+        run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-assert.sql
+      - name: Reject malformed tournament results and rollback a forced mid-calculation failure
+        run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-adversarial.sql
+
+      - name: Reject malformed reentries and account for real buy-in counts (synthetic only)
+        run: psql -v ON_ERROR_STOP=1 -d qa_elo -f tests/fixtures/sharkania-elo-qa-reentries.sql
+
+      - name: Check concurrent ELO writes for two tournaments sharing players (synthetic only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_elo_concurrency'
+          psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -f tests/fixtures/sharkania-elo-qa-setup.sql
+          psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -f docs/security/elo-transactional-guarded-rpc-2026-11-03.proposal.sql
+
+          # Separate connections. The first holds its row locks after its
+          # calculation while the second processes the same two players.
+          psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -c "
+            BEGIN;
+            SET LOCAL ROLE authenticated;
+            SET LOCAL request.jwt.claim.sub = '00000000-0000-0000-0000-000000000002';
+            SELECT public.calculate_tournament_elo_guarded('00000000-0000-0000-0000-000000000011');
+            SELECT pg_sleep(2);
+            COMMIT;
+          " > /tmp/elo-concurrent-a.log 2>&1 &
+          pid_a=$!
+          sleep 0.25
+          psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -c "
+            BEGIN;
+            SET LOCAL ROLE authenticated;
+            SET LOCAL request.jwt.claim.sub = '00000000-0000-0000-0000-000000000005';
+            SELECT public.calculate_tournament_elo_guarded('00000000-0000-0000-0000-000000000012');
+            COMMIT;
+          " > /tmp/elo-concurrent-b.log 2>&1 &
+          pid_b=$!
+          wait "$pid_a" || { cat /tmp/elo-concurrent-a.log; exit 1; }
+          wait "$pid_b" || { cat /tmp/elo-concurrent-b.log; exit 1; }
+          psql -v ON_ERROR_STOP=1 -d qa_elo_concurrency -f tests/fixtures/sharkania-elo-qa-concurrency-assert.sql
+
+      - name: Create separate PostgreSQL 17 tournament-publication database (synthetic only)
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_publish'
+      - name: Install proposed single-RPC tournament publish/republish on fake identities
+        run: psql -v ON_ERROR_STOP=1 -d qa_publish -f tests/fixtures/sharkania-tournament-publication-qa-setup.sql
+      - name: Validate atomic publish, rollback, Elo chronology and new-player republish
+        run: psql -v ON_ERROR_STOP=1 -d qa_publish -f tests/fixtures/sharkania-tournament-publication-qa-assert.sql
+
+      - name: Provision fresh synthetic database and restricted PostgREST login (HTTP QA only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_publish_http'
+          psql -v ON_ERROR_STOP=1 -d qa_publish_http -f tests/fixtures/sharkania-tournament-publication-qa-setup.sql
+          psql -v ON_ERROR_STOP=1 -d qa_publish_http <<'SQL'
+          -- PostgREST >=14 supplies one JSON GUC; the older synthetic
+          -- SQL fixtures used per-claim GUCs from direct-psql QA only.
+          CREATE OR REPLACE FUNCTION auth.uid()
+          RETURNS uuid LANGUAGE sql STABLE AS $auth$
+            SELECT NULLIF(coalesce(
+              NULLIF(current_setting('request.jwt.claim.sub',true),''),
+              current_setting('request.jwt.claims',true)::jsonb->>'sub'
+            ),'')::uuid
+          $auth$;
+          CREATE ROLE qa_rest_authenticator WITH LOGIN PASSWORD 'fake_local_http_qa_only_2026';
+          GRANT authenticated TO qa_rest_authenticator;
+          GRANT anon TO qa_rest_authenticator;
+          REVOKE EXECUTE ON FUNCTION public.calculate_tournament_elo_guarded(uuid)
+            FROM PUBLIC,anon,authenticated;
+          REVOKE EXECUTE ON FUNCTION public.ensure_tournament_player_guarded(uuid,text,text)
+            FROM PUBLIC,anon,authenticated;
+          REVOKE EXECUTE ON FUNCTION public.recalculate_league_standings(uuid)
+            FROM PUBLIC,anon,authenticated;
+          SQL
+      - name: Test authenticated HTTP/PostgREST RPC and concurrent requests on synthetic schema
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGDATABASE: qa_publish_http
+          QA_HTTP_URL: http://127.0.0.1:3000
+          QA_JWT_SECRET: fake_only_ci_postgrest_jwt_secret_never_prod_2026_64_characters
+        run: |
+          set -euo pipefail
+          trap 'docker rm -f sharkania-http-qa-rest >/dev/null 2>&1 || true' EXIT
+          docker run --name sharkania-http-qa-rest --rm -d --network host \
+            -e PGRST_DB_URI='postgres://qa_rest_authenticator:fake_local_http_qa_only_2026@127.0.0.1:5432/qa_publish_http' \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$QA_JWT_SECRET" \
+            -e PGRST_SERVER_HOST=127.0.0.1 \
+            -e PGRST_SERVER_PORT=3000 \
+            postgrest/postgrest:v14.18
+          ready=false
+          for _ in $(seq 1 50); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/ 2>/dev/null || true)
+            if [[ "$code" =~ ^(2|3|4)[0-9][0-9]$ ]]; then
+              ready=true
+              break
+            fi
+            sleep 0.4
+          done
+          if [[ "$ready" != true ]]; then
+            echo 'FAIL: PostgREST did not start on loopback'
+            docker logs sharkania-http-qa-rest
+            exit 1
+          fi
+          node tests/fixtures/sharkania-tournament-postgrest-http-qa.mjs
+
+      - name: Create isolated PostgreSQL 17 league authorization test database
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_auth'
+      - name: Reproduce shared-league takeover and install least-privilege proposal on fake data
+        run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+      - name: Verify primary club ownership, blocked self-membership and legitimate organizer operations
+        run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-assert.sql
+
+      - name: Prepare isolated league PostgREST database and synthetic login
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_http'
+          psql -v ON_ERROR_STOP=1 -d qa_league_http -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+          psql -v ON_ERROR_STOP=1 -d qa_league_http <<'SQL'
+          -- This fixture's original auth.uid() only supported direct psql JWT
+          -- test GUCs; PostgREST v14 supplies a JSON claims GUC instead.
+          CREATE OR REPLACE FUNCTION auth.uid()
+          RETURNS uuid LANGUAGE sql STABLE AS $auth$
+            SELECT NULLIF(coalesce(
+              NULLIF(current_setting('request.jwt.claim.sub',true),''),
+              current_setting('request.jwt.claims',true)::jsonb->>'sub'
+            ),'')::uuid
+          $auth$;
+          CREATE ROLE qa_league_http_authenticator WITH LOGIN PASSWORD 'fake_local_league_http_only_2026';
+          GRANT authenticated TO qa_league_http_authenticator;
+          GRANT anon TO qa_league_http_authenticator;
+          SQL
+
+      - name: HTTP JWT league ownership and atomic clone concurrency (synthetic)
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGDATABASE: qa_league_http
+          QA_LEAGUE_HTTP_URL: http://127.0.0.1:3001
+          QA_LEAGUE_JWT_SECRET: fake_only_ci_league_test_jwt_secret_never_prod_2026
+        run: |
+          set -euo pipefail
+          trap 'docker rm -f sharkania-league-http-qa >/dev/null 2>&1 || true' EXIT
+          docker run --name sharkania-league-http-qa --rm -d --network host \
+            -e PGRST_DB_URI='postgres://qa_league_http_authenticator:fake_local_league_http_only_2026@127.0.0.1:5432/qa_league_http' \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$QA_LEAGUE_JWT_SECRET" \
+            -e PGRST_SERVER_HOST=127.0.0.1 \
+            -e PGRST_SERVER_PORT=3001 \
+            postgrest/postgrest:v14.18
+          ready=false
+          for _ in $(seq 1 50); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ 2>/dev/null || true)
+            if [[ "$code" =~ ^(2|3|4)[0-9][0-9]$ ]]; then
+              ready=true
+              break
+            fi
+            sleep 0.4
+          done
+          if [[ "$ready" != true ]]; then
+            echo 'FAIL: league PostgREST did not start on loopback'
+            docker logs sharkania-league-http-qa
+            exit 1
+          fi
+          node tests/fixtures/sharkania-league-postgrest-http-qa.mjs
+
+      - name: Create separate PostgreSQL 17 Stats Espia database (synthetic data only)
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_stats'
+      - name: Prepare synthetic purchases, players, currencies and authorization roles
+        run: psql -v ON_ERROR_STOP=1 -d qa_stats -f tests/fixtures/sharkania-stats-spy-qa-setup.sql
+      - name: Test real guarded Stats Espia SQL RPCs (licenses, mixed currencies and pagination)
+        run: psql -v ON_ERROR_STOP=1 -d qa_stats -f tests/fixtures/sharkania-stats-spy-qa-assert.sql

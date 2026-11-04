@@ -1,5 +1,6 @@
 // src/pages/promo-fullnuts.tsx
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaRouteTrail } from "../components/arena/arena-route-trail";
 import { SEOHead } from "../components/seo/seo-head";
 import { RevealSection } from "../components/landing/reveal-section";
 import { Button } from "../components/ui/button";
@@ -12,7 +13,7 @@ export function PromoFullnutsPage() {
   const galleryImages = Array.from({ length: 9 }, (_, i) => `/bg/fn${i + 1}.webp`);
 
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead 
         title="FullNuts | Viste como juegas | Sharkania" 
         description="Ropa exclusiva para jugadores de póker. Estilo, actitud y estrategia en cada prenda. Envíos a todo Chile. Conoce la colección FullNuts." 
@@ -25,7 +26,8 @@ export function PromoFullnutsPage() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-orange-500/5 blur-[120px] rounded-full" />
       </div>
 
-      <div className="relative z-10 pt-24 pb-20">
+      <div className="arena-public-bridge arena-partner-route arena-fullnuts-route relative z-10">
+        <ArenaRouteTrail section="Promociones de póker" current="FullNuts" />
         
         {/* ══ HERO SECTION ══ */}
         <section className="max-w-[1000px] mx-auto px-6 text-center mb-20">

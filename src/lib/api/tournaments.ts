@@ -1,5 +1,6 @@
 // src/lib/api/tournaments.ts
 import { supabase } from "../supabase";
+import { GUARDED_ELO_RPC_ENABLED } from "./guarded-elo";
 import { isPublicTournamentVisible, publicTournamentCutoffIso } from "../tournament-lifecycle";
 import type {
   TournamentWithDetails,
@@ -242,6 +243,52 @@ export async function applyLeaguePoints(tournamentId: string, leagueId: string) 
 }
 
 export async function prepareTournamentForReedit(tournamentId: string) {
+  // The historical reset is not part of the guarded ELO transaction.
+  // Never mix it with secure calculation until its own server-only cutover.
+  if (GUARDED_ELO_RPC_ENABLED) {
+    throw new Error("La edición de resultados requiere un reseteo protegido pendiente de validación.");
+  }
+
+  // Conservative read-only preflight against historical ELO corruption.
+  // The legacy reset recalculates affected players but does not replay ELO in
+  // later tournaments. If ANY affected player played a later processed event,
+  // refuse BEFORE calling the destructive reset RPC. This does not replace
+  // server-side locks or fully transactional QA.
+  const { data: history, error: historyError, count } = await supabase
+    .from("elo_history")
+    .select("player_id, recorded_at", { count: "exact" })
+    .eq("tournament_id", tournamentId)
+    .limit(1000);
+
+  if (historyError || !history?.length || count === null || count > history.length) {
+    throw new Error("No se puede verificar todo el historial ELO de este torneo. No se realizó el reseteo.");
+  }
+
+  const firstRecordedAt = Math.min(...history.map(row => Date.parse(row.recorded_at)));
+  if (!Number.isFinite(firstRecordedAt)) {
+    throw new Error("El historial ELO tiene fechas inválidas. No se realizó el reseteo.");
+  }
+  const affectedIds = [...new Set(history.map(row => row.player_id))];
+  for (let offset = 0; offset < affectedIds.length; offset += 100) {
+    const ids = affectedIds.slice(offset, offset + 100);
+    const { data: later, error: laterError } = await supabase
+      .from("elo_history")
+      .select("id")
+      .in("player_id", ids)
+      .neq("tournament_id", tournamentId)
+      .gte("recorded_at", new Date(firstRecordedAt).toISOString())
+      .limit(1);
+
+    if (laterError) {
+      throw new Error("No se pudo comprobar el historial posterior de los jugadores. No se realizó el reseteo.");
+    }
+    if (later?.length) {
+      throw new Error(
+        "Este torneo tiene jugadores con ELO calculado en torneos posteriores. No se puede reeditar sin una reconstrucción cronológica segura."
+      );
+    }
+  }
+
   const { data, error } = await supabase.rpc('reset_tournament_impact', { tournament_id_to_reset: tournamentId });
   if (error) throw error;
   return data;

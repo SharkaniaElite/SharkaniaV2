@@ -1,6 +1,6 @@
--- Already applied in production on 2026-10-31, Supabase migration version 20261031153006.
--- A removed profile may leave an ownerless row because the existing FK uses
--- ON DELETE SET NULL. Do not make created_by NOT NULL without changing deletion semantics.
+-- Each shared hand is owned by the authenticated account creating it.
+-- Allow ownerless rows only if their profile is subsequently deleted:
+-- shared_hands_created_by_fkey uses ON DELETE SET NULL.
 ALTER TABLE public.shared_hands
   ALTER COLUMN created_by SET DEFAULT auth.uid();
 
@@ -15,8 +15,7 @@ WITH CHECK (
   AND created_by = (SELECT auth.uid())
 );
 
--- Public SELECT is intentional for link-based sharing, although the React
--- route currently requires sign-in. Review data exposure separately.
+-- Sharing is a deliberate public-read feature; preserve existing link access.
 DROP POLICY IF EXISTS "Public read" ON public.shared_hands;
 DROP POLICY IF EXISTS "Public read shared hands" ON public.shared_hands;
 DROP POLICY IF EXISTS "Shared hands: public read" ON public.shared_hands;
@@ -25,8 +24,8 @@ ON public.shared_hands
 FOR SELECT TO PUBLIC
 USING (true);
 
--- Column grants only: the client must not insert its own identifier, author,
--- initial view count or timestamp, nor directly mutate/delete stored hands.
+-- Do not let browsers insert their own IDs/view counts/owners or update
+-- counters, delete records, truncate the table or alter the table's triggers.
 REVOKE ALL PRIVILEGES ON TABLE public.shared_hands
   FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.shared_hands TO anon, authenticated;

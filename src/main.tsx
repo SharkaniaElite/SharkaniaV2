@@ -8,24 +8,28 @@ import "./index.css";
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
 
-// 1. Importamos Microsoft Clarity
-import Clarity from '@microsoft/clarity';
-
-// 2. Inicializamos el Radar y las Cámaras SOLO en producción (Aislando localhost)
-if (typeof window !== 'undefined' && 
-    window.location.hostname !== 'localhost' && 
-    window.location.hostname !== '127.0.0.1') {
-  
-  // Encendemos PostHog
+// Sharkania Preview must not contaminate real product funnels or recordings.
+// Analytics are enabled only on the canonical production domain.
+const productionHost = ["sharkania.com", "www.sharkania.com"].includes(window.location.hostname);
+if (productionHost) {
   posthog.init('phc_rkMUXTSGtnQRAqREY2kMwJTZZ3yBCsp7PgiLuKBKNjpi', {
     api_host: 'https://us.i.posthog.com',
-    autocapture: true,         
-    capture_pageview: true,    
-    capture_pageleave: true,   
+    autocapture: true,
+    capture_pageview: true,
+    capture_pageleave: true,
   });
 
-  // Encendemos Microsoft Clarity (Con tu ID de proyecto de Bing)
-  Clarity.init("w9gk77cgdx");
+  // Clarity is not needed to paint the page; load it after the window load
+  // event so it does not compete with the hero and leaderboard resources.
+  const startClarity = () => {
+    void import("@microsoft/clarity")
+      .then(({ default: Clarity }) => Clarity.init("w9gk77cgdx"))
+      .catch((error: unknown) => {
+        if (import.meta.env.DEV) console.warn("Clarity could not initialize", error);
+      });
+  };
+  if (document.readyState === "complete") startClarity();
+  else window.addEventListener("load", startClarity, { once: true });
 }
 
 // Detector de nuevas versiones de Vite

@@ -1,0 +1,274 @@
+# Recuperación del esquema inicial de Supabase — SHARKANIA
+
+**Estado:** esquema inicial pendiente. Historial de 50 migraciones completamente recuperado y protegido por hash, pero la reconstrucción de una base vacía **NO** está validada.
+
+**Restricciones:** ningún SQL sobre producción, ninguna rama con cobro recurrente, ningún dump con datos personales ni contraseñas en GitHub o por chat.
+
+## Evidencia concreta — 3 de noviembre de 2026
+
+- Se recuperaron **29 migraciones históricas** leyendo `supabase_migrations.schema_migrations.statements`, se alinearon **11 archivos SQL** con las sentencias realmente registradas y se eliminó un archivo duplicado con fecha de ocho dígitos.
+- `supabase/migration-history.lock.json` conserva las **50 versiones aplicadas** y los hashes de cada SQL. Comprobar localmente con `npm run qa:migrations:history` (sin conexión a Supabase).
+- En el catálogo PostgreSQL de producción existen **64 tablas públicas**; las 50 migraciones contienen SQL `CREATE TABLE` para **10** de ellas. Las otras **54** están registradas en `supabase/schema-baseline-requirements.json`. Esta es una comprobación estática de tablas; además faltará comprobar tipos, vistas, funciones, triggers, índices, RLS, permisos, esquemas y extensiones.
+- La migración más antigua, `20260320132525_allow_club_admin_update_players.sql`, empieza con `CREATE POLICY ... ON players`. **No crea `players`**, ni `tournament_results` o `club_admins` de las que depende.
+- El árbol histórico del repositorio consultado en un commit anterior al 20 de marzo de 2026 tampoco contenía archivos SQL de esquema.
+- La rama QA temporal fallida ya fue eliminada. **No** hay resultados de tests SQL de esa rama.
+
+## Inventario de esquema recuperado (3 de noviembre, inspección adicional)
+
+La conexión autorizada de Supabase permitió extraer, con consultas de solo lectura al catálogo PostgreSQL, una fotografía técnica de la estructura **actual**, sin filas, compradores, correos ni saldos.
+
+- [Catálogo estructural protegido](supabase-schema-catalog-2026-11-03.json): **64 tablas, 567 columnas, 184 restricciones, 138 índices, 194 firmas de funciones, 22 triggers, 185 políticas, 2 vistas, 77 etiquetas de enumerados y 9 extensiones**.
+- El catálogo **no incluye los cuerpos SQL de funciones, triggers ni las expresiones de políticas**: solo sus identidades y hashes. Esto limita la exposición de información técnica en GitHub público.
+- Una expresión de valor por defecto fue excluida de la captura pública por cautela. Debe recuperarse únicamente mediante una exportación de confianza, en privado.
+- `tests/supabase-schema-catalog.test.mjs` verifica la coherencia del catálogo con las 64 tablas inventariadas, las reglas de minimización de información y el bloqueo de nuevos intentos QA.
+- `scripts/export-supabase-schema-only.ps1` automatiza un **dump de DDL sin datos** en un equipo Windows de confianza; guarda fuera del repositorio y no acepta contraseñas como parámetros.
+
+**Límite técnico:** este inventario describe el esquema **después** de todas las migraciones. No contiene el estado anterior al 20 de marzo de 2026 y no reemplaza una exportación íntegra de DDL con las dependencias del esquema personalizadas. Insertarlo como migración antes de las 50 versiones provocaría posibles conflictos de tablas, columnas, funciones y políticas.
+
+## Diagnóstico
+
+Supabase Branching creado desde el Dashboard vuelve a ejecutar las migraciones del proyecto principal contra una base nueva. Si se crearon objetos manualmente antes de registrar migraciones, el historial no puede reproducirlos y la rama puede terminar en `MIGRATIONS_FAILED`. Es consistente con el fallo observado, pero sin el mensaje de la sentencia concreta no está probado como causa exclusiva.
+
+Fuente oficial: https://supabase.com/kb/troubleshooting/branch-in-migrations-failed-status
+
+## Procedimiento para completar el baseline (sin datos ni modificaciones remotas)
+
+**A. Recuperar la estructura original, si existe una copia anterior al 20 de marzo.**
+
+Revisar backups históricos o exportaciones del esquema (no respaldos con datos de usuarios). Lo ideal es recuperar las definiciones previas a la migración `20260320132525`, incluyendo dependencias de `public.players`, `public.tournaments`, `public.club_admins` y sus funciones. No guardar un respaldo con datos reales en el repositorio.
+
+**B. Si no existe esa copia, obtener un dump exclusivamente de la estructura actual como material de reconstrucción.**
+
+Desde un equipo de confianza con Supabase CLI y Docker, usando la sesión del propietario sin compartir claves:
+
+```powershell
+# Ejecutar en el repositorio local; supabase db dump es SOLO lectura.
+supabase --version
+supabase db dump --help
+supabase login
+supabase link --project-ref nhpjzywfzljtlqaigzed
+supabase db dump --schema public --file .\sharkania-schema-actual-SOLO-LOCAL.sql
+# Alternativamente, desde Windows, usa el script auditado que guarda fuera de Git:
+# powershell -ExecutionPolicy Bypass -File .\scripts\export-supabase-schema-only.ps1 -IncludePrivateSchema
+```
+
+El dump por defecto **no incluye datos de filas**; tampoco debe incluir el estado `auth.users` ni los datos de `storage`. **NO subir este archivo a GitHub automáticamente**: examinarlo localmente por si hubiera literales, definiciones con secretos o configuraciones que no deben publicarse. No se solicita contraseña ni token por el chat.
+
+El esquema **actual** no debe insertarse sin más como migración anterior a las otras 50: puede repetir `CREATE TABLE`, `ALTER TABLE` y `CREATE POLICY`. Primero diseñar y revisar una estrategia de baseline o squash para que una base nueva se reconstruya sin duplicados ni pérdida de reglas de seguridad.
+
+Referencia CLI: https://supabase.com/docs/reference/cli/supabase-db-dump
+
+**C. Ensayar completamente en una base local o desechable antes de tocar el historial productivo.**
+
+Validar el baseline estructural y ejecutar las 50 migraciones en orden. Comprobar columnas, funciones con `SECURITY DEFINER`, grants, esquemas privados, RLS, índices, triggers, vistas y claves foráneas. Verificar como mínimo `anon`, autenticado sin licencia, caducado, comprador activo y `super_admin` para Stats Espía. El resultado debe quedar en logs reproducibles.
+
+```powershell
+# Las comprobaciones de archivos no consumen recursos remotos:
+npm run qa:migrations:history
+
+# El preflight COMPLETO está diseñado para rechazar la rama hasta que haya baseline:
+npm run qa:migrations
+```
+
+**D. Solo cuando el reset local sea reproducible:**
+
+Evaluar el mecanismo documentado por Supabase para incorporar el baseline a su historial de Branching, después de respaldo revisado, plan de reversión y aprobación específica del propietario para **cualquier modificación de metadatos de migraciones de producción**. No ejecutar `supabase migration repair` a ciegas: cambia el registro de versiones aplicadas, y un error puede afectar futuras migraciones.
+
+## Criterios de aceptación
+
+- [x] Versiones remotas/archivos SQL originales reconciliados: 50/50.
+- [x] Hashes de migraciones históricas vigilados por tests y CI.
+- [x] Duplicado con fecha incorrecta eliminado.
+- [x] Inventario de tablas preexistentes elaborado sin datos privados.
+- [ ] Definiciones iniciales completas recuperadas y revisadas.
+- [ ] Reset desde base vacía satisfactorio con resultados documentados.
+- [ ] Autorización y prueba de cualquier cambio futuro al historial productivo.
+- [ ] Nueva rama Supabase temporal inicializa sin `MIGRATIONS_FAILED`.
+- [ ] Pruebas de permisos y transacciones de Sharkania superadas.
+
+**Estado de publicación:** `NO-GO` de Stats Espía y de pruebas autenticadas hasta completar estas verificaciones.
+
+
+## Actualización: exportaciones de public y private recibidas y verificadas (3 noviembre)
+
+La exportación se completó mediante **PostgreSQL 18.6 / pg_dump**, conectado por **Session pooler IPv4** a la base PostgreSQL 17.6. No fue necesario instalar Docker Desktop ni crear recursos adicionales.
+
+Los archivos originales **quedaron fuera de GitHub**: son material privado de la auditoría. Nunca subir los cuerpos de funciones, contenidos JSON por defecto ni SQL de producción sin revisión de seguridad.
+
+| Snapshot local, solo DDL | Tamaño bytes | SHA-256 |
+| --- | ---: | --- |
+| `sharkania-public-2026-11-03.sql` | 228355 | `9315c5b57e539af6b49d4ce7d473702dc4bec220cdb42d56261de2c4ecd32c36` |
+| `sharkania-private-2026-11-03.sql` | 2062 | `d2a0c986738329e0e6d341fdf38ba571570219847e9a5ebafa84a9ec0fb4860f` |
+
+**Comprobación independiente:** 64 tablas públicas, 2 vistas, 57 funciones SQL definidas expresamente en el dump, 18 tipos enumerados, 22 triggers, 185 políticas RLS y 64 habilitaciones RLS; 1 tabla privada con RLS y dos FK a `auth.users` / `public.shared_hands`. Hay además referencias a `auth.uid()`, `public.vector` y `extensions.uuid_generate_v4`. Las 194 firmas de funciones del catálogo original incluyen funciones de extensiones; no confundirlas con las 57 `CREATE FUNCTION` explícitas exportadas.
+
+**Validador seguro:** `scripts/verify-supabase-schema-snapshots.mjs` acepta las rutas de dos archivos SQL privados y únicamente muestra conteos, hashes y advertencias (no contenidos ni credenciales). Verificado contra ambos archivos. No prueba ausencia completa de secretos ni reemplaza restauración real.
+
+**Bloqueos pendientes que ningún dump resuelve:** (1) los archivos incluyen `CREATE SCHEMA public` y corresponden al estado *posterior* a las 50 migraciones, por lo que no son el baseline histórico; (2) se exportaron con `--no-owner --no-acl` y NO incluyen permisos `GRANT/REVOKE` ni propietarios, que deberán reconstruirse y probarse; (3) el destino QA necesita `auth`, roles Supabase, extensiones y funciones relacionadas. Conservar la separación entre reconstruir un snapshot actualizado y reproducir cronológicamente las 50 migraciones.
+
+**Hallazgos P0 adicionales** (solo lectura de `pg_policies` y privilegios efectivos en producción): `tournament_clubs` concede `ALL` con RLS `true` a `PUBLIC`; `shark_tv_videos`, `acc_payouts`, `acc_player_promo_config`, `acc_player_promo_payouts`, `site_configs`, `live_polls`, `blog_embeddings` y `current_league_champion` contienen políticas de escritura para autenticados sin validación administrativa suficiente. Se suman a la exposición económica de Stats Espía. Preparar cambios de menor privilegio y pruebas con roles **solo en QA**, sin afectar producción ni derechos de compradores antiguos.
+
+**Estado:** exportaciones recuperadas y verificadas; restauración y permisos de QA no probados; reconstrucción histórica no resuelta; lanzamiento NO-GO. No crear rama facturable ni reparar historial en producción sin autorización específica.
+
+## Recepción de archivos y preparación QA independiente — 3 noviembre 2026
+
+Se recibieron otra vez, por el canal privado de conversación, las exportaciones originales: `sharkania-public-2026-11-03(1).sql` y `sharkania-private-2026-11-03(1).sql`. Sus hashes SHA-256 **coinciden exactamente** con los ya documentados arriba; **no hay que repetir estas exportaciones**. Los archivos se conservan fuera del repositorio.
+
+- Verificación local independiente: **64 tablas públicas**, **57 funciones de aplicación**, **185 políticas RLS**, **22 triggers**, **18 tipos enum** y **2 vistas**; el esquema `private` aporta 1 tabla y 2 FKs cruzadas.
+- Verificación remota solo lectura de `pg_catalog`: también hay 64 tablas públicas, 185 políticas, 22 triggers, 2 vistas, 18 enums y 57 funciones propias. Las otras 137 funciones visibles corresponden a extensiones instaladas (no son definiciones omitidas del dump). RLS habilitado en las 64 tablas públicas y la tabla privada.
+- Extensiones actuales por catálogo: `vector` 0.8.0 en `public`, `uuid-ossp` 1.1 y `pgcrypto` 1.3 en `extensions`; también existen `http`, `pg_net`, `pg_cron`, `pg_stat_statements`, `supabase_vault` y `plpgsql`. Estas extensiones **no vienen creadas** por los dos dumps y hay que proveerlas (cuando corresponda) en QA.
+- Se preparó un **kit privado de restauración estructural** para PostgreSQL 17 con pgvector, sin conexiones remotas ni usuarios reales. Contiene una instalación mínima **ficticia** de `auth.users`, adaptación de las líneas de `pg_dump` para un `public` ya existente, scripts de restauración, aserciones y un ejecutor opcional WSL/Docker que exige una base desechable `qa_sharkania_restore` con puerto ligado a `127.0.0.1`. El paquete **no fue subido a GitHub** ni ejecutado contra ningún servidor. Solo se ejecutó su preflight estático; hash y contenido del ZIP disponibles en el canal privado de trabajo.
+- La creación de roles falsos `anon`, `authenticated` y `service_role` es para resolver referencias de DDL; **no certifica autenticación real, privilegios efectivos, compras ni RLS**.
+- Un restore correcto de estas instantáneas seguiría siendo el estado **POSTERIOR** a las 50 migraciones. No constituye la migración inicial y no permite, por sí solo, ejecutar `supabase db reset` con el historial antiguo. Tampoco restaura GRANT, OWNERS ni extensiones gestionadas.
+- **Estado veraz:** QA estructural local *preparada, aún no ejecutada*; baseline histórico *no reconstruido*; pruebas E2E de Auth/Stats Espía/ELO *no ejecutadas*. **NO-GO**, sin cambios sobre producción y sin crear ramas facturables.
+
+Próxima verificación objetiva: ejecutar el paquete **solo en PostgreSQL 17+pgvector local y desechable**; conservar errores SQL, ajustar dependencias y reproducir las aserciones. Después diseñar explícitamente la estrategia de migraciones normalizadas sin borrar historia de producción.
+
+
+## Resultado reportado por el propietario: restauración local de PostgreSQL 17 (3–4 nov 2026, hora Chile)
+
+**Nueva evidencia del equipo Windows/Ubuntu (WSL 2):** el propietario ejecutó el kit privado mediante \`bash RUN_LOCAL_WSL.sh\` desde \`/mnt/c/Users/andyd/Downloads/SHARKANIA_QA_ESTRUCTURA_2026-11-03/out\`. Compartió la salida completa visible de la terminal:
+
+- Imagen \`pgvector/pgvector:pg17\` descargada correctamente.
+- \`CREATE DATABASE\` completado.
+- Etapas \`00-bootstrap.sql\`, \`01-public.sql\`, \`02-private.sql\` y \`03-assertions.sql\` ejecutadas sin errores mostrados.
+- Mensaje final: **\`PASS: structural restore completed on disposable local PostgreSQL 17 (not full Supabase E2E).\`**
+
+**Nuevo estado:** la **restauración estructural del snapshot actual pasó** en PostgreSQL 17 local desechable, según la evidencia de la terminal aportada por el propietario. Los artefactos privados no se publicaron. Este resultado **no es la prueba del baseline previo a 50 migraciones**: es restauración de un snapshot posterior. Tampoco valida ACL/GRANT reales, Auth/GoTrue real, RLS por rol con sesiones auténticas, integración de pagos, transacciones ELO/Stats Espía ni las pruebas de frontend end-to-end.
+
+**Gates separados:**
+- [x] Restauración local del *snapshot estructural actual* en PostgreSQL 17 + pgvector, con aserciones estructurales (salida aportada por propietario).
+- [ ] Reproducción de las 50 migraciones históricas desde una base vacía y diseño de un baseline compatible.
+- [ ] Roles y permisos reales de Supabase; Auth, Turnstile, compras y expiraciones.
+- [ ] Pruebas transaccionales ELO y Stats Espía con estructura, grants y datos sintéticos completos.
+- [ ] Pruebas de seguridad de operaciones administrativas, incluyendo reversión/edición retroactiva.
+- [ ] Aprobación y plan de reversión de producción, sin alterar el historial de migraciones a ciegas.
+
+**Decisión de publicación: NO-GO** hasta los gates de integración. No crear rama facturable; no ejecutar migraciones, cambios de permisos ni reseteos en producción.
+
+
+## Supabase CLI local (Auth real) — importación del snapshot aprobada por el operador, 3–4 noviembre 2026
+
+A diferencia del ensayo previo con Auth simulado, se inicializó localmente Supabase CLI 3.0.0 con Docker Desktop y Ubuntu/WSL 2. **Todos los puertos publicados se verificaron en `127.0.0.1` / `[::1]`.** PostgreSQL local versión 17.11, `auth.users` y `auth.uid()` reales; `pgcrypto` 1.3, `uuid-ossp` 1.1 y `vector` 0.8.2 instalado en `public`. Producción usa `vector` 0.8.0, diferencia de versión pendiente de regresión.
+
+Se ejecutó `SHARKANIA_importar_a_Supabase_local.sh` desde el directorio privado del kit. El propietario compartió la salida:
+```text
+PASS: checksums, local-only port, real auth, vector and empty application schema.
+PASS: Sharkania schema snapshot imported atomically into LOCAL Supabase only.
+IMPORTANT: auth integration, table grants, role-specific RLS, purchases, ELO, and 50 migrations remain UNVERIFIED.
+```
+
+**Resultado interpretado:** se superó la importación transaccional del snapshot POST-migraciones al entorno local que ya dispone de Auth. El script verificó hashes de los dos SQL normalizados y conteos de objetos, y exigió un contenedor y puertos locales específicos. No se copiaron secretos, datos de clientes ni credenciales de producción. Tampoco se tocaron permisos ni esquema productivos. Este resultado **no prueba** que los usuarios ficticios se puedan registrar, que funcionen los triggers de `auth.users`, ni que `anon` / `authenticated` posean los permisos `GRANT` originales: el dump fue generado con `--no-acl --no-owner`.
+
+Se preparó además un diagnóstico **solo lectura**, `SHARKANIA_diagnostico_permisos_local.sh`, distribuido únicamente en la conversación privada y **sin publicar SQL del esquema en GitHub**. Comprueba con `BEGIN READ ONLY`: ACL efectivos de tablas críticas y funciones `SECURITY DEFINER`, presencia de triggers sobre `auth.users`, acceso a esquemas, RLS y extensiones. Su salida debe interpretarse como diagnóstico de la base reconstruida, **no** como réplica de permisos productivos. Hasta leer esa salida, no habilitar el frontend ni crear usuarios falsos que activen triggers pendientes.
+
+**Siguiente gate:** ejecutar el diagnóstico local; corregir grants y triggers mediante script separado validado contra los privilegios reales, únicamente en QA; después probar roles y flujos Auth/compra/ELO con datos sintéticos. Continúa **NO-GO** para publicación y para reestructuración de migraciones históricas.
+
+
+### Diagnóstico ACL local y comparación de metadatos con producción (4 nov 2026)
+
+El operador ejecutó `SHARKANIA_diagnostico_permisos_local_v2.sh` únicamente en el contenedor local protegido. Reportó 64 tablas `public` con RLS, 1 `private` con RLS, 2 vistas y 185 políticas. `anon` y `authenticated` tienen permisos SQL sobre tablas de negocio comunes, **sujetos a RLS**; no se deduce una fuga de datos solo de esos GRANTs. En cambio, `anon` tiene `EXECUTE` en funciones `SECURITY DEFINER` como `delete_tournament_god_mode`, `reset_tournament_impact` y `spend_credits`. En el esquema local **no** se halló trigger personalizado en `auth.users`.
+
+Una consulta **solo lectura al catálogo de producción** (sin datos personales ni cambios) confirmó la discrepancia: **57 funciones de aplicación** en `public`, de las cuales **38 niegan EXECUTE a `anon`**, **14 niegan a `authenticated`** y **36 son `SECURITY DEFINER`**. Las tres funciones mencionadas niegan a `anon` en producción y permiten `authenticated`. Producción tiene un trigger habilitado `on_auth_user_created` = `AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user()`; no fue incluido porque los dumps solo abarcan `public`/`private`. En producción los GRANT efectivos de las tablas críticas revisadas son amplios tanto para `anon` como para `authenticated`, por lo que no modificar sus GRANT indiscriminadamente; auditar sus RLS aparte.
+
+La divergencia **es un defecto de fidelidad de QA por `--no-acl` y exclusión de esquema Auth**, no una vulnerabilidad confirmada de producción. No habilitar pruebas E2E ni crear usuarios locales todavía. Antes de importar ACL/trigger local, verificar huellas `md5(pg_get_functiondef(...))` de `handle_new_user` y las tres funciones sensibles contra el catálogo remoto (huellas en conversación privada). Después restaurar ACL originales en QA, sin tocar producción, y verificar RLS y Auth. Estado **NO-GO**.
+
+
+### Cuatro funciones idénticas y ACL/trigger QA preparados (4 nov 2026)
+
+El propietario informó `COINCIDE` en el `md5(pg_get_functiondef(...))` local frente a producción para `delete_tournament_god_mode`, `handle_new_user`, `reset_tournament_impact` y `spend_credits` (4/4). A continuación, se calculó una **huella agregada de todas las 57 funciones** consultando solo catálogo de producción: `1be6b3c9a2a9f9098f90c41d53d46be1` (nombre, firma y hash de definición ordenados). ACL productivo: **38 funciones sin EXECUTE para anon**, **14 sin EXECUTE para authenticated**; el resto es legible/ejecutable según las ACL actuales de producción.
+
+Se generó un script privado `SHARKANIA_reparar_ACL_y_Auth_SOLO_LOCAL_v1.sh` (ZIP distribuido solo al operador), **aún no ejecutado**. Su preflight exige el contenedor exacto `supabase_db_sharkania-qa`, puerto restringido a loopback, base local `postgres`, `auth.users` vacío, 64 tablas y 185 políticas, cero triggers personalizados en `auth.users`, y la huella idéntica de las **57 funciones**; si alguna comprobación falla, aborta. Luego, en una **sola transacción**, revoca permisos heredados de `PUBLIC` en las 38 funciones restringidas, da ejecución a `service_role` y a `authenticated` solo donde producción lo permite, y crea el trigger `on_auth_user_created` en `auth.users` apuntando a `public.handle_new_user()`. Verifica conteos finales 38/14 y trigger activo; cualquier fallo revierte todo. Se comprobó la sintaxis del shell y la integridad ZIP, **no se realizó ejecución real del SQL**.
+
+**NO-GO** para producción permanece. Próximo paso: pedir al operador que ejecute script en Ubuntu WSL y comparta su salida; si pasa, comenzar QA Auth con usuarios ficticios y verificación RLS. Nunca usar este script sobre producción.
+
+### ACL QA restauradas — verificación del operador (4 nov 2026)
+
+El operador ejecutó `bash SHARKANIA_reparar_ACL_y_Auth_SOLO_LOCAL_v1.sh` sobre el contenedor exclusivo `supabase_db_sharkania-qa`; compartió la salida:
+
+```text
+BEGIN
+SET
+SET
+NOTICE: PASS: 38 anon restrictions, 14 authenticated restrictions, 1 Auth trigger; definitions unchanged.
+DO
+COMMIT
+PASS: local QA function ACL and Auth registration trigger restored atomically.
+```
+
+Por tanto, **gates aprobados**: 4/4 funciones críticas con hash idéntico a producción; restauración local transaccional de ACL de funciones y del trigger Auth según reglas de catálogo. No se han importado datos reales ni cambiado ACL productivas.
+
+Próximo gate: verificar `/auth/v1/signup` local con **usuario sintético**, comprobar el alta en `auth.users` y su perfil en `public.profiles` con `role=player` y saldo de bienvenida definido en `public.handle_new_user`; no revelar claves locales ni contraseña. Se preparó `SHARKANIA_QA_prueba_registro_local_v1.sh` en conversación privada, preflight de contenedores y puertos loopback, clave local capturada internamente sin imprimirla, y únicamente un alta sintética. **Aún no ejecutado** por el operador. Un registro correcto no certifica confirmación de correo, RLS, compras, ELO ni pagos. **NO-GO** para producción.
+
+
+### Primer signup real en QA: PASS (4 nov 2026)
+
+Operador ejecutó `SHARKANIA_QA_prueba_registro_local_v1.sh` con una dirección sintética `@example.test` y contraseña aleatoria, únicamente contra `http://127.0.0.1:54321/auth/v1/signup`. La salida compartida confirmó `HTTP 200`, **1 registro en `auth.users`**, **1 perfil correspondiente en `public.profiles`**, `role='player'`, `shark_coins_balance=100`. El trigger `on_auth_user_created` real operó correctamente en este flujo local. Los identificadores de prueba y contraseñas no se incorporan al repositorio.
+
+**Gate aprobado:** signup Auth real + creación de perfil. **No se ha comprobado** la confirmación por email, estados de sesión, RLS por dos usuarios, compras, Stats Espía ni ELO; no deducir aprobación E2E general.
+
+**Próximo paso no destructivo:** verificar `auth.email.enable_confirmations` en `supabase/config.toml` y el estado agregado de `email_confirmed_at` en el Auth local, antes de pruebas de email y de sesiones. Mantener **NO-GO** en producción.
+
+
+### Confirmation email local — preflight 4 nov 2026
+
+El operador comprobó `supabase/config.toml` con dos claves `enable_confirmations = false` (líneas 228 y 264, de distintos proveedores, esperablemente email/SMS). El catálogo local `auth.users` contiene **1 usuario sintético, 1 email confirmado y 0 pendientes**. Esto es coherente con el comportamiento de registro local sin exigencia de confirmación, **no demuestra entrega ni aceptación de correo**. La prueba previa de signup sigue siendo válida para Auth + trigger de perfil, pero no para la política de verificación del email.
+
+Próximo gate: modificar **únicamente** `[auth.email].enable_confirmations = true` en `~/sharkania-qa/supabase/config.toml` (no tocar SMS), reiniciar la pila local con la red loopback ya validada, dar de alta un **segundo usuario sintético nuevo**, comprobar que nace sin `email_confirmed_at`, recuperar el mensaje en el buzón local puerto 54324, confirmar y revalidar sesión/perfil. No reutilizar el usuario sintético ya confirmado ni tocar producción. Estado NO-GO para despliegue.
+
+
+### Registro con confirmación activa — entrega Mailpit y estado pendiente PASS (4 nov 2026)
+
+Se habilitó únicamente `[auth.email].enable_confirmations = true` en el `supabase/config.toml` del equipo Windows/Ubuntu de QA, reiniciando Supabase CLI local sin `db reset`. El operador repitió el alta sintética vía API local `127.0.0.1:54321`, obtuvo HTTP 200 y verificó un perfil `player` con 100 Shark Coins. La captura confirma **un correo de verificación “Confirm your email address” en Mailpit** en `127.0.0.1:54324`. El conteo de `auth.users` mostró **2 usuarios ficticios**, **1 confirmado** y **1 pendiente**.
+
+**Gate aprobado:** con confirmaciones habilitadas, Auth envía mensaje a buzón capturado localmente y mantiene la cuenta nueva sin `email_confirmed_at` hasta confirmación. **Gate pendiente:** clicar el enlace y demostrar transición de `pendientes=1` a `pendientes=0`, con nuevo login autenticado y pruebas RLS. No divulgar URL/token de confirmación. El resultado no certifica seguridad de pagos ni producción. **NO-GO**.
+
+
+### Confirmación real completada: PASS y siguiente gate RLS (4 nov 2026)
+
+El operador abrió el enlace de confirmación recibido en Mailpit. La consulta agregada posterior en **Supabase local** devolvió exactamente `usuarios_qa=2`, `confirmados=2`, `pendientes=0`. Por tanto, se observó la transición correcta de **1 pendiente → 0 pendientes** con enlace de verificación local. No se mostraron tokens ni contraseñas. El flujo registrado es Auth local, no la entrega real por SMTP de producción.
+
+Se consultaron **solo metadatos RLS de producción** (catálogo `pg_policies`) para preparar pruebas sin tocar datos de usuarios. `profiles` tiene SELECT propio/super, UPDATE propio/super sujeto a trigger de campos sensibles; `credit_transactions` limita SELECT a `auth.uid() = user_id`; `user_purchases` restringe INSERT `WITH CHECK false`; `club_admins` restringe mutaciones a super. `elo_history` presenta una política INSERT `WITH CHECK auth.uid() IS NOT NULL` para `PUBLIC`, cuyo efecto real debe comprobarse con triggers y controles, **sin asumir todavía una vulnerabilidad**.
+
+Próxima prueba: sesión `authenticated` simulada en transacción SQL **READ ONLY** sobre QA, seleccionar un usuario ficticio ya confirmado mediante `request.jwt.claim.sub`, comprobar cuántos perfiles RLS puede ver y comparar con el total local. Esta prueba valida predicados SQL, pero **no sustituye** pruebas API con JWT real ni operaciones negativas de escritura. Estado de despliegue: **NO-GO**.
+
+
+### RLS aislamiento de perfiles: PASS (4 nov 2026)
+
+El propietario ejecutó una transacción `BEGIN READ ONLY` en `supabase_db_sharkania-qa`, configuró `request.jwt.claim.sub` con un ID sintético y `SET LOCAL ROLE authenticated`. Reportó `perfiles_totales_qa=2`, `authenticated` / `identificado=true`, `perfiles_visibles=1`, `perfil_propio=1`, `perfiles_ajenos=0`; luego `ROLLBACK`. **Gate aprobado: aislamiento SELECT por predicados SQL RLS sobre perfiles de QA.** Sigue pendiente una prueba REST con JWT auténtico y bloqueo de UPDATE/INSERT.
+
+Metadatos SQL leídos de producción únicamente para diseñar pruebas, sin datos personales: el trigger `guard_profile_privileged_mutations` está activo en `public.profiles` y rechaza modificaciones no privilegiadas de `role`, `shark_coins_balance` y otros campos sensibles, usando `RAISE EXCEPTION` SQLSTATE 42501. El enum `public.user_role` comprende `player`, `club_admin`, `super_admin`, `academy_admin`. **Próximo gate:** probar en transacción local con `authenticated` que un usuario sintético no pueda cambiar su `role` a `super_admin`, aumentar sus Shark Coins ni alterar el perfil ajeno, revirtiendo todo con `ROLLBACK`; diferenciar error del trigger de denegación RLS. Estado de publicación **NO-GO**.
+
+
+### RLS mutaciones de perfiles negativas: 3/3 PASS (4 nov 2026)
+
+El propietario ejecutó en Supabase QA local una transacción `BEGIN` con usuario sintético en `request.jwt.claim.sub`, `SET LOCAL ROLE authenticated`, y comprobaciones encapsuladas en `DO`. Se observaron exactamente los siguientes mensajes:
+
+```text
+NOTICE: PASS: cambio de rol rechazado por seguridad
+NOTICE: PASS: aumento de monedas rechazado por seguridad
+NOTICE: PASS: modificacion de perfil ajeno bloqueada por RLS
+SET
+DO
+ROLLBACK
+```
+
+**Gate aprobado por evidencia del operador:** un jugador normal no puede autoasignarse `super_admin` ni aumentar `shark_coins_balance`, y RLS bloquea UPDATE sobre perfil ajeno. Los dos primeros intentos devolvieron SQLSTATE 42501, capturado por el harness; el tercero afectó cero filas. No quedaron cambios confirmados (`ROLLBACK`). Sigue pendiente probar por REST con JWT reales y la regresión sobre otras tablas financieras/torneos.
+
+**Observación de seguimiento independiente (metadatos producción, solo lectura, sin cambio):** `public.elo_history` tiene INSERT `TO PUBLIC WITH CHECK (auth.uid() IS NOT NULL)`, con GRANT INSERT a usuarios autenticados, y no se observan triggers no internos en esa tabla. Esto es una **superficie de riesgo que requiere prueba negativa de integridad ELO**, no constituye todavía una explotación confirmada ni valida que el frontend exponga la operación. Se prioriza comprobar, solo en local, qué protege la inserción directa de eventos ELO, separando rechazos RLS, FK y validaciones de aplicación. **No cambiar producción sin aprobación.** Estado de despliegue: **NO-GO**.
+
+
+### Finanzas negativas: PASS; inserción ELO llega a FK (4 nov 2026)
+
+El operador reportó una transacción QA `BEGIN` y `ROLLBACK`, con `SET LOCAL ROLE authenticated` y JWT subject sintético, cuyos mensajes fueron:
+```text
+NOTICE: PASS: insercion de creditos bloqueada
+NOTICE: PASS: compra ficticia bloqueada
+NOTICE: ATENCION: ELO supero RLS, pero fue rechazado por las claves foraneas
+ROLLBACK
+```
+**Gate aprobado:** los intentos probados de insertar créditos en `credit_transactions` y una compra inventada en `user_purchases` fueron rechazados. **Advertencia fundamentada:** la inserción de `elo_history` pasó RLS, pero el FK rechazó ambos UUID inexistentes.
+
+Verificación adicional exclusivamente de **catálogo productivo** confirma que `elo_history` tiene política `INSERT WITH CHECK auth.uid() IS NOT NULL`, GRANT INSERT para `authenticated`, **sin triggers propios**, y solo FK sobre `players(id)` y `tournaments(id)`; no existe una comprobación de propiedad o rol del club dentro del predicado de esa política. Estas observaciones sustentan un **riesgo de integridad a comprobar con FK válidas**, no acreditan todavía que un usuario haya modificado datos ni que el puntaje agregado final pueda manipularse.
+
+Próximo gate: crear **solo dentro de una transacción no confirmada** un `poker_room`, un `club`, un `player` y un `tournament` sintéticos localmente como `postgres` para satisfacer FK; asumir `authenticated` con ID sintético y probar `INSERT elo_history`; terminar en `ROLLBACK`. Prohibido usar IDs o datos productivos. Evaluar impacto sobre rankings/funciones en pruebas separadas. **NO-GO**.

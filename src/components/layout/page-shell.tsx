@@ -1,4 +1,6 @@
 import { type ReactNode, useState } from "react";
+import "../../styles/arena-interior.css";
+import "../../styles/arena-public-bridge.css";
 import { Navbar } from "./navbar";
 import { Footer } from "./footer";
 import { AdminAccessBanner } from "./admin-access-banner";
@@ -11,10 +13,15 @@ import { GlobalChampionsTicker } from "./global-champions-ticker";
 
 interface PageShellProps {
   children: ReactNode;
+  variant?: "standard" | "arena";
+  /** Preserve reviewed sitewide advertising and the champions ticker on Arena-styled commercial routes. */
+  showMarketing?: boolean;
 }
 
-export function PageShell({ children }: PageShellProps) {
-  const { banners, loading: bannersLoading } = useBannersWithStatus();
+export function PageShell({ children, variant = "standard", showMarketing }: PageShellProps) {
+  const isArena = variant === "arena";
+  const displayMarketing = showMarketing ?? !isArena;
+  const { banners, loading: bannersLoading } = useBannersWithStatus(displayMarketing);
   
   // 1. TOP GLOBAL (Destacado Principal)
   const topGlobal = banners?.slots?.top_global;
@@ -33,16 +40,16 @@ export function PageShell({ children }: PageShellProps) {
   };
 
   return (
-    <div className="min-h-screen bg-sk-bg-1 flex flex-col relative overflow-x-clip">
-      <Navbar />
+    <div className={cn("min-h-screen bg-sk-bg-1 flex flex-col relative overflow-x-clip", isArena && "arena-page-shell")}>
+      <Navbar variant={isArena ? "arena" : "standard"} />
       <div style={{ height: "56px", flexShrink: 0 }} />
 
       {/* 🌟 TICKER STICKY: Se queda pegado a 56px del tope (justo debajo del Navbar) */}
-      <div className="sticky top-[56px] left-0 right-0 w-full h-10 shrink-0 z-[90] shadow-md border-b border-sk-border-2 bg-sk-bg-2">
+      {displayMarketing && <div className="sticky top-[56px] left-0 right-0 w-full h-10 shrink-0 z-[90] shadow-md border-b border-sk-border-2 bg-sk-bg-2">
         <GlobalChampionsTicker />
-      </div>
+      </div>}
 
-      <div className="relative left-0 right-0 w-full z-[80] flex flex-col bg-sk-bg-0">
+      {displayMarketing && <div className="relative left-0 right-0 w-full z-[80] flex flex-col bg-sk-bg-0">
         {/* 🔥 TOP GLOBAL BANNER */}
         {hasTopBanner && (
           <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 shadow-md flex justify-center py-3 relative z-[45]">
@@ -63,7 +70,7 @@ export function PageShell({ children }: PageShellProps) {
 
         <VerifiedBannerStrip banners={banners} loading={bannersLoading} />
 
-      </div>
+      </div>}
 
       <main className="flex-1">{children}</main>
       <Footer />

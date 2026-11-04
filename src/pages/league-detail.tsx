@@ -15,7 +15,7 @@ import { EmptyState } from "../components/ui/empty-state";
 import { useLeagueBySlug, useLeagueStandings } from "../hooks/use-leagues";
 import { useTournamentsByLeague } from "../hooks/use-tournaments";
 import { FlagIcon } from "../components/ui/flag-icon";
-import { ArrowLeft, Trophy, Crown, Download } from "lucide-react";
+import { ArrowLeft, ArrowRight, Trophy, Crown, Download } from "lucide-react";
 import type { TournamentWithDetails } from "../types";
 import { cn } from "../lib/cn";
 import { SEOHead } from "../components/seo/seo-head";
@@ -38,6 +38,14 @@ export function LeagueDetailPage() {
   const [tab, setTab] = useState<Tab>("standings");
   const [selectedTournament, setSelectedTournament] = useState<TournamentWithDetails | null>(null);
 
+  // Durante la convocatoria la primera intención de búsqueda es conocer
+  // la próxima fecha; después se preserva el ranking y las pestañas habituales.
+  useEffect(() => {
+    if (league?.slug === "liga-sharkania-noviembre-2026" && league.status !== "finished" && !standings?.length) {
+      setTab("upcoming");
+    }
+  }, [league?.slug, league?.status, standings?.length]);
+
   const [ccpStandings, setCcpStandings] = useState<CCPClubRanking[]>([]);
   const [ccpLoading, setCcpLoading] = useState(false);
 
@@ -56,7 +64,7 @@ export function LeagueDetailPage() {
 
   if (isLoading) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex items-center justify-center">
           <Spinner size="lg" />
         </div>
@@ -66,7 +74,7 @@ export function LeagueDetailPage() {
 
   if (!league) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4">
           <span className="text-5xl">🏆</span>
           <h1 className="text-sk-2xl font-bold text-sk-text-1">Liga no encontrada</h1>
@@ -110,6 +118,18 @@ export function LeagueDetailPage() {
     .filter(t => ["scheduled", "live", "late_registration"].includes(t.status))
     .sort((a, b) => new Date(a.start_datetime || 0).getTime() - new Date(b.start_datetime || 0).getTime());
 
+  const isNovemberSharkaniaLeague = league.slug === "liga-sharkania-noviembre-2026";
+  const nextNovemberDate = upcoming.find(t =>
+    (t.status === "live" || t.status === "late_registration") ||
+    new Date(t.start_datetime).getTime() >= Date.now()
+  );
+  const nextNovemberDateLabel = nextNovemberDate
+    ? new Intl.DateTimeFormat("es-CL", {
+        weekday: "long", day: "numeric", month: "long",
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "America/Santiago"
+      }).format(new Date(nextNovemberDate.start_datetime))
+    : null;
+
   const completed = (tournaments ?? [])
     .filter(t => t.results_uploaded || (t.status === "completed" && !t.results_uploaded))
     .sort((a, b) => new Date(b.start_datetime || 0).getTime() - new Date(a.start_datetime || 0).getTime());
@@ -144,14 +164,14 @@ export function LeagueDetailPage() {
   };
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title={`${league.name} — Liga`}
         description={`Liga de poker ${league.name}. Tabla de posiciones, calendario y resultados.`}
         path={`/leagues/${leagueSlug}`}
       />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[1200px] mx-auto px-6">
+      <div className="arena-interior">
+        <div className="arena-interior-container">
           <Link
             to="/leagues"
             className="inline-flex items-center gap-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 transition-colors mb-6"
@@ -160,7 +180,7 @@ export function LeagueDetailPage() {
           </Link>
 
           {/* 🔥 Header con Imagen de Fondo Arreglada */}
-          <div className="relative bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6 overflow-hidden min-h-[160px] flex flex-col justify-center shadow-md">
+          <header className="arena-detail-banner arena-detail-banner--league relative bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6 overflow-hidden min-h-[160px] flex flex-col justify-center shadow-md">
             
             {/* 1. Imagen de fondo (Opacidad limpia y pura, sin mix-blend) */}
             {bannerUrl && (
@@ -175,15 +195,23 @@ export function LeagueDetailPage() {
             
             {/* 3. Contenido de la cabecera (por encima del fondo) */}
             <div className="relative z-20">
+              <p className="arena-detail-kicker">SHARKANIA ARENA / CIRCUITO DE LIGAS</p>
               <div className="flex justify-between items-start mb-3">
-                <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight drop-shadow-md">
+                <h1 className="arena-detail-title text-sk-2xl font-extrabold text-sk-text-1 tracking-tight drop-shadow-md">
                   {league.name}
                 </h1>
                 <Badge variant={status.variant} className="shadow-sm">{status.label}</Badge>
               </div>
               
               {league.description && (
-                <p className="text-sk-sm text-sk-text-2 mb-4 max-w-3xl drop-shadow-sm">{league.description}</p>
+                <div className="mb-4 max-w-3xl">
+                  <p className="text-sk-sm text-sk-text-2 leading-relaxed line-clamp-3 sm:line-clamp-4 drop-shadow-sm">
+                    {league.description}
+                  </p>
+                  <a href="#league-tabs" onClick={() => setTab("info")} className="mt-2 inline-flex items-center text-xs font-bold text-sk-accent hover:underline focus-visible:outline-2 focus-visible:outline-sk-accent">
+                    Leer descripción y condiciones completas
+                  </a>
+                </div>
               )}
               
               <div className="flex items-center gap-3 flex-wrap mb-3 drop-shadow-sm">
@@ -213,7 +241,54 @@ export function LeagueDetailPage() {
                 ))}
               </div>
             </div>
-          </div>
+          </header>
+
+          {isNovemberSharkaniaLeague && (
+            <aside aria-label="Requisitos para recibir los premios de SHARKANIA" className="mb-6 rounded-xl border-2 border-sk-gold/50 bg-sk-gold/10 p-4 sm:p-5">
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-sk-gold">Importante · premios exclusivos SHARKANIA</p>
+              <h2 className="mt-2 text-lg font-extrabold text-sk-text-1">El bounty de cada fecha y los premios del ranking mensual requieren inscripción a través de SHARKANIA</h2>
+              <p className="mt-2 text-sm leading-relaxed text-sk-text-2">
+                Participar en los torneos de Ignition por sí solo no habilita para estos premios adicionales.
+                Debes estar registrado en la Liga SHARKANIA mediante este sitio y tener tu nickname vinculado
+                para acreditar tu participación.
+              </p>
+              <p className="mt-2 text-sm font-semibold leading-relaxed text-sk-text-1">
+                Si ya te registraste anteriormente y tu vinculación está guardada, no necesitas hacerlo de nuevo.
+              </p>
+              <Link to="/ignition" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-sk-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
+                Cómo inscribirse y verificar mi vinculación <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </aside>
+          )}
+
+          {/* Ruta de acceso clara a la liga; se alimenta del calendario real. */}
+          {isNovemberSharkaniaLeague && currentStatus !== "finished" && (
+            <section className="mb-6 overflow-hidden rounded-xl border border-sk-accent/30 bg-gradient-to-br from-sk-bg-2 via-sk-bg-2 to-sk-accent/10 p-5 sm:p-7" aria-labelledby="sharkania-november-join-title">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="max-w-2xl">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[.16em] text-sk-gold">Liga SHARKANIA · Noviembre 2026</p>
+                  <h2 id="sharkania-november-join-title" className="text-xl sm:text-2xl font-extrabold text-sk-text-1">
+                    {nextNovemberDateLabel ? "Próxima fecha de la liga" : "Sigue el ranking de la liga"}
+                  </h2>
+                  {nextNovemberDateLabel && <p className="mt-2 text-sk-base font-semibold text-sk-accent capitalize">{nextNovemberDateLabel} · Chile</p>}
+                  <p className="mt-2 text-sk-sm leading-relaxed text-sk-text-2">
+                    Cuatro jueves de noviembre, 21:00 h de Chile. Si aún no tienes Ignition, descárgalo usando el enlace de SHARKANIA en nuestra guía.
+                  </p>
+                  <p className="mt-2 text-sk-sm font-semibold leading-relaxed text-sk-text-1">
+                    ¿Ya estabas inscrito en la Liga SHARKANIA? No necesitas registrarte nuevamente. Entra con tu cuenta de siempre y comprueba el estado de tu nickname.
+                  </p>
+                </div>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row lg:flex-col">
+                  <Link to="/ignition" className="inline-flex min-h-12 items-center justify-center rounded-lg bg-sk-accent px-5 py-3 text-center text-sm font-extrabold text-sk-bg-0 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
+                    Descargar Ignition y vincular nickname
+                  </Link>
+                  <a href="#league-tabs" onClick={() => setTab("upcoming")} className="inline-flex min-h-12 items-center justify-center rounded-lg border border-sk-border-2 bg-sk-bg-3 px-5 py-3 text-center text-sm font-bold text-sk-text-1 hover:border-sk-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sk-accent">
+                    Ver fechas programadas
+                  </a>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Campeón Finalizado */}
           {currentStatus === "finished" && champion && (
@@ -254,7 +329,7 @@ export function LeagueDetailPage() {
           )}
 
           {/* Tabs */}
-          <div className="flex justify-between items-end mb-6">
+          <div id="league-tabs" className="flex justify-between items-end mb-6 scroll-mt-24">
             <div className="flex gap-px bg-sk-bg-0 rounded-md p-0.5 border border-sk-border-2 overflow-x-auto">
               {TABS.map((t) => (
                 <button
@@ -329,6 +404,12 @@ export function LeagueDetailPage() {
             <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6">
               <h3 className="text-sk-md font-bold text-sk-text-1 mb-4">Información de la Liga</h3>
               <div className="space-y-3 text-sk-sm text-sk-text-2">
+                {league.description && (
+                  <div className="rounded-lg border border-sk-border-2 bg-sk-bg-3 p-4">
+                    <h4 className="mb-2 font-bold text-sk-text-1">Descripción y condiciones de la liga</h4>
+                    <p className="whitespace-pre-line leading-relaxed">{league.description}</p>
+                  </div>
+                )}
                 <p><span className="text-sk-text-1 font-semibold">Nombre:</span> {league.name}</p>
                 <p><span className="text-sk-text-1 font-semibold">Estado:</span> {status.label}</p>
                 <p><span className="text-sk-text-1 font-semibold">Periodo:</span> {league.start_date} — {league.end_date}</p>

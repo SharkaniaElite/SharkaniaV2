@@ -1,6 +1,7 @@
 // src/pages/tutorial-coinpoker.tsx
 import { useState } from "react";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaRouteTrail } from "../components/arena/arena-route-trail";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import { 
@@ -18,15 +19,17 @@ export function TutorialCoinPokerPage() {
   const imageClasses = "w-full rounded-lg border border-sk-border-2 mb-4 cursor-zoom-in hover:opacity-80 transition-opacity duration-200";
 
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead 
         title="Cómo Depositar en CoinPoker | Tutorial Paso a Paso" 
-        description="Aprende a registrarte, reclamar tu bono de $2.000 y depositar USDT en CoinPoker desde Binance u otros métodos." 
+        description="Guía paso a paso para registrarse en CoinPoker y consultar las alternativas de depósito disponibles, con consejos para verificar las condiciones en tu país." 
+        path="/tutorial-coinpoker"
       />
-      <div className="bg-sk-bg-0 text-sk-text-1 pb-20 relative">
+      <div className="arena-public-bridge arena-partner-route arena-guide-route arena-coinpoker-route text-sk-text-1 relative">
+        <ArenaRouteTrail section="CoinPoker" href="/promociones/coinpoker" current="Tutorial de CoinPoker" />
         
         {/* HEADER */}
-        <div className="bg-sk-bg-1 border-b border-sk-border-2 pt-24 pb-12">
+        <div className="arena-partner-lead border-b border-sk-border-2 pt-12 pb-12">
           <div className="container mx-auto px-4 text-center max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sk-accent/10 border border-sk-accent/30 text-sk-accent text-xs font-mono font-bold tracking-wider mb-4">
               <Wallet size={14} />

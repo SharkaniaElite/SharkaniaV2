@@ -17,10 +17,12 @@ import {
   useUnifiedTournamentResults,
 } from "../hooks/use-players";
 import { useFeatureAccess } from "../hooks/use-shop";
+import { useSecureStatsSpySummary, useSecureStatsSpyHistory } from "../hooks/use-stats-spy";
+import { SECURE_STATS_SPY_MODE } from "../lib/api/stats-spy";
 import { getCountryName } from "../lib/countries";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { formatElo } from "../lib/format";
-import { ArrowLeft, Info, ShieldCheck, Link2 } from "lucide-react";
+import { ArrowLeft, Info, ShieldCheck, Link2, Trophy } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import { useAuthStore } from "../stores/auth-store";
 
@@ -35,6 +37,13 @@ export function PlayerProfilePage() {
   const { data: spyAccess } = useFeatureAccess("cosmetic_extended_stats");
 
   const hasFullAccess = isSuperAdmin || !!spyAccess?.has_access;
+  // Toggle only after the guarded RPCs and public-grant cutover are deployed.
+  const useGuardedPremium = SECURE_STATS_SPY_MODE && hasFullAccess;
+  const secureSummaryQuery = useSecureStatsSpySummary(playerSlug, hasFullAccess);
+  const secureHistoryQuery = useSecureStatsSpyHistory(playerSlug, hasFullAccess);
+  const premiumDataReady = !SECURE_STATS_SPY_MODE ||
+    (!!secureSummaryQuery.data && !!secureHistoryQuery.data);
+  const verifiedPremiumAccess = hasFullAccess && premiumDataReady;
   // Datos del player individual
   const { data: player, isLoading, error } = usePlayerBySlug(playerSlug);
 
@@ -53,10 +62,14 @@ export function PlayerProfilePage() {
   // Tournament Results: unificado si tiene aliases, individual si no
   const { data: unifiedResults, isLoading: unifiedResultsLoading } =
     useUnifiedTournamentResults(
-      hasAliases ? unifiedStats?.profile_id : undefined
+      hasAliases ? unifiedStats?.profile_id : undefined,
+      hasFullAccess && !SECURE_STATS_SPY_MODE
     );
   const { data: individualResults, isLoading: individualResultsLoading } =
-    usePlayerTournamentResults(!hasAliases ? player?.id : undefined);
+    usePlayerTournamentResults(
+      !hasAliases ? player?.id : undefined,
+      hasFullAccess && !SECURE_STATS_SPY_MODE
+    );
 
   // Seleccionar los datos correctos
   const eloHistory = hasAliases
@@ -73,12 +86,41 @@ export function PlayerProfilePage() {
 
   const eloLoading = hasAliases ? unifiedEloLoading : individualEloLoading;
 
-  const tournamentResults = hasAliases
+  const publicOrLegacyResults = hasAliases
     ? unifiedResults ?? []
     : individualResults ?? [];
-  const resultsLoading = hasAliases
-    ? unifiedResultsLoading
-    : individualResultsLoading;
+  // Premium history is read in small authorized pages, not fetched in bulk.
+  const secureHistoryRows = secureHistoryQuery.data?.pages.flat() ?? [];
+  const tournamentResults = useGuardedPremium
+    ? secureHistoryRows
+    : publicOrLegacyResults;
+  const resultsLoading = useGuardedPremium
+    ? secureHistoryQuery.isLoading
+    : (hasAliases ? unifiedResultsLoading : individualResultsLoading);
+
+  // UI comparison only: monetary totals are valid when ALL tournaments have
+  // been loaded and every result is denominated in the SAME known currency.
+  const legacyCurrencySet = new Set(
+    publicOrLegacyResults.map((r) => (r.tournaments?.currency || "").trim().toUpperCase() || "SIN_MONEDA")
+  );
+  const legacyExpectedCount = hasAliases
+    ? Number(unifiedStats?.total_tournaments ?? 0)
+    : Number(player?.total_tournaments ?? 0);
+  const legacyHistoryComplete = hasFullAccess && !SECURE_STATS_SPY_MODE &&
+    publicOrLegacyResults.length === legacyExpectedCount;
+  const legacyFinancialCurrency = legacyHistoryComplete &&
+    legacyCurrencySet.size === 1 && !legacyCurrencySet.has("SIN_MONEDA")
+    ? Array.from(legacyCurrencySet)[0] ?? null
+    : null;
+  const legacyFinancialComparable = !!legacyFinancialCurrency;
+  const legacyPrizes = publicOrLegacyResults.reduce(
+    (sum, r) => sum + Number(r.prize_won || 0) + Number(r.bounties_won || 0), 0
+  );
+
+  // The free preview only downloads two rows. Use the aggregate count to
+  // preserve the upgrade prompt without fetching the remaining result records.
+  const hasHiddenHistory = !verifiedPremiumAccess &&
+    (hasAliases ? (unifiedStats?.total_tournaments ?? 0) : (player?.total_tournaments ?? 0)) > 2;
 
   // 🔥 CÁLCULO DE GASTO REAL (ROI & PROFIT FIX)
   // Recorremos el historial y multiplicamos el costo del torneo por las reentradas
@@ -90,7 +132,9 @@ export function PlayerProfilePage() {
 
   // Si por alguna razón el historial no trae datos (ej: freerolls), hacemos un fallback al dato de la DB
   const dbBuyInsSpent = hasAliases && unifiedStats ? unifiedStats.total_buy_ins_spent : player?.total_buy_ins_spent ?? 0;
-  const finalBuyInsSpent = calculatedBuyInsSpent > 0 ? calculatedBuyInsSpent : dbBuyInsSpent;
+  const finalBuyInsSpent = useGuardedPremium
+    ? Number(secureSummaryQuery.data?.total_buy_ins_spent ?? 0)
+    : (calculatedBuyInsSpent > 0 ? calculatedBuyInsSpent : dbBuyInsSpent);
 
   // Stats del player: unificadas o individuales
   const displayStats = player
@@ -101,6 +145,15 @@ export function PlayerProfilePage() {
           total_cashes: unifiedStats.total_cashes,
           total_wins: unifiedStats.total_wins,
           total_prize_won: unifiedStats.total_prize_won,
+        } : {}),
+        ...(useGuardedPremium && secureSummaryQuery.data ? {
+          total_tournaments: Number(secureSummaryQuery.data.total_tournaments),
+          total_cashes: Number(secureSummaryQuery.data.total_cashes),
+          total_wins: Number(secureSummaryQuery.data.total_wins),
+          total_prize_won: Number(secureSummaryQuery.data.total_prize_won ?? 0),
+        } : {}),
+        ...(!SECURE_STATS_SPY_MODE && legacyFinancialComparable ? {
+          total_prize_won: legacyPrizes,
         } : {}),
         elo_rating: hasAliases && eloHistory.length > 0
           ? eloHistory[eloHistory.length - 1]!.elo_after
@@ -127,7 +180,7 @@ export function PlayerProfilePage() {
 
   if (isLoading) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div
           ref={topRef}
           className="pt-20 min-h-screen flex items-center justify-center"
@@ -140,7 +193,7 @@ export function PlayerProfilePage() {
 
   if (error || !player) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div
           ref={topRef}
           className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4"
@@ -175,14 +228,14 @@ export function PlayerProfilePage() {
   const displayEloPeak = unifiedEloPeak ?? player.elo_peak;
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title={`${cleanNickname} — Perfil`}
         description={`Perfil de ${cleanNickname}. ELO ${Math.round(Number(displayElo)).toLocaleString()}, ${displayStats?.total_tournaments ?? player.total_tournaments} torneos. ${getCountryName(player.country_code)}.`}
         path={`/ranking/${playerSlug}`}
       />
-      <div ref={topRef} className="pt-20 pb-16">
-        <div className="max-w-[1200px] mx-auto px-6">
+      <div ref={topRef} className="arena-interior">
+        <div className="arena-interior-container">
           <Link
             to="/ranking"
             className="inline-flex items-center gap-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 transition-colors mb-6"
@@ -192,7 +245,8 @@ export function PlayerProfilePage() {
           </Link>
 
           {/* Header */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
+          <div className="arena-profile-hero bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
+            <p className="arena-profile-kicker"><Trophy size={14} aria-hidden="true" /> SHARKANIA ARENA / PERFIL COMPETITIVO</p>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-2xl font-extrabold text-sk-accent shrink-0 overflow-hidden">
                 {avatarUrl ? (
@@ -249,7 +303,7 @@ export function PlayerProfilePage() {
               </div>
 
               <div className="text-right">
-                <div className="font-mono text-sk-3xl font-extrabold text-sk-accent tracking-tight leading-none">
+                <div className="arena-profile-elo font-mono text-sk-3xl font-extrabold text-sk-accent tracking-tight leading-none">
                   {formatElo(displayElo)}
                 </div>
                 {hasAliases && (
@@ -271,8 +325,21 @@ export function PlayerProfilePage() {
             </div>
           </div>
 
+          {useGuardedPremium && (secureSummaryQuery.isLoading || secureHistoryQuery.isLoading) && (
+            <div role="status" className="mb-5 rounded-lg border border-sk-accent/30 bg-sk-accent/10 text-sk-text-2 p-4 text-sk-sm">
+              Verificando tu acceso a Stats Espía y cargando el historial autorizado…
+            </div>
+          )}
+
+          {useGuardedPremium && (secureSummaryQuery.isError || secureHistoryQuery.isError) && (
+            <div role="alert" className="mb-5 rounded-lg border border-sk-red/40 bg-sk-red/10 text-sk-red p-4 text-sk-sm">
+              No se pudo verificar la información de Stats Espía desde el servidor.
+              Por seguridad, el contenido premium permanece bloqueado temporalmente.
+            </div>
+          )}
+
           {/* Stats Grid con indicador de ByPass para SuperAdmin */}
-          <div className="mb-6 relative">
+          <div className="arena-profile-panel mb-6 relative">
             {isSuperAdmin && (
               <div className="absolute -top-3 right-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-sk-bg-0 border border-sk-border-2 text-sk-text-2 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm pointer-events-none">
                 <ShieldCheck size={10} className="text-sk-accent" />
@@ -288,12 +355,19 @@ export function PlayerProfilePage() {
                     }
                   : player
               }
-              hasAccess={hasFullAccess}
+              hasAccess={verifiedPremiumAccess}
+              hideUpsell={useGuardedPremium}
+              financialComparable={useGuardedPremium
+                ? !!secureSummaryQuery.data?.currency && !secureSummaryQuery.data?.mixed_currencies
+                : legacyFinancialComparable}
+              financialCurrency={useGuardedPremium
+                ? secureSummaryQuery.data?.currency
+                : legacyFinancialCurrency}
             />
           </div>
 
           {/* ELO Chart */}
-          <div className="mb-6">
+          <div className="arena-profile-panel mb-6">
             {hasAliases && (
               <p className="text-[11px] font-mono text-sk-accent/60 mb-2">
                 📈 Gráfica de ELO unificada — combina{" "}
@@ -304,14 +378,14 @@ export function PlayerProfilePage() {
           </div>
 
           {/* Tournament History */}
-          <div className="relative">
+          <div className="arena-profile-panel relative p-3 sm:p-5">
             {isSuperAdmin && (
               <div className="absolute top-0 right-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-sk-bg-0 border border-sk-border-2 text-sk-text-2 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-sm pointer-events-none">
                 <ShieldCheck size={10} className="text-sk-accent" />
                 Admin Bypass Activo
               </div>
             )}
-            <h3 className="text-sk-md font-bold text-sk-text-1 mb-4">
+            <h3 className="arena-section-title text-sk-md font-bold text-sk-text-1 mb-4">
               🎯 Historial de Torneos
               {hasAliases && (
                 <span className="text-sk-xs text-sk-text-3 font-normal ml-2">
@@ -322,7 +396,11 @@ export function PlayerProfilePage() {
             <TournamentHistoryTable
               results={tournamentResults as never[]}
               isLoading={resultsLoading}
-              hasAccess={hasFullAccess}
+              hasAccess={verifiedPremiumAccess}
+              hasMoreHistory={hasHiddenHistory}
+              canLoadMore={useGuardedPremium && !!secureHistoryQuery.hasNextPage}
+              isLoadingMore={useGuardedPremium && secureHistoryQuery.isFetchingNextPage}
+              onLoadMore={useGuardedPremium ? () => { void secureHistoryQuery.fetchNextPage(); } : undefined}
             />
           </div>
         </div>

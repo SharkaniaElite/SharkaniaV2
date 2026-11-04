@@ -1,0 +1,1105 @@
+/* SHARKANIA ARENA / INTERIOR SYSTEM
+   Scoped to Arena preview, while the existing admin and editorial routes remain unchanged. */
+.arena-page-shell {
+  --arena-ink:#071019;
+  --arena-panel:#111c27;
+  --arena-cyan:#28d8eb;
+  --arena-muted:#9bafc0;
+  --arena-line:rgba(158,194,213,.16);
+  background:var(--arena-ink);
+}
+.arena-page-shell > nav {
+  background:rgba(6,12,20,.96) !important;
+  border-bottom:1px solid rgba(42,173,199,.24);
+}
+.arena-page-shell footer {background:#080d14;border-color:rgba(55,129,145,.18)}
+.arena-page-shell .arena-nav-badge {
+  padding:5px 7px 4px;
+  border-radius:4px;
+  color:#0c2531;
+  background:#51d9ec;
+  font:900 9px/1 monospace;
+  letter-spacing:.14em;
+}
+.arena-interior {
+  background:linear-gradient(180deg,#070f19 0%,#0b141e 700px,#0a111a 100%);
+  min-height:70vh;
+  padding:38px 0 92px;
+  position:relative;
+}
+.arena-interior > .arena-interior-container {
+  width:min(1220px,calc(100% - 48px));
+  margin:0 auto;
+}
+.arena-page-hero {
+  position:relative;
+  isolation:isolate;
+  min-height:310px;
+  border-radius:18px;
+  border:1px solid rgba(106,170,193,.25);
+  background:#0b1723;
+  overflow:hidden;
+  margin-bottom:34px;
+  box-shadow:0 22px 56px rgba(0,0,0,.19);
+}
+.arena-page-hero::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-2;
+  background-position:64% center;
+  background-size:cover;
+  background-repeat:no-repeat;
+  filter:saturate(1.05) brightness(.96);
+}
+.arena-page-hero--ranking::before {background-image:url("/images/arena/home-ranking.webp")}
+.arena-page-hero--calendar::before {background-image:url("/images/arena/home-tournaments.webp")}
+.arena-page-hero--clubs::before {background-image:url("/images/arena/home-final.webp")}
+.arena-page-hero--leagues::before {background-image:url("/images/arena/home-ranking.webp")}
+.arena-page-hero::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:linear-gradient(90deg,rgba(5,12,20,.95) 0%,rgba(6,13,22,.83) 45%,rgba(6,13,22,.52) 100%),
+    linear-gradient(180deg,rgba(6,13,22,.08),rgba(6,13,22,.68));
+}
+.arena-page-hero-inner {
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:36px;
+  min-height:264px;
+  padding:43px 48px 31px;
+}
+.arena-page-hero-content {max-width:810px;min-width:0}
+.arena-page-kicker {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px;
+  font:700 10px/1.4 monospace;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color:#9ac8d1;
+  margin-bottom:23px;
+}
+.arena-page-kicker svg {color:var(--arena-cyan)}
+.arena-page-kicker-line {width:22px;height:2px;background:var(--arena-cyan)}
+.arena-page-kicker-divider {color:#4d7081}
+.arena-page-title {
+  font-size:clamp(40px,5vw,68px);
+  line-height:1.02;
+  font-weight:900;
+  letter-spacing:-.065em;
+  color:#f7faff;
+  margin:0 0 16px;
+  text-shadow:0 3px 20px rgba(0,0,0,.4);
+  overflow-wrap:anywhere;
+}
+.arena-page-title span {color:var(--arena-cyan)}
+.arena-page-description {max-width:650px;margin:0;font-size:14px;line-height:1.75;color:#bacbda}
+.arena-page-action {margin-top:21px}
+.arena-page-action button, .arena-page-action a {
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  min-height:42px;
+  padding:9px 15px;
+  border:1px solid rgba(40,216,235,.34);
+  border-radius:7px;
+  background:rgba(40,216,235,.075);
+  font:750 12px/1.3 monospace;
+  color:#80ecfa;
+  transition:background .18s,border-color .18s;
+}
+.arena-page-action button:hover,.arena-page-action a:hover {
+  background:rgba(40,216,235,.15);
+  border-color:rgba(40,216,235,.6);
+}
+.arena-page-metric {
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:12px;
+  min-width:196px;
+  padding:23px 25px;
+  border-radius:12px;
+  border:1px solid rgba(134,191,212,.22);
+  background:rgba(8,21,31,.80);
+  backdrop-filter:blur(9px);
+}
+.arena-page-metric-label {
+  color:#95bbc9;
+  text-transform:uppercase;
+  font:700 10px monospace;
+  letter-spacing:.1em;
+}
+.arena-page-metric strong {
+  color:#f9fcff;
+  font:800 clamp(32px,4vw,46px)/1.1 monospace;
+  letter-spacing:-.06em;
+}
+.arena-page-metric-flag {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:#8bacba;
+  font:550 9px monospace;
+}
+.arena-page-metric-dot {width:6px;height:6px;border-radius:50%;background:#28d8eb}
+.arena-page-hero-bottom {
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  padding:13px 48px;
+  background:rgba(6,13,20,.63);
+  border-top:1px solid rgba(145,192,210,.18);
+  color:#6e9caa;
+  font:600 9px monospace;
+  letter-spacing:.11em;
+}
+.arena-interior :is(input,select) {
+  min-height:43px;
+  border-color:rgba(133,184,204,.25);
+  background:#111e29;
+  color:#f2f8ff;
+  border-radius:8px;
+}
+.arena-interior :is(input,select):focus-visible {outline:2px solid var(--arena-cyan);outline-offset:2px}
+.arena-interior .arena-data-surface {
+  border:1px solid var(--arena-line);
+  border-radius:13px;
+  background:rgba(13,24,34,.85);
+}
+.arena-interior .arena-support-links > a {
+  border-color:var(--arena-line);
+  border-radius:12px;
+  background:rgba(17,29,41,.8);
+}
+.arena-interior .arena-support-links > a:hover {border-color:rgba(40,216,235,.44)}
+.arena-interior .arena-result-card {
+  border-radius:13px;
+  border-color:rgba(147,188,206,.2);
+  background-color:#111d28;
+}
+.arena-interior .arena-result-card:hover {border-color:rgba(40,216,235,.56)}
+.arena-interior .arena-section-label {
+  font:700 10px monospace;
+  letter-spacing:.12em;
+  color:#3fe0f0;
+  text-transform:uppercase;
+}
+.arena-interior .arena-section-title {
+  color:#f7faff;
+  font-weight:850;
+  font-size:24px;
+  letter-spacing:-.035em;
+  line-height:1.2;
+}
+.arena-interior .arena-profile-hero {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  border-radius:17px;
+  border-color:rgba(105,165,183,.3);
+  background:linear-gradient(115deg,rgba(9,20,31,.95),rgba(9,20,31,.7)),url("/images/arena/home-ranking.webp") 64% center/cover no-repeat;
+  min-height:175px;
+  padding:30px 32px;
+}
+.arena-profile-hero::after {
+  content:"";
+  position:absolute;
+  inset:0 0 auto;
+  height:2px;
+  background:linear-gradient(90deg,#29ddf2,transparent 44%);
+  pointer-events:none;
+}
+.arena-profile-kicker {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 15px;
+  font:700 10px monospace;
+  letter-spacing:.12em;
+  color:#4ce3f6;
+}
+.arena-interior .arena-profile-hero h1 {
+  font-size:clamp(25px,4vw,37px);
+  line-height:1.1;
+  letter-spacing:-.045em;
+  color:#f9fbff;
+}
+.arena-interior .arena-profile-hero .arena-profile-elo {
+  font:900 clamp(35px,4vw,52px)/1.05 monospace;
+  color:#39dcef;
+  letter-spacing:-.06em;
+}
+.arena-interior .arena-profile-panel {
+  border-radius:14px;
+  border:1px solid var(--arena-line);
+  background:#101c27;
+  overflow:hidden;
+}
+.arena-interior .arena-ranking-board-wrap {
+  overflow-x:auto;
+  border-radius:12px;
+  border:1px solid rgba(134,183,201,.20);
+  background:#0f1b26;
+}
+.arena-interior .arena-ranking-board-wrap table {min-width:640px}
+.arena-interior :is(button,a):focus-visible {outline:2px solid #7ef0fd;outline-offset:3px}
+@media(max-width:800px){
+  .arena-page-hero-inner {padding:36px 30px 29px;align-items:start;flex-direction:column;gap:26px}
+  .arena-page-hero {min-height:0}
+  .arena-page-metric {min-width:0;max-width:100%;width:100%;flex-direction:row;align-items:center;flex-wrap:wrap;justify-content:space-between;padding:15px 19px}
+  .arena-page-metric strong {font-size:30px}
+  .arena-page-hero-bottom {padding:12px 30px}
+}
+@media(max-width:560px){
+  .arena-interior {padding:22px 0 62px}
+  .arena-interior > .arena-interior-container {width:calc(100% - 30px)}
+  .arena-page-hero {border-radius:13px;margin-bottom:24px}
+  .arena-page-hero-inner {padding:27px 22px 24px;gap:22px}
+  .arena-page-kicker {font-size:9px;gap:7px;margin-bottom:16px}
+  .arena-page-title {font-size:clamp(38px,11vw,52px)}
+  .arena-page-description {font-size:13px;line-height:1.7}
+  .arena-page-metric {gap:7px}
+  .arena-page-metric-flag {width:100%}
+  .arena-page-hero-bottom {padding:12px 22px;font-size:8px}
+  .arena-interior .arena-profile-hero {padding:22px 18px}
+  .arena-interior .arena-profile-hero .arena-profile-elo {font-size:36px}
+}
+@media(max-width:375px){
+  .arena-page-title {font-size:clamp(32px,10.5vw,38px)}
+  .arena-page-kicker-divider {display:none}
+  .arena-page-hero-bottom span:last-child {display:none}
+  .arena-page-metric {flex-direction:column;align-items:start}
+  .arena-page-metric-flag {font-size:8px}
+  .arena-page-shell .arena-nav-badge {display:none}
+}
+@media (prefers-reduced-motion:reduce) {
+  .arena-interior *, .arena-interior *::before, .arena-interior *::after {transition:none !important;animation:none !important}
+}
+@media (prefers-reduced-data:reduce){
+  .arena-page-hero::before{display:none}
+  .arena-interior .arena-profile-hero{background-image:none}
+}
+
+/* Detail views — same identity without changing tournament, league or club data. */
+.arena-interior .arena-detail-narrow {max-width:1040px}
+.arena-interior .arena-detail-banner {
+  position:relative;
+  isolation:isolate;
+  border:1px solid rgba(111,173,197,.28);
+  border-radius:16px;
+  background:linear-gradient(95deg,rgba(7,15,25,.95),rgba(7,15,25,.70) 55%,rgba(7,15,25,.50)),url("/images/arena/home-tournaments.webp") 60% 46%/cover no-repeat;
+  box-shadow:0 18px 55px rgba(0,0,0,.2);
+}
+.arena-interior .arena-detail-banner--league {
+  background:linear-gradient(95deg,rgba(7,15,25,.96),rgba(7,15,25,.74) 56%,rgba(7,15,25,.51)),url("/images/arena/home-ranking.webp") 60% 46%/cover no-repeat;
+}
+.arena-interior .arena-detail-banner--club {
+  padding:22px 24px 24px;
+  background:linear-gradient(95deg,rgba(7,15,25,.95),rgba(7,15,25,.72) 55%,rgba(7,15,25,.50)),url("/images/arena/home-final.webp") 60% 46%/cover no-repeat;
+}
+.arena-interior .arena-detail-banner--club > :last-child {
+  border-radius:13px;
+  overflow:hidden;
+}
+.arena-detail-banner::before {
+  content:"";position:absolute;left:0;right:45%;top:0;height:2px;
+  background:linear-gradient(90deg,#2bd8ef,transparent);
+  z-index:25;pointer-events:none;
+}
+.arena-interior .arena-detail-kicker {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#40d8f0;
+  font:750 10px/1.4 monospace;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin:0 0 17px;
+  position:relative;
+  z-index:24;
+}
+.arena-interior .arena-detail-title {
+  color:#f7f9ff;
+  font-size:clamp(26px,3.5vw,40px);
+  line-height:1.16;
+  letter-spacing:-.05em;
+  font-weight:850;
+  overflow-wrap:anywhere;
+}
+.arena-interior .arena-detail-section-head h2 {
+  color:#f7fbff;
+  font-weight:800;
+  letter-spacing:-.03em;
+  font-size:22px;
+}
+.arena-interior .arena-detail-banner--tournament {padding:29px 31px}
+@media(max-width:560px){
+  .arena-interior .arena-detail-banner--club {padding:15px}
+  .arena-interior .arena-detail-banner--tournament {padding:22px 18px}
+  .arena-interior .arena-detail-kicker {font-size:9px}
+  .arena-interior .arena-detail-title {font-size:29px}
+}
+
+
+/* Stage 3 — classification as a true competitive leaderboard. */
+.arena-interior .arena-ranking-board-wrap{
+  overflow:visible;
+  background:transparent;
+  border:0;
+  border-radius:0;
+}
+.arena-interior .arena-ranking-results {min-width:0}
+.arena-interior .arena-ranking-desktop-table {
+  overflow-x:auto;
+  background:#0c1722;
+  border:1px solid rgba(114,175,199,.24);
+  border-radius:14px;
+  scrollbar-color:#327c92 #101a24;
+}
+.arena-ranking-table {min-width:820px}
+.arena-ranking-table thead {
+  background:linear-gradient(90deg,#162a39,#101e2b);
+  color:#a7d9e4;
+}
+.arena-ranking-table th{
+  border-bottom:1px solid rgba(109,180,200,.28);
+  color:#93c5d1;
+  letter-spacing:.085em;
+  height:48px;
+}
+.arena-ranking-table tbody tr {
+  height:64px;
+  border-bottom:1px solid rgba(139,185,206,.10);
+}
+.arena-ranking-table tbody tr:nth-child(even){background-color:rgba(143,177,199,.03)}
+.arena-ranking-table tbody tr:hover{background-color:rgba(33,215,236,.08)}
+.arena-ranking-table td{
+  border-color:rgba(139,185,206,.1);
+  padding-top:12px;
+  padding-bottom:12px;
+  font-variant-numeric:tabular-nums;
+}
+.arena-ranking-table td:nth-child(3) span {font-size:17px}
+.arena-ranking-nickname {display:inline-block;min-width:0;overflow-wrap:anywhere}
+.arena-ranking-avatar {width:32px;height:32px}
+.arena-ranking-avatar--large {width:42px;height:42px}
+.arena-ranking-avatar-frame {
+  width:100%;height:100%;border:1px solid rgba(56,187,211,.36);
+  border-radius:11px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#103342,#14212d);
+  color:#63d9ec;font:800 14px/1 monospace;
+  position:relative;overflow:hidden;
+}
+.arena-ranking-avatar--large .arena-ranking-avatar-frame{border-radius:12px;font-size:18px}
+.arena-ranking-avatar-frame img {
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+}
+.arena-ranking-avatar-flag {
+  position:absolute;bottom:-4px;right:-5px;z-index:1;
+  filter:drop-shadow(0 1px 3px #030709);
+}
+.arena-ranking-mobile-note {
+  margin-bottom:11px;display:flex;justify-content:space-between;gap:8px;
+  color:#79b5c4;font:700 9px/1.4 monospace;letter-spacing:.05em;
+}
+.arena-ranking-cards {display:grid;gap:10px}
+.arena-ranking-mobile-card {
+  min-width:0;border:1px solid rgba(135,178,198,.25);
+  border-radius:13px;background:linear-gradient(140deg,#132331,#0c1823);
+  overflow:hidden;box-shadow:0 7px 22px rgba(0,0,0,.13);
+  content-visibility:auto;contain-intrinsic-size:auto 130px;
+}
+.arena-ranking-mobile-card:first-child {
+  border-color:rgba(236,180,78,.48);
+  background:linear-gradient(115deg,#253023,#0e1d27 58%);
+}
+.arena-ranking-mobile-card:nth-child(2) {border-color:rgba(190,204,217,.34)}
+.arena-ranking-mobile-card:nth-child(3) {border-color:rgba(205,141,87,.34)}
+.arena-ranking-card-top {
+  display:flex;align-items:center;gap:10px;
+  padding:13px 12px 12px;min-width:0;
+}
+.arena-ranking-card-rank {flex-shrink:0}
+.arena-ranking-card-identity {
+  flex:1;min-width:0;display:flex;align-items:center;gap:10px;
+  text-decoration:none;
+}
+.arena-ranking-card-identity:focus-visible {border-radius:6px;outline:2px solid #7ef0fd;outline-offset:3px}
+.arena-ranking-card-person {display:flex;flex-direction:column;gap:4px;min-width:0}
+.arena-ranking-card-person strong {
+  color:#f6fcff;font-weight:800;font-size:13px;line-height:1.2;
+  overflow-wrap:anywhere;
+}
+.arena-ranking-card-person small {
+  color:#88aabd;font-size:10px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.arena-ranking-card-elo {
+  flex-shrink:0;display:flex;align-items:flex-end;flex-direction:column;gap:3px;
+  border-left:1px solid rgba(119,174,188,.18);padding-left:11px;
+}
+.arena-ranking-card-elo span {font:700 9px monospace;letter-spacing:.15em;color:#78aabc}
+.arena-ranking-card-elo strong {font:900 19px/1 monospace;letter-spacing:-.04em;color:#42ddf0}
+.arena-ranking-card-metrics {
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  border-top:1px solid rgba(140,190,207,.13);
+  margin:0;
+}
+.arena-ranking-card-metrics div {
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  min-width:0;padding:10px 3px;
+  border-right:1px solid rgba(140,190,207,.12);
+}
+.arena-ranking-card-metrics div:last-child{border-right:0}
+.arena-ranking-card-metrics dt {
+  font:650 9px/1.2 monospace;letter-spacing:.015em;color:#7e9dad;
+}
+.arena-ranking-card-metrics dd {
+  margin:0;color:#eaf6ff;font:750 12px/1.2 monospace;
+  font-variant-numeric:tabular-nums;
+}
+.arena-interior .arena-ranking-filters {
+  border:1px solid rgba(120,175,195,.21);
+  border-radius:14px;padding:20px;
+  margin-bottom:22px;background:linear-gradient(145deg,#121f2c,#0c1721);
+}
+.arena-ranking-filters-head {
+  display:flex;justify-content:space-between;gap:14px;align-items:center;
+  margin-bottom:17px;
+}
+.arena-ranking-filters-head strong {
+  color:#f3faff;font-weight:850;font-size:15px;letter-spacing:-.025em;
+}
+.arena-ranking-filters-head p {margin-top:3px;color:#8bacbf;font-size:11px}
+.arena-ranking-reset {
+  background:rgba(36,212,234,.08);color:#64e4f5;
+  padding:9px 11px;border-radius:7px;border:1px solid rgba(36,212,234,.25);
+  font-size:11px;font-weight:750;white-space:nowrap;
+}
+.arena-ranking-reset:hover {border-color:rgba(36,212,234,.65);background:rgba(36,212,234,.15)}
+.arena-ranking-filter-grid {
+  display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:12px;
+}
+.arena-ranking-filter-field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.arena-ranking-filter-field label {
+  color:#9dc1ce;font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.arena-ranking-filter-field :is(input,select){width:100%;min-width:0}
+.arena-ranking-results-heading {
+  display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;
+  gap:10px;margin:0 0 15px;
+}
+.arena-ranking-results-heading strong {color:#f8fbff;font-weight:850;font-size:19px}
+.arena-ranking-results-heading span{color:#92b0bf;font:600 11px monospace}
+@media(max-width:820px){.arena-ranking-filter-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.arena-ranking-filter-field:first-child{grid-column:1/-1}}
+@media(max-width:560px){
+  .arena-interior .arena-ranking-filters{padding:15px 13px}
+  .arena-ranking-filters-head strong{font-size:14px}
+  .arena-ranking-filter-grid{gap:9px}
+  .arena-ranking-card-top{gap:7px}
+  .arena-ranking-card-identity{gap:8px}
+  .arena-ranking-card-elo strong{font-size:17px}
+  .arena-ranking-mobile-note{font-size:8px}
+}
+@media(max-width:340px){
+  .arena-ranking-card-top{padding-left:8px;padding-right:8px}
+  .arena-ranking-card-person strong{font-size:12px}
+  .arena-ranking-card-elo{padding-left:7px}
+  .arena-ranking-card-elo strong{font-size:15px}
+  .arena-ranking-avatar--large {width:36px;height:36px}
+}
+@media(prefers-reduced-data:reduce){
+  .arena-ranking-avatar-frame img{display:none}
+}
+
+/* Explicit breakpoint rules so component CSS never overrides Tailwind visibility. */
+@media(min-width:768px){
+  .arena-ranking-cards,.arena-ranking-mobile-note{display:none !important}
+  .arena-ranking-desktop-table{display:block !important}
+}
+@media(max-width:767px){
+  .arena-ranking-desktop-table{display:none !important}
+  .arena-ranking-cards{display:grid !important}
+}
+.arena-ranking-reset:disabled {opacity:.34;cursor:not-allowed}
+.arena-ranking-reset:disabled:hover{
+  border-color:rgba(36,212,234,.25);
+  background:rgba(36,212,234,.08);
+}
+/* Stage 3 — ELO history visualization. */
+.arena-interior .arena-elo-chart {
+  border:0;border-radius:13px;background:#0e1b27;
+  padding:21px 22px 23px;
+  min-width:0;
+}
+.arena-elo-chart-top {
+  display:flex;align-items:center;justify-content:space-between;
+  gap:13px;flex-wrap:wrap;margin-bottom:20px;
+}
+.arena-elo-chart h3 {
+  font-size:18px;letter-spacing:-.035em;
+  font-weight:850;color:#f8fcff;margin:0;
+}
+.arena-elo-chart-kicker {
+  color:#55dfea;
+  font:700 10px/1.4 monospace;letter-spacing:.12em;
+  margin-bottom:5px;
+}
+.arena-elo-chart-summary {
+  display:flex;align-items:center;gap:15px;
+  color:#8baabc;font:650 11px monospace;
+}
+.arena-elo-chart-summary strong {color:#dbeaf4;font-size:14px}
+.arena-elo-chart-summary .arena-elo-positive {color:#4ce7b1}
+.arena-elo-chart-summary .arena-elo-negative {color:#fc8794}
+.arena-elo-chart-canvas {min-height:266px;min-width:0}
+@media(max-width:560px){
+  .arena-interior .arena-elo-chart {padding:17px 9px 14px}
+  .arena-elo-chart-top {padding:0 8px}
+  .arena-elo-chart h3 {font-size:16px}
+}
+
+/* Stage 3 — tournament fixtures as legible, tappable competition cards. */
+.arena-interior .arena-tournament-card {
+  display:flex;flex-direction:column;gap:13px;
+  background:linear-gradient(112deg,rgba(17,34,46,.97),rgba(12,24,35,.95));
+  border:1px solid rgba(118,174,193,.22);
+  border-radius:13px;
+  padding:17px 20px 15px;
+  box-shadow:0 6px 24px rgba(0,0,0,.09);
+  transition:border-color .18s,background-color .18s,transform .18s;
+}
+.arena-interior .arena-tournament-card:hover {
+  border-color:rgba(48,214,237,.46);
+  background:linear-gradient(112deg,#172e3b,#101e2a);
+}
+.arena-interior .arena-tournament-card--live{
+  border-left:3px solid #4fdfb4;
+}
+.arena-tournament-card-header {gap:13px;flex-wrap:wrap}
+.arena-tournament-card-title-wrap {flex:1 1 220px}
+.arena-tournament-card-title {
+  font-size:15px;font-weight:800;line-height:1.35;
+  color:#f6fbff;
+  overflow-wrap:anywhere;
+  transition:color .18s;
+}
+.arena-tournament-card-title:hover {color:#51e4f1}
+.arena-tournament-card-title:focus-visible{outline:2px solid #6be9fa;outline-offset:4px;border-radius:3px}
+.arena-tournament-info-button {
+  width:36px;height:36px;border-radius:50%;border:1px solid rgba(150,192,207,.25);
+}
+.arena-tournament-demo {
+  border:1px solid rgba(242,190,90,.25);font-size:10px;
+  padding:4px 7px;border-radius:5px;
+}
+.arena-tournament-status {
+  padding:5px 8px;border-radius:6px;
+  font-size:11px;letter-spacing:.01em;
+  font-variant-numeric:tabular-nums;
+}
+.arena-tournament-card-details{
+  padding:11px 0;
+  gap:12px;
+  border-top:1px solid rgba(135,184,203,.13);
+  border-bottom:1px solid rgba(135,184,203,.13);
+}
+.arena-tournament-financials {flex-wrap:wrap;gap:7px 22px}
+.arena-tournament-financials small {font-size:9px;color:#8bacbf;font-weight:550}
+.arena-tournament-date{white-space:nowrap;gap:7px;font-variant-numeric:tabular-nums}
+.arena-tournament-card-links{
+  flex-wrap:wrap;align-items:start;gap:9px 18px;
+}
+.arena-tournament-participation{min-width:0;max-width:100%}
+.arena-tournament-participation-hint {
+  display:flex;align-items:center;gap:4px;
+  color:#95b6c8;font-size:11px;line-height:1.4;
+  transition:color .18s;
+}
+.arena-tournament-participation:hover .arena-tournament-participation-hint{color:#53dcef}
+.arena-tournament-league {
+  text-align:right;max-width:270px;
+  overflow-wrap:anywhere;
+}
+@media(max-width:640px){
+  .arena-interior .arena-tournament-card{padding:14px 13px 13px;gap:11px}
+  .arena-tournament-card-header{align-items:flex-start}
+  .arena-tournament-card-title-wrap{flex-basis:100%}
+  .arena-tournament-badges{margin-left:auto}
+  .arena-tournament-card-details{flex-direction:column;align-items:flex-start;gap:8px}
+  .arena-tournament-financials{gap:7px 16px}
+  .arena-tournament-card-links{flex-direction:column}
+  .arena-tournament-league{text-align:left}
+}
+
+/* Player analytics: clear hierarchy and intentionally explicit premium states. */
+.arena-interior .arena-stats-grid {gap:12px;padding:17px}
+.arena-interior .arena-stats-grid > div {
+  border:1px solid rgba(144,183,198,.22);
+  border-radius:10px;
+  padding:18px 17px;
+  background:linear-gradient(150deg,#172734,#111d28);
+  min-width:0;
+}
+.arena-interior .arena-stats-grid > div:first-child{
+  border-color:rgba(39,216,235,.42);
+  background:linear-gradient(145deg,#103542,#10232f);
+}
+.arena-interior .arena-stats-grid > div:nth-child(2){
+  border-color:rgba(220,175,88,.35);
+  background:linear-gradient(145deg,#262720,#111d28);
+}
+.arena-interior .arena-stats-grid > div > div:nth-child(2){
+  overflow-wrap:anywhere;
+  font-size:clamp(16px,2.1vw,24px);
+  line-height:1.18;
+  min-height:25px;
+}
+.arena-private-stat {
+  display:inline-flex;align-items:center;gap:7px;
+  font:700 11px/1.3 monospace;letter-spacing:.01em;
+  border:1px solid rgba(147,187,201,.21);
+  padding:7px 9px;border-radius:7px;
+  background:rgba(11,20,30,.57);color:#9cb8c9;
+}
+.arena-interior .arena-stats-upgrade {
+  flex-wrap:wrap;margin:0 17px 16px;border-radius:10px;
+  border-color:rgba(36,209,234,.28);background:rgba(24,60,75,.31);
+}
+.arena-interior .arena-stats-upgrade > div:first-child{min-width:0}
+.arena-interior .arena-stats-upgrade > div:first-child > div:last-child{min-width:0}
+.arena-interior .arena-history-results {
+  border-radius:11px;
+  background:#0f1b26;
+  border:1px solid rgba(127,183,202,.21);
+}
+.arena-history-scroll-hint {
+  padding:11px 12px;
+  color:#9fbdc9;
+  background:#112837;
+  font:650 10px/1.45 monospace;
+  margin:0;
+}
+.arena-history-scroll-region {scrollbar-color:#327c92 #101a24}
+.arena-history-table {min-width:850px}
+.arena-history-table thead {background:linear-gradient(95deg,#132938,#11202d)}
+.arena-history-table th {
+  color:#9bc9d5 !important;
+  background:transparent !important;
+  border-bottom:1px solid rgba(130,188,201,.24) !important;
+}
+.arena-history-table tbody tr:nth-child(even) {background:rgba(91,160,175,.035)}
+.arena-history-table tbody tr:hover {background:rgba(38,210,236,.06)}
+.arena-history-table td {border-color:rgba(139,186,206,.11) !important}
+.arena-history-paywall {
+  padding:17px 19px;
+  display:flex;gap:13px;align-items:center;flex-wrap:wrap;
+  border-top:1px solid rgba(144,185,199,.18);
+  background:linear-gradient(100deg,#0c2731,#13202a);
+}
+.arena-history-paywall-icon {
+  display:grid;place-items:center;width:38px;height:38px;
+  border-radius:9px;color:#6ce1f2;background:#173e4b;
+}
+.arena-history-paywall > div:nth-child(2){flex:1;min-width:170px}
+.arena-history-paywall strong {color:#f2fcff;font-size:12px}
+.arena-history-paywall p {margin-top:4px;color:#99b5c4;font-size:11px;line-height:1.5}
+.arena-history-paywall-link{
+  flex-shrink:0;padding:10px 13px;border-radius:7px;
+  color:#03171c;background:#29dbe9;font-size:11px;font-weight:850;
+}
+.arena-history-paywall-link:hover {background:#78f2fa}
+@media(max-width:560px){
+  .arena-interior .arena-stats-grid {gap:9px;padding:10px}
+  .arena-interior .arena-stats-grid > div {padding:14px 11px}
+  .arena-interior .arena-stats-upgrade {margin:0 10px 10px}
+  .arena-history-paywall {padding:15px 12px}
+}
+
+
+/* ARENA 04: official league standings — compact mobile cards, full desktop audit. */
+.arena-interior .arena-league-board {
+  border:1px solid rgba(143,183,201,.22);
+  background:#0b1823;
+  border-radius:16px;
+  overflow:hidden;
+}
+.arena-league-board-heading {
+  display:flex;gap:16px;justify-content:space-between;align-items:center;
+  padding:21px 24px;
+  background:linear-gradient(96deg,#172d3b,#11202e);
+  border-bottom:1px solid rgba(143,195,208,.19);
+}
+.arena-league-board-heading p {
+  margin:0 0 5px;font:700 10px/1.4 monospace;
+  letter-spacing:.12em;color:#4cdaef;
+}
+.arena-league-board-heading h2 {margin:0;color:#f3faff;font-size:20px;font-weight:850;letter-spacing:-.035em}
+.arena-league-board-heading > span {color:#a4c6d2;font:650 11px monospace;white-space:nowrap}
+.arena-league-table-region {overflow-x:auto;scrollbar-color:#327c92 #111b27}
+.arena-league-data-table {min-width:760px;width:100%;border-collapse:collapse;font-size:13px}
+.arena-league-data-table thead {background:#142431}
+.arena-league-data-table th {
+  color:#9cc5d1;text-transform:uppercase;letter-spacing:.055em;
+  font:700 10px/1.3 monospace;
+  padding:16px 13px;text-align:left;white-space:nowrap;
+  border-bottom:1px solid rgba(148,193,207,.22);
+}
+.arena-league-data-table th.text-right {text-align:right}
+.arena-league-th {display:inline-flex;gap:6px;align-items:center;justify-content:flex-end}
+.arena-league-data-table tbody tr {border-bottom:1px solid rgba(144,182,199,.10)}
+.arena-league-data-table tbody tr:nth-child(even){background:rgba(119,157,176,.04)}
+.arena-league-data-table tbody tr:hover{background:rgba(36,200,224,.08)}
+.arena-league-data-table td {padding:12px 13px;font-variant-numeric:tabular-nums;color:#c7d7e2;vertical-align:middle}
+.arena-league-player-link {display:inline-flex;gap:8px;align-items:center;min-width:0;color:#edf8ff}
+.arena-league-player-link strong {font-weight:800;overflow-wrap:anywhere}
+.arena-league-player-link:hover{color:#42dbe9}
+.arena-league-club-tag {
+  display:inline-block;padding:5px 8px;border:1px solid rgba(145,180,196,.19);
+  color:#bdcddc;background:rgba(108,149,174,.10);
+  font:600 10px/1.4 monospace;border-radius:6px;overflow-wrap:anywhere;
+}
+.arena-league-points-value {font:850 16px/1.2 monospace;color:#f6c66c}
+.arena-league-points-button {
+  display:inline-flex;align-items:center;gap:7px;justify-content:flex-end;
+  padding:8px 9px;min-height:38px;border-radius:8px;
+  border:1px solid rgba(238,187,103,.26);
+  background:rgba(255,198,103,.075);color:#f8cf80;
+  font:850 15px/1.2 monospace;white-space:nowrap;
+}
+.arena-league-points-button:hover{background:rgba(249,194,89,.14);border-color:rgba(255,204,109,.65)}
+.arena-league-elo {font:750 14px monospace!important;color:#42d9ed!important}
+.arena-league-cards {display:none;gap:11px;padding:13px}
+.arena-league-mobile-card {
+  background:linear-gradient(145deg,#132633,#101b28);
+  border:1px solid rgba(135,183,205,.25);
+  border-radius:11px;overflow:hidden;
+  content-visibility:auto;contain-intrinsic-size:auto 128px;
+}
+.arena-league-mobile-card:first-child{border-color:rgba(243,189,98,.45);background:linear-gradient(115deg,#2a2c25,#11202d)}
+.arena-league-mobile-card:nth-child(2){border-color:rgba(192,207,216,.34)}
+.arena-league-mobile-card:nth-child(3){border-color:rgba(221,154,89,.29)}
+.arena-league-card-heading {display:flex;gap:9px;align-items:center;padding:12px;min-width:0}
+.arena-league-card-name {flex:1;min-width:0;display:inline-flex;gap:8px;align-items:center;color:#f3fbff}
+.arena-league-card-name strong {font-size:13px;line-height:1.25;overflow-wrap:anywhere}
+.arena-league-mobile-points {
+  display:flex;align-items:flex-end;flex-direction:column;gap:4px;flex-shrink:0;
+  padding-left:9px;border-left:1px solid rgba(133,178,190,.16)
+}
+.arena-league-mobile-points small {font:700 9px monospace;letter-spacing:.07em;color:#b6ac8b}
+.arena-league-card-detail {
+  background:rgba(7,14,20,.32);
+  border-top:1px solid rgba(153,187,204,.13);
+  padding:12px;
+}
+.arena-league-card-detail > .arena-league-club-tag {margin-bottom:10px}
+.arena-league-card-detail dl {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.arena-league-card-detail dl>div {display:flex;flex-direction:column;gap:5px;min-width:0}
+.arena-league-card-detail dt {font:650 10px/1.35 monospace;color:#91b2c2}
+.arena-league-card-detail dd {margin:0;color:#e9f5fc;font:800 13px/1.3 monospace}
+.arena-league-detail-button {color:#59e6f3;font-size:11px;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+@media(min-width:768px){
+  .arena-league-cards {display:none!important}
+  .arena-league-table-region {display:block!important}
+}
+@media(max-width:767px){
+  .arena-league-cards {display:grid!important}
+  .arena-league-table-region {display:none!important}
+}
+@media(max-width:560px){
+  .arena-league-board-heading {padding:18px 13px}
+  .arena-league-board-heading h2 {font-size:17px}
+  .arena-league-board-heading>span{font-size:10px}
+  .arena-league-card-heading {gap:7px;padding:11px 9px}
+  .arena-league-mobile-points {padding-left:6px}
+  .arena-league-points-button {padding:8px 6px;font-size:13px}
+}
+@media(max-width:350px){
+  .arena-league-card-name strong {font-size:12px}
+  .arena-league-points-button {font-size:12px;gap:3px}
+}
+/* Native dialog is portalled to body and sits in the browser top layer. */
+.arena-league-dialog {
+  position:fixed;
+  margin:auto;
+  width:min(calc(100vw - 24px),650px);
+  max-height:min(88vh,800px);
+  overflow:hidden;
+  padding:0;border:1px solid rgba(100,183,201,.32);
+  border-radius:16px;
+  background:#0c1926;color:#eaf8ff;
+  box-shadow:0 32px 95px rgba(0,0,0,.72);
+}
+.arena-league-dialog::backdrop {background:rgba(2,8,14,.82);backdrop-filter:blur(6px)}
+.arena-league-dialog[open]{display:flex;flex-direction:column}
+.arena-league-dialog-heading {
+  flex-shrink:0;
+  padding:21px 22px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  background:linear-gradient(120deg,#153343,#111f2c);
+  border-bottom:1px solid rgba(132,190,204,.25);
+}
+.arena-league-dialog-heading p {margin:0 0 7px;color:#48e0ed;font:750 10px/1.4 monospace;letter-spacing:.12em}
+.arena-league-dialog-heading h2 {margin:0;font-size:clamp(18px,4vw,25px);line-height:1.23;font-weight:850;overflow-wrap:anywhere}
+.arena-league-dialog-heading button {
+  flex-shrink:0;display:grid;place-items:center;width:42px;height:42px;border-radius:9px;
+  background:rgba(17,29,41,.9);border:1px solid rgba(131,191,204,.26);color:#e9f8ff;
+}
+.arena-league-dialog-heading button:hover {border-color:#4ee1f1}
+.arena-league-dialog-body {padding:15px 20px;overflow-y:auto;min-height:0;overscroll-behavior:contain}
+.arena-league-dialog-footer {
+  padding:13px 20px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  border-top:1px solid rgba(148,183,197,.2);
+  flex-shrink:0;
+}
+.arena-league-dialog-footer p {font-size:11px;line-height:1.4;color:#9cbcca}
+.arena-league-dialog-footer strong {color:#f2c86e}
+.arena-league-dialog-footer>button {
+  background:#28d8e9;color:#09212b;padding:11px 16px;min-height:41px;
+  border-radius:7px;font-size:12px;font-weight:850;margin-left:auto;
+}
+.arena-league-dialog-footer>button:hover {background:#80eff6}
+.arena-league-breakdown-list {display:flex;flex-direction:column;gap:0}
+.arena-league-breakdown-entry {
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:14px 7px;border-bottom:1px solid rgba(136,183,202,.15)
+}
+.arena-league-breakdown-entry:last-child{border-bottom:0}
+.arena-league-breakdown-entry>div{min-width:0;display:flex;flex-direction:column;gap:6px}
+.arena-league-breakdown-entry strong {font-size:13px;font-weight:750;line-height:1.4;overflow-wrap:anywhere}
+.arena-league-breakdown-entry span {color:#98b8c7;font:600 11px/1.5 monospace}
+.arena-league-breakdown-entry b {flex-shrink:0;color:#f4cd7a;font:800 16px monospace}
+.arena-league-dialog-status {
+  padding:28px 12px;display:flex;gap:10px;align-items:center;justify-content:center;
+  color:#bad4df;font-size:13px;line-height:1.5;text-align:center;
+}
+.arena-league-dialog button:focus-visible,.arena-league-dialog a:focus-visible {
+  outline:2px solid #70eaf7;outline-offset:3px;
+}
+@media(max-width:560px){
+  .arena-league-dialog-heading {padding:17px 15px}
+  .arena-league-dialog-body {padding:10px 13px}
+  .arena-league-dialog-footer {padding:11px 13px}
+  .arena-league-breakdown-entry {gap:8px}
+  .arena-league-breakdown-entry b {font-size:14px}
+}
+
+
+/* Performance + premium UX: incremental authorized history pagination. */
+.arena-history-load-more {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:16px 18px;
+  border-top:1px solid rgba(133,183,202,.2);
+  background:linear-gradient(100deg,rgba(22,53,67,.68),rgba(12,25,38,.97));
+}
+.arena-history-load-more > span {
+  color:#99bbca;
+  font:650 11px/1.4 monospace;
+  font-variant-numeric:tabular-nums;
+}
+.arena-history-load-more button {
+  min-height:41px;
+  border:1px solid rgba(52,219,236,.65);
+  background:rgba(37,205,230,.12);
+  color:#67e9f4;
+  border-radius:8px;
+  font:800 12px/1.4 system-ui,sans-serif;
+  padding:10px 16px;
+  transition:background .18s,border-color .18s;
+}
+.arena-history-load-more button:hover:not(:disabled) {
+  background:rgba(38,205,230,.23);
+  border-color:#64eaf5;
+}
+.arena-history-load-more button:focus-visible {
+  outline:2px solid #74ebf6;
+  outline-offset:3px;
+}
+.arena-history-load-more button:disabled {
+  opacity:.48;
+  cursor:wait;
+}
+@media(max-width:520px){
+  .arena-history-load-more{flex-direction:column;align-items:stretch}
+  .arena-history-load-more>span{text-align:center}
+  .arena-history-load-more button{width:100%}
+}
+
+/* ARENA / EDITORIAL & TOOLS: continuation of the shared design system. */
+.arena-page-hero--blog::before {background-image:url("/images/arena/home-editorial.webp")}
+.arena-page-hero--news::before {background-image:url("/images/arena/home-editorial.webp")}
+.arena-page-hero--tools::before {background-image:url("/images/arena/home-final.webp")}
+.arena-editorial .arena-interior-container {width:min(1220px,calc(100% - 48px));margin-inline:auto}
+.arena-editorial .arena-utility-strip {
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+  margin:-10px 0 26px;padding:15px 20px;border:1px solid rgba(105,176,194,.22);
+  background:linear-gradient(110deg,rgba(16,36,48,.92),rgba(10,21,32,.92));border-radius:12px;
+}
+.arena-editorial .arena-utility-strip p {margin:0;color:#b6cad6;font-size:12px;line-height:1.6}
+.arena-editorial .arena-utility-strip strong {color:#6be7f3}
+.arena-editorial .arena-utility-strip a {color:#78e8f4;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.arena-editorial .arena-wallet-balance {display:inline-flex;align-items:center;gap:8px;font:800 15px/1.2 monospace;color:#e9faff;white-space:nowrap}
+.arena-editorial .arena-wallet-balance img {width:19px;height:19px;object-fit:contain}
+.arena-editorial .arena-section-intro {
+  display:flex;align-items:end;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  margin:8px 0 21px
+}
+.arena-editorial .arena-section-intro h2 {margin:0;color:#f0faff;font-size:clamp(19px,3vw,27px);line-height:1.15;font-weight:850;letter-spacing:-.035em}
+.arena-editorial .arena-section-intro p {margin:5px 0 0;color:#99b7c7;font-size:12px;line-height:1.6}
+.arena-editorial .arena-section-intro span {font:700 10px/1.4 monospace;letter-spacing:.1em;color:#66dceb}
+.arena-editorial .arena-content-card {
+  border:1px solid rgba(130,181,205,.2);border-radius:14px;background:#111d29;
+  box-shadow:0 18px 32px rgba(0,0,0,.12);overflow:hidden;
+  transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease
+}
+.arena-editorial a.arena-content-card:hover {
+  border-color:rgba(72,220,239,.59);transform:translateY(-2px);
+  box-shadow:0 22px 38px rgba(0,0,0,.2)
+}
+.arena-editorial a.arena-content-card:focus-visible,
+.arena-editorial button:focus-visible,
+.arena-editorial a:focus-visible {outline:2px solid #7deef9;outline-offset:3px}
+.arena-editorial .arena-content-card h2,
+.arena-editorial .arena-content-card h3 {overflow-wrap:anywhere}
+.arena-editorial .arena-content-card img {transition:transform .3s ease}
+.arena-editorial .arena-editorial-controls {
+  display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap
+}
+.arena-editorial .arena-editorial-controls button[aria-pressed="true"] {
+  color:#081b26;background:#5fe2ef;border-color:#5fe2ef
+}
+.arena-editorial .arena-news-featured {min-height:315px}
+.arena-editorial .arena-tools-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-bottom:45px}
+.arena-editorial .arena-tools-grid > a {min-width:0}
+.arena-editorial .arena-tools-grid > a > .arena-content-card {min-height:315px}
+.arena-editorial .arena-tools-grid > a > .arena-content-card:hover {transform:translateY(-2px)}
+.arena-editorial .arena-tools-grid .arena-tool-login {
+  display:inline-flex;align-items:center;gap:7px;padding:9px 12px;border-radius:8px;
+  background:rgba(33,204,228,.12);border:1px solid rgba(82,212,231,.32);color:#89edf7;
+  font-size:11px;font-weight:800
+}
+@media(max-width:760px){
+  .arena-editorial .arena-tools-grid {grid-template-columns:minmax(0,1fr);gap:15px}
+  .arena-editorial .arena-utility-strip {margin:-15px 0 23px;padding:14px}
+  .arena-editorial .arena-news-featured {min-height:0}
+  .arena-editorial .arena-content-card:hover {transform:none}
+}
+@media(max-width:440px){
+  .arena-editorial .arena-interior-container {width:calc(100% - 30px)}
+  .arena-editorial .arena-utility-strip {align-items:flex-start}
+}
+
+/* ARENA / LEARNING: shared glossary, academy and educational article styling. */
+.arena-page-hero--glossary::before {background-image:url("/images/arena/home-editorial.webp")}
+.arena-page-hero--academy::before {background-image:url("/images/arena/home-final.webp")}
+.arena-page-hero--elo::before {background-image:url("/images/arena/home-ranking.webp")}
+.arena-editorial .arena-learning-panel {
+  border:1px solid rgba(128,180,201,.22);border-radius:13px;
+  background:linear-gradient(140deg,rgba(19,35,48,.94),rgba(10,19,29,.96));
+  box-shadow:0 18px 34px rgba(0,0,0,.13)
+}
+.arena-editorial .arena-glossary-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.arena-editorial .arena-glossary-grid > a {min-width:0}
+.arena-editorial .arena-glossary-article {max-width:850px;margin:0 auto}
+.arena-editorial .arena-glossary-article .arena-page-hero {min-height:0}
+.arena-editorial .arena-glossary-article .arena-page-hero-inner {min-height:205px}
+.arena-editorial .arena-glossary-article .arena-page-title {font-size:clamp(30px,5vw,51px);letter-spacing:-.045em}
+.arena-editorial .arena-glossary-article .arena-page-hero-bottom {padding:12px 25px}
+.arena-editorial .arena-glossary-article .arena-page-hero-inner {padding:26px}
+.arena-editorial .arena-learning-body {max-width:850px;margin-inline:auto}
+.arena-editorial .arena-learning-body > :is(div,section) {scroll-margin-top:100px}
+@media(max-width:760px){
+  .arena-editorial .arena-glossary-grid {grid-template-columns:minmax(0,1fr)}
+}
+
+/* ARENA / COMPARISON: clearer guest entry and reliable mobile metrics. */
+.arena-page-hero--compare::before {background-image:url("/images/arena/home-ranking.webp")}
+.arena-compare .arena-compare-guest {max-width:920px;margin-inline:auto}
+.arena-compare .arena-compare-guest-intro {display:flex;align-items:flex-start;gap:22px}
+.arena-compare .arena-compare-guest-symbol {
+  width:60px;height:60px;flex-shrink:0;display:grid;place-items:center;
+  color:#64ddec;background:rgba(52,204,230,.10);border:1px solid rgba(67,207,235,.3);border-radius:14px
+}
+.arena-compare .arena-compare-primary,.arena-compare .arena-compare-secondary {
+  min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  padding:12px 18px;border:1px solid rgba(73,220,239,.45);border-radius:9px;
+  font:800 12px/1.4 system-ui,sans-serif;text-decoration:none;transition:background .2s
+}
+.arena-compare .arena-compare-primary{background:#49d8e9;color:#071b27}
+.arena-compare .arena-compare-primary:hover{background:#8aebf5}
+.arena-compare .arena-compare-secondary{background:rgba(39,182,213,.07);color:#b6eff7}
+.arena-compare .arena-compare-secondary:hover{background:rgba(39,182,213,.18)}
+.arena-compare .arena-compare-row{grid-template-columns:minmax(0,1fr) minmax(84px,120px) minmax(0,1fr)}
+.arena-compare .arena-compare-row > *{min-width:0;overflow-wrap:anywhere}
+@media(max-width:520px){
+  .arena-compare .arena-compare-guest-intro {flex-direction:column;gap:14px}
+  .arena-compare .arena-compare-primary,.arena-compare .arena-compare-secondary {width:100%}
+  .arena-compare .arena-compare-row {gap:7px}
+  .arena-compare .arena-compare-row > * {font-size:11px}
+}
+
+/* ARENA / DEEP READING: education modules, lessons and editorial articles. */
+.arena-learning-page .arena-learning-body{max-width:840px}
+.arena-learning-page .arena-module-header{isolation:isolate}
+.arena-learning-page .arena-module-header::before{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(100deg,rgba(7,18,29,.98) 0%,rgba(8,20,32,.92) 64%,rgba(8,23,33,.78) 100%),url("/images/arena/home-editorial.webp") center/cover
+}
+.arena-learning-page .arena-module-header h1{line-height:1.12;overflow-wrap:anywhere}
+.arena-learning-page .arena-module-meta{flex-wrap:wrap;gap:10px 16px}
+.arena-learning-page .arena-lesson-header{
+  position:relative;background:linear-gradient(130deg,#142b3b,#0d1c29);
+  border:1px solid rgba(88,205,226,.26)
+}
+.arena-learning-page .arena-lesson-header h1{font-size:clamp(25px,4.2vw,36px);line-height:1.15;overflow-wrap:anywhere}
+.arena-learning-page .arena-lesson-eyebrow{
+  color:#71dceb;letter-spacing:.13em;text-transform:uppercase;
+  font:800 10px/1.55 monospace;margin:0 0 19px
+}
+.arena-learning-page .arena-lesson-content{
+  font-size:15px;line-height:1.75;color:#c5d8e2;overflow-wrap:anywhere
+}
+.arena-learning-page [role="link"]:focus-visible {outline:2px solid #6febf7;outline-offset:3px}
+.arena-article-breadcrumb{border-color:rgba(91,177,202,.17)!important}
+.arena-article-cover>div{box-shadow:0 20px 50px rgba(0,0,0,.18)}
+.arena-article-page{color:#c1d4df}
+.arena-article-page .arena-article-content{max-width:760px}
+.arena-article-page .arena-article-context{
+  color:#59dcec;text-transform:uppercase;letter-spacing:.12em;
+  font:800 10px/1.5 monospace;margin:0 0 13px
+}
+.arena-article-page .arena-article-title{
+  font-size:clamp(29px,4.4vw,46px);line-height:1.15;
+  font-weight:860;letter-spacing:-.055em;overflow-wrap:anywhere
+}
+.arena-article-page .arena-article-excerpt{
+  font-size:clamp(15px,2vw,18px);color:#c1d4df;line-height:1.65
+}
+.arena-article-page h2{scroll-margin-top:115px}
+.arena-article-page :is(a,button):focus-visible{outline:2px solid #69e6f3;outline-offset:3px}
+@media(max-width:520px){
+  .arena-learning-page .arena-learning-body{width:100%}
+  .arena-learning-page .arena-module-header{padding:20px}
+  .arena-article-page .arena-article-content{padding-top:30px}
+}
+
+/* A 13-letter title must fit at 320–390px; do not split "HERRAMIENTAS" mid-word. */
+@media(max-width:560px){
+  .arena-page-hero--tools .arena-page-title{
+    font-size:clamp(27px,7.5vw,35px);
+    letter-spacing:-.06em;
+    overflow-wrap:normal;
+    word-break:normal;
+  }
+}

@@ -1,4 +1,5 @@
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaRouteTrail } from "../components/arena/arena-route-trail";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import { Link } from "react-router-dom";
@@ -6,7 +7,7 @@ import { Trophy, Swords, Ticket, Clock, Coins, ChevronRight, AlertCircle } from 
 
 export function PromoFreerollPage() {
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead
         title="Freeroll Diario: Clasifica a grandes torneos | Sharkania"
         description="Información histórica sobre la estructura del freeroll de Latin Allin Poker. Confirma horarios, entradas y condiciones actuales en el club."
@@ -14,7 +15,8 @@ export function PromoFreerollPage() {
       />
       
       {/* ══ HERO ══ */}
-      <div className="relative pt-24 pb-20 overflow-hidden">
+      <div className="arena-public-bridge arena-partner-route arena-freeroll-route relative overflow-hidden">
+        <ArenaRouteTrail section="Promociones de póker" current="Freeroll · Archivo histórico" />
         <div className="absolute inset-0 z-0">
           <img src="/bg/freeroll-diario.webp" alt="Freeroll Fondo" className="w-full h-full object-cover opacity-20" />
           <div className="absolute inset-0 bg-gradient-to-b from-sk-bg-0/90 via-sk-bg-0/95 to-sk-bg-1" />

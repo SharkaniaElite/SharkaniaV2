@@ -38,7 +38,18 @@ const MORE_LINKS = [
   { label: "Tienda", href: "/shop" },
 ];
 
-const ALL_LINKS = [...MAIN_LINKS, ...MORE_LINKS];
+const ARENA_MAIN_LINKS = [
+  { label: "Ranking ELO", href: "/ranking" },
+  { label: "Torneos", href: "/calendar" },
+  { label: "Clubes", href: "/clubs" },
+  { label: "Ligas", href: "/leagues" },
+  { label: "Noticias", href: "/noticias" },
+  { label: "Promociones", href: "/promociones" },
+];
+
+const ARENA_MORE_LINKS = [{ label: "Estrategia", href: "/blog" }, ...MORE_LINKS];
+const ARENA_MOBILE_LINKS = [...ARENA_MAIN_LINKS, ...ARENA_MORE_LINKS];
+const STANDARD_MOBILE_LINKS = [...MAIN_LINKS, ...MORE_LINKS];
 
 const MENU_BG: React.CSSProperties = {
   background: "rgb(12, 13, 16)",
@@ -56,7 +67,7 @@ const MENU_BG: React.CSSProperties = {
   overflowY: "auto",
 };
 
-export function Navbar() {
+export function Navbar({variant = "standard"}: {variant?: "standard" | "arena"}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -110,19 +121,18 @@ export function Navbar() {
         )}
       >
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 no-underline shrink-0 min-w-0">
+        <Link to="/" className="flex items-center gap-2 no-underline shrink-0 min-w-0" aria-label={variant === "arena" ? "Sharkania Arena - inicio" : "Sharkania - inicio"}>
           <svg width="26" height="26" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M7,36 L18,4 L38,24 L33,36 Z" fill="#22d3ee"/>
           </svg>
-          <span className="text-sk-md font-extrabold text-sk-text-1 tracking-tight">
-            Sharkania
-          </span>
+          <span className="text-sk-md font-extrabold text-sk-text-1 tracking-tight">Sharkania</span>
+          {variant === "arena" && <span className="arena-nav-badge">ARENA</span>}
         </Link>
 
         {/* Desktop links */}
         <div className="hidden lg:flex items-center gap-0.5">
           {/* 1. Enlaces Principales */}
-          {MAIN_LINKS.map((link) => (
+          {(variant === "arena" ? ARENA_MAIN_LINKS : MAIN_LINKS).map((link) => (
             <Link
               key={link.href}
               to={link.href}
@@ -144,7 +154,7 @@ export function Navbar() {
             </button>
             
             <div className="absolute top-full left-0 pt-3 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[200]">
-              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg shadow-sk-xl overflow-hidden py-2">
+              <div className={cn("bg-sk-bg-2 border border-sk-border-2 rounded-lg shadow-sk-xl overflow-hidden py-2", variant === "arena" && "arena-nav-dropdown")}>
                 
                 {/* Salas */}
                 <div className="px-4 py-1 text-[10px] uppercase font-bold text-sk-text-4 tracking-wider mb-1">Salas Recomendadas</div>
@@ -162,7 +172,7 @@ export function Navbar() {
                 <div className="border-t border-sk-border-2 my-2" />
 
                 {/* Otros */}
-                {MORE_LINKS.map((link) => (
+                {(variant === "arena" ? ARENA_MORE_LINKS : MORE_LINKS).map((link) => (
                   <Link
                     key={link.href}
                     to={link.href}
@@ -207,19 +217,19 @@ export function Navbar() {
             <Mail size={18} />
           </a>
 
-          {/* 🔥 Botón de Cobertura EN VIVO (Visible en Desktop y Mobile) */}
+          {/* Enlace a transmisiones: Arena no afirma que haya un directo activo sin verificarlo. */}
           <Link 
             to="/live" 
-            aria-label="Ver transmisiones en vivo"
-            className="flex items-center justify-center min-w-11 min-h-11 gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all group"
-            title="Ir al Stream en Vivo"
+            aria-label={variant === "arena" ? "Ver transmisiones de póker" : "Ver transmisiones en vivo"}
+            className={cn("flex items-center justify-center min-w-11 min-h-11 gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all group", variant === "arena" ? "bg-cyan-400/10 border border-cyan-400/25 text-cyan-300 hover:bg-cyan-400/20" : "bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]")}
+            title={variant === "arena" ? "Ir a transmisiones" : "Ir al Stream en Vivo"}
           >
             <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
+              {variant !== "arena" && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />}
+              <span className={cn("relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5", variant === "arena" ? "bg-cyan-300" : "bg-red-500")} />
             </span>
             <span className="max-[375px]:hidden text-[10px] sm:text-[11px] font-black tracking-widest uppercase drop-shadow-sm group-hover:text-red-400 mt-px">
-              En Vivo
+              {variant === "arena" ? <><span className="sm:hidden">TV</span><span className="hidden sm:inline">Transmisiones</span></> : "En Vivo"}
             </span>
           </Link>
 
@@ -309,6 +319,8 @@ export function Navbar() {
             onClick={() => setMobileOpen(!mobileOpen)}
             className="lg:hidden w-11 h-11 flex items-center justify-center text-sk-text-1 bg-transparent border-none cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-sk-accent"
             aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={mobileOpen}
+            aria-controls="sharkania-mobile-nav"
           >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -324,7 +336,7 @@ export function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div style={MENU_BG} className="lg:hidden">
+        <div id="sharkania-mobile-nav" style={variant === "arena" ? { ...MENU_BG, background: "rgb(6, 17, 27)", borderTop: "1px solid rgba(76,206,227,0.26)" } : MENU_BG} className={cn("lg:hidden", variant === "arena" && "arena-mobile-menu")}>
           {/* SECCIÓN DE ECONOMÍA (Mobile) */}
           {isAuthenticated && profile && (
             <Link
@@ -349,7 +361,7 @@ export function Navbar() {
           )}
 
           {/* Nav links */}
-          {ALL_LINKS.map((link) => (
+          {(variant === "arena" ? ARENA_MOBILE_LINKS : STANDARD_MOBILE_LINKS).map((link) => (
             <Link
               key={link.href}
               to={link.href}
@@ -361,6 +373,18 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+
+          {variant === "arena" && (
+            <div className="arena-mobile-rooms" aria-label="Salas de póker y tutoriales">
+              <p className="arena-mobile-rooms-title">SALAS DE PÓKER</p>
+              {ROOMS.map((room) => (
+                <div key={room.name} className="arena-mobile-room-row">
+                  <Link to={room.href}>{room.name}</Link>
+                  <Link to={room.tutorial.href}>{room.tutorial.label}</Link>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Enlace de Contacto en Mobile */}
           <a

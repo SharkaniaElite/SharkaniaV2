@@ -1,11 +1,11 @@
--- Mirror of the 2026-10-31 production migration. Run only in new environments.
--- Authorizes authenticated super_admin accounts and never decreases article views.
+-- Batch analytics synchronization to stay below Cloudflare Pages Functions
+-- per-invocation subrequest limits. Only an authenticated super-admin may invoke it.
 CREATE OR REPLACE FUNCTION public.sync_blog_unique_views(p_views jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $body$
 DECLARE
   v_updated integer := 0;
   v_supplied integer;
@@ -20,7 +20,7 @@ BEGIN
       USING ERRCODE = '22023';
   END IF;
 
-  SELECT count(*) INTO v_supplied FROM jsonb_object_keys(p_views);
+  v_supplied := jsonb_object_length(p_views);
   IF v_supplied < 1 OR v_supplied > 1000 THEN
     RAISE EXCEPTION 'La cantidad de artículos está fuera de rango'
       USING ERRCODE = '22023';
@@ -44,8 +44,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'updated', v_updated, 'supplied', v_supplied);
 END;
-$function$
-
+$body$;
 
 REVOKE EXECUTE ON FUNCTION public.sync_blog_unique_views(jsonb)
   FROM PUBLIC, anon, authenticated;

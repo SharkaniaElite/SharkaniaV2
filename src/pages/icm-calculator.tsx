@@ -2,6 +2,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react"; // 👈 Agregamos useEffect
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaToolHeader } from "../components/arena/arena-tool-header";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import {
@@ -11,7 +12,6 @@ import {
   Calculator,
   Info,
   ChevronRight,
-  ArrowLeft,
   Users,
   DollarSign,
 } from "lucide-react";
@@ -460,7 +460,7 @@ export function ICMCalculatorPage() {
   };
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title="Calculadora ICM"
         description="Calcula tu equity ICM en burbuja y mesa final. Algoritmo Malmuth-Harville. Ingresa stacks y premios, obtén resultados instantáneos."
@@ -468,38 +468,16 @@ export function ICMCalculatorPage() {
         ogImage="https://sharkania.com/images/tools/og-tool-icm.png"
       />
 
-      <div className="pt-20 pb-16">
-        <div className="max-w-[960px] mx-auto px-6">
-          {/* Back */}
-          <Link
-            to="/tools"
-            className="inline-flex items-center gap-1.5 text-sk-sm text-sk-text-3 hover:text-sk-text-1 transition-colors mb-6"
-          >
-            <ArrowLeft size={14} />
-            Herramientas
-          </Link>
-
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-sk-accent-dim flex items-center justify-center">
-                <Calculator size={20} className="text-sk-accent" />
-              </div>
-              <div>
-                <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
-                  Calculadora ICM
-                </h1>
-                <p className="text-sk-xs text-sk-text-3">
-                  Independent Chip Model — Malmuth-Harville
-                </p>
-              </div>
-            </div>
-            <p className="text-sk-sm text-sk-text-2 mt-3 max-w-2xl leading-relaxed">
-              Calcula la equity en dinero real de cada jugador según su stack y
-              la estructura de premios. Esencial para decisiones de burbuja,
-              mesa final y negociaciones de deal.
-            </p>
-          </div>
+      <div className="arena-interior arena-tool-page">
+        <div className="arena-interior-container">
+          <ArenaToolHeader
+            icon={Calculator}
+            eyebrow="ICM / TORNEOS"
+            title="CALCULADORA ICM DE PÓKER"
+            subtitle="Independent Chip Model · Malmuth-Harville"
+            description="Estima la distribución del valor de los premios según los stacks y la estructura de pagos. Úsala para estudiar situaciones de burbuja, mesa final y posibles acuerdos."
+          />
+          <div className="arena-tool-content">
 
           {/* Presets */}
           <div className="mb-6">
@@ -818,6 +796,7 @@ export function ICMCalculatorPage() {
               </Link>
             </div>
           )}
+          </div>
         </div>
       </div>
     </PageShell>

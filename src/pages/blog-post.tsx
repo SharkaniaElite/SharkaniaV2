@@ -378,9 +378,9 @@ export default function BlogPostPage() {
 
   // Si no es ninguna de las promos especiales, renderizamos el blog normal
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       {/* Breadcrumb */}
-      <div className="border-b border-sk-border-1 bg-sk-bg-1/80 backdrop-blur-sm sticky top-14 z-40">
+      <div className="arena-article-breadcrumb border-b border-sk-border-1 bg-sk-bg-1/80 backdrop-blur-sm sticky top-14 z-40">
         <div className="max-w-3xl mx-auto px-6 py-2.5 flex items-center justify-between">
           <nav className="flex items-center gap-1.5 text-[11px] text-sk-text-4">
             <Link to="/" className="hover:text-sk-text-2 transition-colors">Inicio</Link>
@@ -436,7 +436,7 @@ export default function BlogPostPage() {
           <SEOHead title={(post.seo_title || post.title).replace(/\s*\|\s*Sharkania\s*$/i, "")} description={post.seo_description || post.excerpt} path={getEditorialPath(post.category, post.slug)} ogType="article" ogImage={post.image_og ?? undefined} />
 
           {(post.image_hero || post.category === "Promociones") && (
-            <div className="max-w-[1120px] mx-auto px-4 sm:px-6 pt-8">
+            <div className="arena-article-cover max-w-[1120px] mx-auto px-4 sm:px-6 pt-8">
               {post.category === "Promociones"
                 ? <PromotionArtwork post={post} variant="hero" priority className="rounded-2xl border border-sk-accent/15 shadow-sm" />
                 : <div className="overflow-hidden rounded-2xl border border-sk-border-2 bg-sk-bg-3">
@@ -449,13 +449,14 @@ export default function BlogPostPage() {
 
           <style>{`.blog-grid { max-width: 760px; margin: 0 auto; padding: 0 1.5rem; }`}</style>
 
-          <div className="blog-grid">
+          <div className="blog-grid arena-article-page">
             <div style={{ minWidth: 0 }}>
-              <div className="py-12">
+              <div className="arena-article-content py-12">
                 <Link to={`/${getEditorialSection(post.category)}`} className="inline-flex items-center gap-1.5 text-sk-sm text-sk-text-3 hover:text-sk-text-1 transition-colors mb-8">
                   <ArrowLeft size={14} /> Volver a {getEditorialSectionLabel(post.category)}
                 </Link>
 
+                <p className="arena-article-context">{post.category === "Noticias" ? "ACTUALIDAD DEL PÓKER" : post.category === "Promociones" ? "PROMOCIONES Y CONDICIONES" : "ESTRATEGIA DE PÓKER"}</p>
                 <div className="flex items-center gap-3 mb-5 flex-wrap">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-sk-accent-dim text-sk-accent text-[11px] font-semibold uppercase tracking-wider">
                     {post.category}
@@ -466,7 +467,7 @@ export default function BlogPostPage() {
                   <span className="text-[11px] text-sk-text-4">{formatBlogDate(post.published_at)}</span>
                 </div>
 
-                <h1 className="text-sk-3xl font-extrabold text-sk-text-1 tracking-tight leading-tight mb-6">{post.title}</h1>
+                <h1 className="arena-article-title text-sk-3xl font-extrabold text-sk-text-1 tracking-tight leading-tight mb-6">{post.title}</h1>
 
                 {post.category === "Promociones" && (() => {
                   const tags = post.tags || [];
@@ -514,7 +515,7 @@ export default function BlogPostPage() {
                   )}
                 </div>
 
-                <p className="text-sk-lg text-sk-text-2 leading-relaxed border-l-2 border-sk-accent pl-5 mb-10">{post.excerpt}</p>
+                <p className="arena-article-excerpt text-sk-lg text-sk-text-2 leading-relaxed border-l-2 border-sk-accent pl-5 mb-10">{post.excerpt}</p>
                 <div className="h-px bg-sk-border-2 mb-10" />
 
                 <TableOfContents blocks={post.body} />

@@ -1,6 +1,6 @@
 // src/pages/player-dashboard.tsx
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
 import { StatCard } from "../components/ui/stat-card";
 import { Button } from "../components/ui/button";
@@ -10,7 +10,7 @@ import { NicknameClaim } from "../components/admin/nickname-claim";
 import { useAuthStore } from "../stores/auth-store";
 import { updateProfile } from "../lib/api/auth";
 import { getFlag, getCountryName } from "../lib/countries";
-import { Settings, User, LogOut, Link as LinkIcon, Camera, Flame, Download } from "lucide-react";
+import { Settings, User, LogOut, Link as LinkIcon, Camera, Flame, Download, ArrowUpRight, Trophy, CalendarDays } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { PlayerStatsGrid } from "../components/players/player-stats-grid";
 import { EloChart } from "../components/players/elo-chart";
@@ -22,6 +22,7 @@ import { SEOHead } from "../components/seo/seo-head";
 import { SharkCoin } from "../components/ui/shark-coin";
 import { MissionsPanel } from "../components/gamification/missions-panel"; 
 import { cn } from "../lib/cn";
+import "../styles/arena-player-experience.css";
 
 export function PlayerDashboardPage() {
   const { profile, user, refreshProfile, logout } = useAuthStore();
@@ -145,7 +146,7 @@ export function PlayerDashboardPage() {
     : fullPlayer;
 
   if (!profile || !user) {
-    return <PageShell><div className="pt-20 min-h-screen flex items-center justify-center"><Spinner size="lg" /></div></PageShell>;
+    return <PageShell variant="arena"><div className="arena-player-workspace flex items-center justify-center"><Spinner size="lg" /></div></PageShell>;
   }
 
   const MAX_AVATAR_BYTES = 100 * 1024;
@@ -224,21 +225,36 @@ export function PlayerDashboardPage() {
   const labelClass = "font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block";
 
   return (
-    <PageShell>
-      <SEOHead title="Mi Panel" path="/dashboard" noIndex={true} />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[900px] mx-auto px-6">
-          {/* Header */}
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              <p className="font-mono text-[11px] font-bold tracking-[0.08em] uppercase text-sk-accent mb-3">Panel del Jugador</p>
-              <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1">👋 Hola, {profile.display_name ?? "Jugador"}</h1>
+    <PageShell variant="arena">
+      <SEOHead title="Mi panel de póker" description="Espacio privado para gestionar tu perfil, nicknames vinculados, misiones y estadísticas en Sharkania." path="/dashboard" noIndex={true} />
+      <div className="arena-player-workspace">
+        <div className="arena-player-wrap">
+          <header className="arena-player-hero" aria-labelledby="arena-player-dashboard-title">
+            <div className="arena-player-hero-main">
+              <span className="arena-player-kicker">SHARKANIA ARENA / CUENTA DE JUGADOR</span>
+              <h1 id="arena-player-dashboard-title">TU PANEL DE <em>PÓKER.</em></h1>
+              <p>Bienvenido, <strong>{profile.display_name ?? "Jugador"}</strong>. Gestiona tus nicknames, consulta tus resultados registrados y sigue tus actividades del circuito de póker.</p>
+              <div className="arena-player-hero-actions">
+                <Link to="/ranking"><Trophy size={15} aria-hidden="true" /> Ranking ELO <ArrowUpRight size={14} aria-hidden="true" /></Link>
+                <Link to="/calendar"><CalendarDays size={15} aria-hidden="true" /> Torneos de póker <ArrowUpRight size={14} aria-hidden="true" /></Link>
+                <Button variant="ghost" size="sm" onClick={handleSignOut}><LogOut size={14} /> Cerrar sesión</Button>
+              </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleSignOut}><LogOut size={14} /> Cerrar Sesión</Button>
-          </div>
+            <div className="arena-player-hero-bottom">
+              <span>PERFIL / RECOMPENSAS / ESTADÍSTICAS</span>
+              <strong>{(linkedPlayers ?? []).length} nicknames vinculados</strong>
+            </div>
+          </header>
+          <nav className="arena-player-quicklinks" aria-label="Secciones de tu cuenta">
+            <a href="#mi-perfil">Mi perfil</a>
+            <a href="#mis-nicknames">Nicknames</a>
+            <a href="#ignition-mi-liga">Liga Ignition</a>
+            <a href="#misiones">Misiones</a>
+            <a href="#mis-estadisticas">Mis estadísticas</a>
+          </nav>
 
          {/* Profile card */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
+          <div id="mi-perfil" className="arena-player-panel arena-player-anchor p-5 sm:p-6 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-4">
                 <div className="relative shrink-0">
@@ -250,12 +266,13 @@ export function PlayerDashboardPage() {
                   </div>
                   <button
                     onClick={() => { setAvatarError(""); avatarFileRef.current?.click(); }}
+                    aria-label="Cambiar foto de perfil"
                     disabled={avatarUploading}
                     className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-sk-accent flex items-center justify-center hover:bg-sk-accent-hover transition-colors disabled:opacity-50"
                   >
                     {avatarUploading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Camera size={12} className="text-sk-bg-0" />}
                   </button>
-                  <input ref={avatarFileRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                  <input ref={avatarFileRef} type="file" accept="image/*" aria-label="Subir foto de perfil" onChange={handleAvatarUpload} className="hidden" />
                 </div>
                 <div>
                   <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2 mb-1"><User size={18} /> Mi Perfil</h2>
@@ -285,19 +302,19 @@ export function PlayerDashboardPage() {
 
             {editing ? (
               <div className="space-y-4">
-                <div><label className={labelClass}>Nombre</label><input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className={inputClass} /></div>
+                <div><label htmlFor="arena-player-name" className={labelClass}>Nombre</label><input id="arena-player-name" type="text" autoComplete="name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className={inputClass} /></div>
                 <div>
-                  <label className={labelClass}>WhatsApp</label>
+                  <label htmlFor="arena-player-whatsapp" className={labelClass}>WhatsApp</label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sk-text-3 text-sk-sm">+</span>
-                    <input type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="52 55 1234 5678" className={`${inputClass} pl-7`} />
+                    <input id="arena-player-whatsapp" type="tel" autoComplete="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="52 55 1234 5678" className={`${inputClass} pl-7`} />
                   </div>
                 </div>
-                <div><label className={labelClass}>País (código de 2 letras)</label><input type="text" value={countryCode} onChange={(e) => setCountryCode(e.target.value.toUpperCase().slice(0, 2))} maxLength={2} className={inputClass} /></div>
+                <div><label htmlFor="arena-player-country" className={labelClass}>País (código de 2 letras)</label><input id="arena-player-country" type="text" autoComplete="country" value={countryCode} onChange={(e) => setCountryCode(e.target.value.toUpperCase().slice(0, 2))} maxLength={2} className={inputClass} /></div>
                 <Button variant="accent" size="sm" onClick={handleSave} isLoading={saving}>Guardar Cambios</Button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 text-sk-sm">
+              <div className="arena-player-profile-data grid grid-cols-2 gap-4 text-sk-sm">
                 <div><span className="text-sk-text-2">Email:</span><p className="text-sk-text-1 font-semibold">{profile.email ?? user.email}</p></div>
                 <div><span className="text-sk-text-2">Nombre:</span><p className="text-sk-text-1 font-semibold">{profile.display_name ?? "—"}</p></div>
                 <div><span className="text-sk-text-2">WhatsApp:</span><p className="text-sk-text-1 font-semibold">{profile.whatsapp ? `+${profile.whatsapp}` : "No definido"}</p></div>
@@ -305,11 +322,11 @@ export function PlayerDashboardPage() {
                 <div><span className="text-sk-text-2">Rol:</span><p className="text-sk-text-1 font-semibold capitalize">{profile.role}</p></div>
               </div>
             )}
-            {message && <div className={`mt-4 rounded-md p-3 text-sk-sm ${message.includes("Error") ? "bg-sk-red-dim text-sk-red" : "bg-sk-green-dim text-sk-green"}`}>{message}</div>}
+            {message && <div role="status" className={`mt-4 rounded-md p-3 text-sk-sm ${message.includes("Error") ? "bg-sk-red-dim text-sk-red" : "bg-sk-green-dim text-sk-green"}`}>{message}</div>}
           </div>
 
           {/* 🎁 ZONA VIP WPT GLOBAL */}
-          <div className="bg-gradient-to-r from-sk-bg-0 to-sk-bg-1 border border-sk-accent/30 rounded-lg p-6 mb-4 shadow-[0_0_20px_rgba(34,211,238,0.05)]">
+          <div className="arena-player-panel p-5 sm:p-6 mb-5">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2 mb-1">
@@ -328,6 +345,7 @@ export function PlayerDashboardPage() {
                 <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
                   <input 
                     type="text" 
+                    aria-label="Nickname en WPT Global"
                     placeholder="Tu Nick en WPT..." 
                     value={wptInput}
                     onChange={(e) => setWptInput(e.target.value)}
@@ -370,8 +388,9 @@ export function PlayerDashboardPage() {
           {/* 🔥 ZONA IGNITION POKER (SMART HIGHLIGHT CON NUEVA VALIDACIÓN) */}
           <div 
             ref={ignitionPanelRef}
+            id="ignition-mi-liga"
             className={cn(
-              "rounded-lg p-6 mb-6 transition-all duration-1000",
+              "arena-player-panel arena-ignition-dashboard-panel arena-player-anchor rounded-lg p-5 sm:p-6 mb-6 transition-all duration-1000",
               isHighlighting 
                 ? "bg-gradient-to-r from-orange-600/30 to-red-600/20 border-2 border-orange-500 shadow-[0_0_40px_rgba(249,115,22,0.4)] scale-[1.02]"
                 : "bg-gradient-to-r from-orange-900/20 to-red-900/10 border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.05)]"
@@ -384,6 +403,9 @@ export function PlayerDashboardPage() {
                 </h2>
                 <p className="text-sk-sm text-sk-text-3">
                   Vincula tu <strong className="text-orange-400">Email y Nickname</strong> de Ignition Póker para participar en la Liga SHARKANIA: buy-in US$3,30, US$100 garantizados por fecha, reentry y registro tardío durante 60 minutos. Recibirás el acceso a los torneos y podrás sumar puntos para el ranking mensual. La vinculación es necesaria para acreditar tus posiciones y premios.
+                </p>
+                <p className="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 p-3 text-xs font-semibold leading-relaxed text-amber-100">
+                  El bounty de cada fecha y los premios adicionales de fin de mes son exclusivos para quienes se inscribieron a la Liga SHARKANIA a través de este sitio y tienen su nickname de Ignition vinculado. Si ya lo hiciste antes, no te registres nuevamente; revisa tu estado aquí.
                 </p>
 
                 {!isIgnitionLinked && (
@@ -401,6 +423,11 @@ export function PlayerDashboardPage() {
               {(isIgnitionLinked || hasIgnitionRequest) ? (
                 <div className="flex flex-col items-start lg:items-end bg-black/30 p-3 rounded-lg border border-white/5 w-full lg:w-auto">
                   <Badge variant={isIgnitionLinked ? 'green' : 'orange'}>{isIgnitionLinked ? '¡Vinculado a Ignition!' : 'Solicitud en revisión'}</Badge>
+                  <p className="mt-2 max-w-sm text-xs leading-relaxed text-sk-text-2" role="status">
+                    {isIgnitionLinked
+                      ? "Tu nickname figura verificado. Para adjudicar el bounty o premios de fin de mes, SHARKANIA comprobará también tu inscripción a la liga y los resultados correspondientes."
+                      : "Tu solicitud aún debe revisarse. No te registres otra vez: la vinculación debe confirmarse antes de determinar tu elegibilidad para los premios adicionales."}
+                  </p>
                   <div className="mt-2 space-y-1">
                     <p className="text-[11px] text-sk-text-3 font-mono flex justify-between gap-4">
                       <span>Email:</span> <strong className="text-white">{user?.user_metadata?.ignition_email}</strong>
@@ -415,6 +442,8 @@ export function PlayerDashboardPage() {
                   <div className="w-full space-y-2">
                     <input
                       type="email"
+                      aria-label="Correo electrónico de Ignition Poker"
+                      autoComplete="email"
                       placeholder="Correo de Ignition..."
                       value={ignitionEmail}
                       onChange={(e) => setIgnitionEmail(e.target.value)}
@@ -422,6 +451,7 @@ export function PlayerDashboardPage() {
                     />
                     <input
                       type="text"
+                      aria-label="Nickname en Ignition Poker"
                       placeholder="Nickname en Ignition..."
                       value={ignitionNickname}
                       onChange={(e) => setIgnitionNickname(e.target.value)}
@@ -504,7 +534,7 @@ export function PlayerDashboardPage() {
           </div>
 
           {/* Linked Nicknames */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
+          <div id="mis-nicknames" className="arena-player-panel arena-player-anchor p-5 sm:p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sk-md font-bold text-sk-text-1 flex items-center gap-2"><LinkIcon size={18} /> Mis Nicknames & Validaciones</h2>
               <Button variant="accent" size="sm" onClick={() => setClaimOpen(true)}>Reclamar Nickname</Button>
@@ -543,7 +573,7 @@ export function PlayerDashboardPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="arena-player-stats-strip grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <StatCard label="Shark Coins" value={String(profile.shark_coins_balance ?? 0)} accent="accent" icon="🦈" />
             <StatCard label="Nivel" value={String(profile.level)} accent="cyan" />
             <StatCard label="XP Total" value={String(profile.xp)} accent="gold" />
@@ -551,7 +581,7 @@ export function PlayerDashboardPage() {
           </div>
 
           {/* 🎯 PANEL DE MISIONES Y RECOMPENSAS */}
-          <div className="mb-10 mt-10">
+          <div id="misiones" className="arena-player-missions arena-player-anchor mb-10 mt-10">
             <h2 className="text-sk-xl font-extrabold text-sk-text-1 mb-4 flex items-center gap-2">
               🎯 Misiones Activas
             </h2>
@@ -560,28 +590,28 @@ export function PlayerDashboardPage() {
 
           {/* ── Perfil de Estadísticas Privadas ── */}
           {primaryPlayerId && fullPlayer ? (
-            <div className="mt-12 space-y-6">
+            <div id="mis-estadisticas" className="arena-player-anchor mt-12 space-y-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-sk-2xl font-extrabold text-sk-text-1">Mis Estadísticas</h2>
-                  <p className="text-sk-sm text-sk-text-3">Modo Premium desbloqueado para tu cuenta</p>
+                  <p className="text-sk-sm text-sk-text-3">Resultados y evolución de tus nicknames vinculados</p>
                 </div>
-                <Badge variant="green">VIP Gratis</Badge>
+                <Badge variant="green">Perfil vinculado</Badge>
               </div>
               <PlayerStatsGrid player={displayPlayer ?? fullPlayer} hasAccess={true} />
               <EloChart history={eloHistory ?? []} isLoading={isLoadingElo} />
-              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6">
+              <div className="arena-player-panel p-5 sm:p-6">
                 <h3 className="text-sk-md font-bold text-sk-text-1 mb-4 flex items-center gap-2">🎯 Mi Historial de Torneos</h3>
                 <TournamentHistoryTable results={(tournamentResults as any) ?? []} isLoading={isLoadingResults} hasAccess={true} />
               </div>
             </div>
           ) : (
             (!linkedPlayers || linkedPlayers.length === 0) && (
-              <div className="bg-gradient-to-br from-sk-bg-2 to-sk-bg-3 border border-sk-border-2 rounded-xl p-8 text-center mt-8 shadow-sk-lg">
+              <div id="mis-estadisticas" className="arena-player-panel arena-player-anchor p-6 sm:p-8 text-center mt-8">
                 <span className="text-4xl block mb-4">📊</span>
                 <h3 className="text-sk-lg font-extrabold text-sk-text-1 mb-2">Desbloquea tus estadísticas avanzadas</h3>
                 <p className="text-sk-sm text-sk-text-2 max-w-md mx-auto mb-6">
-                  Reclama tu nickname en la sección superior para acceder a tu ROI, Profit, Gráfico de ELO y métricas detalladas <strong>gratis de por vida</strong>.
+                  Reclama tu nickname en la sección superior para identificar tu perfil y consultar las métricas disponibles de tus resultados registrados.
                 </p>
                 <Button variant="accent" onClick={() => setClaimOpen(true)}>Reclamar mi primer Nickname</Button>
               </div>

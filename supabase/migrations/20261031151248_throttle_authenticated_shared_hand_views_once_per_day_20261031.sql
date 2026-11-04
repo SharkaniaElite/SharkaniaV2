@@ -1,22 +1,22 @@
--- Reproducible final state of production migration 20261031151248.
--- The follow-up patch 20261031151446 guards older deployments against
--- a PL/pgSQL parameter/column ambiguity.
--- Share links currently require login; count at most one visit per viewer per 24h.
+-- A shared-hand URL currently requires sign-in. Keep counters useful without
+-- letting anonymous callers or repeat requests inflate them.
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
+
 CREATE TABLE IF NOT EXISTS private.hand_view_cooldowns (
-  hand_id text NOT NULL REFERENCES public.shared_hands(id) ON DELETE CASCADE,
-  viewer_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  counted_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (hand_id, viewer_id)
+    hand_id text NOT NULL REFERENCES public.shared_hands(id) ON DELETE CASCADE,
+    viewer_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    counted_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (hand_id, viewer_id)
 );
 REVOKE ALL ON TABLE private.hand_view_cooldowns FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.increment_hand_views(hand_id text)
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $body$
 DECLARE
   v_viewer uuid := (SELECT auth.uid());
   v_counted boolean := false;
@@ -35,7 +35,7 @@ BEGIN
   -- The unique key serializes concurrent retries for a given hand/user.
   INSERT INTO private.hand_view_cooldowns (hand_id, viewer_id, counted_at)
   VALUES (hand_id, v_viewer, now())
-  ON CONFLICT ON CONSTRAINT hand_view_cooldowns_pkey
+  ON CONFLICT (hand_id, viewer_id)
   DO UPDATE SET counted_at = EXCLUDED.counted_at
     WHERE private.hand_view_cooldowns.counted_at <= now() - interval '24 hours'
   RETURNING true INTO v_counted;
@@ -46,7 +46,6 @@ BEGIN
     WHERE id = hand_id;
   END IF;
 END;
-$function$
-;
+$body$;
 REVOKE EXECUTE ON FUNCTION public.increment_hand_views(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.increment_hand_views(text) TO authenticated, service_role;

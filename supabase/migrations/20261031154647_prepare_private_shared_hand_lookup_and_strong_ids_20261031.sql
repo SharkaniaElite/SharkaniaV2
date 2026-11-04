@@ -1,6 +1,5 @@
--- Applied to Sharkania production on 2026-10-31 (Supabase migration 20261031154647).
--- Prepare an authenticated exact-ID sharing endpoint before restricting table SELECT.
--- New hand IDs contain 128 bits of randomness; old 8-character links continue to work.
+-- Prepare an unguessable share ID and an authenticated, exact-ID retrieval path.
+-- Keep existing SELECT policies until the frontend uses this RPC in production.
 ALTER TABLE public.shared_hands
   ALTER COLUMN id SET DEFAULT (pg_catalog.gen_random_uuid())::text;
 
@@ -10,7 +9,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO ''
 AS $body$
-DECLARE v_result jsonb;
+DECLARE
+  v_result jsonb;
 BEGIN
   IF (SELECT auth.uid()) IS NULL THEN
     RAISE EXCEPTION 'Login required to open a shared hand' USING ERRCODE='42501';

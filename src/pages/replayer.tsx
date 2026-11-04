@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useSearchParams, useParams } from "react-router-dom";
+import { Link, useSearchParams, useParams } from "react-router-dom";
 import { Navbar } from "../components/layout/navbar";
 import { AdminAccessBanner } from "../components/layout/admin-access-banner";
 import { SEOHead } from "../components/seo/seo-head";
@@ -10,7 +10,7 @@ import { useAuthStore } from "../stores/auth-store";
 import {
   Upload, FileText, Share2, Check,
   ChevronDown, Play, AlertCircle,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, ArrowLeft,
 } from "lucide-react";
 import type { HandHistory, ReplayState } from "../types/replayer";
 import {
@@ -22,6 +22,7 @@ import { parseHandHistory } from "../lib/hand-parsers";
 import { useFeatureAccess } from "../hooks/use-shop";
 import { FeaturePaywall } from "../components/shop/feature-paywall";
 import { supabase } from "../lib/supabase";
+import "../styles/arena-player-experience.css";
 
 function makeState(hand: HandHistory, speed = 1): ReplayState {
   return { ...initReplayState(hand), isPlaying: false, playbackSpeed: speed };
@@ -253,33 +254,31 @@ export function ReplayerPage() {
 
   return (
     <>
-      <SEOHead title="Hand Replayer — Sharkania" description="Revive cada acción de tus manos de póker paso a paso." />
+      <SEOHead title="Replayer de manos de póker" description="Reproduce manos de póker paso a paso, revisa las acciones de cada jugador y estudia las decisiones del historial importado." path="/tools/replayer" noIndex />
 
       {!isFS && (
-        <Navbar />
+        <Navbar variant="arena" />
       )}
 
       {!hasHand ? (
-        /* 👇 Cambio de paddingTop de 88px a 56px ya que quitamos el banner Beta */
-        <div style={{ paddingTop: "56px", minHeight: "100dvh", background: "#0c0d10" }}>
-          <div className="max-w-2xl mx-auto w-full px-4 py-10">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-lg bg-sk-purple/10 border border-sk-purple/20 flex items-center justify-center">
-                <Play size={18} className="text-sk-purple" />
+        <div className="arena-replayer-landing">
+          <div className="arena-replayer-container">
+            <header className="arena-replayer-intro">
+              <div className="arena-replayer-intro-main">
+                <Link to="/tools" className="arena-replayer-back"><ArrowLeft size={15} aria-hidden="true" /> Volver a herramientas</Link>
+                <p className="arena-replayer-eyebrow">SHARKANIA ARENA / LABORATORIO DE PÓKER</p>
+                <h1>REPLAYER DE <em>MANOS DE PÓKER.</em></h1>
+                <p>Importa el historial de una mano y revisa las acciones calle por calle. Estudia situaciones de torneo y comparte una reproducción cuando esté disponible.</p>
               </div>
-              <div>
-                <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">Hand Replayer</h1>
-                <p className="text-sk-xs text-sk-text-3">Sube un archivo .txt o pega el historial de una mano</p>
-              </div>
-            </div>
-            
+              <div className="arena-replayer-intro-foot"><span>HISTORIALES / ANÁLISIS</span><span>GGPoker · PokerStars · HomeGames</span></div>
+            </header>
             {loadingShared ? (
               <div className="flex items-center justify-center py-20 gap-3">
                 <div className="w-5 h-5 border-2 border-sk-accent/30 border-t-sk-accent rounded-full animate-spin" />
                 <span className="text-sk-sm text-sk-text-3">Cargando mano...</span>
               </div>
             ) : !isAuthenticated ? (
-              <div className="border border-sk-border-2 rounded-xl p-10 text-center bg-sk-bg-2">
+              <div className="arena-replayer-card text-center">
                 <span className="text-4xl block mb-4">🎯</span>
                 <h3 className="text-sk-md font-bold text-sk-text-1 mb-2">¿Quieres analizar tus propias manos?</h3>
                 <p className="text-sk-sm text-sk-text-2 mb-6">Crea una cuenta gratis para subir archivos de manos y usar el replayer completo.</p>
@@ -289,7 +288,7 @@ export function ReplayerPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="arena-replayer-card space-y-4">
                 {/* 🔐 LOGICA DE BLOQUEO: 
                   Si ya usó el gratis y no tiene acceso full, mostramos SOLO el paywall.
                   Si tiene acceso (o le queda el gratis), mostramos las herramientas.
@@ -302,9 +301,9 @@ export function ReplayerPage() {
                   />
                 ) : (
                   <>
-                    <div className="flex gap-1 bg-sk-bg-3 rounded-lg p-0.5 border border-sk-border-1 w-fit">
+                    <div className="arena-replayer-mode" role="group" aria-label="Forma de importar una mano">
                       {(["upload", "paste"] as const).map((mode) => (
-                        <button key={mode} onClick={() => setInputMode(mode)}
+                        <button key={mode} aria-pressed={inputMode === mode} onClick={() => setInputMode(mode)}
                           className={`text-sk-xs font-medium px-4 py-1.5 rounded transition-all flex items-center gap-1.5 ${inputMode === mode ? "bg-sk-bg-1 text-sk-text-1 shadow-sk-xs" : "text-sk-text-3"}`}>
                           {mode === "upload" ? <Upload size={12} /> : <FileText size={12} />}
                           {mode === "upload" ? "Subir archivo" : "Pegar texto"}
@@ -317,13 +316,13 @@ export function ReplayerPage() {
                         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                         onDragLeave={() => setDragOver(false)}
                         onDrop={handleDrop}
-                        className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${dragOver ? "border-sk-accent bg-sk-accent/5" : "border-sk-border-2 hover:border-sk-border-3"}`}>
+                        className="arena-replayer-dropzone" data-drag-over={dragOver}>
                         <Upload size={32} className="mx-auto mb-3 text-sk-text-3" />
                         <p className="text-sk-sm text-sk-text-2 mb-1">Arrastra un archivo .txt aquí</p>
                         <p className="text-sk-xs text-sk-text-4 mb-5">o haz click para seleccionar</p>
-                        <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sk-accent text-sk-bg-0 text-sk-sm font-bold cursor-pointer hover:bg-sk-accent-hover transition-colors">
+                        <label htmlFor="arena-replayer-history-file" className="arena-replayer-file-label">
                           <Upload size={14} /> Seleccionar archivo
-                          <input type="file" accept=".txt,.log" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} className="hidden" />
+                          <input id="arena-replayer-history-file" type="file" accept=".txt,.log" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} className="sr-only" />
                         </label>
                         <p className="text-[10px] text-sk-text-4 mt-4">Soporta: GGPoker · PokerStars · HomeGames</p>
                       </div>
@@ -331,7 +330,8 @@ export function ReplayerPage() {
 
                     {inputMode === "paste" && (
                       <div>
-                        <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)}
+                        <label htmlFor="arena-replayer-paste" className="block text-xs font-bold text-sk-text-2 mb-2">Historial de la mano</label>
+                        <textarea id="arena-replayer-paste" value={pasteText} onChange={(e) => setPasteText(e.target.value)}
                           placeholder="Pega aquí el historial de una mano..."
                           className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-lg py-3 px-4 text-sk-sm text-sk-text-1 font-mono placeholder:text-sk-text-4 focus:outline-none focus:border-sk-accent min-h-[200px] resize-y" />
                         <div className="flex gap-2 mt-2">
@@ -350,7 +350,7 @@ export function ReplayerPage() {
                 )}
 
                 {parseErrors.length > 0 && (
-                  <div className="bg-sk-red/8 border border-sk-red/20 rounded-lg p-4">
+                  <div role="alert" className="bg-sk-red/8 border border-sk-red/20 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <AlertCircle size={14} className="text-sk-red" />
                       <p className="text-sk-xs font-semibold text-sk-red">Error al procesar el archivo</p>
@@ -367,6 +367,7 @@ export function ReplayerPage() {
       ) : (
         <div
           ref={fsRef}
+          className="arena-replayer-stage"
           style={{
             position: isFS ? "fixed" : "relative",
             top: isFS ? 0 : undefined,
@@ -377,14 +378,15 @@ export function ReplayerPage() {
             marginTop: isFS ? 0 : "56px",
             height: isFS ? "100dvh" : "calc(100dvh - 56px)",
             zIndex: isFS ? 9999 : undefined,
-            background: "#09090b",
+            background: "#071421",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
           }}
         >
+          <h1 className="sr-only">Replayer de manos de póker</h1>
           {/* Metabar */}
-          <div style={{
+          <div className="arena-replayer-meta" style={{
             flexShrink: 0,
             display: "flex", alignItems: "center", justifyContent: "space-between",
             gap: "10px", flexWrap: "wrap",
@@ -393,6 +395,7 @@ export function ReplayerPage() {
             borderBottom: "1px solid rgba(255,255,255,0.05)",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <span className="arena-replayer-meta-label"><Play size={12} aria-hidden="true" /> REPLAYER DE PÓKER</span>
               {hands.length > 1 && (
                 <div style={{ position: "relative" }}>
                   <select value={selectedIdx} onChange={(e) => selectHand(Number(e.target.value))}
@@ -413,7 +416,7 @@ export function ReplayerPage() {
                 {rs.hand.config.gameType} · {rs.hand.config.smallBlind}/{rs.hand.config.bigBlind} · {rs.hand.players.length} jugadores
               </span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="arena-replayer-meta-tools" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Button variant="secondary" size="xs" onClick={handleShare} isLoading={sharing}>
                 {copied ? <Check size={12} /> : <Share2 size={12} />}
                 {copied ? "¡Copiado!" : "Compartir"}
@@ -425,6 +428,8 @@ export function ReplayerPage() {
               </Button>
               <button onClick={toggleFS}
                 title={isFS ? "Salir de pantalla completa (F)" : "Pantalla completa (F)"}
+                aria-label={isFS ? "Salir de pantalla completa" : "Abrir pantalla completa"}
+                aria-pressed={isFS}
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "center",
                   width: "30px", height: "30px", borderRadius: "6px",
@@ -439,7 +444,7 @@ export function ReplayerPage() {
           </div>
 
           {/* Área central */}
-          <div style={{
+          <div className="arena-replayer-table-zone" style={{
             flex: 1,
             minHeight: 0,
             display: "flex",

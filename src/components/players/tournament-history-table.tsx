@@ -17,21 +17,40 @@ interface TournamentHistoryEntry {
     name: string;
     slug: string;
     buy_in: number;
+    currency?: string | null;
     start_datetime: string;
     clubs: { id: string; name: string; slug?: string } | null; 
   };
 }
 
+// Always label the currency of each tournament; CLP, USD and EUR coexist.
+function formatTournamentAmount(amount: number, currency?: string | null): string {
+  if (amount === 0) return "Gratis";
+  const code = currency?.toUpperCase();
+  if (code === "CLP" || code === "USD" || code === "EUR") {
+    return `${code} ${amount.toLocaleString("es-CL", { maximumFractionDigits: 2 })}`;
+  }
+  return formatCurrency(amount);
+}
+
 interface TournamentHistoryTableProps {
   results: TournamentHistoryEntry[];
   isLoading: boolean;
-  hasAccess?: boolean; 
+  hasAccess?: boolean;
+  hasMoreHistory?: boolean;
+  canLoadMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export function TournamentHistoryTable({
   results,
   isLoading,
-  hasAccess = false, 
+  hasAccess = false,
+  hasMoreHistory = false,
+  canLoadMore = false,
+  isLoadingMore = false,
+  onLoadMore,
 }: TournamentHistoryTableProps) {
   if (isLoading) {
     return (
@@ -54,13 +73,14 @@ export function TournamentHistoryTable({
     return new Date(b.tournaments.start_datetime).getTime() - new Date(a.tournaments.start_datetime).getTime();
   });
 
-  // Si no tiene acceso, solo mostramos 5 filas, difuminando desde la 3ra
-  const displayResults = hasAccess ? sortedResults : sortedResults.slice(0, 5);
+  // Do not render restricted history rows in the DOM when access is absent.
+  const displayResults = hasAccess ? sortedResults : sortedResults.slice(0, 2);
 
   return (
-    <div className="relative border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sk-sm min-w-[650px]">
+    <div className="arena-history-results relative border border-sk-border-2 rounded-lg bg-sk-bg-2 overflow-hidden">
+      <p className="arena-history-scroll-hint md:hidden">Desliza la tabla horizontalmente para consultar sus columnas.</p>
+      <div className="arena-history-scroll-region overflow-x-auto" role="region" tabIndex={0} aria-label="Historial de torneos del jugador">
+        <table className="arena-history-table w-full border-collapse text-sk-sm min-w-[650px]">
           <thead>
             <tr>
               {["Fecha", "Torneo", "Club", "Buy-in", "Compras", "Pos.", "Premio", "ΔELO"].map(
@@ -78,17 +98,12 @@ export function TournamentHistoryTable({
             </tr>
           </thead>
           <tbody>
-            {displayResults.map((r, index) => {
-              // Si no tiene acceso, aplicamos blur a partir de la fila 3
-              const isBlurred = !hasAccess && index >= 2;
+            {displayResults.map((r) => {
 
               return (
                 <tr
                   key={r.id}
-                  className={cn(
-                    "transition-colors duration-100 hover:bg-white/[0.02]",
-                    isBlurred && "blur-[4px] select-none pointer-events-none opacity-50"
-                  )}
+                  className="transition-colors duration-100 hover:bg-white/[0.02]"
                 >
                   <td className="py-3 px-4 border-b border-sk-border-2 font-mono text-sk-text-2 text-sk-xs">
                     {format(new Date(r.tournaments.start_datetime), "dd/MM/yy")}
@@ -128,7 +143,7 @@ export function TournamentHistoryTable({
                     )}
                   </td>
                   <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono text-sk-text-2">
-                    {formatCurrency(r.tournaments.buy_in)}
+                    {formatTournamentAmount(r.tournaments.buy_in, r.tournaments.currency)}
                   </td>
                   
                   <td className="py-3 px-4 border-b border-sk-border-2 text-right font-mono text-sk-text-2">
@@ -156,7 +171,7 @@ export function TournamentHistoryTable({
                         r.prize_won > 0 ? "text-sk-green" : "text-sk-text-3"
                       )}
                     >
-                      {r.prize_won > 0 ? formatCurrency(r.prize_won) : "—"}
+                      {r.prize_won > 0 ? formatTournamentAmount(r.prize_won, r.tournaments.currency) : "—"}
                     </span>
                   </td>
                   <td className="py-3 px-4 border-b border-sk-border-2 text-right">
@@ -182,22 +197,28 @@ export function TournamentHistoryTable({
         </table>
       </div>
 
-      {/* Overlay con gradiente y botón si no tiene acceso */}
-      {!hasAccess && results.length > 2 && (
-        <div className="absolute bottom-0 left-0 right-0 h-[180px] bg-gradient-to-t from-sk-bg-2 via-sk-bg-2/95 to-transparent flex items-end justify-center pb-8 z-10">
-          <Link 
-            to="/shop#stats-espia"
-            className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 px-6 py-3.5 rounded-full bg-sk-bg-0 border border-sk-border-3 shadow-xl hover:border-sk-accent/60 hover:shadow-[0_0_25px_rgba(34,211,238,0.15)] transition-all duration-300 group cursor-pointer"
+      {hasAccess && canLoadMore && onLoadMore && (
+        <div className="arena-history-load-more">
+          <span>Mostrando {results.length.toLocaleString("es-CL")} resultados</span>
+          <button
+            type="button"
+            disabled={isLoadingMore}
+            onClick={onLoadMore}
+            aria-label="Cargar más resultados del historial"
           >
-            <div className="flex items-center gap-2 text-sk-sm font-bold text-sk-text-1 group-hover:text-sk-accent transition-colors">
-              <Lock size={15} className="text-sk-accent" />
-              Historial completo bloqueado
-            </div>
-            <div className="hidden sm:block w-1.5 h-1.5 rounded-full bg-sk-border-3" />
-            <div className="text-[11px] sm:text-xs text-sk-text-3">
-              Activa <span className="text-sk-text-1 font-semibold">Stats Espía</span> por 100 🦈 /mes — <span className="text-sk-text-1 font-bold group-hover:underline">Ver Tienda</span>
-            </div>
-          </Link>
+            {isLoadingMore ? "Cargando resultados…" : "Ver 30 resultados más"}
+          </button>
+        </div>
+      )}
+
+      {!hasAccess && (hasMoreHistory || results.length > 2) && (
+        <div className="arena-history-paywall">
+          <div className="arena-history-paywall-icon" aria-hidden="true"><Lock size={19} /></div>
+          <div>
+            <strong>Historial completo disponible con Stats Espía</strong>
+            <p>Los demás resultados no se muestran sin acceso. Consulta el beneficio en la tienda.</p>
+          </div>
+          <Link to="/shop#stats-espia" className="arena-history-paywall-link">Ver beneficio</Link>
         </div>
       )}
     </div>

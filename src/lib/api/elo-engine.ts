@@ -1,5 +1,6 @@
 // src/lib/api/elo-engine.ts
 import { supabase } from "../supabase";
+import { GUARDED_ELO_RPC_ENABLED, calculateEloThroughGuardedRpc } from "./guarded-elo";
 
 interface PlayerEloData {
   id: string;
@@ -18,6 +19,9 @@ interface PlayerEloData {
 // ═══════════════════════════════════════════════════
 
 export async function calculateElo(tournamentId: string): Promise<{ success: boolean; message: string }> {
+  // Fail closed. When QA eventually enables the server RPC, never retry with
+  // old client-side write loops if the protected call rejects an operation.
+  if (GUARDED_ELO_RPC_ENABLED) return calculateEloThroughGuardedRpc(tournamentId);
   try {
     const { data: tournament, error: tError } = await supabase
       .from("tournaments")
@@ -127,6 +131,11 @@ export async function calculateElo(tournamentId: string): Promise<{ success: boo
 // ═══════════════════════════════════════════════════
 
 export async function reverseElo(tournamentId: string) {
+  // Reverse/re-edit needs a separately guarded and fully tested transaction.
+  // Do not let an administrator partially delete ELO history after server cutover.
+  if (GUARDED_ELO_RPC_ENABLED) {
+    return { success: false, message: "La reversión del ELO aún requiere su flujo protegido de servidor." };
+  }
   // Solo borramos el historial de ELO. 
   // La reconstrucción pesada de perfiles se hace en tournaments.ts
   await supabase.from("elo_history").delete().eq("tournament_id", tournamentId);

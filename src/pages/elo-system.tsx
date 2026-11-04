@@ -1,6 +1,7 @@
 // src/pages/elo-system.tsx
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import {
@@ -18,28 +19,26 @@ import {
 
 export function EloSystemPage() {
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
-        title="Cómo funciona el Sistema ELO — Sharkania"
-        description="Descubre cómo Sharkania calcula la habilidad real de los jugadores de póker en torneos MTT aislando la varianza."
+        title="Sistema ELO en póker | Cómo funciona"
+        description="Conoce el sistema ELO de Sharkania para torneos de póker: resultados, puntuación esperada y factores que afectan la clasificación."
         path="/sistema-elo"
       />
 
-      <div className="pt-20 pb-20">
-        <div className="max-w-[800px] mx-auto px-6">
+      <div className="arena-interior arena-editorial">
+        <div className="arena-interior-container">
           
-          {/* ── Header ── */}
-          <div className="mb-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-sk-accent/10 border border-sk-accent/20 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(34,211,238,0.15)]">
-              <TrendingUp size={32} className="text-sk-accent" />
-            </div>
-            <h1 className="text-sk-3xl sm:text-sk-4xl font-extrabold text-sk-text-1 tracking-tight mb-4">
-              El Algoritmo ELO
-            </h1>
-            <p className="text-sk-base text-sk-text-2 max-w-2xl mx-auto leading-relaxed">
-              En Sharkania no medimos quién tiene la billetera más grande o quién tuvo un "lucky bink" el domingo. Medimos el <strong>edge real</strong> aislando la varianza matemática.
-            </p>
-          </div>
+          <ArenaPageHero
+            section="elo"
+            eyebrow="SISTEMA / PUNTUACIÓN"
+            heading="SISTEMA ELO"
+            highlight="DE PÓKER."
+            icon={TrendingUp}
+            description="Conoce los criterios que utilizamos para ordenar el rendimiento competitivo y aprende a interpretar los cambios de puntuación."
+            action={<Link to="/ranking">Explorar ranking ELO <ChevronRight size={16} /></Link>}
+          />
+          <div className="arena-learning-body">
 
           {/* ── Por qué ELO vs ROI ── */}
           <div className="bg-sk-bg-2 border border-sk-border-2 rounded-2xl p-6 sm:p-8 mb-10">
@@ -192,6 +191,7 @@ export function EloSystemPage() {
             </div>
           </div>
 
+          </div>
         </div>
       </div>
     </PageShell>

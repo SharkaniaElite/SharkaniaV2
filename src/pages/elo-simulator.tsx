@@ -2,10 +2,10 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaToolHeader } from "../components/arena/arena-tool-header";
 import { SEOHead } from "../components/seo/seo-head";
 import { Button } from "../components/ui/button";
 import {
-  ArrowLeft,
   ChevronRight,
   TrendingUp,
   TrendingDown,
@@ -332,7 +332,7 @@ export function EloSimulatorPage() {
   };
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title="Simulador de ELO"
         description="Simula cuánto subiría o bajaría tu ELO en Sharkania según tu posición en un torneo. Algoritmo real, resultados instantáneos."
@@ -340,38 +340,16 @@ export function EloSimulatorPage() {
         ogImage="https://sharkania.com/images/tools/og-tool-elo.png"
       />
 
-      <div className="pt-20 pb-16">
-        <div className="max-w-[960px] mx-auto px-6">
-          {/* Back */}
-          <Link
-            to="/tools"
-            className="inline-flex items-center gap-1.5 text-sk-sm text-sk-text-3 hover:text-sk-text-1 transition-colors mb-6"
-          >
-            <ArrowLeft size={14} />
-            Herramientas
-          </Link>
-
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-sk-green-dim flex items-center justify-center">
-                <TrendingUp size={20} className="text-sk-green" />
-              </div>
-              <div>
-                <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
-                  Simulador de ELO
-                </h1>
-                <p className="text-sk-xs text-sk-text-3">
-                  Algoritmo real de Sharkania — Glicko simplificado para MTT
-                </p>
-              </div>
-            </div>
-            <p className="text-sk-sm text-sk-text-2 mt-3 max-w-2xl leading-relaxed">
-              ¿Cuánto subiría tu ELO si ganas este torneo? ¿Y si quedas en el
-              medio? Simula cualquier escenario con el mismo algoritmo que usa
-              Sharkania para calcular los rankings reales.
-            </p>
-          </div>
+      <div className="arena-interior arena-tool-page">
+        <div className="arena-interior-container">
+          <ArenaToolHeader
+            icon={TrendingUp}
+            eyebrow="ELO / SIMULACIÓN"
+            title="SIMULADOR ELO DE PÓKER"
+            subtitle="Modelo de puntuación del ranking Sharkania"
+            description="Comprueba cómo podría cambiar una puntuación ELO en diferentes resultados de torneos registrados. Compara escenarios antes de revisar las reglas del sistema."
+          />
+          <div className="arena-tool-content">
 
           {/* Presets */}
           <div className="mb-6">
@@ -837,6 +815,7 @@ export function EloSimulatorPage() {
               </Link>
             </div>
           )}
+          </div>
         </div>
       </div>
 

@@ -14,7 +14,7 @@ interface SEOHeadProps {
 const SITE_NAME = "Sharkania";
 const SITE_URL = "https://sharkania.com";
 const DEFAULT_DESCRIPTION =
-  "La plataforma global de poker competitivo. Ranking ELO, calendarios en vivo, clubes, ligas y estadísticas de jugadores.";
+  "Sharkania reúne rankings ELO, torneos de póker online, perfiles de jugadores y ligas con resultados registrados.";
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og-default.png?v=2`;
 
 function setMetaTag(property: string, content: string, isName = false) {
@@ -37,7 +37,7 @@ export function SEOHead({
   noIndex = false,
 }: SEOHeadProps) {
   const fullTitle = title === "Inicio"
-    ? `${SITE_NAME} — Plataforma Global de Poker Competitivo`
+    ? `${SITE_NAME} | Ranking ELO y torneos de póker online`
     : `${title} | ${SITE_NAME}`;
   // Explicit paths win; pages that omit path use their actual browser route.
   const fullUrl = getCanonicalUrl(path);
@@ -66,12 +66,10 @@ export function SEOHead({
     setMetaTag("twitter:description", description, true);
     setMetaTag("twitter:image", ogImage, true);
 
-    // Robots
-    if (noIndex) {
-      setMetaTag("robots", "noindex, nofollow", true);
-    } else {
-      setMetaTag("robots", "index, follow", true);
-    }
+    // Cloudflare Pages previews are for design reviews only: never index a preview hostname.
+    // This does not affect sharkania.com when this code eventually reaches production.
+    const isPreviewHost = window.location.hostname.endsWith(".pages.dev");
+    setMetaTag("robots", noIndex || isPreviewHost ? "noindex, nofollow" : "index, follow", true);
 
     // Canonical
     let canonical = document.querySelector('link[rel="canonical"]');

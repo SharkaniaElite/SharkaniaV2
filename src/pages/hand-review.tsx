@@ -116,7 +116,7 @@ export function HandReviewPage() {
 
   if (loading) {
     return (
-      <PageShell>
+      <PageShell variant="arena" showMarketing>
         <div className="min-h-screen flex items-center justify-center bg-sk-bg-1">
           <Spinner size="lg" />
         </div>
@@ -126,7 +126,7 @@ export function HandReviewPage() {
 
   if (!video) {
     return (
-      <PageShell>
+      <PageShell variant="arena" showMarketing>
         <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
           <MonitorPlay size={48} className="text-sk-text-4 mb-4" />
           <h2 className="text-2xl font-bold text-sk-text-1 mb-2">Video no encontrado</h2>
@@ -140,11 +140,11 @@ export function HandReviewPage() {
   const ctx = video.table_context || {};
 
   return (
-    <PageShell>
+    <PageShell variant="arena" showMarketing>
       <SEOHead title={`${video.title} | SharkTV`} path={`/tv/${video.id}`} />
       
-      <div className="pt-20 pb-20">
-        <div className="max-w-6xl mx-auto px-6">
+      <div className="arena-public-bridge arena-tv-detail">
+        <div className="arena-bridge-content">
           
           <Link to="/tv" className="inline-flex items-center gap-1 text-sk-sm text-sk-text-4 hover:text-sk-accent transition-colors mb-6">
             <ChevronLeft size={16} /> Volver a SharkTV
@@ -167,7 +167,7 @@ export function HandReviewPage() {
               </div>
 
               {/* El Embed de RUMBLE y Call To Action */}
-              <div className="bg-sk-bg-2 p-4 md:p-8 rounded-2xl border border-sk-border-2 mb-8 relative overflow-hidden">
+              <div className="arena-tv-feature bg-sk-bg-2 p-4 md:p-8 rounded-2xl border border-sk-border-2 mb-8 relative overflow-hidden">
                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-sk-accent/10 blur-[50px] rounded-full pointer-events-none" />
                 
                 <RumbleEmbed embedUrl={video.video_url} />

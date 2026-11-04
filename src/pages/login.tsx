@@ -7,10 +7,13 @@ import { Button } from "../components/ui/button";
 import { signIn } from "../lib/api/auth";
 import { useAuthStore } from "../stores/auth-store";
 import { SEOHead } from "../components/seo/seo-head";
+import { ArenaAuthFrame } from "../components/arena/arena-auth-frame";
+import { isArenaPreviewAuthBlocked } from "../lib/arena-preview";
 import { translateAuthError } from "../lib/format"; // 👈 Importamos el traductor
 
 export function LoginPage() {
   const turnstileRef = useRef<TurnstileInstance>(null);
+  const previewBlocked = isArenaPreviewAuthBlocked();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -25,6 +28,7 @@ export function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (previewBlocked) return;
     setError("");
 
     if (!captchaToken) {
@@ -63,30 +67,25 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-sk-bg-1 flex items-center justify-center p-6">
+    <ArenaAuthFrame mode="login" title="Inicia sesión" description="Accede a tu cuenta para consultar tus herramientas, estadísticas y torneos registrados.">
       <SEOHead
-        title="Iniciar Sesión"
-        description="Accede a tu cuenta de Sharkania."
+        title="Iniciar sesión | Ranking y torneos de póker"
+        description="Inicia sesión en Sharkania Arena para consultar rankings ELO, torneos de póker y herramientas de tu cuenta."
         path="/login"
       />
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <span className="text-3xl">🦈</span>
-            <span className="text-sk-xl font-extrabold text-sk-text-1 tracking-tight">
-              Sharkania
-            </span>
-          </Link>
-          <p className="text-sk-sm text-sk-text-2">Inicia sesión en tu cuenta</p>
-        </div>
+      <div className="arena-auth-form-stack">
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">
-              Email
+            <label htmlFor="arena-login-email" className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">
+              Correo electrónico
             </label>
             <input
+              id="arena-login-email"
               type="email"
+              disabled={previewBlocked}
+              name="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -96,11 +95,15 @@ export function LoginPage() {
           </div>
 
           <div>
-            <label className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">
+            <label htmlFor="arena-login-password" className="font-mono text-[11px] font-semibold uppercase tracking-wide text-sk-text-2 mb-1.5 block">
               Contraseña
             </label>
             <input
+              id="arena-login-password"
               type="password"
+              disabled={previewBlocked}
+              name="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -118,7 +121,7 @@ export function LoginPage() {
             </div>
           </div>
 
-          <div className="flex justify-center py-2 min-h-[65px]">
+          {!previewBlocked && <div className="flex justify-center py-2 min-h-[65px]">
             <Turnstile
               ref={turnstileRef}
               siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
@@ -127,10 +130,10 @@ export function LoginPage() {
               onExpire={() => setCaptchaToken(null)}
               options={{ theme: "dark" }}
             />
-          </div>
+          </div>}
 
           {error && (
-            <div className="bg-sk-red-dim border border-sk-red/20 rounded-md p-3 text-sk-sm text-sk-red">
+            <div role="alert" className="bg-sk-red-dim border border-sk-red/20 rounded-md p-3 text-sk-sm text-sk-red">
               {error}
             </div>
           )}
@@ -141,7 +144,7 @@ export function LoginPage() {
             size="lg"
             className="w-full"
             isLoading={loading}
-            disabled={!captchaToken || loading}
+            disabled={previewBlocked || !captchaToken || loading}
           >
             Iniciar Sesión
           </Button>
@@ -160,6 +163,6 @@ export function LoginPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </ArenaAuthFrame>
   );
 }

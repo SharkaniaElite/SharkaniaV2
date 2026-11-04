@@ -34,8 +34,16 @@ export function FloatingCTA() {
     loadConfig();
   }, []);
 
+  // A sponsor-specific league page must never display a generic room promotion.
+  // Keep the widget and its settings unchanged everywhere else.
+  const isIgnitionLeaguePage = location.pathname === "/ignition";
+
   // 🛡️ Lógica de visibilidad y delays
   useEffect(() => {
+    if (isIgnitionLeaguePage) {
+      setVisible(false);
+      return;
+    }
     const lastClosed = localStorage.getItem("wpt_cta_last_shown");
     const lastClicked = localStorage.getItem("wpt_cta_last_clicked");
     const now = Date.now();
@@ -72,9 +80,9 @@ export function FloatingCTA() {
     }
 
     return () => clearTimeout(timeoutId);
-  }, [location.pathname, config]);
+  }, [location.pathname, config, isIgnitionLeaguePage]);
 
-  if (!visible) return null;
+  if (!visible || isIgnitionLeaguePage) return null;
 
   // ── RESOLUCIÓN FINAL DE VARIABLES ──
   const baseTitle       = config?.title       ?? WPT_PROMO.title;

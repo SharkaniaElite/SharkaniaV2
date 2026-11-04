@@ -6,6 +6,8 @@ import { Modal } from "../ui/modal";
 import { Spinner } from "../ui/spinner";
 import { FlagIcon } from "../ui/flag-icon";
 import { calculateElo } from "../../lib/api/elo-engine";
+import { GUARDED_ELO_RPC_ENABLED } from "../../lib/api/guarded-elo";
+import { GUARDED_RESULTS_RPC_ENABLED, publishTournamentResultsGuarded } from "../../lib/api/guarded-results";
 import { getTournamentResults, prepareTournamentForReedit, applyLeaguePoints } from "../../lib/api/tournaments";
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/cn";
@@ -237,6 +239,51 @@ export function ResultsEditor({
 
   // 🔥 EL CEREBRO DE LA OPERACIÓN (BORRÓN Y CUENTA NUEVA)
   const handleSave = async () => {
+    // The guarded cutover performs reset, replacement and recalculation
+    // as ONE server-side operation; never execute the legacy browser chain.
+    if (GUARDED_RESULTS_RPC_ENABLED) {
+      setSaving(true);
+      setMessage({ text: "Guardando correcciones mediante una operación protegida...", type: "info" });
+      try {
+        const publication = await publishTournamentResultsGuarded(
+          tournament.id,
+          rows.map((row) => ({
+            playerId: row.isNew || row.nickname.trim() !== row.originalNickname.trim()
+              ? null : (row.playerId || null),
+            nickname: row.nickname,
+            countryCode: row.countryCode ?? tournament.clubs?.country_code ?? null,
+            position: row.position,
+            prizeWon: row.prizeWon,
+            bountiesWon: 0,
+            leaguePoints: row.leaguePoints,
+            ccpClub: row.ccpClub,
+            buyInsCount: row.buyInsCount,
+          })),
+        );
+        if (!publication.success) {
+          setMessage({ text: publication.message, type: "error" });
+          return;
+        }
+        setHasChanges(false);
+        setMessage({ text: publication.message, type: "success" });
+        onComplete();
+        onClose();
+      } catch {
+        setMessage({ text: "Falló la edición protegida. Comprueba el torneo antes de reintentar.", type: "error" });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    // Refuse BEFORE any delete/insert while the secure ELO cutover is active.
+    // Partial resets would desynchronize existing ELO and league standings.
+    if (GUARDED_ELO_RPC_ENABLED) {
+      setMessage({
+        text: "Edición detenida: todavía falta la reversión y recarga transaccional protegida. No se modificó el torneo.",
+        type: "error",
+      });
+      return;
+    }
     const errors: string[] = [];
 
     // Validaciones básicas
