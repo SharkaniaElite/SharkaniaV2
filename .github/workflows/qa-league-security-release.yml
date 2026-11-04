@@ -36,6 +36,10 @@ jobs:
             sudo apt-get update -qq
             sudo apt-get install -y postgresql-client
           fi
+      - name: Create synthetic Supabase API roles on fresh PostgreSQL service
+        run: |
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
       - name: Verify guarded client and SQL contract without external database
         run: node --test tests/league-membership-guarded-contract.test.mjs
       - name: TypeScript compile check
