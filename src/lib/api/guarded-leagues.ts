@@ -58,6 +58,38 @@ export async function createLeagueGuarded(input: {
 }
 
 /**
+ * Clone settings and room associations atomically, but NOT membership of
+ * secondary clubs. New secondary clubs must independently be authorized.
+ */
+export async function duplicateLeagueGuarded(
+  sourceLeagueId: string,
+  name: string,
+  slug: string,
+): Promise<string> {
+  assertGuardedLeagueEnabled();
+  const source = requireUuid(sourceLeagueId, "liga de origen");
+  const cleanName = name.trim();
+  const cleanSlug = slug.trim();
+  if (cleanName.length < 3 || cleanName.length > 150 ||
+      cleanSlug.length > 160 ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(cleanSlug)) {
+    throw new Error("Nombre o URL de la liga duplicada inválidos.");
+  }
+  const { data, error } = await supabase.rpc("duplicate_league_guarded", {
+    p_source_league_id: source,
+    p_new_name: cleanName,
+    p_new_slug: cleanSlug,
+  });
+  if (error) {
+    throw new Error("No se pudo duplicar la liga. Comprueba la propiedad, los permisos y la URL.");
+  }
+  if (typeof data !== "string" || !UUID_PATTERN.test(data)) {
+    throw new Error("La duplicación no devolvió un identificador válido. Verifica el estado antes de reintentar.");
+  }
+  return data;
+}
+
+/**
  * Coordinated membership requires a superadmin or a user who administers
  * BOTH the organizer and the new club. General invitation is a later feature.
  */
