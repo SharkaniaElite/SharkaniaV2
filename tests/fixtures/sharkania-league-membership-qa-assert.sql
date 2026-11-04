@@ -223,6 +223,73 @@ END;
 $qa$;
 RESET ROLE;
 
+-- Safe duplication is authorized ONLY for the original organizer.
+-- A secondary club already participating in source A cannot inherit ownership
+-- or membership in the newly cloned league without separate approval.
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
+DO $qa$
+BEGIN
+  PERFORM public.duplicate_league_guarded(
+    '00000000-0000-0000-0000-000000000041',
+    'Unauthorized clone','qa-unauthorized-clone');
+  RAISE EXCEPTION 'FAIL: secondary admin duplicated foreign league';
+EXCEPTION WHEN insufficient_privilege THEN
+  RAISE NOTICE 'PASS: secondary club cannot duplicate organizer league';
+END;
+$qa$;
+RESET ROLE;
+
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $qa$
+DECLARE
+  v_clone uuid;
+  v_repeated boolean := false;
+BEGIN
+  SELECT public.duplicate_league_guarded(
+    '00000000-0000-0000-0000-000000000041',
+    'Liga A clonada','qa-league-a-clone') INTO v_clone;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.leagues l
+    WHERE l.id=v_clone AND l.name='Liga A clonada'
+      AND l.slug='qa-league-a-clone' AND l.status='upcoming'
+      AND l.description='Liga de prueba con reglamento'
+      AND l.rules_url='https://example.test/reglas'
+      AND l.start_date='2026-11-01' AND l.end_date='2026-12-01'
+      AND l.scoring_system_id='00000000-0000-0000-0000-000000000061'
+      AND l.total_dates=9 AND l.best_dates_to_count=5
+  ) OR (SELECT count(*) FROM public.league_clubs lc
+        WHERE lc.league_id=v_clone)<>1
+    OR NOT EXISTS (
+      SELECT 1 FROM public.league_clubs lc
+      WHERE lc.league_id=v_clone
+        AND lc.club_id='00000000-0000-0000-0000-000000000021'
+        AND lc.is_primary
+    )
+    OR (SELECT count(*) FROM public.league_rooms lr
+        WHERE lr.league_id=v_clone
+          AND lr.room_id='00000000-0000-0000-0000-000000000032')<>1
+    OR (SELECT count(*) FROM public.league_rooms lr
+        WHERE lr.league_id=v_clone)<>1
+  THEN
+    RAISE EXCEPTION 'FAIL: league clone copied unauthorized members or lost metadata';
+  END IF;
+  RAISE NOTICE 'PASS: organizer cloned settings and rooms, no secondary club inherited';
+END;
+$qa$;
+DO $qa$
+BEGIN
+  PERFORM public.duplicate_league_guarded(
+    '00000000-0000-0000-0000-000000000041',
+    'Conflicting duplicate','qa-league-a-clone');
+  RAISE EXCEPTION 'FAIL: duplicated slug was accepted';
+EXCEPTION WHEN SQLSTATE 'PT409' THEN
+  RAISE NOTICE 'PASS: clone slug conflict blocked without partial rows';
+END;
+$qa$;
+RESET ROLE;
+
 -- Even privileged buggy code must not be able to create TWO primary
 -- organizers. This is an integrity invariant independent from client RLS.
 DO $qa$
