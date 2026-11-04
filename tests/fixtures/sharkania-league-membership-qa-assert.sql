@@ -49,9 +49,12 @@ BEGIN
   WHERE id='00000000-0000-0000-0000-000000000041';
   GET DIAGNOSTICS n=ROW_COUNT;
   IF n<>0 THEN RAISE EXCEPTION 'FAIL: club B edited league A'; END IF;
-  DELETE FROM public.leagues WHERE id='00000000-0000-0000-0000-000000000041';
-  GET DIAGNOSTICS n=ROW_COUNT;
-  IF n<>0 THEN RAISE EXCEPTION 'FAIL: club B deleted league A'; END IF;
+  BEGIN
+    DELETE FROM public.leagues WHERE id='00000000-0000-0000-0000-000000000041';
+    RAISE EXCEPTION 'FAIL: club B deleted league A';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL; -- Direct DELETE has been REVOKED, not just RLS-filtered.
+  END;
   RAISE NOTICE 'PASS: B cannot edit or delete an unrelated league';
 END;
 $qa$;
@@ -214,10 +217,13 @@ BEGIN
   WHERE id='00000000-0000-0000-0000-000000000041';
   GET DIAGNOSTICS n=ROW_COUNT;
   IF n<>0 THEN RAISE EXCEPTION 'FAIL: B secondary member edited league A'; END IF;
-  DELETE FROM public.leagues
-  WHERE id='00000000-0000-0000-0000-000000000041';
-  GET DIAGNOSTICS n=ROW_COUNT;
-  IF n<>0 THEN RAISE EXCEPTION 'FAIL: B secondary member deleted league A'; END IF;
+  BEGIN
+    DELETE FROM public.leagues
+    WHERE id='00000000-0000-0000-0000-000000000041';
+    RAISE EXCEPTION 'FAIL: B secondary member deleted league A';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
   RAISE NOTICE 'PASS: secondary club participant cannot take over shared league';
 END;
 $qa$;
@@ -286,6 +292,70 @@ BEGIN
   RAISE EXCEPTION 'FAIL: duplicated slug was accepted';
 EXCEPTION WHEN SQLSTATE 'PT409' THEN
   RAISE NOTICE 'PASS: clone slug conflict blocked without partial rows';
+END;
+$qa$;
+RESET ROLE;
+
+-- New deletion policy refuses any operational references, preserving
+-- the tournament->league link (production FK ON DELETE SET NULL).
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
+DO $qa$
+BEGIN
+  PERFORM public.delete_empty_league_guarded(
+    '00000000-0000-0000-0000-000000000041');
+  RAISE EXCEPTION 'FAIL: secondary club deleted organizer league via RPC';
+EXCEPTION WHEN insufficient_privilege THEN
+  RAISE NOTICE 'PASS: secondary club cannot delete league via protected RPC';
+END;
+$qa$;
+RESET ROLE;
+
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $qa$
+BEGIN
+  PERFORM public.delete_empty_league_guarded(
+    '00000000-0000-0000-0000-000000000041');
+  RAISE EXCEPTION 'FAIL: active league with tournament was deleted';
+EXCEPTION WHEN SQLSTATE 'PT409' THEN
+  RAISE NOTICE 'PASS: organizer cannot delete league with tournament references';
+END;
+$qa$;
+RESET ROLE;
+DO $qa$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.leagues
+                  WHERE id='00000000-0000-0000-0000-000000000041')
+     OR NOT EXISTS (
+       SELECT 1 FROM public.tournaments
+       WHERE id='00000000-0000-0000-0000-000000000011'
+       AND league_id='00000000-0000-0000-0000-000000000041')
+  THEN
+    RAISE EXCEPTION 'FAIL: rejected delete damaged tournament link';
+  END IF;
+  RAISE NOTICE 'PASS: rejected deletion preserves tournament/league relation';
+END;
+$qa$;
+
+-- It is still safe to remove a newly created EMPTY league, including its
+-- primary membership and room selection, in a single transaction.
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $qa$
+DECLARE v_id uuid;
+BEGIN
+  SELECT id INTO v_id FROM public.leagues WHERE slug='qa-form-created';
+  IF v_id IS NULL THEN
+    RAISE EXCEPTION 'FAIL: expected synthetic empty league missing';
+  END IF;
+  IF public.delete_empty_league_guarded(v_id) IS DISTINCT FROM true
+  THEN RAISE EXCEPTION 'FAIL: protected empty deletion returned false'; END IF;
+  IF EXISTS (SELECT 1 FROM public.leagues WHERE id=v_id)
+     OR EXISTS (SELECT 1 FROM public.league_clubs WHERE league_id=v_id)
+     OR EXISTS (SELECT 1 FROM public.league_rooms WHERE league_id=v_id)
+  THEN RAISE EXCEPTION 'FAIL: empty delete left stale membership or room'; END IF;
+  RAISE NOTICE 'PASS: organizer deletes truly empty league without orphans';
 END;
 $qa$;
 RESET ROLE;
