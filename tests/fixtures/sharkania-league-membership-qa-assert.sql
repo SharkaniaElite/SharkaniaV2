@@ -344,7 +344,7 @@ BEGIN
     'Form Created League','qa-form-created',
     '{"description":"first form","start_date":"2026-11-05","end_date":"2026-12-02","rules_url":"https://example.test/rules","total_dates":8,"best_dates_to_count":5,"status":"upcoming"}'::jsonb,
     ARRAY['00000000-0000-0000-0000-000000000031'::uuid,
-          '00000000-0000-0000-0000-000000000032'::uuid[]]
+          '00000000-0000-0000-0000-000000000032'::uuid]
   ) INTO v_league;
   IF (SELECT count(*) FROM public.league_clubs lc WHERE
       lc.league_id=v_league AND lc.is_primary
