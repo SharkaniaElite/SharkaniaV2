@@ -29,6 +29,7 @@ import { InfoTooltip } from "../components/ui/info-tooltip";
 import { ADMIN_HELP } from "../lib/admin-help-texts";
 
 type TabKey = "templates" | "tournaments" | "players" | "leagues" | "stats" | "info";
+type AdminLeague = League & { is_primary_for_club: boolean; primary_club_id: string | null };
 
 export function ClubAdminPage() {
   const { user, profile } = useAuthStore();
@@ -40,7 +41,7 @@ export function ClubAdminPage() {
   const [uploadTournament, setUploadTournament] = useState<TournamentWithDetails | null>(null);
   const [editResultsTournament, setEditResultsTournament] = useState<TournamentWithDetails | null>(null);
   const [editTournament, setEditTournament] = useState<Tournament | null | undefined>(undefined);
-  const [editLeague, setEditLeague] = useState<League | null | undefined>(undefined);
+  const [editLeague, setEditLeague] = useState<AdminLeague | null | undefined>(undefined);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [duplicatingLeague, setDuplicatingLeague] = useState<string | null>(null);
   const [selectedTournamentIds, setSelectedTournamentIds] = useState<string[]>([]);
@@ -126,7 +127,7 @@ export function ClubAdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("league_clubs")
-        .select("is_primary, leagues(*)")
+        .select("is_primary, leagues(*, league_clubs(club_id, is_primary))")
         .eq("club_id", firstClubId!);
       if (error) throw error;
       // Preserve each club's PRIMARY vs PARTICIPANT membership in the admin UI.
@@ -136,11 +137,12 @@ export function ClubAdminPage() {
           const nested = Array.isArray(d.leagues)
             ? d.leagues
             : d.leagues ? [d.leagues] : [];
-          return nested.map((l: League) => ({
+          return nested.map((l: League & { league_clubs?: { club_id: string; is_primary: boolean }[] }) => ({
             ...l,
             is_primary_for_club: d.is_primary === true,
+            primary_club_id: l.league_clubs?.find((lc) => lc.is_primary)?.club_id ?? null,
           }));
-        }) as (League & { is_primary_for_club: boolean })[];
+        }) as AdminLeague[];
     },
     enabled: !!firstClubId,
   });
@@ -562,7 +564,7 @@ export function ClubAdminPage() {
                     // A participating club can use the league for its
                     // tournaments but cannot change the organizer's settings.
                     const canManageLeague =
-                      !GUARDED_LEAGUE_RPC_ENABLED || isSuperAdmin || l.is_primary_for_club;
+                      !GUARDED_LEAGUE_RPC_ENABLED || l.is_primary_for_club || (isSuperAdmin && !!l.primary_club_id);
 
                     return (
                       <div key={l.id} className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-4 flex items-center justify-between">
@@ -766,7 +768,15 @@ export function ClubAdminPage() {
       </div>
 
       {editTournament !== undefined && <TournamentForm isOpen onClose={() => setEditTournament(undefined)} onSaved={refresh} clubId={firstClubId!} tournament={editTournament} leagueOptions={leagueOptions} />}
-      {editLeague !== undefined && <LeagueForm isOpen onClose={() => setEditLeague(undefined)} onSaved={refresh} clubId={firstClubId!} league={editLeague} />}
+      {editLeague !== undefined && <LeagueForm
+        isOpen
+        onClose={() => setEditLeague(undefined)}
+        onSaved={refresh}
+        clubId={GUARDED_LEAGUE_RPC_ENABLED && editLeague
+          ? (editLeague.primary_club_id ?? firstClubId!)
+          : firstClubId!}
+        league={editLeague}
+      />}
       {uploadTournament && <ResultsUpload tournament={uploadTournament} isOpen={!!uploadTournament} onClose={() => setUploadTournament(null)} onComplete={refresh} />}
       {editResultsTournament && <ResultsEditor tournament={editResultsTournament} isOpen={!!editResultsTournament} onClose={() => setEditResultsTournament(null)} onComplete={refresh} />}
     </PageShell>
