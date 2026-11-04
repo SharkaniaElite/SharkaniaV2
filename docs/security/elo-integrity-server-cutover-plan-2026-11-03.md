@@ -202,3 +202,25 @@ El ensayo creó una sala temporal y, bajo `SET LOCAL ROLE authenticated` y un `r
 Preparado un **kit de QA reproducible** `SHARKANIA_QA_PLAYER_GUARDED_2026-11-04.zip` que incluye SQL de propuesta y shell con preflight estricto para el contenedor local `supabase_db_sharkania-qa`. Ejecuta DDL/DML y revocaciones solo en **BEGIN ... ROLLBACK**, revisa cuenta sintética y 64 tablas, y comprueba autorización/falsificación/deduplicación. **Se validaron Bash con `bash -n` y estructura ZIP, no se ejecutó todavía el SQL sobre la instancia local del operador.** Si falla el ensayo, analizar y corregir en QA, no aplicar a producción.
 
 Estado: tres vulnerabilidades de escritura confirmadas en QA; ELO RPC protegida pasó pruebas de cálculo; alta protegida aún pendiente de ejecución; **NO-GO**.
+
+
+## QA local: alta protegida de jugadores PASS — 4 nov 2026
+
+El operador ejecutó el script `SHARKANIA_QA_player_creation_guarded_local_v1.sh` contra su contenedor Supabase CLI local y compartió la salida completa. La transacción instaló temporalmente `ensure_tournament_player_guarded(uuid,text,text)`, revocó INSERT directo de `players` y retiró la policy amplia, y comprobó estas condiciones:
+
+```text
+PASS: Supabase local, 64 tablas, cuentas QA y RPC nueva ausente.
+PASS: clubes, torneos y usuarios ficticios preparados
+PASS: permisos de columna/tabla y EXECUTE adecuados
+PASS: INSERT directo prohibido incluso con estadisticas falsas
+PASS: jugador normal sin club rechazado por RPC
+PASS: administrador no puede operar club ajeno
+PASS: admin legitimo crea ficha con ELO 1200, premios 0, sin duplicado
+PASS: tambien admin debe usar RPC protegida
+ROLLBACK
+PASS FINAL: RPC y autorizaciones de creacion aprobadas. ROLLBACK restauro todo.
+```
+
+**Resultado:** validado en el clon local real de Supabase con dos identidades ficticias y permisos RLS. No hay RPC instalada permanentemente; datos y permisos previos restaurados. Copia de la misma propuesta SQL, **no es migración ejecutable sin autorización**, disponible en `docs/security/player-creation-guarded-rpc-2026-11-04.proposal.sql`.
+
+**Bloqueo para el corte:** `src/components/admin/results-upload.tsx` y `results-editor.tsx` continúan resolviendo/creando jugadores con escrituras directas; además, la carga/edición está intencionadamente bloqueada cuando `VITE_ELO_GUARDED_RPC=true` hasta tener un flujo de resultados completamente transaccional. NO activar la nueva RPC o retirar GRANT en producción de forma aislada. Próximo gate: comprobar edición legítima de `nickname`/`country_code` por admin de club bajo permisos de columna restringidos, más denegación de ELO y de edición por usuario ajeno; después diseñar carga/edición/reversión seguras en servidor. **NO-GO**.
