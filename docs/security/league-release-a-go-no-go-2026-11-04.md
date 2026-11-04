@@ -74,4 +74,4 @@ En una instancia **NO productiva** con aplicación y Supabase Auth completos, pr
 
 ## GoTrue real en CI — seguimiento
 
-Se añadieron `tests/fixtures/sharkania-league-real-auth-qa.mjs` y `.github/workflows/qa-league-real-auth.yml`, con Supabase local efímero, 4 usuarios QA y pruebas de roles/RPC vía PostgREST. **Los resultados están pendientes mientras GitHub Actions permanezca en cola.** No marcar como aprobado por haber incorporado el código. La prueba Auth/API no sustituye el E2E visual del panel sobre preproducción de 64 tablas.
+Se añadieron `tests/fixtures/sharkania-league-real-auth-qa.mjs` y `.github/workflows/qa-league-real-auth.yml`, con Supabase local efímero, 4 usuarios QA y pruebas de roles/RPC vía PostgREST. **PASS VERIFICADO**: ejecución GitHub Actions [41878300128](https://github.com/SharkaniaElite/SharkaniaV2/actions/runs/41878300128), trabajo `real-auth-local` completo, incluidos inicialización GoTrue, fixture SQL local, inicio de sesión y RPC Auth/REST, limpieza. La prueba Auth/API **no sustituye** el E2E visual del panel sobre preproducción con 64 tablas.
