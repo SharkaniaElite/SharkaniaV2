@@ -123,3 +123,27 @@ El operador realizó `BEGIN; REVOKE INSERT ON public.elo_history FROM PUBLIC, an
 Se preparó un paquete privado `SHARKANIA_QA_ELO_guarded_local_v1.zip` (script + README), **no ejecutado en el equipo del operador**. Preflight verifica contenedor local fijo, puerto loopback, 64 tablas, 2 cuentas sintéticas confirmadas y ausencia de RPC previa. Descarga el SQL original del commit fijo `b059bf388a2088a3c2a2807e3262e27454e4089e`, compara su SHA de blob `5e079fa06005d3aaf8e1be1053961857edf7ddea`, y ejecuta **una sola transacción con ROLLBACK**: datos ficticios válidos, revocación local temporal del INSERT, CREATE FUNCTION de RPC transaccional, rechazo de usuario normal, cálculo y repetición idempotente como admin ficticio del club, ELO 1223.08/1176.92, historial, premios, reentradas de 1 y perfil sincronizado. Tras rollback exige que la RPC siga ausente y que el GRANT original se restaure. El ZIP pasó `bash -n` y `unzip -t`, pero **no la prueba de ejecución PostgreSQL real**.
 
 Mantener **NO-GO** y no instalar permanente el motor protegido ni activar su flag hasta comprobar todos los flujos admin de resultados/edición/reversión, datos multimoneda y Stats Espía. El paquete no toca Supabase remoto.
+
+
+## Ejecución de RPC protegida sobre Supabase completo local — PASS (4 nov 2026)
+
+**Evidencia proporcionada por el operador:** desde Ubuntu, carpeta `~/sharkania-qa`, ejecutó `SHARKANIA_QA_ELO_guarded_local_v1.sh` contra el contenedor local `supabase_db_sharkania-qa`; el reporte fue:
+
+```text
+PASS: contenedor/puertos locales, 64 tablas, 2 usuarios sintéticos confirmados y RPC ausente.
+PASS: SQL original identificado por SHA de GitHub; versión fija, sin cambios.
+NOTICE: PASS: club, torneo, resultados y administrador de club ficticios creados temporalmente
+NOTICE: PASS: jugador no puede INSERT directo ELO, pero puede invocar RPC; anon no puede RPC
+NOTICE: PASS: usuario normal rechazado por RPC
+NOTICE: PASS: admin de club calculó ELO transaccionalmente
+NOTICE: PASS: segundo cálculo es idempotente
+NOTICE: PASS: ELO final 1223.08 y 1176.92; historial, premio, buy-in, perfil y torneo consistentes
+ROLLBACK
+PASS FINAL: RPC ELO probada y restauración local completa por ROLLBACK; ningún cambio persistente.
+```
+
+Esta batería supera el alcance del antiguo PostgreSQL sintético: aquí la RPC propuesta se creó **solo temporalmente en una transacción** sobre el Supabase CLI local real con 64 tablas, Auth y RLS existentes. El script verificó procedencia SQL por SHA y revirtió tanto función como grants y fixture mediante `ROLLBACK`. **No se instaló la RPC en ningún entorno persistente; no se cambiaron producción, main ni la configuración de flags.**
+
+**Gate aprobado (local):** autorización de jugador normal/administrador de club, permiso INSERT directo revocado, rechazo `anon`, fórmula determinista de dos jugadores (1223,08 / 1176,92), idempotencia, consistencia básica de historial y acumulados, rollback local.
+
+**Gates aún pendientes antes de publicación:** ejecución desde API Supabase/PostgREST con JWT reales; permisos adversariales con administradores de clubes ajenos; carga y edición de torneos con la UI; reversión y reapertura transaccionales; sincronización de alias múltiples; reentradas/comprobación por moneda y comparación histórica; concurrencia en esquema completo; controles de Stats Espía. En particular, `src/components/admin/results-upload.tsx` / `results-editor.tsx` todavía escriben resultados desde el navegador y `reverseElo` / `prepareTournamentForReedit` se bloquean al activar el flag. **NO-GO.**
