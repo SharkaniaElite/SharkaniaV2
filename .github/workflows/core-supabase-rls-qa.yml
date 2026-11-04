@@ -152,6 +152,13 @@ jobs:
           fi
           node tests/fixtures/sharkania-tournament-postgrest-http-qa.mjs
 
+      - name: Create isolated PostgreSQL 17 league authorization test database
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_auth'
+      - name: Reproduce shared-league takeover and install least-privilege proposal on fake data
+        run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+      - name: Verify primary club ownership, blocked self-membership and legitimate organizer operations
+        run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-assert.sql
+
       - name: Create separate PostgreSQL 17 Stats Espia database (synthetic data only)
         run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_stats'
       - name: Prepare synthetic purchases, players, currencies and authorization roles
