@@ -92,6 +92,57 @@ jobs:
       - name: Validate atomic publish, rollback, Elo chronology and new-player republish
         run: psql -v ON_ERROR_STOP=1 -d qa_publish -f tests/fixtures/sharkania-tournament-publication-qa-assert.sql
 
+      - name: Provision fresh synthetic database and restricted PostgREST login (HTTP QA only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_publish_http'
+          psql -v ON_ERROR_STOP=1 -d qa_publish_http -f tests/fixtures/sharkania-tournament-publication-qa-setup.sql
+          psql -v ON_ERROR_STOP=1 -d qa_publish_http <<'SQL'
+          CREATE ROLE qa_rest_authenticator WITH LOGIN PASSWORD 'fake_local_http_qa_only_2026';
+          GRANT authenticated TO qa_rest_authenticator;
+          GRANT anon TO qa_rest_authenticator;
+          REVOKE EXECUTE ON FUNCTION public.calculate_tournament_elo_guarded(uuid)
+            FROM PUBLIC,anon,authenticated;
+          REVOKE EXECUTE ON FUNCTION public.ensure_tournament_player_guarded(uuid,text,text)
+            FROM PUBLIC,anon,authenticated;
+          REVOKE EXECUTE ON FUNCTION public.recalculate_league_standings(uuid)
+            FROM PUBLIC,anon,authenticated;
+          SQL
+      - name: Test authenticated HTTP/PostgREST RPC and concurrent requests on synthetic schema
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGDATABASE: qa_publish_http
+          QA_HTTP_URL: http://127.0.0.1:3000
+          QA_JWT_SECRET: fake_only_ci_postgrest_jwt_secret_never_prod_2026_64_characters
+        run: |
+          set -euo pipefail
+          trap 'docker rm -f sharkania-http-qa-rest >/dev/null 2>&1 || true' EXIT
+          docker run --name sharkania-http-qa-rest --rm -d --network host \
+            -e PGRST_DB_URI='postgres://qa_rest_authenticator:fake_local_http_qa_only_2026@127.0.0.1:5432/qa_publish_http' \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$QA_JWT_SECRET" \
+            -e PGRST_SERVER_HOST=127.0.0.1 \
+            -e PGRST_SERVER_PORT=3000 \
+            postgrest/postgrest:v14.18
+          ready=false
+          for _ in $(seq 1 50); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/ 2>/dev/null || true)
+            if [[ "$code" =~ ^(2|3|4)[0-9][0-9]$ ]]; then
+              ready=true
+              break
+            fi
+            sleep 0.4
+          done
+          if [[ "$ready" != true ]]; then
+            echo 'FAIL: PostgREST did not start on loopback'
+            docker logs sharkania-http-qa-rest
+            exit 1
+          fi
+          node tests/fixtures/sharkania-tournament-postgrest-http-qa.mjs
+
       - name: Create separate PostgreSQL 17 Stats Espia database (synthetic data only)
         run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_stats'
       - name: Prepare synthetic purchases, players, currencies and authorization roles
