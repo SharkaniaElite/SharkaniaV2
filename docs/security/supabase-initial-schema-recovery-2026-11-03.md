@@ -222,3 +222,12 @@ Próximo gate: modificar **únicamente** `[auth.email].enable_confirmations = tr
 Se habilitó únicamente `[auth.email].enable_confirmations = true` en el `supabase/config.toml` del equipo Windows/Ubuntu de QA, reiniciando Supabase CLI local sin `db reset`. El operador repitió el alta sintética vía API local `127.0.0.1:54321`, obtuvo HTTP 200 y verificó un perfil `player` con 100 Shark Coins. La captura confirma **un correo de verificación “Confirm your email address” en Mailpit** en `127.0.0.1:54324`. El conteo de `auth.users` mostró **2 usuarios ficticios**, **1 confirmado** y **1 pendiente**.
 
 **Gate aprobado:** con confirmaciones habilitadas, Auth envía mensaje a buzón capturado localmente y mantiene la cuenta nueva sin `email_confirmed_at` hasta confirmación. **Gate pendiente:** clicar el enlace y demostrar transición de `pendientes=1` a `pendientes=0`, con nuevo login autenticado y pruebas RLS. No divulgar URL/token de confirmación. El resultado no certifica seguridad de pagos ni producción. **NO-GO**.
+
+
+### Confirmación real completada: PASS y siguiente gate RLS (4 nov 2026)
+
+El operador abrió el enlace de confirmación recibido en Mailpit. La consulta agregada posterior en **Supabase local** devolvió exactamente `usuarios_qa=2`, `confirmados=2`, `pendientes=0`. Por tanto, se observó la transición correcta de **1 pendiente → 0 pendientes** con enlace de verificación local. No se mostraron tokens ni contraseñas. El flujo registrado es Auth local, no la entrega real por SMTP de producción.
+
+Se consultaron **solo metadatos RLS de producción** (catálogo `pg_policies`) para preparar pruebas sin tocar datos de usuarios. `profiles` tiene SELECT propio/super, UPDATE propio/super sujeto a trigger de campos sensibles; `credit_transactions` limita SELECT a `auth.uid() = user_id`; `user_purchases` restringe INSERT `WITH CHECK false`; `club_admins` restringe mutaciones a super. `elo_history` presenta una política INSERT `WITH CHECK auth.uid() IS NOT NULL` para `PUBLIC`, cuyo efecto real debe comprobarse con triggers y controles, **sin asumir todavía una vulnerabilidad**.
+
+Próxima prueba: sesión `authenticated` simulada en transacción SQL **READ ONLY** sobre QA, seleccionar un usuario ficticio ya confirmado mediante `request.jwt.claim.sub`, comprobar cuántos perfiles RLS puede ver y comparar con el total local. Esta prueba valida predicados SQL, pero **no sustituye** pruebas API con JWT real ni operaciones negativas de escritura. Estado de despliegue: **NO-GO**.
