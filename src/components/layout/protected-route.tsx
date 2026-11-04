@@ -19,10 +19,9 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   // This is defense-in-depth only: RLS/server privileges remain authoritative.
   const previewUsingProduction = (
     typeof window !== "undefined" &&
-    /\\.pages\\.dev$/i.test(window.location.hostname) &&
-    /^https:\\/\\/nhpjzywfzljtlqaigzed\\.supabase\\.co\\/?$/i.test(
-      String(import.meta.env.VITE_SUPABASE_URL ?? "")
-    )
+    window.location.hostname.endsWith(".pages.dev") &&
+    String(import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\\/$/, "") ===
+      "https://nhpjzywfzljtlqaigzed.supabase.co"
   );
   if (previewUsingProduction) {
     return (
