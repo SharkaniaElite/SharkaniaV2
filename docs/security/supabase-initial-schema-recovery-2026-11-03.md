@@ -238,3 +238,21 @@ Próxima prueba: sesión `authenticated` simulada en transacción SQL **READ ONL
 El propietario ejecutó una transacción `BEGIN READ ONLY` en `supabase_db_sharkania-qa`, configuró `request.jwt.claim.sub` con un ID sintético y `SET LOCAL ROLE authenticated`. Reportó `perfiles_totales_qa=2`, `authenticated` / `identificado=true`, `perfiles_visibles=1`, `perfil_propio=1`, `perfiles_ajenos=0`; luego `ROLLBACK`. **Gate aprobado: aislamiento SELECT por predicados SQL RLS sobre perfiles de QA.** Sigue pendiente una prueba REST con JWT auténtico y bloqueo de UPDATE/INSERT.
 
 Metadatos SQL leídos de producción únicamente para diseñar pruebas, sin datos personales: el trigger `guard_profile_privileged_mutations` está activo en `public.profiles` y rechaza modificaciones no privilegiadas de `role`, `shark_coins_balance` y otros campos sensibles, usando `RAISE EXCEPTION` SQLSTATE 42501. El enum `public.user_role` comprende `player`, `club_admin`, `super_admin`, `academy_admin`. **Próximo gate:** probar en transacción local con `authenticated` que un usuario sintético no pueda cambiar su `role` a `super_admin`, aumentar sus Shark Coins ni alterar el perfil ajeno, revirtiendo todo con `ROLLBACK`; diferenciar error del trigger de denegación RLS. Estado de publicación **NO-GO**.
+
+
+### RLS mutaciones de perfiles negativas: 3/3 PASS (4 nov 2026)
+
+El propietario ejecutó en Supabase QA local una transacción `BEGIN` con usuario sintético en `request.jwt.claim.sub`, `SET LOCAL ROLE authenticated`, y comprobaciones encapsuladas en `DO`. Se observaron exactamente los siguientes mensajes:
+
+```text
+NOTICE: PASS: cambio de rol rechazado por seguridad
+NOTICE: PASS: aumento de monedas rechazado por seguridad
+NOTICE: PASS: modificacion de perfil ajeno bloqueada por RLS
+SET
+DO
+ROLLBACK
+```
+
+**Gate aprobado por evidencia del operador:** un jugador normal no puede autoasignarse `super_admin` ni aumentar `shark_coins_balance`, y RLS bloquea UPDATE sobre perfil ajeno. Los dos primeros intentos devolvieron SQLSTATE 42501, capturado por el harness; el tercero afectó cero filas. No quedaron cambios confirmados (`ROLLBACK`). Sigue pendiente probar por REST con JWT reales y la regresión sobre otras tablas financieras/torneos.
+
+**Observación de seguimiento independiente (metadatos producción, solo lectura, sin cambio):** `public.elo_history` tiene INSERT `TO PUBLIC WITH CHECK (auth.uid() IS NOT NULL)`, con GRANT INSERT a usuarios autenticados, y no se observan triggers no internos en esa tabla. Esto es una **superficie de riesgo que requiere prueba negativa de integridad ELO**, no constituye todavía una explotación confirmada ni valida que el frontend exponga la operación. Se prioriza comprobar, solo en local, qué protege la inserción directa de eventos ELO, separando rechazos RLS, FK y validaciones de aplicación. **No cambiar producción sin aprobación.** Estado de despliegue: **NO-GO**.
