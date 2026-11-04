@@ -243,3 +243,22 @@ PASS FINAL: edicion legitima y prohibicion de ELO comprobadas. ROLLBACK restauro
 **Gate local aprobado:** se puede restringir el UPDATE a `nickname` y `country_code` manteniendo la edición por un administrador autorizado y denegando ELO, premios y modificaciones por extraños. No quedó ninguna política/grant alterado permanentemente. El script inicial v1 se detuvo en un preflight por un error de interpretación del booleano `true` frente a `t`; v2 corrigió esa prueba, sin requerir reinicio ni reimportación.
 
 **Nuevo riesgo separado detectado mediante catálogo productivo SOLO LECTURA, AÚN NO probado por DML:** `public.league_standings` tiene RLS habilitado pero policies "Permitir insertar/actualizar/eliminar a usuarios autenticados" con predicado `auth.role()='authenticated'`, y grants INSERT/UPDATE/DELETE a `authenticated`; no tiene triggers no internos. Con FK válidas, un usuario autenticado podría manipular posiciones. Antes de declarar vulnerabilidad confirmada, reproducir en Supabase local con dos jugadores y una liga ficticia, `SET LOCAL ROLE authenticated`, `request.jwt.claim.role='authenticated'`, JWT subject ficticio sin club, INSERT/UPDATE/DELETE, `ROLLBACK`. Luego proponer tratamiento server-side transaccional del cálculo de standings que no rompa el algoritmo vigente `applyLeaguePoints` / `forceRecalculateStandings`. **NO-GO**.
+
+
+## Vulnerabilidad confirmada en `public.league_standings` (4 nov 2026)
+
+**Evidencia suministrada por el propietario:** la prueba local en Supabase CLI PostgreSQL con `BEGIN` / `ROLLBACK`, liga y jugadores sintéticos, una cuenta `authenticated` confirmada **sin clubes administrados** y `request.jwt.claim.role='authenticated'`, produjo exactamente:
+
+```text
+NOTICE: PASS: liga y jugadores ficticios preparados
+NOTICE: ALERTA: jugador pudo falsificar puntos de liga
+NOTICE: ALERTA: jugador pudo insertar posiciones falsas
+NOTICE: ALERTA: jugador pudo borrar posiciones de liga
+ROLLBACK
+```
+
+**Resultado:** usuario normal pudo `UPDATE league_standings.total_points=777777`, `INSERT league_standings.total_points=888888` y `DELETE` una clasificación existente con FK válidas. Todo revertido por `ROLLBACK`; no se modificó producción ni hubo datos guardados. Es la **cuarta superficie confirmada** en QA local, junto a escritura `elo_history`, UPDATE ELO/premios en `players` y alta de jugador arbitrario.
+
+**Sustento de metadatos productivos, obtenido antes del ensayo y solo lectura:** tabla con RLS habilitada, grants INSERT/UPDATE/DELETE a `authenticated`, policies permisivas «Permitir [insertar/actualizar/eliminar] a usuarios autenticados» con `auth.role()='authenticated'`, sin triggers específicos. Esto no autoriza escribir datos productivos para validar el problema: la reproducción local es suficiente para requerir corrección.
+
+**Aislamiento de reparación:** NO revocar estos permisos en producción hasta auditar `recalculate_league_standings` y `src/lib/api/leagues.ts`/flujos de liga (código actual invoca la RPC y también hace `.from("league_standings").update(...)` para `ccp_club,total_buy_ins_spent`). Una revocación abrupta podría dejar posiciones y rankings desactualizados. Próximo paso: introspección **solo lectura en Supabase local** del atributo `SECURITY DEFINER`, grants `EXECUTE` de `recalculate_league_standings`; luego diseñar reemplazo transaccional autorizado por club para todos los campos derivados, incluyendo las actualizaciones directas del cliente. Ensayar `REVOKE INSERT,UPDATE,DELETE FROM PUBLIC,anon,authenticated` solo en transacción local con `ROLLBACK`, comprobar continuidad con llamadas autorizadas y rechazos anónimos/sin club/club ajeno. Si la RPC actual corre como invocador o permite invocación abierta, será necesario reemplazarla por otra protegida ANTES del corte. **NO-GO**.
