@@ -649,3 +649,25 @@ Se generó `SHARKANIA_QA_concurrencia_ELO_local_v1.zip` (script Bash + README) e
 - Si no puede observarse un bloqueo, la prueba se declara **no concluyente**, no PASS.
 
 **Límites claros:** este kit prueba concurrencia de la función `calculate_tournament_elo_guarded` contra un **subconjunto sintético del esquema**, no todavía concurrencia de la republicación integrada, ni una instancia completa de Supabase Auth/PostgREST. Para release se necesita probar la RPC final de republicación y el flujo UI con concurrencia, además de la política multiclub y monedas. **NO-GO; no aplicar cambios productivos.**
+
+
+## QA local PASS: concurrencia real de motor ELO (4 nov 2026)
+
+El operador ejecutó `SHARKANIA_QA_concurrencia_ELO_local_v1.sh` en Docker loopback. Validó dos procesos PostgreSQL simultáneos en una base ficticia efímera, usando el SQL ELO protegido con SHA Git fijo. Salida aportada:
+```text
+PASS: contenedor, puerto, 64 tablas, usuarios QA y SHA del motor ELO verificados.
+PASS: base efimera con cuentas, dos clubes, tres torneos y RPC ELO protegida preparadas.
+PASS: dos sesiones independientes compitieron por los mismos jugadores; se observo espera real de bloqueo.
+NOTICE:  PASS: historias ELO serializadas, premios, buy-ins, estados y perfiles coherentes
+NOTICE:  PASS: dos requests del mismo torneo: una calcula, la otra es idempotente; sin doble conteo
+PASS: bloqueo real tambien observado entre dos solicitudes simultaneas al mismo torneo.
+LIMPIEZA: eliminando base sintetica temporal...
+PASS: base temporal eliminada; base original de Supabase QA intacta.
+PASS FINAL: concurrencia de ELO validada en PostgreSQL temporal; no persiste ninguna base QA adicional.
+```
+
+**Alcance exacto:** escenario (a) dos torneos diferentes, dos clubes, mismos jugadores compiten por bloqueo real y producen historia de ELO serializada sin perder premios, buy-ins, perfiles ni participaciones; escenario (b) dos solicitudes al mismo torneo, un solo cálculo y un rechazo idempotente de duplicación; base sintética eliminada y QA local previa sin modificación.
+
+**IMPORTANTE:** la prueba acepta ambas secuencias de finalización de torneos. La serialización por locks no implica por sí sola orden cronológico por `tournaments.start_datetime`. En el SQL actual de `calculate_tournament_elo_guarded` no hay guardia explícita de procesamiento fuera de orden: hay que añadir y probar una política cronológica en el flujo integrado de publicación. Esta prueba **NO certifica concurrencia de la republicación completa con ligas, altas y perfiles; tampoco prueba PostgREST/Frontend real**. Producción intacta. PR draft **NO-GO**.
+
+**Próximo gate de ingeniería:** formalizar RPC única de publicar/reeditar/republicar y su contrato de frontend; resguardar histórico anterior/posterior, compatibilidad CLP/USD, roles y función de ligas; revisar y coordinar revocaciones de rutas legacy sin cortar el panel. Solo después habilitar el nuevo flujo y hacer QA e2e.
