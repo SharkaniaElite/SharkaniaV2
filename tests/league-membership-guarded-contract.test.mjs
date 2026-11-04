@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const guarded = read("src/lib/api/guarded-leagues.ts");
 const leagueForm = read("src/components/admin/league-form.tsx");
+const clubAdmin = read("src/pages/club-admin.tsx");
 const legacy = read("src/lib/api/leagues.ts");
 const sql = read("docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql");
 const fixture = read("tests/fixtures/sharkania-league-membership-qa-assert.sql");
@@ -78,4 +79,12 @@ test("league form sends all data in a single guarded RPC before legacy writes", 
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.save_league_guarded/);
   assert.match(fixture, /guarded form creates metadata, organizer and rooms atomically/);
   assert.match(fixture, /rejected form submission leaves earlier league and rooms intact/);
+});
+
+test("club admin distinguishes organizer vs participant before showing league edit controls", () => {
+  assert.match(clubAdmin, /\.select\("is_primary, leagues\(\*\)"\)/);
+  assert.match(clubAdmin, /is_primary_for_club: d\.is_primary === true/);
+  assert.match(clubAdmin, /!GUARDED_LEAGUE_RPC_ENABLED \|\| isSuperAdmin \|\| l\.is_primary_for_club/);
+  assert.match(clubAdmin, /\{canManageLeague \? \(/);
+  assert.match(clubAdmin, /Club participante · sin permisos de edición/);
 });
