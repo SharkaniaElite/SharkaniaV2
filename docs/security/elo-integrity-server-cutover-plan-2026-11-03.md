@@ -492,3 +492,26 @@ Esta prueba valida un prototipo de **reset total** del último torneo, no su edi
 **Nuevo prototipo preparado y AÚN NO probado contra Supabase CLI:** archivo generado `SHARKANIA_QA_republicacion_ultimo_torneo_atomica_local_v1.zip` con Bash y README. Se verificó sintaxis `bash -n` e integridad ZIP. Incluye el reset QA ya probado, importa `calculate_tournament_elo_guarded` desde commit GitHub FIJO `b059bf388a2088a3c2a2807e3262e27454e4089e` con validación de hash Git y ensaya una `republish_latest_tournament_guarded_qa(uuid,jsonb)` transaccional. QA: solo dos jugadores existentes, USD, sin perfiles vinculados, liga simple; rechaza rol extraño, torneo intermedio e intentos cliente de escribir ELO; simula error después del reset para comprobar reversión de toda la llamada; publica nuevos resultados, recalcula ELO y standings CCP/buy-ins y comprueba repetición sin doble acumulación. Ejecuta todo bajo `BEGIN...ROLLBACK`. **Pendiente de ejecución y corrección según resultados reales de PostgreSQL.** No migración de producción, no activa feature flags, no resuelve clubes múltiples, monedas distintas, nuevos jugadores, perfiles enlazados ni pruebas concurrentes.
 
 **Release sigue NO-GO**. Se requiere después validar flujo completo por UI/PostgREST, historial/ELO unificado, multiclub/multimoneda, locking concurrente y procedimiento de corte con rollback/backup antes de autorizar PR.
+
+
+## QA local PASS: republicación atómica del último torneo con rollback de fallo intermedio (4 nov 2026)
+
+El operador ejecutó `SHARKANIA_QA_republicacion_ultimo_torneo_atomica_local_v1.sh` contra el contenedor `supabase_db_sharkania-qa`. Basado en SQL ELO fijado por hash de GitHub, un fixture de tres fechas, dos jugadores existentes sin perfiles `profile_id`, liga simple y USD. Evidencia reportada:
+
+```text
+PASS: entorno local validado; propuesta ELO fijada por SHA de GitHub.
+PASS: tres fechas sinteticas, historia completa y 2 jugadores sin perfil vinculado
+PASS: cuenta ajena no puede republicar
+PASS: rechazo de torneo intermedio con estado intacto
+PASS: campos ELO de cliente rechazados
+PASS: fallo inyectado despues de reset, transaccion interna revertida
+PASS: la falla de mitad de operacion no deja resultados parciales
+PASS: ultimo torneo republicado atomico: ELO nuevo 1285.46 / 1204.54, premios 215/90, buy-ins 140/100, liga 290/130
+PASS: reemplazo repetido no duplica los conteos (idempotencia de estado)
+ROLLBACK
+PASS FINAL: republicacion atomica ultimo torneo y rollback probados; no hay cambios persistentes.
+```
+
+**Nuevo gate local aprobado:** un RPC temporal de QA ejecuta el reset seguro, reemplazo de resultados, cálculo ELO y reconstrucción de posiciones CCP y reentradas dentro de una única transacción; los errores intencionales provocados DESPUÉS del reset revierten las mutaciones del subbloque completo. Usuario ajeno, torneos intermedios y cliente enviando columnas ELO son rechazados; segundo reemplazo idéntico no duplica contadores. Todo revertido con `ROLLBACK`. **No hay migración ni instalación persistente, tampoco cambios en producción o activación de feature flags.**
+
+**Pendientes que mantienen NO-GO:** jugadores con `profile_id` y perfiles multialias con `unified_elo`; monedas CLP/u otras y separación de cantidades/montos; alta de jugadores nuevos y ligas multiclub; validación de concurrencia (dos invocaciones y eventos paralelos), corrección de fechas y bordes, y prueba PostgREST/UI integral de carga-edición-reversión; backup y procedimiento de corte/rollback. Prototipo QA solo acepta 2 jugadores ya existentes y USD, no es componente listo para producción.
