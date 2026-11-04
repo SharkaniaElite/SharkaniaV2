@@ -213,8 +213,8 @@ BEGIN
   SELECT pg_catalog.array_agg(DISTINCT v.id)
     INTO v_affected
   FROM pg_catalog.unnest(
-    pg_catalog.coalesce(v_old_ids,ARRAY[]::uuid[]) ||
-    pg_catalog.coalesce(v_new_ids,ARRAY[]::uuid[])
+    coalesce(v_old_ids,ARRAY[]::uuid[]) ||
+    coalesce(v_new_ids,ARRAY[]::uuid[])
   ) v(id);
   -- All other guarded paths must use the same ordering of player locks.
   PERFORM p.id FROM public.players p WHERE p.id=ANY(v_affected)
@@ -246,7 +246,7 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM public.players p
     WHERE p.id=ANY(v_affected)
-      AND p.elo_rating IS DISTINCT FROM pg_catalog.coalesce(
+      AND p.elo_rating IS DISTINCT FROM coalesce(
         (SELECT h.elo_after
          FROM public.elo_history h JOIN public.tournaments t ON t.id=h.tournament_id
          WHERE h.player_id=p.id
@@ -268,17 +268,17 @@ BEGIN
       SELECT count(*)::integer AS played,
         count(*) FILTER (WHERE tr.prize_won>0)::integer AS cashes,
         count(*) FILTER (WHERE tr.position=1)::integer AS wins,
-        pg_catalog.coalesce(sum(tr.prize_won+tr.bounties_won),0) AS prize,
-        pg_catalog.coalesce(sum(t.buy_in*tr.buy_ins_count),0) AS buyins
+        coalesce(sum(tr.prize_won+tr.bounties_won),0) AS prize,
+        coalesce(sum(t.buy_in*tr.buy_ins_count),0) AS buyins
       INTO v_stats
       FROM public.tournament_results tr JOIN public.tournaments t
         ON t.id=tr.tournament_id
       WHERE tr.player_id=v_player_id AND t.status::text='completed';
 
-      SELECT pg_catalog.coalesce(
+      SELECT coalesce(
          (pg_catalog.array_agg(h.elo_after ORDER BY t.start_datetime DESC,
                               h.recorded_at DESC,h.id DESC))[1],1200),
-         pg_catalog.greatest(1200,pg_catalog.coalesce(max(h.elo_after),1200))
+         greatest(1200,coalesce(max(h.elo_after),1200))
         INTO v_last_rating,v_peak
       FROM public.elo_history h JOIN public.tournaments t ON t.id=h.tournament_id
       WHERE h.player_id=v_player_id;
