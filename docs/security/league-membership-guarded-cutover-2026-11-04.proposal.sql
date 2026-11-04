@@ -24,6 +24,13 @@
 -- league_clubs and league_rooms. Do not deploy privileges without parity.
 BEGIN;
 
+-- The existing leagues were inspected read-only: no league has zero or
+-- multiple primary clubs. Enforce AT MOST one organizer at the DB layer.
+-- Combined with the guarded creation RPC, this also guarantees a primary
+-- for every league created by the new flow.
+CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded
+ON public.league_clubs (league_id) WHERE is_primary;
+
 -- Remove exactly the policy names independently verified from production.
 DROP POLICY IF EXISTS "League clubs: admin insert" ON public.league_clubs;
 DROP POLICY IF EXISTS "League clubs: admin update" ON public.league_clubs;
