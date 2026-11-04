@@ -62,3 +62,11 @@ En una instancia **NO productiva** con aplicación y Supabase Auth completos, pr
 | Todos / pantallas existentes | Consultar torneos/rankings/ligas | Sin regresiones ni pérdida de relaciones |
 
 **Diferencia crítica:** los tests PostgREST en CI crean JWT sintéticos; esta fase E2E exige Auth real de Supabase y navegador, no se considera cumplida por CI. El borrador SQL no debe aplicarse a producción antes de superar esta tabla y documentar respaldo/restauración. Si no hay entorno de preproducción completo, ese es el bloqueo a resolver primero.
+
+## Estado del preview y backend de pruebas (comprobado 4 nov 2026)
+
+- **Preview Cloudflare Pages existente y desplegado correctamente**: `https://cdabfdf3.sharkaniav2.pages.dev`, rama `security/league-guarded-release-a-2026-11-04`, commit `e5cf6f1d811169ccdc30e00b965695ff629bf880`, estado `success`. Es un artefacto de frontend, **no evidencia E2E**.
+- Configuración Cloudflare Pages: la rama preview dispone de variables `SUPABASE_URL`, `VITE_SUPABASE_URL` y claves anon como `secret_text`. **Sus valores protegidos NO fueron expuestos** y **no se pudo certificar que apunten a una base aislada**. Flag `VITE_LEAGUE_GUARDED_RPC` no consta habilitado explícitamente en preview.
+- **Supabase conectado**: `list_branches` de la cuenta solo muestra rama `main` del proyecto productivo; **no hay rama QA remota verificable**. El contenedor local `supabase_db_sharkania-qa` ya validó SQL reversible de 64 tablas, pero esas transacciones terminan con `ROLLBACK` y no permiten pruebas reales multi-sesión Auth/browser de cambios persistentes.
+- **Regla de seguridad**: NO abrir sesiones de escritura ni probar Crear/Editar/Eliminar en ese preview mientras no se certifique un endpoint Supabase **separado de producción**, con usuarios e inventario ficticios y backend configurado según la migración propuesta. No reemplazar las variables de Pages con referencias productivas ni habilitar el flag.
+- **Próximo paso**: establecer una pila Supabase local completa (Postgres + Auth + REST y frontend local), aprovechando Docker/WSL, o una rama Supabase QA remota independiente con costo autorizado; instrumentar los casos E2E del bloque anterior. Elegir la modalidad más segura/costeable antes de crear recursos y no copiar credenciales al chat.
