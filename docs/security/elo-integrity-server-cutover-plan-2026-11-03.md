@@ -547,3 +547,17 @@ PASS FINAL: republicacion con ELO unificado multi-alias probada SOLO en QA; ROLL
 **Gate local aprobado:** prototipo de sustitución de resultados, recálculo ELO/standings y sincronización de `profiles.unified_elo` para dos nicknames del mismo usuario. Comprueba rollback forzado tras reset, rechazo a clientes con campos ELO y administradores ajenos, cronología y idempotencia de segunda republicación. Todo termina con `ROLLBACK`. No migración ni cambio permanente.
 
 **Release NO-GO:** faltan altas de jugadores nuevos desde el mismo flujo transaccional, ligas multiclub y política de autorización, varias monedas/sus diferencias semánticas, concurrencia de procesos y pruebas por HTTP/PostgREST y UI, además de plan de migración y restauración. No aplicar SQL del kit local a producción ni activar `VITE_ELO_GUARDED_RPC`.
+
+
+## Nuevo ensayo preparado: creación de jugador durante republicación protegida (4 nov 2026)
+
+Tras el PASS de la republicación multialias anterior se generó un ensayo incremental `SHARKANIA_QA_republicacion_alta_jugador_nuevo_local_v1.zip` (`.sh` + README), a partir de las piezas QA ya probadas:
+- `reset_latest_tournament_atomic_guarded_qa`, `calculate_tournament_elo_guarded` y reconstrucción transaccional de standings;
+- `ensure_tournament_player_guarded(uuid,text,text)` antes probado por separado;
+- replica dos jugadores y tres torneos USD, ambos jugadores originales asociados al mismo perfil Auth, luego añade tercero con nickname nuevo en el último torneo durante la republicación.
+- denegaciones: usuario normal no puede registrar vía RPC, club admin no puede insertar `players.elo_rating` directo, cliente no puede enviar ELO, no re-editar torneo intermedio;
+- fallo inyectado DESPUÉS del reset y alta nueva: verifica que no quede jugador huérfano ni ELO unificado/estadísticas alterados;
+- éxito con tercer participante: ELO inicial 1200, tres registros de historia y resultados, puntos de liga y buy-ins para tres, sincronización de `profiles.unified_elo`, repetición idempotente sin ficha duplicada.
+- simula revocaciones transaccionales y restituye todos los privilegios/fixtures mediante `ROLLBACK`. `curl` descarga SQL ELO de commit fijo con hash Git blob.
+
+**Estado del kit:** generado en el entorno de trabajo; `bash -n` aprobado y verificación de integridad ZIP superada. **NO se ejecutó PostgreSQL real para este nuevo kit**: cualquier error real del operador debe revisarse sin forzar cambios. Solo QA con usuarios ficticios, USD, torneo final y una liga. No contiene migración ni es apto para producción; faltan cambios arbitrarios de roster, ligas compartidas, monedas, concurrencia, PostgREST/UI y protocolo de despliegue. **NO-GO**.
