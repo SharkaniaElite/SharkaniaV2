@@ -208,3 +208,10 @@ Operador ejecutó `SHARKANIA_QA_prueba_registro_local_v1.sh` con una dirección 
 **Gate aprobado:** signup Auth real + creación de perfil. **No se ha comprobado** la confirmación por email, estados de sesión, RLS por dos usuarios, compras, Stats Espía ni ELO; no deducir aprobación E2E general.
 
 **Próximo paso no destructivo:** verificar `auth.email.enable_confirmations` en `supabase/config.toml` y el estado agregado de `email_confirmed_at` en el Auth local, antes de pruebas de email y de sesiones. Mantener **NO-GO** en producción.
+
+
+### Confirmation email local — preflight 4 nov 2026
+
+El operador comprobó `supabase/config.toml` con dos claves `enable_confirmations = false` (líneas 228 y 264, de distintos proveedores, esperablemente email/SMS). El catálogo local `auth.users` contiene **1 usuario sintético, 1 email confirmado y 0 pendientes**. Esto es coherente con el comportamiento de registro local sin exigencia de confirmación, **no demuestra entrega ni aceptación de correo**. La prueba previa de signup sigue siendo válida para Auth + trigger de perfil, pero no para la política de verificación del email.
+
+Próximo gate: modificar **únicamente** `[auth.email].enable_confirmations = true` en `~/sharkania-qa/supabase/config.toml` (no tocar SMS), reiniciar la pila local con la red loopback ya validada, dar de alta un **segundo usuario sintético nuevo**, comprobar que nace sin `email_confirmed_at`, recuperar el mensaje en el buzón local puerto 54324, confirmar y revalidar sesión/perfil. No reutilizar el usuario sintético ya confirmado ni tocar producción. Estado NO-GO para despliegue.
