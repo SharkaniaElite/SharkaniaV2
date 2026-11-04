@@ -15,6 +15,8 @@ test("league guarded cutover remains OFF and never falls back to client writes",
   assert.match(guarded, /supabase\.rpc\("create_league_guarded"/);
   assert.match(guarded, /supabase\.rpc\("add_league_club_guarded"/);
   assert.match(guarded, /supabase\.rpc\("set_league_rooms_guarded"/);
+  assert.match(guarded, /supabase\.rpc\("duplicate_league_guarded"/);
+  assert.match(legacy, /await duplicateLeagueGuarded\(leagueId, newName, slug\)/);
   assert.doesNotMatch(guarded, /\.from\(["']league_clubs["']\)/);
   assert.doesNotMatch(guarded, /\.from\(["']league_rooms["']\)/);
   assert.match(legacy, /if \(GUARDED_LEAGUE_RPC_ENABLED\)/);
@@ -36,6 +38,8 @@ test("SQL proposal revokes broad membership DML and requires primary-club permis
   assert.match(sql, /public\.create_league_guarded/);
   assert.match(sql, /public\.add_league_club_guarded/);
   assert.match(sql, /public\.set_league_rooms_guarded/);
+  assert.match(sql, /public\.duplicate_league_guarded/);
+  assert.match(sql, /SELECT v_new,lr\.room_id FROM public\.league_rooms/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.create_league_guarded/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.add_league_club_guarded/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.set_league_rooms_guarded/);
@@ -49,4 +53,5 @@ test("PostgreSQL QA replays pre-patch attack and verifies blocked escalation", (
   assert.match(fixture, /club B cannot self-join league A/);
   assert.match(fixture, /secondary club participant cannot take over shared league/);
   assert.match(fixture, /organizer A can edit its league and replace room list/);
+  assert.match(fixture, /organizer cloned settings and rooms, no secondary club inherited/);
 });
