@@ -41,6 +41,10 @@ INSERT INTO public.league_clubs(league_id,club_id,is_primary) VALUES
 INSERT INTO public.league_rooms(league_id,room_id) VALUES
 ('00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000031');
 
+-- Original policy joins club_admins directly; the ELO-only base fixture
+-- deliberately had no club_admins SELECT. Supply read in this fake DB so
+-- we can reproduce exactly the vulnerable production policy before hardening.
+GRANT SELECT ON TABLE public.club_admins TO authenticated;
 ALTER TABLE public.leagues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.league_clubs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.league_rooms ENABLE ROW LEVEL SECURITY;
