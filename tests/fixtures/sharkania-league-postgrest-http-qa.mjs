@@ -214,5 +214,32 @@ assert.equal(num(`SELECT count(*) FROM public.leagues
 assert.equal(num(`SELECT count(*) FROM public.league_rooms
   WHERE league_id='${createdForm.data}'`),0);
 console.log("PASS: rejected HTTP LeagueForm edits left metadata and rooms unchanged.");
-console.log("PASS FINAL: authenticated league CRUD, atomic LeagueForm save, safe clone and concurrency over PostgREST.");
+const directDelete = await http("DELETE",
+  `/leagues?id=eq.${ids.leagueA}`,ids.a);
+code(directDelete,403,"direct DELETE of league is revoked even for primary organizer");
+
+const unauthorizedDelete = await call("delete_empty_league_guarded",ids.b,{
+  p_league_id:ids.leagueA,
+});
+code(unauthorizedDelete,403,"secondary club cannot delete organizer league");
+
+const linkedDelete = await call("delete_empty_league_guarded",ids.a,{
+  p_league_id:ids.leagueA,
+});
+code(linkedDelete,409,"cannot delete league linked to historical tournaments");
+assert.equal(num(`SELECT count(*) FROM public.tournaments
+  WHERE id='00000000-0000-0000-0000-000000000011' AND league_id='${ids.leagueA}'`),1);
+console.log("PASS: tournament retains original league_id after denied deletion.");
+
+const emptyDelete = await call("delete_empty_league_guarded",ids.a,{
+  p_league_id:createdForm.data,
+});
+code(emptyDelete,200,"organizer removes truly empty league via one protected RPC");
+assert.equal(emptyDelete.data,true);
+assert.equal(num(`SELECT count(*) FROM public.leagues WHERE id='${createdForm.data}'`),0);
+assert.equal(num(`SELECT count(*) FROM public.league_clubs WHERE league_id='${createdForm.data}'`),0);
+assert.equal(num(`SELECT count(*) FROM public.league_rooms WHERE league_id='${createdForm.data}'`),0);
+console.log("PASS: safe league deletion did not leave membership or room orphans.");
+console.log("PASS FINAL: protected league CRUD, safe empty-only DELETE, atomic form and concurrent clone over HTTP.");
+
 
