@@ -316,3 +316,26 @@ Se creó localmente `SHARKANIA_QA_recalculo_ligas_autorizado_local_v1.zip` con u
 El script hace preflight estricto (loopback, nombre del contenedor, 64 tablas, 2 usuarios `@example.test` confirmados, 0 administradores), crea dentro de **BEGIN...ROLLBACK** un prototipo `recalculate_league_standings_guarded_qa(uuid)` `SECURITY DEFINER` `search_path=''`, exige `auth.uid()`, requiere administración de **al menos un club asociado por `league_clubs`** (o superadmin), y llama la función legada con bloqueo advisory de liga. En la misma transacción revoca acceso anónimo, `EXECUTE` directo de función legada y escrituras directas INSERT/UPDATE/DELETE en `league_standings`. Con dos usuarios QA y dos clubes/ligas ficticios comprueba denegación de usuario normal, denegación de admin ajeno, autorización legítima de cada admin, denegación de viejo RPC y DML, restaura todo con `ROLLBACK` y confirma recuentos/grants de vuelta.
 
 **ALCANCE LIMITADO: sólo ensayo de autorización**. El wrapper de QA NO resuelve el defecto de `DELETE/INSERT` destruyendo campos complementarios ni transacción de cargas/ediciones reales. NO desplegar el wrapper ni sustituir la función actual todavía. Antes de producción se deberá decidir explícitamente si **cualquier admin de club participante** puede recalcular toda liga compartida, o solo la entidad coordinadora (ver `is_primary`), y asegurar commit atómico de resultados + ELO + standings + datos financieros. **NO-GO**.
+
+
+## QA local PASS: recálculo de ligas con autorización de clubes — 4 nov 2026
+
+Operador ejecutó `SHARKANIA_QA_recalculo_ligas_autorizado_local_v1.sh` en `supabase_db_sharkania-qa`. Evidencia textual:
+```text
+PASS: contenedor, puertos locales y cuentas QA comprobados.
+PASS: dos clubes y dos ligas sinteticas; solo admin A habilitado
+PASS: ruta antigua y escrituras directas revocadas; anon sin nueva RPC
+PASS: usuario normal sin club rechazado
+PASS: RPC antigua cerrada a usuario autenticado
+PASS: UPDATE directo bloqueado
+PASS: admin A recalculo su liga A
+PASS: admin A rechazado al recalcular liga B ajena
+PASS: admin B no puede recalcular liga A ajena
+PASS: admin B recalculo liga B asociada a su club
+ROLLBACK
+PASS FINAL: autorizacion de recalc y prohibicion de escrituras arbitrarias probadas en local; nada persistente.
+```
+
+Este ensayo instala temporalmente wrapper `recalculate_league_standings_guarded_qa(uuid)`, rechaza a no administradores y a clubs ajenos en las fixtures, revoca EXECUTE de la RPC legacy y DML directo sobre standings; restaura todo con `ROLLBACK`. **Solo valida autorización y revocaciones**, no corrige pérdida de datos CCP/buy-ins/last_tournament, ni autoriza su uso en producción. La lógica permisiva de acceso para un admin de CUALQUIER club asociado (vs. solo primaria) necesita decisión de negocio. El código existente `forceRecalculateStandings` recompone datos en el cliente con múltiples UPDATE fuera de transacción y `applyLeaguePoints` también escribe directo; ambas rutas requieren corte conjunto.
+
+**Siguiente gate:** reproducir con liga sintética con resultados reales, probar que el recálculo legado borra metadata complementaria, después diseñar y ensayar el recálculo protegido íntegramente atómico que reconstituye CCP y todas las reentradas. **NO-GO**.
