@@ -147,8 +147,9 @@ console.log("PASS: second club published a chronologically later date via HTTP."
 const older = await callRpc({
   sub: id.clubAdmin, body: retryPayload,
 });
-assert.ok([400, 409, 422].includes(older.code),
-  `older tournament must fail: ${older.code} ${JSON.stringify(older.json)}`);
+assert.equal(older.code, 409,
+  `chronological conflict must produce HTTP 409, got ${older.code}: ${JSON.stringify(older.json)}`);
+assert.equal(older.json.code, "PT409");
 assert.equal(queryNumber("SELECT count(*) FROM public.elo_history"), 4);
 console.log("PASS: HTTP rejects historical edits after a newer tournament.");
 console.log("PASS FINAL: HTTP/JWT, two parallel requests, permissions and chronology on synthetic PostgREST QA.");
