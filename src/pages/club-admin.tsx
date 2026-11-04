@@ -18,7 +18,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { deleteTournamentSafe, getTournamentsByClub } from "../lib/api/tournaments"; // 👈 Agregamos getTournamentsByClub
 import { duplicateLeague } from "../lib/api/leagues";
-import { GUARDED_LEAGUE_RPC_ENABLED } from "../lib/api/guarded-leagues";
+import { GUARDED_LEAGUE_RPC_ENABLED, deleteEmptyLeagueGuarded } from "../lib/api/guarded-leagues";
 import { formatCurrency } from "../lib/format";
 import { getTournamentLifecyclePhase } from "../lib/tournament-lifecycle";
 import { cn } from "../lib/cn";
@@ -194,6 +194,16 @@ export function ClubAdminPage() {
   };
 
   const handleDeleteLeague = async (l: League) => {
+    if (GUARDED_LEAGUE_RPC_ENABLED) {
+      if (!confirm(`¿Eliminar la liga "${l.name}"? Por seguridad, solo se eliminan ligas sin torneos, plantillas ni resultados.`)) return;
+      try {
+        await deleteEmptyLeagueGuarded(l.id);
+        refresh();
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "No se pudo eliminar la liga.");
+      }
+      return;
+    }
     if (!confirm(`¿Eliminar liga "${l.name}"?`)) return;
     await supabase.from("leagues").delete().eq("id", l.id);
     refresh();
