@@ -262,3 +262,15 @@ ROLLBACK
 **Sustento de metadatos productivos, obtenido antes del ensayo y solo lectura:** tabla con RLS habilitada, grants INSERT/UPDATE/DELETE a `authenticated`, policies permisivas «Permitir [insertar/actualizar/eliminar] a usuarios autenticados» con `auth.role()='authenticated'`, sin triggers específicos. Esto no autoriza escribir datos productivos para validar el problema: la reproducción local es suficiente para requerir corrección.
 
 **Aislamiento de reparación:** NO revocar estos permisos en producción hasta auditar `recalculate_league_standings` y `src/lib/api/leagues.ts`/flujos de liga (código actual invoca la RPC y también hace `.from("league_standings").update(...)` para `ccp_club,total_buy_ins_spent`). Una revocación abrupta podría dejar posiciones y rankings desactualizados. Próximo paso: introspección **solo lectura en Supabase local** del atributo `SECURITY DEFINER`, grants `EXECUTE` de `recalculate_league_standings`; luego diseñar reemplazo transaccional autorizado por club para todos los campos derivados, incluyendo las actualizaciones directas del cliente. Ensayar `REVOKE INSERT,UPDATE,DELETE FROM PUBLIC,anon,authenticated` solo en transacción local con `ROLLBACK`, comprobar continuidad con llamadas autorizadas y rechazos anónimos/sin club/club ajeno. Si la RPC actual corre como invocador o permite invocación abierta, será necesario reemplazarla por otra protegida ANTES del corte. **NO-GO**.
+
+
+## Consulta local de superficie de RPC de recálculo de liga — 4 nov 2026
+
+Salida del operador en `supabase_db_sharkania-qa`, consulta **solo lectura** `pg_proc` + `has_function_privilege`:
+
+```text
+funcion                      argumentos        usa_security_definer   anon_puede_ejecutar   jugador_puede_ejecutar
+recalculate_league_standings p_league_id uuid   f                     t                     t
+```
+
+Interpretación precisa: la función es `SECURITY INVOKER` (no definer), y los roles `anon` y `authenticated` tienen `EXECUTE`. **No prueba ejecución exitosa por anon ni modificación:** faltan análisis del cuerpo, roles, RLS y ensayos. El catálogo y la QA ya prueban que `authenticated` puede efectuar INSERT/UPDATE/DELETE arbitrarios en `league_standings`; potencialmente puede activar un recálculo de una liga ajena. Siguiente paso: obtener `pg_get_functiondef` **solo en local** y revisar validación de autorización/algoritmo; diseñar RPC protegida y migrar escrituras del navegador antes de revocar permisos en producción. No ejecutar `SECURITY DEFINER` sin guardas internas o solo como cambio cosmético. **NO-GO**.
