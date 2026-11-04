@@ -150,4 +150,69 @@ assert.deepEqual([raceA.code,raceB.code].sort((x,y)=>x-y),[200,409],
 assert.equal(num("SELECT count(*) FROM public.leagues WHERE slug='qa-concurrent-http'"),1);
 assert.equal(num("SELECT count(*) FROM public.league_clubs lc JOIN public.leagues l ON l.id=lc.league_id WHERE l.slug='qa-concurrent-http'"),1);
 console.log("PASS: real concurrent HTTP duplication serialized; only one league created.");
-console.log("PASS FINAL: authenticated league RLS, ownership, atomic clone, memberships and concurrent slug conflicts over PostgREST.");
+
+const formFields = {
+  description: "HTTP form test",
+  start_date: "2026-11-05",
+  end_date: "2026-12-05",
+  rules_url: "https://example.test/league-rules",
+  total_dates: 8,
+  best_dates_to_count: 5,
+  status: "upcoming",
+};
+const formCreate = {
+  p_league_id: null,
+  p_primary_club_id: ids.clubA,
+  p_name: "HTTP form created",
+  p_slug: "qa-form-http-created",
+  p_fields: formFields,
+  p_room_ids: [ids.roomB],
+};
+code(await call("save_league_guarded",ids.normal,formCreate),403,
+  "normal player cannot submit LeagueForm");
+code(await call("save_league_guarded",ids.b,formCreate),403,
+  "club B cannot create LeagueForm under club A");
+
+const createdForm = await call("save_league_guarded",ids.a,formCreate);
+code(createdForm,200,"authorized A can create league, primary and rooms in single RPC");
+assert.match(createdForm.data,/^[0-9a-f-]{36}$/i);
+assert.equal(num(`SELECT count(*) FROM public.league_clubs
+  WHERE league_id='${createdForm.data}' AND club_id='${ids.clubA}' AND is_primary`),1);
+assert.equal(num(`SELECT count(*) FROM public.league_rooms
+  WHERE league_id='${createdForm.data}' AND room_id='${ids.roomB}'`),1);
+assert.equal(num(`SELECT count(*) FROM public.leagues
+  WHERE id='${createdForm.data}' AND total_dates=8 AND best_dates_to_count=5 AND status='upcoming'`),1);
+
+const formEdit = {
+  ...formCreate,
+  p_league_id: createdForm.data,
+  p_name: "HTTP form edited",
+  p_fields: {...formFields, description:"edited",total_dates:9,best_dates_to_count:6,status:"active"},
+  p_room_ids:[],
+};
+code(await call("save_league_guarded",ids.b,formEdit),403,
+  "club B cannot edit A LeagueForm");
+code(await call("save_league_guarded",ids.a,formEdit),200,
+  "A can edit league and clear rooms atomically");
+assert.equal(num(`SELECT count(*) FROM public.league_rooms
+  WHERE league_id='${createdForm.data}'`),0);
+assert.equal(num(`SELECT count(*) FROM public.leagues
+  WHERE id='${createdForm.data}' AND name='HTTP form edited'
+  AND description='edited' AND status='active' AND best_dates_to_count=6`),1);
+
+const invalidForm={...formEdit,p_name:"FAIL silently",p_fields:{...formEdit.p_fields,best_dates_to_count:10}};
+const badCount=await call("save_league_guarded",ids.a,invalidForm);
+code(badCount,422,"invalid league scoring dates rejected");
+const badRoom=await call("save_league_guarded",ids.a,{
+  ...formEdit,p_name:"FAIL unknown room",
+  p_room_ids:["00000000-0000-0000-0000-000000000099"]
+});
+code(badRoom,422,"unknown room rejected");
+assert.equal(num(`SELECT count(*) FROM public.leagues
+  WHERE id='${createdForm.data}' AND name='HTTP form edited'
+  AND description='edited' AND best_dates_to_count=6`),1);
+assert.equal(num(`SELECT count(*) FROM public.league_rooms
+  WHERE league_id='${createdForm.data}'`),0);
+console.log("PASS: rejected HTTP LeagueForm edits left metadata and rooms unchanged.");
+console.log("PASS FINAL: authenticated league CRUD, atomic LeagueForm save, safe clone and concurrency over PostgREST.");
+
