@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const guarded = read("src/lib/api/guarded-leagues.ts");
+const leagueForm = read("src/components/admin/league-form.tsx");
 const legacy = read("src/lib/api/leagues.ts");
 const sql = read("docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql");
 const fixture = read("tests/fixtures/sharkania-league-membership-qa-assert.sql");
@@ -54,4 +55,27 @@ test("PostgreSQL QA replays pre-patch attack and verifies blocked escalation", (
   assert.match(fixture, /secondary club participant cannot take over shared league/);
   assert.match(fixture, /organizer A can edit its league and replace room list/);
   assert.match(fixture, /organizer cloned settings and rooms, no secondary club inherited/);
+});
+
+test("league form sends all data in a single guarded RPC before legacy writes", () => {
+  assert.match(guarded, /supabase\\.rpc\\("save_league_guarded"/);
+  assert.match(guarded, /p_room_ids: \[\.\.\.input\\.roomIds\]/);
+  assert.match(leagueForm, /if \\(GUARDED_LEAGUE_RPC_ENABLED\\) \\{/);
+  assert.match(leagueForm, /await saveLeagueGuarded\\(\\{/);
+  assert.match(leagueForm, /fields:\\s*\\{/);
+  assert.match(leagueForm, /roomIds: form\\.room_ids/);
+  assert.ok(
+    leagueForm.indexOf("await saveLeagueGuarded({") <
+    leagueForm.indexOf('supabase.from("leagues").insert(payload)'),
+    "one-RPC guarded branch must precede legacy multi-write INSERT",
+  );
+  assert.ok(
+    leagueForm.indexOf("await saveLeagueGuarded({") <
+    leagueForm.indexOf('supabase.from("league_rooms").delete()'),
+    "guarded edit cannot first delete rooms through browser API",
+  );
+  assert.match(sql, /public\\.save_league_guarded/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\\.save_league_guarded/);
+  assert.match(fixture, /guarded form creates metadata, organizer and rooms atomically/);
+  assert.match(fixture, /rejected form submission leaves earlier league and rooms intact/);
 });
