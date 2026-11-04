@@ -374,9 +374,9 @@ BEGIN
     RAISE EXCEPTION 'Description or rules URL invalid' USING ERRCODE='PT422';
   END IF;
   IF (v_fields->>'start_date' IS NOT NULL AND
-      v_fields->>'start_date' !~ '^\\d{4}-\\d{2}-\\d{2}$')
+      v_fields->>'start_date' !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
      OR (v_fields->>'end_date' IS NOT NULL AND
-      v_fields->>'end_date' !~ '^\\d{4}-\\d{2}-\\d{2}$')
+      v_fields->>'end_date' !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
   THEN
     RAISE EXCEPTION 'Invalid date format' USING ERRCODE='PT422';
   END IF;
