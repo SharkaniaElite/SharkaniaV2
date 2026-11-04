@@ -159,6 +159,61 @@ jobs:
       - name: Verify primary club ownership, blocked self-membership and legitimate organizer operations
         run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-assert.sql
 
+      - name: Prepare isolated league PostgREST database and synthetic login
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_http'
+          psql -v ON_ERROR_STOP=1 -d qa_league_http -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+          psql -v ON_ERROR_STOP=1 -d qa_league_http <<'SQL'
+          -- This fixture's original auth.uid() only supported direct psql JWT
+          -- test GUCs; PostgREST v14 supplies a JSON claims GUC instead.
+          CREATE OR REPLACE FUNCTION auth.uid()
+          RETURNS uuid LANGUAGE sql STABLE AS $auth$
+            SELECT NULLIF(coalesce(
+              NULLIF(current_setting('request.jwt.claim.sub',true),''),
+              current_setting('request.jwt.claims',true)::jsonb->>'sub'
+            ),'')::uuid
+          $auth$;
+          CREATE ROLE qa_league_http_authenticator WITH LOGIN PASSWORD 'fake_local_league_http_only_2026';
+          GRANT authenticated TO qa_league_http_authenticator;
+          GRANT anon TO qa_league_http_authenticator;
+          SQL
+
+      - name: HTTP JWT league ownership and atomic clone concurrency (synthetic)
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGDATABASE: qa_league_http
+          QA_LEAGUE_HTTP_URL: http://127.0.0.1:3001
+          QA_LEAGUE_JWT_SECRET: fake_only_ci_league_test_jwt_secret_never_prod_2026
+        run: |
+          set -euo pipefail
+          trap 'docker rm -f sharkania-league-http-qa >/dev/null 2>&1 || true' EXIT
+          docker run --name sharkania-league-http-qa --rm -d --network host \
+            -e PGRST_DB_URI='postgres://qa_league_http_authenticator:fake_local_league_http_only_2026@127.0.0.1:5432/qa_league_http' \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$QA_LEAGUE_JWT_SECRET" \
+            -e PGRST_SERVER_HOST=127.0.0.1 \
+            -e PGRST_SERVER_PORT=3001 \
+            postgrest/postgrest:v14.18
+          ready=false
+          for _ in $(seq 1 50); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ 2>/dev/null || true)
+            if [[ "$code" =~ ^(2|3|4)[0-9][0-9]$ ]]; then
+              ready=true
+              break
+            fi
+            sleep 0.4
+          done
+          if [[ "$ready" != true ]]; then
+            echo 'FAIL: league PostgREST did not start on loopback'
+            docker logs sharkania-league-http-qa
+            exit 1
+          fi
+          node tests/fixtures/sharkania-league-postgrest-http-qa.mjs
+
       - name: Create separate PostgreSQL 17 Stats Espia database (synthetic data only)
         run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_stats'
       - name: Prepare synthetic purchases, players, currencies and authorization roles
