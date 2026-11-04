@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Modal } from "../ui/modal";
 import { supabase } from "../../lib/supabase";
+import { GUARDED_LEAGUE_RPC_ENABLED, saveLeagueGuarded } from "../../lib/api/guarded-leagues";
 import { usePokerRooms } from "../../hooks/use-clubs";
 import type { League } from "../../types";
 
@@ -68,7 +69,7 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
     }));
   };
 
-  const determineLeagueStatus = (startDate: string, endDate: string) => {
+  const determineLeagueStatus = (startDate: string, endDate: string): "upcoming" | "active" | "finished" => {
     if (!startDate) return "upcoming"; 
     const today: string = new Date().toISOString().substring(0, 10);
     if (today < startDate) return "upcoming";
@@ -96,6 +97,63 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
         best_dates_to_count: form.best_dates_to_count ? parseInt(form.best_dates_to_count) : null,
         status: determineLeagueStatus(form.start_date, form.end_date),
       };
+
+      if (GUARDED_LEAGUE_RPC_ENABLED) {
+        const totalDates = form.total_dates ? Number(form.total_dates) : null;
+        const bestDates = form.best_dates_to_count ? Number(form.best_dates_to_count) : null;
+        if (
+          (totalDates !== null && (!Number.isSafeInteger(totalDates) || totalDates < 1)) ||
+          (bestDates !== null && (!Number.isSafeInteger(bestDates) || bestDates < 1)) ||
+          (totalDates !== null && bestDates !== null && bestDates > totalDates)
+        ) {
+          throw new Error("Las cantidades de fechas deben ser enteras positivas y coherentes.");
+        }
+
+        const baseSlug = form.name.toLowerCase().normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+        if (!isEdit && !baseSlug) {
+          throw new Error("El nombre de la liga no genera una URL válida.");
+        }
+        let slug = isEdit && league ? league.slug : baseSlug;
+        if (!isEdit) {
+          let found = false;
+          for (let attempt = 0; attempt < 30; attempt++) {
+            slug = attempt ? `${baseSlug}-${attempt}` : baseSlug;
+            const { data, error: lookupError } = await supabase
+              .from("leagues").select("id").eq("slug", slug).maybeSingle();
+            if (lookupError) throw new Error("No se pudo comprobar la URL de la liga.");
+            if (!data) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) throw new Error("No hay una URL libre para esa liga.");
+        }
+
+        // One server transaction: metadata, primary club and rooms.
+        // Never fall back to legacy browser INSERT/UPDATE/DELETE on failure.
+        await saveLeagueGuarded({
+          leagueId: isEdit && league ? league.id : null,
+          primaryClubId: clubId,
+          name: form.name,
+          slug,
+          fields: {
+            description: payload.description,
+            start_date: payload.start_date,
+            end_date: payload.end_date,
+            rules_url: payload.rules_url,
+            total_dates: totalDates,
+            best_dates_to_count: bestDates,
+            status: payload.status,
+          },
+          roomIds: form.room_ids,
+        });
+        onSaved();
+        onClose();
+        return;
+      }
 
       let leagueId: string;
 
