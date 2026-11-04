@@ -18,6 +18,8 @@ test("league guarded cutover remains OFF and never falls back to client writes",
   assert.match(guarded, /supabase\.rpc\("add_league_club_guarded"/);
   assert.match(guarded, /supabase\.rpc\("set_league_rooms_guarded"/);
   assert.match(guarded, /supabase\.rpc\("duplicate_league_guarded"/);
+  assert.match(guarded, /supabase\.rpc\("delete_empty_league_guarded"/);
+  assert.match(clubAdmin, /await deleteEmptyLeagueGuarded\(l\.id\)/);
   assert.match(legacy, /await duplicateLeagueGuarded\(leagueId, newName, slug\)/);
   assert.doesNotMatch(guarded, /\.from\(["']league_clubs["']\)/);
   assert.doesNotMatch(guarded, /\.from\(["']league_rooms["']\)/);
@@ -33,9 +35,9 @@ test("SQL proposal revokes broad membership DML and requires primary-club permis
   assert.match(sql, /NOT A MIGRATION/);
   assert.match(sql, /REVOKE INSERT,UPDATE,DELETE ON TABLE public\.league_clubs/);
   assert.match(sql, /REVOKE INSERT,UPDATE,DELETE ON TABLE public\.league_rooms/);
-  assert.match(sql, /REVOKE INSERT ON TABLE public\.leagues/);
+  assert.match(sql, /REVOKE INSERT,DELETE ON TABLE public\.leagues/);
   assert.match(sql, /leagues_primary_owner_update/);
-  assert.match(sql, /leagues_primary_owner_delete/);
+  assert.match(sql, /public\.delete_empty_league_guarded/);
   assert.match(sql, /lc\.is_primary/);
   assert.match(sql, /public\.create_league_guarded/);
   assert.match(sql, /public\.add_league_club_guarded/);
@@ -56,6 +58,8 @@ test("PostgreSQL QA replays pre-patch attack and verifies blocked escalation", (
   assert.match(fixture, /secondary club participant cannot take over shared league/);
   assert.match(fixture, /organizer A can edit its league and replace room list/);
   assert.match(fixture, /organizer cloned settings and rooms, no secondary club inherited/);
+  assert.match(fixture, /organizer cannot delete league with tournament references/);
+  assert.match(fixture, /organizer deletes truly empty league without orphans/);
 });
 
 test("league form sends all data in a single guarded RPC before legacy writes", () => {
