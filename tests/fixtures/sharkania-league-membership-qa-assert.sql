@@ -303,6 +303,129 @@ EXCEPTION WHEN unique_violation THEN
 END;
 $qa$;
 
+-- LeagueForm parity: create/edit metadata + primary association + rooms
+-- in ONE server-side operation, with strict authorization and rollback.
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
+DO $qa$
+BEGIN
+  PERFORM public.save_league_guarded(NULL,
+    '00000000-0000-0000-0000-000000000021','Foreign Admin Form',
+    'qa-foreign-form',
+    '{"description":"no","start_date":null,"end_date":null,"rules_url":null,"total_dates":null,"best_dates_to_count":null,"status":"upcoming"}'::jsonb,
+    ARRAY[]::uuid[]);
+  RAISE EXCEPTION 'FAIL: B created a new league owned by A';
+EXCEPTION WHEN insufficient_privilege THEN
+  RAISE NOTICE 'PASS: guarded form cannot create a league under another club';
+END;
+$qa$;
+DO $qa$
+BEGIN
+  PERFORM public.save_league_guarded(
+    '00000000-0000-0000-0000-000000000041'::uuid,
+    '00000000-0000-0000-0000-000000000021','Foreign Club Edit',
+    'qa-league-a',
+    '{"description":"hijack","start_date":null,"end_date":null,"rules_url":null,"total_dates":null,"best_dates_to_count":null,"status":"active"}'::jsonb,
+    ARRAY[]::uuid[]);
+  RAISE EXCEPTION 'FAIL: B edited primary A via LeagueForm RPC';
+EXCEPTION WHEN insufficient_privilege THEN
+  RAISE NOTICE 'PASS: guarded form blocks secondary club editing a league';
+END;
+$qa$;
+RESET ROLE;
+
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $qa$
+DECLARE v_league uuid;
+BEGIN
+  SELECT public.save_league_guarded(
+    NULL,'00000000-0000-0000-0000-000000000021'::uuid,
+    'Form Created League','qa-form-created',
+    '{"description":"first form","start_date":"2026-11-05","end_date":"2026-12-02","rules_url":"https://example.test/rules","total_dates":8,"best_dates_to_count":5,"status":"upcoming"}'::jsonb,
+    ARRAY['00000000-0000-0000-0000-000000000031'::uuid,
+          '00000000-0000-0000-0000-000000000032'::uuid[]]
+  ) INTO v_league;
+  IF (SELECT count(*) FROM public.league_clubs lc WHERE
+      lc.league_id=v_league AND lc.is_primary
+      AND lc.club_id='00000000-0000-0000-0000-000000000021')<>1
+    OR (SELECT count(*) FROM public.league_rooms lr
+        WHERE lr.league_id=v_league)<>2
+    OR NOT EXISTS (SELECT 1 FROM public.leagues l
+      WHERE l.id=v_league AND l.name='Form Created League'
+       AND l.total_dates=8 AND l.best_dates_to_count=5
+       AND l.start_date='2026-11-05' AND l.status='upcoming')
+  THEN RAISE EXCEPTION 'FAIL: form create was not atomic'; END IF;
+  RAISE NOTICE 'PASS: guarded form creates metadata, organizer and rooms atomically';
+END;
+$qa$;
+
+DO $qa$
+DECLARE v_league uuid;
+BEGIN
+  SELECT id INTO v_league FROM public.leagues WHERE slug='qa-form-created';
+  PERFORM public.save_league_guarded(
+    v_league,'00000000-0000-0000-0000-000000000021'::uuid,
+    'Form Edited League','qa-form-created',
+    '{"description":"updated form","start_date":"2026-11-06","end_date":"2026-12-04","rules_url":"https://example.test/updated","total_dates":9,"best_dates_to_count":6,"status":"active"}'::jsonb,
+    ARRAY['00000000-0000-0000-0000-000000000032'::uuid]
+  );
+  IF NOT EXISTS (SELECT 1 FROM public.leagues l
+      WHERE l.id=v_league AND l.name='Form Edited League'
+      AND l.description='updated form' AND l.total_dates=9
+      AND l.best_dates_to_count=6 AND l.status='active')
+    OR (SELECT count(*) FROM public.league_rooms lr
+        WHERE lr.league_id=v_league AND
+        lr.room_id='00000000-0000-0000-0000-000000000032')<>1
+    OR (SELECT count(*) FROM public.league_rooms lr
+        WHERE lr.league_id=v_league)<>1
+  THEN RAISE EXCEPTION 'FAIL: guarded form edit did not replace rooms/metadata'; END IF;
+  RAISE NOTICE 'PASS: guarded form edits metadata and replaces rooms atomically';
+END;
+$qa$;
+DO $qa$
+DECLARE v_league uuid;
+BEGIN
+  SELECT id INTO v_league FROM public.leagues WHERE slug='qa-form-created';
+  PERFORM public.save_league_guarded(
+    v_league,'00000000-0000-0000-0000-000000000021'::uuid,
+    'Malicious Partial Update','qa-form-created',
+    '{"description":"should rollback","start_date":null,"end_date":null,"rules_url":null,"total_dates":5,"best_dates_to_count":9,"status":"active"}'::jsonb,
+    ARRAY[]::uuid[]);
+  RAISE EXCEPTION 'FAIL: invalid best_dates_to_count was accepted';
+EXCEPTION WHEN SQLSTATE 'PT422' THEN
+  RAISE NOTICE 'PASS: invalid league date count rejected';
+END;
+$qa$;
+DO $qa$
+DECLARE v_league uuid;
+BEGIN
+  SELECT id INTO v_league FROM public.leagues WHERE slug='qa-form-created';
+  PERFORM public.save_league_guarded(
+    v_league,'00000000-0000-0000-0000-000000000021'::uuid,
+    'Malicious Unknown Room','qa-form-created',
+    '{"description":"bad room","start_date":null,"end_date":null,"rules_url":null,"total_dates":4,"best_dates_to_count":2,"status":"active"}'::jsonb,
+    ARRAY['00000000-0000-0000-0000-000000000099'::uuid]);
+  RAISE EXCEPTION 'FAIL: unknown room was accepted by atomic LeagueForm';
+EXCEPTION WHEN SQLSTATE 'PT422' THEN
+  RAISE NOTICE 'PASS: invalid room rejected before metadata update';
+END;
+$qa$;
+RESET ROLE;
+DO $qa$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.leagues l
+       WHERE l.slug='qa-form-created' AND l.name='Form Edited League'
+       AND l.description='updated form')
+    OR (SELECT count(*) FROM public.league_rooms lr
+        JOIN public.leagues l ON l.id=lr.league_id
+        WHERE l.slug='qa-form-created')<>1 THEN
+    RAISE EXCEPTION 'FAIL: rejected guarded form changed existing metadata';
+  END IF;
+  RAISE NOTICE 'PASS: rejected form submission leaves earlier league and rooms intact';
+END;
+$qa$;
+
 DO $qa$
 BEGIN
   IF (SELECT count(*) FROM public.league_rooms
