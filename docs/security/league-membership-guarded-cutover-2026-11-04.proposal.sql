@@ -49,7 +49,7 @@ REVOKE INSERT,UPDATE,DELETE ON TABLE public.league_clubs
   FROM PUBLIC,anon,authenticated;
 REVOKE INSERT,UPDATE,DELETE ON TABLE public.league_rooms
   FROM PUBLIC,anon,authenticated;
-REVOKE INSERT ON TABLE public.leagues
+REVOKE INSERT,DELETE ON TABLE public.leagues
   FROM PUBLIC,anon,authenticated;
 
 CREATE POLICY "leagues_primary_owner_update"
@@ -77,19 +77,6 @@ WITH CHECK (
   )
 );
 
-CREATE POLICY "leagues_primary_owner_delete"
-ON public.leagues FOR DELETE TO authenticated
-USING (
-  (SELECT auth.uid()) IS NOT NULL
-  AND (
-    (SELECT public.is_super_admin())
-    OR EXISTS (
-      SELECT 1 FROM public.league_clubs lc
-      WHERE lc.league_id=leagues.id AND lc.is_primary
-        AND (SELECT public.is_club_admin(lc.club_id))
-    )
-  )
-);
 
 CREATE OR REPLACE FUNCTION public.create_league_guarded(
   p_primary_club_id uuid,
@@ -481,6 +468,61 @@ BEGIN
 END;
 $func$;
 
+-- Never allow direct DELETE on leagues. Production FKs have ON DELETE
+-- SET NULL for tournaments.league_id and ON DELETE CASCADE for standings,
+-- membership and rooms. A simple DELETE could silently orphan tournament
+-- league relations and erase standings. Only *empty* leagues can be removed.
+CREATE OR REPLACE FUNCTION public.delete_empty_league_guarded(
+  p_league_id uuid
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
+AS $func$
+DECLARE v_primary uuid;
+BEGIN
+  IF (SELECT auth.uid()) IS NULL THEN
+    RAISE EXCEPTION 'Authentication required' USING ERRCODE='42501';
+  END IF;
+  -- Exclusive row lock serializes membership and FK-related concurrent writes.
+  PERFORM l.id FROM public.leagues l
+  WHERE l.id=p_league_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'League not found' USING ERRCODE='PT404';
+  END IF;
+
+  SELECT lc.club_id INTO v_primary
+  FROM public.league_clubs lc
+  WHERE lc.league_id=p_league_id AND lc.is_primary
+  ORDER BY lc.id LIMIT 1;
+  IF v_primary IS NULL OR
+     (SELECT count(*) FROM public.league_clubs lc
+      WHERE lc.league_id=p_league_id AND lc.is_primary)<>1 THEN
+    RAISE EXCEPTION 'Primary club ownership ambiguous'
+      USING ERRCODE='PT409';
+  END IF;
+  IF NOT ((SELECT public.is_super_admin())
+      OR (SELECT public.is_club_admin(v_primary))) THEN
+    RAISE EXCEPTION 'Primary organizer authorization required'
+      USING ERRCODE='42501';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.tournaments t
+             WHERE t.league_id=p_league_id)
+     OR EXISTS (SELECT 1 FROM public.tournament_templates tt
+                WHERE tt.league_id=p_league_id)
+     OR EXISTS (SELECT 1 FROM public.league_standings ls
+                WHERE ls.league_id=p_league_id)
+     OR EXISTS (SELECT 1 FROM public.current_league_champion cc
+                WHERE cc.league_id=p_league_id)
+  THEN
+    RAISE EXCEPTION 'League has tournaments, templates, standings or champions'
+      USING ERRCODE='PT409';
+  END IF;
+
+  DELETE FROM public.leagues l WHERE l.id=p_league_id;
+  RETURN true;
+END;
+$func$;
+
 -- New SECURITY DEFINER functions grant EXECUTE to PUBLIC by default:
 -- close the opening in the SAME TRANSACTION and grant authenticated only.
 REVOKE ALL ON FUNCTION public.create_league_guarded(uuid,text,text)
@@ -499,6 +541,11 @@ GRANT EXECUTE ON FUNCTION public.set_league_rooms_guarded(uuid,uuid[])
 REVOKE ALL ON FUNCTION public.duplicate_league_guarded(uuid,text,text)
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.duplicate_league_guarded(uuid,text,text)
+  TO authenticated;
+
+REVOKE ALL ON FUNCTION public.delete_empty_league_guarded(uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_empty_league_guarded(uuid)
   TO authenticated;
 
 REVOKE ALL ON FUNCTION public.save_league_guarded(uuid,uuid,text,text,jsonb,uuid[])
