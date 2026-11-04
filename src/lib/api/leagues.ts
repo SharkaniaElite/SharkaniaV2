@@ -1,6 +1,6 @@
 // src/lib/api/leagues.ts
 import { supabase } from "../supabase";
-import { GUARDED_LEAGUE_RPC_ENABLED } from "./guarded-leagues";
+import { GUARDED_LEAGUE_RPC_ENABLED, duplicateLeagueGuarded } from "./guarded-leagues";
 import type {
   League,
   LeagueWithClubs,
@@ -192,7 +192,23 @@ export async function forceRecalculateStandings(leagueId: string): Promise<boole
 // ── 👯‍♂️ MOTOR DE CLONACIÓN DE LIGAS ──
 export async function duplicateLeague(leagueId: string, newName: string): Promise<boolean> {
   if (GUARDED_LEAGUE_RPC_ENABLED) {
-    throw new Error("La duplicación protegida de ligas aún no está implementada. No se creó ninguna liga.");
+    // Safe server-side clone: the organizer + room configuration are copied,
+    // but secondary clubs are NOT automatically enrolled without consent.
+    const base = newName.toLowerCase().normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (!base) throw new Error("El nombre elegido no genera una URL válida.");
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const slug = attempt ? `${base}-${attempt}` : base;
+      const { data, error } = await supabase
+        .from("leagues").select("id").eq("slug", slug).maybeSingle();
+      if (error) throw new Error("No se pudo verificar la URL de la liga.");
+      if (data) continue;
+      await duplicateLeagueGuarded(leagueId, newName, slug);
+      return true;
+    }
+    throw new Error("No fue posible encontrar una URL libre para la nueva liga.");
   }
   // 1. Obtener la liga original con sus relaciones (clubes y salas)
   const { data: original, error: fetchError } = await supabase
