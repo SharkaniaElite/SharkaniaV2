@@ -9,12 +9,13 @@ INSERT INTO public.clubs(id) VALUES
   ('00000000-0000-0000-0000-000000000021'),
   ('00000000-0000-0000-0000-000000000022');
 
+CREATE TYPE public.league_status AS ENUM ('upcoming','active','finished');
 CREATE TABLE public.leagues(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL, slug text,
   description text, rules_url text,
   start_date date, end_date date,
-  status text NOT NULL DEFAULT 'upcoming',
+  status public.league_status NOT NULL DEFAULT 'upcoming',
   scoring_system_id uuid, total_dates integer, best_dates_to_count integer
 );
 CREATE TABLE public.league_clubs(
@@ -41,7 +42,7 @@ INSERT INTO public.leagues(
 ) VALUES
 ('00000000-0000-0000-0000-000000000041','QA League A',
  'qa-league-a','Liga de prueba con reglamento','https://example.test/reglas',
- '2026-11-01','2026-12-01','completed',
+ '2026-11-01','2026-12-01','finished',
  '00000000-0000-0000-0000-000000000061',9,5),
 ('00000000-0000-0000-0000-000000000042','QA League B',
  'qa-league-b',null,null,null,null,'upcoming',null,null,null);
