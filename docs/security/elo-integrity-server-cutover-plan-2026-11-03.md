@@ -166,3 +166,20 @@ ROLLBACK
 **Implicación de migración:** un GRANT de tabla `UPDATE` concede UPDATE sobre todas las columnas; no basta revocar una columna individual si persiste el permiso de tabla. Probar exclusivamente en transacción QA `REVOKE UPDATE ON public.players FROM PUBLIC, anon, authenticated` y `GRANT UPDATE (nickname,country_code) ... TO authenticated`, verificando que datos editables sigan funcionando y que ELO/premios sean denegados. Esto es **solo experimento**, NO una migración apta para producción: los admins y el motor ELO legado requieren escrituras, hay otras columnas y rutas que deben inventariarse y migrarse a RPC/servicio transaccional con cobertura de tests de regresión.
 
 **Prioridad ALTA**, pendiente de mitigación completa y aprobación de publicación. **NO-GO**.
+
+
+## Simulación reversible de UPDATE por columnas: PASS; nueva prueba INSERT player pendiente (4 nov 2026)
+
+Operador confirmó en `supabase_db_sharkania-qa` el resultado de `BEGIN; REVOKE UPDATE ON public.players FROM PUBLIC,anon,authenticated; GRANT UPDATE(nickname,country_code) ... TO authenticated; SELECT has_column_privilege(...); ROLLBACK`:
+
+```text
+editar_nickname=t
+editar_pais=t
+modificar_elo=f
+modificar_premios=f
+ROLLBACK
+```
+
+El diseño de privilegios finos es factible en local, **pero la prueba solo examinó GRANT efectivos y no ejecutó aún UPDATE real del administrador o la interfaz**. No aplicar esta revocación a producción antes del corte transaccional de administración, uploads/edición/reversión ELO y consultas por roles.
+
+Nueva superficie detectada por inspección de código + catálogo productivo de solo lectura: `src/components/admin/results-upload.tsx` y `results-editor.tsx` insertan directamente en `players` con el navegador, inicialmente fijando `elo_rating=1200`. La policy `Players: club admin crear` tiene `WITH CHECK (auth.uid() IS NOT NULL)`, sin validación de administrador de club, y rol `authenticated` posee INSERT de tabla y columnas ELO/premios. **Riesgo no reproducido todavía:** usuario autenticado normal podría crear jugadores con ELO/premios arbitrarios y sin aprobación de club. Preparar prueba local reversible con sala sintética y cuenta ficticia, concluyendo `ROLLBACK` antes de establecer hallazgo. Se necesita diseñar mecanismo seguro de alta de jugadores sin perder la autonomía de clubes. **NO-GO**.
