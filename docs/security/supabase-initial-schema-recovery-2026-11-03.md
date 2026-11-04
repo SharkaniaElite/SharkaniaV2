@@ -145,3 +145,21 @@ Próxima verificación objetiva: ejecutar el paquete **solo en PostgreSQL 17+pgv
 - [ ] Aprobación y plan de reversión de producción, sin alterar el historial de migraciones a ciegas.
 
 **Decisión de publicación: NO-GO** hasta los gates de integración. No crear rama facturable; no ejecutar migraciones, cambios de permisos ni reseteos en producción.
+
+
+## Supabase CLI local (Auth real) — importación del snapshot aprobada por el operador, 3–4 noviembre 2026
+
+A diferencia del ensayo previo con Auth simulado, se inicializó localmente Supabase CLI 3.0.0 con Docker Desktop y Ubuntu/WSL 2. **Todos los puertos publicados se verificaron en `127.0.0.1` / `[::1]`.** PostgreSQL local versión 17.11, `auth.users` y `auth.uid()` reales; `pgcrypto` 1.3, `uuid-ossp` 1.1 y `vector` 0.8.2 instalado en `public`. Producción usa `vector` 0.8.0, diferencia de versión pendiente de regresión.
+
+Se ejecutó `SHARKANIA_importar_a_Supabase_local.sh` desde el directorio privado del kit. El propietario compartió la salida:
+```text
+PASS: checksums, local-only port, real auth, vector and empty application schema.
+PASS: Sharkania schema snapshot imported atomically into LOCAL Supabase only.
+IMPORTANT: auth integration, table grants, role-specific RLS, purchases, ELO, and 50 migrations remain UNVERIFIED.
+```
+
+**Resultado interpretado:** se superó la importación transaccional del snapshot POST-migraciones al entorno local que ya dispone de Auth. El script verificó hashes de los dos SQL normalizados y conteos de objetos, y exigió un contenedor y puertos locales específicos. No se copiaron secretos, datos de clientes ni credenciales de producción. Tampoco se tocaron permisos ni esquema productivos. Este resultado **no prueba** que los usuarios ficticios se puedan registrar, que funcionen los triggers de `auth.users`, ni que `anon` / `authenticated` posean los permisos `GRANT` originales: el dump fue generado con `--no-acl --no-owner`.
+
+Se preparó además un diagnóstico **solo lectura**, `SHARKANIA_diagnostico_permisos_local.sh`, distribuido únicamente en la conversación privada y **sin publicar SQL del esquema en GitHub**. Comprueba con `BEGIN READ ONLY`: ACL efectivos de tablas críticas y funciones `SECURITY DEFINER`, presencia de triggers sobre `auth.users`, acceso a esquemas, RLS y extensiones. Su salida debe interpretarse como diagnóstico de la base reconstruida, **no** como réplica de permisos productivos. Hasta leer esa salida, no habilitar el frontend ni crear usuarios falsos que activen triggers pendientes.
+
+**Siguiente gate:** ejecutar el diagnóstico local; corregir grants y triggers mediante script separado validado contra los privilegios reales, únicamente en QA; después probar roles y flujos Auth/compra/ELO con datos sintéticos. Continúa **NO-GO** para publicación y para reestructuración de migraciones históricas.
