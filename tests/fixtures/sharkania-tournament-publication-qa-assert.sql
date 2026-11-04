@@ -236,7 +236,7 @@ BEGIN
     '00000000-0000-0000-0000-000000000011',
     (SELECT payload FROM qa_payload WHERE name='edited'));
   RAISE EXCEPTION 'FAIL: out-of-order republish was allowed';
-EXCEPTION WHEN object_not_in_prerequisite_state THEN
+EXCEPTION WHEN SQLSTATE 'PT409' THEN
   RAISE NOTICE 'PASS: older tournament edit refused with later history';
 END;
 $qa$;
@@ -264,7 +264,7 @@ BEGIN
     '00000000-0000-0000-0000-000000000013',
     (SELECT payload FROM qa_payload WHERE name='initial'));
   RAISE EXCEPTION 'FAIL: backdated first publication was accepted';
-EXCEPTION WHEN object_not_in_prerequisite_state THEN
+EXCEPTION WHEN SQLSTATE 'PT409' THEN
   RAISE NOTICE 'PASS: initial backdated tournament rejected by server';
 END;
 $qa$;
@@ -274,7 +274,7 @@ BEGIN
     '00000000-0000-0000-0000-000000000014',
     (SELECT payload FROM qa_payload WHERE name='initial'));
   RAISE EXCEPTION 'FAIL: unsupported CLP ELO was accepted';
-EXCEPTION WHEN object_not_in_prerequisite_state THEN
+EXCEPTION WHEN SQLSTATE 'PT422' THEN
   RAISE NOTICE 'PASS: unsupported CLP publication rejected without conversion';
 END;
 $qa$;
