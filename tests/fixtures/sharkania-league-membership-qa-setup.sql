@@ -38,6 +38,25 @@ CREATE TABLE public.league_rooms(
   UNIQUE(league_id,room_id)
 );
 
+-- Mirror the real FK consequences: deleting a league SETS tournament
+-- memberships to NULL and CASCADE-deletes standings and club/room links.
+-- Safe deletion must refuse leagues still referenced by any of these.
+ALTER TABLE public.tournaments
+  ADD COLUMN league_id uuid REFERENCES public.leagues(id) ON DELETE SET NULL;
+CREATE TABLE public.tournament_templates(
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  league_id uuid REFERENCES public.leagues(id)
+);
+CREATE TABLE public.league_standings(
+  league_id uuid NOT NULL REFERENCES public.leagues(id) ON DELETE CASCADE,
+  player_id uuid NOT NULL,
+  PRIMARY KEY(league_id,player_id)
+);
+CREATE TABLE public.current_league_champion(
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  league_id uuid REFERENCES public.leagues(id)
+);
+
 INSERT INTO public.leagues(
   id,name,slug,description,rules_url,start_date,end_date,
   status,scoring_system_id,total_dates,best_dates_to_count
@@ -48,6 +67,9 @@ INSERT INTO public.leagues(
  '00000000-0000-0000-0000-000000000061',9,5),
 ('00000000-0000-0000-0000-000000000042','QA League B',
  'qa-league-b',null,null,null,null,'upcoming',null,null,null);
+UPDATE public.tournaments SET league_id='00000000-0000-0000-0000-000000000041'
+WHERE id='00000000-0000-0000-0000-000000000011';
+
 INSERT INTO public.league_clubs(league_id,club_id,is_primary) VALUES
 ('00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000021',true),
 ('00000000-0000-0000-0000-000000000042','00000000-0000-0000-0000-000000000022',true);
