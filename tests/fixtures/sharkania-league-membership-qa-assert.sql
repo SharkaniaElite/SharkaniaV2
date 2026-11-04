@@ -223,6 +223,19 @@ END;
 $qa$;
 RESET ROLE;
 
+-- Even privileged buggy code must not be able to create TWO primary
+-- organizers. This is an integrity invariant independent from client RLS.
+DO $qa$
+BEGIN
+  UPDATE public.league_clubs SET is_primary=true
+  WHERE league_id='00000000-0000-0000-0000-000000000041'
+    AND club_id='00000000-0000-0000-0000-000000000022';
+  RAISE EXCEPTION 'FAIL: a second primary organizer was accepted';
+EXCEPTION WHEN unique_violation THEN
+  RAISE NOTICE 'PASS: partial unique index blocks a second primary organizer';
+END;
+$qa$;
+
 DO $qa$
 BEGIN
   IF (SELECT count(*) FROM public.league_rooms
