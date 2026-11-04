@@ -224,3 +224,22 @@ PASS FINAL: RPC y autorizaciones de creacion aprobadas. ROLLBACK restauro todo.
 **Resultado:** validado en el clon local real de Supabase con dos identidades ficticias y permisos RLS. No hay RPC instalada permanentemente; datos y permisos previos restaurados. Copia de la misma propuesta SQL, **no es migración ejecutable sin autorización**, disponible en `docs/security/player-creation-guarded-rpc-2026-11-04.proposal.sql`.
 
 **Bloqueo para el corte:** `src/components/admin/results-upload.tsx` y `results-editor.tsx` continúan resolviendo/creando jugadores con escrituras directas; además, la carga/edición está intencionadamente bloqueada cuando `VITE_ELO_GUARDED_RPC=true` hasta tener un flujo de resultados completamente transaccional. NO activar la nueva RPC o retirar GRANT en producción de forma aislada. Próximo gate: comprobar edición legítima de `nickname`/`country_code` por admin de club bajo permisos de columna restringidos, más denegación de ELO y de edición por usuario ajeno; después diseñar carga/edición/reversión seguras en servidor. **NO-GO**.
+
+
+## QA local: edición legítima de jugadores y permiso de columnas — PASS (4 nov 2026)
+
+El operador ejecutó `SHARKANIA_QA_admin_edicion_columnas_local_v2_REGENERADO.sh` en Supabase CLI local. La salida fue:
+
+```text
+PASS: contenedor local y cuentas de prueba verificados.
+PASS: club, torneo, jugador y administrador de club ficticios preparados
+PASS: administrador del club puede editar nickname y pais
+PASS: administrador no puede falsificar ELO ni premios por UPDATE directo
+PASS: usuario ajeno no puede editar el jugador del club
+ROLLBACK
+PASS FINAL: edicion legitima y prohibicion de ELO comprobadas. ROLLBACK restauro los datos y permisos.
+```
+
+**Gate local aprobado:** se puede restringir el UPDATE a `nickname` y `country_code` manteniendo la edición por un administrador autorizado y denegando ELO, premios y modificaciones por extraños. No quedó ninguna política/grant alterado permanentemente. El script inicial v1 se detuvo en un preflight por un error de interpretación del booleano `true` frente a `t`; v2 corrigió esa prueba, sin requerir reinicio ni reimportación.
+
+**Nuevo riesgo separado detectado mediante catálogo productivo SOLO LECTURA, AÚN NO probado por DML:** `public.league_standings` tiene RLS habilitado pero policies "Permitir insertar/actualizar/eliminar a usuarios autenticados" con predicado `auth.role()='authenticated'`, y grants INSERT/UPDATE/DELETE a `authenticated`; no tiene triggers no internos. Con FK válidas, un usuario autenticado podría manipular posiciones. Antes de declarar vulnerabilidad confirmada, reproducir en Supabase local con dos jugadores y una liga ficticia, `SET LOCAL ROLE authenticated`, `request.jwt.claim.role='authenticated'`, JWT subject ficticio sin club, INSERT/UPDATE/DELETE, `ROLLBACK`. Luego proponer tratamiento server-side transaccional del cálculo de standings que no rompa el algoritmo vigente `applyLeaguePoints` / `forceRecalculateStandings`. **NO-GO**.
