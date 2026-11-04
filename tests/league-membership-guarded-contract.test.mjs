@@ -94,3 +94,17 @@ test("club admin distinguishes organizer vs participant before showing league ed
   assert.match(clubAdmin, /primary_club_id: l\.league_clubs\?\.find\(\(lc\) => lc\.is_primary\)\?\.club_id/);
   assert.match(clubAdmin, /editLeague\.primary_club_id \?\? firstClubId!/);
 });
+
+
+test("production-backed Cloudflare previews block authenticated UI and browser QA is localhost-only", () => {
+  const protectedRoute = read("src/components/layout/protected-route.tsx");
+  const localHarness = read("tests/e2e/league-form-local.tsx");
+  assert.match(protectedRoute, /hostname\.endsWith/);
+  assert.match(protectedRoute, /nhpjzywfzljtlqaigzed\.supabase\.co/);
+  assert.match(protectedRoute, /previewUsingProduction/);
+  assert.match(protectedRoute, /Administración bloqueada en este preview/);
+  assert.match(localHarness, /import\.meta\.env\.DEV/);
+  assert.match(localHarness, /SAFE_HOST && SAFE_ORIGIN && GUARDED_LEAGUE_RPC_ENABLED/);
+  assert.match(localHarness, /LeagueForm/);
+  assert.doesNotMatch(localHarness, /service[_-]?role|SERVICE_ROLE_KEY/i);
+});
