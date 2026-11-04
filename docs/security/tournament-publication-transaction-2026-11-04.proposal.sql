@@ -11,6 +11,8 @@
 -- tournament_results, elo_history, league_standings and league_clubs and EXECUTE on
 -- reset_tournament_impact/recalculate_league_standings must be restricted.
 --
+-- HTTP business errors: PT409 state/chronology conflict, PT422 currency unsupported.
+-- PostgREST maps 55000 to HTTP 500 and must not be used for business denials.
 -- Conservative release-1 rules:
 -- * USD tournaments only (CLP Elo formula / historical accounting unapproved).
 -- * Publish initial results or replace ONLY the last processed tournament
@@ -68,10 +70,10 @@ BEGIN
     RAISE EXCEPTION 'Club admin required' USING ERRCODE='42501';
   END IF;
   IF v_t.status::text='cancelled' OR v_t.start_datetime IS NULL THEN
-    RAISE EXCEPTION 'Cancelled/undated tournament is not publishable' USING ERRCODE='55000';
+    RAISE EXCEPTION 'Cancelled/undated tournament is not publishable' USING ERRCODE='PT409';
   END IF;
   IF v_t.currency IS DISTINCT FROM 'USD' OR v_t.buy_in<0 THEN
-    RAISE EXCEPTION 'Only valid USD tournaments supported in this cutover' USING ERRCODE='55000';
+    RAISE EXCEPTION 'Only valid USD tournaments supported in this cutover' USING ERRCODE='PT422';
   END IF;
 
   -- Lock the league for the entire rebuild. This also serializes different
@@ -92,7 +94,7 @@ BEGIN
         AND t.currency IS DISTINCT FROM 'USD'
     ) THEN
       RAISE EXCEPTION 'Mixed league currencies require a separate model'
-        USING ERRCODE='55000';
+        USING ERRCODE='PT422';
     END IF;
   END IF;
 
@@ -182,11 +184,11 @@ BEGIN
            )
        ) THEN
       RAISE EXCEPTION 'Pre-existing tournament requires reconciliation'
-        USING ERRCODE='55000';
+        USING ERRCODE='PT409';
     END IF;
   ELSIF v_old_n<>0 OR v_old_hist<>0 THEN
     RAISE EXCEPTION 'Partial legacy tournament requires reconciliation'
-      USING ERRCODE='55000';
+      USING ERRCODE='PT409';
   END IF;
 
   -- Resolve all nicknames inside THIS transaction, in deterministic order.
@@ -242,7 +244,7 @@ BEGIN
       AND t.start_datetime>=v_t.start_datetime
   ) THEN
     RAISE EXCEPTION 'Later/same-date player history: chronological replay required'
-      USING ERRCODE='55000';
+      USING ERRCODE='PT409';
   END IF;
   IF EXISTS (
     SELECT 1 FROM public.tournament_results tr
@@ -251,7 +253,7 @@ BEGIN
       AND t.currency IS DISTINCT FROM 'USD'
   ) THEN
     RAISE EXCEPTION 'Player has financial history in mixed currencies'
-      USING ERRCODE='55000';
+      USING ERRCODE='PT422';
   END IF;
   -- Fail closed if current ELO has already diverged from persisted history.
   IF EXISTS (
@@ -266,7 +268,7 @@ BEGIN
       )
   ) THEN
     RAISE EXCEPTION 'Player ELO diverges from historical record; reconcile first'
-      USING ERRCODE='55000';
+      USING ERRCODE='PT409';
   END IF;
 
   IF v_t.results_uploaded=true THEN
