@@ -12,7 +12,10 @@ INSERT INTO public.clubs(id) VALUES
 CREATE TABLE public.leagues(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL, slug text,
-  description text
+  description text, rules_url text,
+  start_date date, end_date date,
+  status text NOT NULL DEFAULT 'upcoming',
+  scoring_system_id uuid, total_dates integer, best_dates_to_count integer
 );
 CREATE TABLE public.league_clubs(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -32,9 +35,16 @@ CREATE TABLE public.league_rooms(
   UNIQUE(league_id,room_id)
 );
 
-INSERT INTO public.leagues(id,name,slug) VALUES
-('00000000-0000-0000-0000-000000000041','QA League A','qa-league-a'),
-('00000000-0000-0000-0000-000000000042','QA League B','qa-league-b');
+INSERT INTO public.leagues(
+  id,name,slug,description,rules_url,start_date,end_date,
+  status,scoring_system_id,total_dates,best_dates_to_count
+) VALUES
+('00000000-0000-0000-0000-000000000041','QA League A',
+ 'qa-league-a','Liga de prueba con reglamento','https://example.test/reglas',
+ '2026-11-01','2026-12-01','completed',
+ '00000000-0000-0000-0000-000000000061',9,5),
+('00000000-0000-0000-0000-000000000042','QA League B',
+ 'qa-league-b',null,null,null,null,'upcoming',null,null,null);
 INSERT INTO public.league_clubs(league_id,club_id,is_primary) VALUES
 ('00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000021',true),
 ('00000000-0000-0000-0000-000000000042','00000000-0000-0000-0000-000000000022',true);
