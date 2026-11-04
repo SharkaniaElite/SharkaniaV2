@@ -119,8 +119,9 @@ BEGIN
      OR v_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$' THEN
     RAISE EXCEPTION 'Invalid league name or slug' USING ERRCODE='PT422';
   END IF;
-  -- Serialize possible slug conflicts; the real table currently has no
-  -- declared unique slug constraint. A permanent migration should add one.
+  -- Production already has a UNIQUE idx_leagues_slug index. The advisory
+  -- lock makes concurrent guarded clients fail with a controlled PT409;
+  -- the existing database index protects other writers as a final guard.
   PERFORM pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended('league_slug:'||v_slug,0)
   );
@@ -293,9 +294,9 @@ BEGIN
       USING ERRCODE='PT422';
   END IF;
 
-  -- The existing table lacks a unique slug index. Guarded create/duplicate
-  -- share this advisory lock, but legacy direct writers must be revoked at
-  -- cutover. A unique slug constraint is still recommended separately.
+  -- Production already enforces UNIQUE slug with idx_leagues_slug.
+  -- Guarded create/duplicate share this advisory lock for stable PT409
+  -- responses. Legacy direct writers must still be revoked at cutover.
   PERFORM pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended('league_slug:'||v_slug,0)
   );
