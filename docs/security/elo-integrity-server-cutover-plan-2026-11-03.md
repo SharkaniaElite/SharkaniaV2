@@ -307,3 +307,12 @@ ROLLBACK
 **Conclusión:** no solo hay INSERT/UPDATE/DELETE directos sobre `league_standings`; el usuario sin club puede invocar el RPC invoker sin guardias y causar un recálculo destructivo de una liga ajena. La función borró una fila sintética porque no había resultados de torneos (comportamiento normal del algoritmo con ese conjunto de datos), pero ese recálculo debió ser denegado por autorización. La prueba terminó en `ROLLBACK`, no modificó producción.
 
 **Quinta superficie de integridad confirmada.** Corrección coordinada requerida: restringir `EXECUTE` del RPC actual, quitar DML arbitrario de `league_standings`, y sustituir por recálculo transaccional con validación de asociación `league_clubs`/administración, preservación de datos CCP/buy-ins y compatibilidad con carga/edición/reversión. No hacer revocaciones aisladas en producción. **NO-GO**.
+
+
+## Kit QA preparado: recálculo protegido por asociación club–liga (4 nov 2026)
+
+Se creó localmente `SHARKANIA_QA_recalculo_ligas_autorizado_local_v1.zip` con un `.sh` y README para **Supabase local exclusivo**. Se verificó `bash -n` y la integridad del ZIP; **el SQL todavía no se ha ejecutado contra el contenedor del operador**.
+
+El script hace preflight estricto (loopback, nombre del contenedor, 64 tablas, 2 usuarios `@example.test` confirmados, 0 administradores), crea dentro de **BEGIN...ROLLBACK** un prototipo `recalculate_league_standings_guarded_qa(uuid)` `SECURITY DEFINER` `search_path=''`, exige `auth.uid()`, requiere administración de **al menos un club asociado por `league_clubs`** (o superadmin), y llama la función legada con bloqueo advisory de liga. En la misma transacción revoca acceso anónimo, `EXECUTE` directo de función legada y escrituras directas INSERT/UPDATE/DELETE en `league_standings`. Con dos usuarios QA y dos clubes/ligas ficticios comprueba denegación de usuario normal, denegación de admin ajeno, autorización legítima de cada admin, denegación de viejo RPC y DML, restaura todo con `ROLLBACK` y confirma recuentos/grants de vuelta.
+
+**ALCANCE LIMITADO: sólo ensayo de autorización**. El wrapper de QA NO resuelve el defecto de `DELETE/INSERT` destruyendo campos complementarios ni transacción de cargas/ediciones reales. NO desplegar el wrapper ni sustituir la función actual todavía. Antes de producción se deberá decidir explícitamente si **cualquier admin de club participante** puede recalcular toda liga compartida, o solo la entidad coordinadora (ver `is_primary`), y asegurar commit atómico de resultados + ELO + standings + datos financieros. **NO-GO**.
