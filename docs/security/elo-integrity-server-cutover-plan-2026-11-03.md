@@ -94,3 +94,23 @@ El paso de ejecución del RPC en CI terminó `success` en el run `41712846518`, 
 4. En el corte final, restringir columnas ELO/financieras a clientes no autorizados **solo después** de comprobar la sustitución de las escrituras administrativas. Integrar autorización de clubes y Stats Espía.
 
 **Estado: progreso de implementación y QA sintética, pero NO-GO para producción.**
+
+
+## Vulnerabilidad de escritura directa en historial ELO — reproducción local con FK válidas (4 nov 2026)
+
+**Estado: reproducida en Supabase local, SIN ejecutar contra producción. Severidad sugerida: ALTA para la integridad de datos competitivos.**
+
+En el entorno Supabase CLI local con snapshot actual de `public/private`, Auth real, RLS, grants de funciones reproducidos y dos usuarios ficticios confirmados, el propietario ejecutó una transacción con los siguientes pasos:
+
+1. Como `postgres`, creó dentro de `BEGIN` una sala, club, jugador y torneo totalmente sintéticos, guardando sus UUID locales.
+2. Adoptó `SET LOCAL ROLE authenticated` y `request.jwt.claim.sub` del usuario ficticio normal, sin pertenencia administrativa al club.
+3. Ejecutó `INSERT INTO public.elo_history(player_id,tournament_id,elo_before,elo_after,elo_change)` con referencias válidas y `elo_change=1000`.
+4. El bloque retornó `NOTICE: ALERTA CONFIRMADA: jugador autenticado pudo insertar historial ELO arbitrario`, seguido de `ROLLBACK`.
+
+**Alcance probado:** el rol autenticado puede insertar arbitrariamente un evento ELO **con claves foráneas válidas**, sin RLS que lo ligue a una autorización de club/torneo. No se guardaron datos y ningún recurso productivo fue modificado. Esto confirma un bypass de autorización en el estado actual del esquema local. Los metadatos productivos consultados en modo solo lectura coinciden: `elo_history` tiene permiso `INSERT` para `authenticated`, y la policy `Elo history: sistema` dispone `WITH CHECK (auth.uid() IS NOT NULL)`, sin disparadores que autoricen la inserción. La reproducción remota con datos productivos NO se realizó.
+
+**Efecto verificado en código:** `public.get_unified_elo(uuid)` agrega `elo_history.elo_change` si el perfil tiene múltiples nicknames; `get_unified_elo_history(text)` usa ese historial para reconstruir la serie. La inserción ficticia no ejecutó una consulta posterior de ranking real; describir contaminación potencial de métricas/historial, NO declarar que el ranking principal fue alterado.
+
+**Por qué no aplicar un REVOKE inmediato en producción:** `src/lib/api/elo-engine.ts` todavía escribe `elo_history.insert` desde el navegador durante cálculo legítimo de resultados. Revocar `INSERT` ahora rompería el flujo legado. Ya existe `docs/security/elo-transactional-guarded-rpc-2026-11-03.proposal.sql`, aún NO instalada, y el flag `VITE_ELO_GUARDED_RPC` está apagado. Una protección viable requiere **cutover atómico y coordinado**: verificar RPC transaccional y todos los uploads/reversión/edición en Supabase QA, migrar el código, revocar `INSERT` directo a `PUBLIC` / `anon` / `authenticated` y comprobar que el RPC `SECURITY DEFINER` autorizado conserva el cálculo. Restringir también las escrituras directas de estadísticas derivadas de `players` y accesos premium Stats Espía según su plan específico.
+
+**Próximo gate en QA:** comprobar en transacción reversible que `REVOKE INSERT ON public.elo_history FROM PUBLIC, anon, authenticated` deja `has_table_privilege('authenticated', 'public.elo_history','INSERT')=false`, terminando en `ROLLBACK`, y luego instalar/ejercitar la RPC de propuesta solo en la copia local. Sin despliegue en producción ni merge de PR #64 hasta cierre integral con aprobación del propietario. **NO-GO**.
