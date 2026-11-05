@@ -5,7 +5,7 @@ import { isArenaPreviewHost } from "../../lib/arena-preview";
 import { bannerIsExternal, bannerIsReviewed } from "../../lib/marketing-banner-policy";
 import { ArrowUpRight, ShieldCheck } from "lucide-react";
 import posthog from "posthog-js";
-const OFFICIAL_LOGOS: Record<string, string> = {
+const OFFICIAL_LOGOS: Record<"coinpoker" | "wptglobal" | "ignition" | "latinallin", string> = {
   coinpoker: "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/coinpoker.png",
   wptglobal: "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/wptglobal.png",
   ignition: "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/logo-ignition-poker.png",
