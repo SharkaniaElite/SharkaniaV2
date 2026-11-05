@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ArrowUpRight, CalendarDays, ChevronRight, Compass, Radar, ShieldCheck, Swords, Trophy, Users } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
+import { VerifiedSecondaryBannerStrip } from "../components/marketing/verified-banner-strip";
 import { SEOHead } from "../components/seo/seo-head";
 import { getPlayers } from "../lib/api/players";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
@@ -253,6 +254,9 @@ export function ArenaHomePage() {
           </div>
         </div>
       </section>
+
+      {/* Publicidad secundaria tras ranking y torneos; nunca por encima de la competición. */}
+      <VerifiedSecondaryBannerStrip />
 
       <section className="arena-editorial arena-scene" ref={editorial.ref}>
         <img className="arena-scene-photo" src="/images/arena/home-editorial.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
