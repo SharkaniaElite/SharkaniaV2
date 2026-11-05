@@ -311,6 +311,37 @@ function BannerSlotEditor({
                   />
                 </div>
 
+                {(slotKey === "ignition_article_mid" || slotKey === "ignition_article_final") && (
+                  <div className="mt-3 p-3 rounded-lg border border-orange-500/25 bg-orange-500/5 space-y-3">
+                    <h4 className="text-[11px] font-bold text-orange-200">Revisión editorial del anuncio · Ignition</h4>
+                    <p className="text-[11px] text-sk-text-3">Para activar ambos tamaños se requiere enlace a condiciones oficiales, revisión vigente y creatividades de Ignition. Si falta alguno, se muestra el diseño informativo de respaldo.</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="text-[10px] text-sk-text-3">Revisado el (Chile)
+                        <input type="date" value={banner?.verified_on ?? ""}
+                          onChange={e => updateSide(side, "verified_on", e.target.value)}
+                          className="mt-1 w-full rounded border border-sk-border-2 bg-sk-bg-0 p-2 text-sk-xs text-sk-text-1" />
+                      </label>
+                      <label className="text-[10px] text-sk-text-3">Revisar nuevamente antes de
+                        <input type="date" value={banner?.review_by ?? ""}
+                          onChange={e => updateSide(side, "review_by", e.target.value)}
+                          className="mt-1 w-full rounded border border-sk-border-2 bg-sk-bg-0 p-2 text-sk-xs text-sk-text-1" />
+                      </label>
+                    </div>
+                    <label className="block text-[10px] text-sk-text-3">Fuente oficial de condiciones (https://)
+                      <input type="url" value={banner?.source_url ?? ""}
+                        onChange={e => updateSide(side, "source_url", e.target.value)}
+                        placeholder="https://..."
+                        className="mt-1 w-full rounded border border-sk-border-2 bg-sk-bg-0 p-2 text-sk-xs text-sk-text-1" />
+                    </label>
+                    <label className="block text-[10px] text-sk-text-3">Nombre editorial del anuncio
+                      <input type="text" value={banner?.editorial_title ?? ""}
+                        onChange={e => updateSide(side, "editorial_title", e.target.value)}
+                        placeholder="Ignition Poker · Liga SHARKANIA"
+                        className="mt-1 w-full rounded border border-sk-border-2 bg-sk-bg-0 p-2 text-sk-xs text-sk-text-1" />
+                    </label>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3 mt-1">
                   <div>
                     <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 block">
