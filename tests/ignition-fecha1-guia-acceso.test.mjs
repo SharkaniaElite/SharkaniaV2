@@ -31,7 +31,8 @@ test("Landing includes the search instruction and the guide without touching reg
   assert.match(landing,/IGNITION_FECHA1\.guidePath/);
   assert.match(landing,/ID #82905364/);
   assert.match(landing,/setSuccess/);
-  assert.match(landing,/check_ignition_duplicate/);
+  assert.match(landing,/getProfile\(data.session.user.id\)/);
+  assert.doesNotMatch(landing,/check_ignition_duplicate/);
 });
 test("Admin can append official guidance to welcome/date 1, not send on load",()=>{
   assert.match(panel,/fecha1AccessInstructions/);
