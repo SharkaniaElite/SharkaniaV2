@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { Input } from "../components/ui/input";
 import { Spinner } from "../components/ui/spinner";
 import { EmptyState } from "../components/ui/empty-state";
@@ -43,28 +44,29 @@ export function GlossaryPage() {
   const categories = Object.entries(GLOSSARY_CATEGORIES) as [GlossaryCategory, { label: string; icon: string }][];
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title="Glosario de Poker"
         description="Diccionario completo de términos de poker: ELO, ICM, GTO, ROI, ITM, bankroll, tilt y más. Aprende el vocabulario del poker competitivo en clubes privados."
         path="/glosario"
       />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[900px] mx-auto px-6">
-          {/* Header */}
-          <div className="mb-8">
-            <p className="font-mono text-[11px] font-bold tracking-[0.08em] uppercase text-sk-accent mb-3">
-              Glosario
-            </p>
-            <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1 mb-2 flex items-center gap-3">
-              <BookOpen className="text-sk-accent" size={32} />
-              Glosario de Poker
-            </h1>
-            <p className="text-sk-base text-sk-text-2">
-              {terms?.length ?? 0} términos esenciales del poker competitivo en clubes privados
-            </p>
+      <div className="arena-interior arena-editorial">
+        <div className="arena-interior-container">
+          <ArenaPageHero
+            section="glossary"
+            eyebrow="DICCIONARIO / PÓKER"
+            heading="GLOSARIO"
+            highlight="DE PÓKER."
+            icon={BookOpen}
+            description="Encuentra definiciones, conceptos y términos técnicos de póker. Cada ficha tiene una URL propia para estudiar y compartir."
+            count={isLoading ? undefined : (terms?.length ?? 0)}
+            countLabel="Términos disponibles"
+            action={<Link to="/blog">Leer artículos de estrategia <ChevronRight size={16} /></Link>}
+          />
+          <div className="arena-section-intro">
+            <div><span>GLOSARIO / CONSULTA</span><h2>Busca un término</h2><p>Filtra por categoría o escribe al menos dos letras.</p></div>
+            <span>{filtered.length.toLocaleString("es-CL")} coincidencias</span>
           </div>
-
           {/* Search */}
           <div className="mb-6 max-w-md">
             <Input
@@ -78,6 +80,7 @@ export function GlossaryPage() {
           {/* Category pills */}
           <div className="flex gap-2 flex-wrap mb-8">
             <button
+              aria-pressed={activeCategory === "all"}
               onClick={() => setActiveCategory("all")}
               className={cn(
                 "px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-150",
@@ -94,6 +97,7 @@ export function GlossaryPage() {
               return (
                 <button
                   key={key}
+                  aria-pressed={activeCategory === key}
                   onClick={() => setActiveCategory(key)}
                   className={cn(
                     "px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-150",
@@ -129,12 +133,12 @@ export function GlossaryPage() {
                       <span>{catInfo?.icon}</span>
                       {catInfo?.label ?? category}
                     </h2>
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="arena-glossary-grid">
                       {categoryTerms.map((term) => (
                         <Link
                           key={term.slug}
                           to={`/glosario/${term.slug}`}
-                          className="group flex items-start gap-4 px-5 py-4 rounded-lg border border-sk-border-2 bg-sk-bg-2 hover:border-sk-accent/30 hover:bg-white/[0.02] transition-all duration-200"
+                          className="arena-content-card group flex items-start gap-4 px-5 py-4 hover:border-sk-accent/30 transition-all duration-200"
                         >
                           <div className="flex-1 min-w-0">
                             <h3 className="text-sk-sm font-bold text-sk-text-1 group-hover:text-sk-accent transition-colors mb-1">
