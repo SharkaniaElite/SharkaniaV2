@@ -483,7 +483,7 @@ export function PlayerDashboardPage() {
                       } finally {
                         setIsSubmittingIgnition(false);
                       }
-                    }
+                    }}
                   >
                     Vincular
                   </Button>
