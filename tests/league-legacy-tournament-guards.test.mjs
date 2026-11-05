@@ -33,3 +33,15 @@ test("legacy client standings writer stops before read and DML under the securit
  assert.ok(body.indexOf("if (GUARDED_LEAGUE_RPC_ENABLED)")<body.indexOf('.from("tournament_results")'));
  assert.match(body,/No se permiten escrituras de posiciones/);
 });
+
+
+test("bulk deletion UI preflights EVERY linked league tournament before legacy RPC",()=>{
+ const bulk=readFileSync(new URL("../src/components/admin/bulk-delete-bar.tsx",import.meta.url),"utf8");
+ const guarded=bulk.indexOf("if (GUARDED_LEAGUE_RPC_ENABLED)");
+ const lookup=bulk.indexOf('from("tournaments")');
+ const complete=bulk.indexOf("uniqueIds.length");
+ const linked=bulk.indexOf("tournaments?.some((t) => t.league_id)");
+ const rpc=bulk.indexOf('supabase.rpc("bulk_delete_scheduled_tournaments"');
+ assert.ok(guarded>=0&&lookup>guarded&&complete>lookup&&linked>lookup&&rpc>linked,
+  "must reject partial reads and league members before destructive bulk RPC");
+});
