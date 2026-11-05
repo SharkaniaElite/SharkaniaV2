@@ -100,6 +100,29 @@ export function linkifyPlainUrlsInHtml(html) {
   }).join("");
 }
 
+
+/**
+ * Embed the official Fecha 1 visual guide only for the November welcome
+ * and the first-date reminder. The other tournament dates have unconfirmed IDs.
+ * No extra email is created and the image remains clickable at full size.
+ */
+export function addIgnitionFecha1Guide(html, campaignKey) {
+  if (typeof html !== "string") return html;
+  if (campaignKey !== "ignition-2026-11-welcome" && campaignKey !== "ignition-2026-11-05") return html;
+  const photo = "https://sharkania.com/images/guias/ignition-liga-privada-fecha-1-email.jpg";
+  const full = "https://sharkania.com/images/guias/ignition-liga-privada-fecha-1.svg";
+  if (html.includes(photo)) return html;
+  const card = '<div style="margin:20px auto;max-width:530px;padding:14px;background:#0b2735;border:1px solid #2bbbd5;border-radius:12px;">'
+    + '<p style="font:700 16px Arial,sans-serif;color:#e4fcff;margin:0 0 10px;">Cómo encontrar la Fecha 1 · ID #82905364</p>'
+    + '<a href="' + full + '" target="_blank" rel="noopener noreferrer">'
+    + '<img src="' + photo + '" width="480" height="304" alt="Guía ilustrada: busca Liga Privada - Fecha 1, ID 82905364 en Torneos Programados de Ignition" style="display:block;width:100%;max-width:480px;height:auto;border:0;" />'
+    + '</a><p style="font:13px Arial,sans-serif;color:#a9dce9;margin:10px 0 0;">'
+    + '<a href="' + full + '" style="color:#54d8ee;">Ver guía completa a tamaño grande</a>'
+    + '</p></div>';
+  if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, card+"</body>");
+  return html + card;
+}
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function sendWithResend(item, env) {
@@ -115,7 +138,7 @@ async function sendWithResend(item, env) {
         from: 'Sharkania <no-reply@sharkania.com>',
         to: item.recipient_email,
         subject: item.subject,
-        html: linkifyPlainUrlsInHtml(item.body_html),
+        html: addIgnitionFecha1Guide(linkifyPlainUrlsInHtml(item.body_html), item.campaign_key),
       }),
     });
 
