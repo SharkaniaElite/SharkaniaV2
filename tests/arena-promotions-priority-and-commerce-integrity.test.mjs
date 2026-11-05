@@ -34,7 +34,7 @@ test("Original partner logos are loaded from the actual Supabase storage buckets
     assert.ok(promo.includes(asset));
 });
 test("Historical unverified promotions stay in the archive, not featured",()=>{
-  assert.match(promo,/promoPhase\(p, today\)/);
+  assert.match(promo,/promoPhase\(promo, today\)/);
   assert.match(promo,/review-by:/);
   assert.match(promo,/archivePromos/);
   assert.match(promo,/remainingCurrent/);
