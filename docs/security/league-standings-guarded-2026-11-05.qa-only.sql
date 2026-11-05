@@ -28,7 +28,7 @@ BEGIN
   IF v_best IS NOT NULL AND v_best < 1 THEN
     RAISE EXCEPTION 'Invalid best dates setting' USING ERRCODE='PT422';
   END IF;
-  SELECT count(*)::integer, min(lc.club_id) INTO v_primary_count,v_primary
+  SELECT count(*)::integer, (array_agg(lc.club_id))[1] INTO v_primary_count,v_primary
   FROM public.league_clubs lc
   WHERE lc.league_id=p_league_id AND lc.is_primary IS TRUE;
   IF v_primary_count<>1 THEN
