@@ -88,7 +88,7 @@ export function TournamentDetailPage() {
 
   if (loading) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex items-center justify-center">
           <Spinner size="lg" />
         </div>
@@ -98,7 +98,7 @@ export function TournamentDetailPage() {
 
   if (!tournament) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4">
           <span className="text-5xl">🏆</span>
           <h1 className="text-sk-2xl font-bold text-sk-text-1">Torneo no encontrado</h1>
@@ -122,7 +122,7 @@ export function TournamentDetailPage() {
   const startDate = new Date(tournament.start_datetime);
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
   title={`${cleanName(tournament.name)} — ${tournament.results_uploaded ? "Resultados" : "Torneo"}`}
   description={tournament.results_uploaded
@@ -130,8 +130,8 @@ export function TournamentDetailPage() {
     : `Información del torneo ${cleanName(tournament.name)}. Los resultados están pendientes de carga.`}
   path={`/tournament/${tournament.slug}`} // 👈 ¡El toque maestro!
 />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[1000px] mx-auto px-6">
+      <div className="arena-interior">
+        <div className="arena-interior-container arena-detail-narrow">
 
           {/* Back link */}
           <Link
@@ -143,10 +143,11 @@ export function TournamentDetailPage() {
           </Link>
 
           {/* Header */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
+          <header className="arena-detail-banner arena-detail-banner--tournament bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
             <div className="flex flex-col gap-3">
+              <p className="arena-detail-kicker">SHARKANIA ARENA / RESULTADOS Y TORNEOS</p>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
+                <h1 className="arena-detail-title text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
                   🏆 {cleanName(tournament.name)}
                 </h1>
                 {isDemo && (
@@ -215,10 +216,10 @@ export function TournamentDetailPage() {
                 </p>
               )}
             </div>
-          </div>
+          </header>
 
           {/* Results */}
-          <div className="mb-4 flex items-center justify-between">
+          <div className="arena-detail-section-head mb-4 flex items-center justify-between">
             <h2 className="text-sk-md font-bold text-sk-text-1">
               🎯 Resultados ({results.length} jugadores)
             </h2>

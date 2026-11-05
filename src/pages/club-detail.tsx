@@ -59,7 +59,7 @@ export function ClubDetailPage() {
   // 🔥 Corrección 3: Usamos leaguesLoading aquí para esperar a que carguen las ligas
   if (isLoading || leaguesLoading) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex items-center justify-center">
           <Spinner size="lg" />
         </div>
@@ -69,7 +69,7 @@ export function ClubDetailPage() {
 
   if (!club) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4">
           <span className="text-5xl">🏛️</span>
           <h1 className="text-sk-2xl font-bold text-sk-text-1">Club no encontrado</h1>
@@ -102,14 +102,14 @@ export function ClubDetailPage() {
   const pastLeagues = leagues?.filter(l => l.status === "finished") || [];
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title={club.name}
         description={`Club de poker ${club.name}. Torneos, calendario y ranking de jugadores. ${club.description ?? ""}`}
         path={`/clubs/${clubSlug}`}
       />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[1200px] mx-auto px-6">
+      <div className="arena-interior">
+        <div className="arena-interior-container">
           <Link
             to="/clubs"
             className="inline-flex items-center gap-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 transition-colors mb-6"
@@ -117,13 +117,14 @@ export function ClubDetailPage() {
             <ArrowLeft size={14} /> Volver a clubes
           </Link>
 
-          <div className="mb-8">
+          <section className="arena-detail-banner arena-detail-banner--club mb-8" aria-label="Presentación del club">
+            <p className="arena-detail-kicker">SHARKANIA ARENA / CLUBES Y COMUNIDAD</p>
             <ClubHeader club={club} />
-          </div>
+          </section>
 
           {/* ══ ONBOARDING & CONTACT SECTION ══ */}
           {(hasAnyContact || clubData.tutorial_url) && (
-            <div className="mb-8 bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
+            <div className="arena-profile-panel mb-8 bg-sk-bg-2 border border-sk-border-2 rounded-lg p-5">
               
               {/* Botón Masivo de Tutorial */}
               {clubData.tutorial_url && (
@@ -186,7 +187,7 @@ export function ClubDetailPage() {
           {/* ══ LIGAS DEL CLUB ══ */}
           {(activeLeagues.length > 0 || pastLeagues.length > 0) && (
             <div className="mb-8">
-              <h2 className="text-sk-md font-bold text-sk-text-1 mb-4">🏆 Ligas del Club</h2>
+              <h2 className="arena-section-title text-sk-md font-bold text-sk-text-1 mb-4">🏆 Ligas del Club</h2>
               
               {activeLeagues.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
