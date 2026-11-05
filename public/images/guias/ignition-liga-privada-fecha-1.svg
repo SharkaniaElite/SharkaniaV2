@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" role="img" aria-labelledby="title desc">
+<title id="title">Cómo encontrar Liga Privada - Fecha 1 en Ignition Poker</title>
+<desc id="desc">En Ignition Poker abre Torneos Programados, busca Liga Privada - Fecha 1, confirma ID 82905364 y buy-in 3,30 dólares. Los ID de las fechas siguientes se anunciarán posteriormente.</desc>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#05141e"/><stop offset=".52" stop-color="#102533"/><stop offset="1" stop-color="#090e19"/></linearGradient><linearGradient id="panel" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#222b34"/><stop offset="1" stop-color="#090f17"/></linearGradient><linearGradient id="orange" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#ff9b19"/><stop offset="1" stop-color="#ff6518"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="6"/></filter></defs>
+<rect width="1200" height="760" fill="url(#bg)"/>
+<path d="M0 0H1200V6H0Z" fill="#24d9f0"/><path d="M0 754H1200V760H0Z" fill="#19c8ea"/>
+<path d="M30 85L110 5M1090 5L1170 85M30 674L110 754M1090 754L1170 674" stroke="#32dbee" stroke-width="6" opacity=".6"/>
+<text x="600" y="51" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="800" fill="#f8fcff">CÓMO ENCONTRAR EL TORNEO · FECHA 1</text>
+<rect x="100" y="72" width="1000" height="56" rx="13" fill="#07151d" stroke="#39cde2" stroke-width="2.5"/>
+<text x="128" y="107" font-family="Arial,sans-serif" font-size="23" font-weight="700" fill="#d9edf4">NOMBRE: <tspan fill="#ffae4a">Liga Privada - Fecha 1</tspan></text>
+<text x="1068" y="107" text-anchor="end" font-family="Arial,sans-serif" font-size="26" font-weight="800" fill="#ffb04e">ID: #82905364</text>
+<rect x="46" y="150" width="257" height="465" rx="12" fill="url(#panel)" stroke="#354757" stroke-width="2"/>
+<text x="68" y="182" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#c8d8e2">MENÚ DEL LOBBY</text>
+<g font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#b4bfca">
+<text x="68" y="224">Zone Poker</text><text x="68" y="270">Partidas Regulares</text><text x="68" y="316">Torneos Sit &amp; Go</text><text x="68" y="362">Jackpot Sit &amp; Go</text><text x="68" y="456">Mystery Knockouts</text><text x="68" y="506">Juegos de Casino</text></g>
+<rect x="47" y="378" width="255" height="53" fill="url(#orange)"/>
+<text x="68" y="411" font-family="Arial,sans-serif" font-size="20" font-weight="800" fill="#10212b">Torneos Programados</text>
+<rect x="327" y="150" width="826" height="466" rx="12" fill="#101822" stroke="#334957" stroke-width="2"/>
+<rect x="347" y="165" width="786" height="51" rx="10" fill="#062331" stroke="#32dff0" stroke-width="3"/>
+<circle cx="371" cy="187" r="9" fill="none" stroke="#e8f6fa" stroke-width="3"/><path d="m378 195 9 9" stroke="#e8f6fa" stroke-width="3"/>
+<text x="405" y="198" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#f6fdff">Liga Privada - Fecha 1</text>
+<rect x="900" y="172" width="214" height="36" rx="9" fill="#1a4450"/>
+<text x="1007" y="197" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="800" fill="#81f2ff">BUSCAR TORNEO</text>
+<rect x="346" y="235" width="788" height="44" rx="6" fill="#202a33"/>
+<g font-family="Arial,sans-serif" font-size="15" font-weight="800" fill="#a6c7d4"><text x="365" y="264">COMIENZA</text><text x="548" y="264">TORNEO</text><text x="875" y="264">JUEGO</text><text x="984" y="264">ENTRADA</text></g>
+<g font-family="Arial,sans-serif" font-size="18" fill="#879ba8"><text x="364" y="320">NOV 05 20:30</text><text x="548" y="320">$2,000 GTD Deepstack</text><text x="880" y="320">Hold'em</text><text x="1002" y="320">$10.00</text><text x="364" y="370">NOV 05 20:40</text><text x="548" y="370">$200 GTD</text><text x="880" y="370">Hold'em</text><text x="1002" y="370">$5.00</text></g>
+<rect x="346" y="393" width="788" height="62" rx="8" fill="#ff8020" opacity=".19"/>
+<rect x="348" y="393" width="784" height="62" rx="8" fill="none" stroke="#ff971e" stroke-width="4"/>
+<g font-family="Arial,sans-serif" font-weight="800" font-size="21" fill="#fff3e9"><text x="364" y="433">NOV 05 21:00</text><text x="549" y="433">Liga Privada - Fecha 1</text><text x="877" y="433">Hold'em</text><text x="1002" y="433">$3.30</text></g>
+<g font-family="Arial,sans-serif" font-size="18" fill="#879ba8"><text x="364" y="504">NOV 05 21:10</text><text x="548" y="504">$1,000 GTD Deepstack</text><text x="880" y="504">Hold'em</text><text x="1002" y="504">$5.00</text><text x="364" y="552">NOV 05 21:30</text><text x="548" y="552">$1,000 GTD PKO</text><text x="880" y="552">Hold'em</text><text x="1002" y="552">$16.50</text></g>
+<rect x="48" y="632" width="1104" height="83" rx="15" fill="#072532" stroke="#3acfe2" stroke-width="2"/>
+<text x="75" y="665" font-family="Arial,sans-serif" font-size="21" font-weight="800" fill="#effcff">PASOS: 1. Abre Torneos Programados · 2. Busca el nombre exacto · 3. Verifica el ID</text>
+<text x="75" y="695" font-family="Arial,sans-serif" font-size="17" fill="#a8d0df">ID de las fechas 2, 3 y 4: pendientes de publicar. Interfaz ilustrativa del lobby.</text>
+</svg>

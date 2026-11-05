@@ -26,6 +26,7 @@ import {
   History       // 🔥 Nuevo
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
+import { IGNITION_FECHA1 } from "../lib/ignition-liga-fecha1";
 import { PageShell } from "../components/layout/page-shell";
 import { cn } from "../lib/cn";
 
@@ -365,6 +366,20 @@ export function IgnitionChampionshipPage() {
                   <p className="text-sm text-gray-400 mt-1">Cada jueves recibirás la información de acceso al torneo en el correo registrado. Revisa también la carpeta de spam.</p>
                 </div>
               </div>
+
+              <aside className="mt-6 rounded-xl border border-cyan-400/30 bg-cyan-950/15 p-4 sm:p-5" aria-label="Cómo encontrar el torneo de la primera fecha">
+                <h3 className="text-lg font-black text-white">¿Dónde encuentro la Fecha 1 en Ignition?</h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                  En el lobby abre <strong>Torneos Programados</strong> y escribe en el buscador
+                  <strong className="text-cyan-300"> Liga Privada - Fecha 1</strong>.
+                  Confirma el <strong>ID #82905364</strong>, la entrada de US$3,30 y el inicio a las 21:00 h de Chile.
+                </p>
+                <a href={IGNITION_FECHA1.guidePath} target="_blank" rel="noopener noreferrer" className="mt-4 block">
+                  <img src={IGNITION_FECHA1.guidePath} alt="Guía ilustrada para localizar Liga Privada - Fecha 1, ID #82905364, en Torneos Programados de Ignition Poker" loading="lazy" className="w-full rounded-lg border border-cyan-400/20" />
+                  <span className="mt-2 block text-xs font-semibold text-cyan-300 underline underline-offset-2">Abrir la guía visual</span>
+                </a>
+                <p className="mt-2 text-xs text-gray-400">Los ID de las fechas 2, 3 y 4 están pendientes y se publicarán al confirmarlos.</p>
+              </aside>
             </div>
           </div>
 

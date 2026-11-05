@@ -34,6 +34,7 @@ import { BlogEditor } from "../components/admin/blog-editor"; // 🔥 Agregamos 
 import { syncBlogViewsFromPostHog } from "../lib/api/blog"; // 🔥 Sincronización PostHog
 import { TeleprompterAdminTab } from "../components/admin/teleprompter-admin-tab"; // 🔥 Ticker
 import { escapeNewsletterHtml, newsletterTextToHtml, safeNewsletterUrl } from "../lib/email-rendering";
+import { IGNITION_FECHA1 } from "../lib/ignition-liga-fecha1";
 
 // ── Tipos ─────────────────────────────────────────────────
 
@@ -2159,6 +2160,20 @@ export function SuperAdminPage() {
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <h4 className="text-sk-sm font-bold text-sk-text-1">Noticias ({nlNews.length})</h4>
+                  <Button variant="secondary" size="sm" onClick={() => setNlNews(previous => {
+                    if (previous.some(block => block.link === IGNITION_FECHA1.guideUrl)) return previous;
+                    const guideBlock = {
+                      title: "Cómo encontrar la Fecha 1 · ID #82905364",
+                      description: "En Ignition Poker abre Torneos Programados y escribe exactamente Liga Privada - Fecha 1 en el buscador. Comprueba el ID #82905364, la entrada de US$3,30 y el inicio a las 21:00 h de Chile. Los ID de las próximas fechas están pendientes.",
+                      image: IGNITION_FECHA1.guideUrl,
+                      link: IGNITION_FECHA1.guideUrl,
+                      btnText: "Ver guía para encontrar el torneo",
+                    };
+                    return previous.length===1 && !previous[0]?.title && !previous[0]?.description
+                      ? [guideBlock] : [...previous, guideBlock];
+                  })}>
+                    <span className="font-semibold">+ Guía Fecha 1</span>
+                  </Button>
                   <Button variant="secondary" size="sm" onClick={() => setNlNews([...nlNews, { title: "", description: "", image: "", link: "", btnText: "Leer más" }])}>
                     <Plus size={13} className="mr-1"/> Agregar Bloque
                   </Button>
