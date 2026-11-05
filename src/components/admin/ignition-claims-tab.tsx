@@ -177,8 +177,7 @@ export function IgnitionClaimsTab(){
   }
   async function verifyPlayer(player:Player){
     if(player.ignition_status!=="pending")return;
-    if(!window.confirm("¿Has comprobado externamente que el nickname '"+(player.ignition_nickname||"")+"'
- pertenece al jugador y que cumple la elegibilidad? Se validará su vinculación, y recibirá la bienvenida automática si está activada."))return;
+    if(!window.confirm("¿Has comprobado externamente que el nickname '"+(player.ignition_nickname||"")+"' pertenece al jugador y que cumple la elegibilidad? Se validará su vinculación, y recibirá la bienvenida automática si está activada."))return;
     setValidatingId(player.id);setMessage("");
     try {
       const {error}=await supabase.rpc("verify_ignition_pending_player",{p_player_id:player.id});
