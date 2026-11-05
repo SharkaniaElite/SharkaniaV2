@@ -8,6 +8,9 @@ on:
       - "tests/fixtures/sharkania-elo-qa-setup.sql"
       - "tests/fixtures/sharkania-league-membership-qa-setup.sql"
       - "docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql"
+      - "tests/fixtures/sharkania-league-standings-real-auth-setup.sql"
+      - "tests/fixtures/sharkania-league-standings-real-auth-qa.mjs"
+      - "docs/security/league-standings-guarded-2026-11-05.qa-only.sql"
       - "package-lock.json"
   workflow_dispatch:
 permissions:
@@ -98,6 +101,19 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
       - name: Validate GoTrue sessions and protected league RPC over real local API
         run: node tests/fixtures/sharkania-league-real-auth-qa.mjs
+      - name: Install guarded standings prototype exclusively in isolated local GoTrue stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "25422" ]] || {
+            echo "STOP: real-Auth standings QA requires isolated local Supabase"; exit 1;
+          }
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-league-standings-real-auth-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
+          sleep 2
+      - name: Validate guarded standings with REAL GoTrue sessions over local PostgREST
+        run: node tests/fixtures/sharkania-league-standings-real-auth-qa.mjs
       - name: Stop ephemeral local stack
         if: always()
         shell: bash
