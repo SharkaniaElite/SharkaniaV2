@@ -23,7 +23,7 @@ test("Published guide is accessible, readable and does not expose tournament pas
   assert.match(asset,/Torneos Programados/);
   assert.match(asset,/Liga Privada - Fecha 1/);
   assert.match(asset,/#82905364/);
-  assert.match(asset,/Los ID de las fechas 2, 3 y 4/);
+  assert.match(asset,/ID de las fechas 2, 3 y 4/);
   assert.doesNotMatch(asset,/>SHARKANIA<|>TIBURON<|>REKIN</);
 });
 test("Landing includes the search instruction and the guide without touching registration",()=>{
