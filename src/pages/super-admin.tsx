@@ -2165,7 +2165,7 @@ export function SuperAdminPage() {
                     const guideBlock = {
                       title: "Cómo encontrar la Fecha 1 · ID #82905364",
                       description: "En Ignition Poker abre Torneos Programados y escribe exactamente Liga Privada - Fecha 1 en el buscador. Comprueba el ID #82905364, la entrada de US$3,30 y el inicio a las 21:00 h de Chile. Los ID de las próximas fechas están pendientes.",
-                      image: IGNITION_FECHA1.guideUrl,
+                      image: IGNITION_FECHA1.emailGuideImageUrl,
                       link: IGNITION_FECHA1.guideUrl,
                       btnText: "Ver guía para encontrar el torneo",
                     };
