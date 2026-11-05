@@ -480,18 +480,6 @@ export function SuperAdminPage() {
 
   const [isSyncingElo, setIsSyncingElo] = useState(false);
   
-  // 🚀 Estados para Email a Jugadores Ignition
-  const [showIgnitionEmailModal, setShowIgnitionEmailModal] = useState(false);
-  const [ignitionEmailSubject, setIgnitionEmailSubject] = useState("Contraseña Torneo Ignition de Hoy");
-  const [isSendingIgnitionEmails, setIsSendingIgnitionEmails] = useState(false);
-  
-  // Variables dinámicas para el correo
-  const [ignEmailLeagueName, setIgnEmailLeagueName] = useState("Liga Ignition Championship");
-  const [ignEmailGtd, setIgnEmailGtd] = useState("$150 USD");
-  const [ignEmailPassword, setIgnEmailPassword] = useState("");
-  const [ignEmailTournamentName, setIgnEmailTournamentName] = useState("Sharkania Championship");
-  const [ignEmailStreamUrl, setIgnEmailStreamUrl] = useState("https://sharkania.com");
-
   // 📰 NUEVO: Estados para el Boletín Semanal (Newsletter)
   const [showNewsletterModal, setShowNewsletterModal] = useState(false);
   const [isSendingNewsletter, setIsSendingNewsletter] = useState(false);
@@ -670,75 +658,6 @@ export function SuperAdminPage() {
       alert("Error crítico: " + e.message);
     } finally {
       setIsSyncingElo(false);
-    }
-  };
-
-  // Encolar correos de Ignition para envío transaccional programado
-  const handleSendIgnitionEmails = async () => {
-    if (!ignitionEmailSubject.trim() || !ignEmailPassword.trim()) {
-      alert("El asunto y la contraseña son obligatorios.");
-      return;
-    }
-    if (!confirm("¿Estás seguro de encolar este correo para TODOS los jugadores vinculados a Ignition y enviarlos ahora mismo?")) return;
-
-    setIsSendingIgnitionEmails(true);
-    try {
-      // Construimos el HTML inyectando las variables
-      const finalHtml = `
-      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 10px;">
-        <tr><td align="center">
-          <table width="100%" max-width="600" cellpadding="0" cellspacing="0" style="background-color: #111111; border: 1px solid #333333; border-radius: 12px; overflow: hidden; max-width: 600px; margin: 0 auto;">
-            <tr><td align="center" style="padding: 30px 20px; background-color: #ea580c; background-image: linear-gradient(90deg, #f97316, #dc2626);">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">🦈 Sharkania x Ignition 🔥</h1>
-            </td></tr>
-            <tr><td style="padding: 40px 30px;">
-              <h2 style="margin-top: 0; color: #ffffff; font-size: 22px;">¡Hola {{nickname}}!</h2>
-              <p style="color: #d1d5db; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
-                La fecha de hoy de la <strong>${ignEmailLeagueName}</strong> está a punto de comenzar. Recuerda que tenemos <strong>${ignEmailGtd} Garantizados</strong> y el torneo es exclusivo para nuestra comunidad.
-              </p>
-              <div style="background-color: #1a0f0a; border: 2px dashed #f97316; border-radius: 8px; padding: 25px; text-align: center; margin: 30px 0;">
-                <p style="margin: 0 0 10px 0; color: #fdba74; font-size: 14px; text-transform: uppercase; font-weight: bold;">Contraseña de hoy:</p>
-                <p style="margin: 0; color: #f97316; font-size: 36px; font-weight: 900; font-family: 'Courier New', Courier, monospace; letter-spacing: 3px;">
-                  ${ignEmailPassword}
-                </p>
-              </div>
-              <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; text-align: center;">
-                Ve a la pestaña de <strong>Torneos Programados</strong> en Ignition Poker y busca "${ignEmailTournamentName}".
-              </p>
-              <div style="text-align: center; margin-top: 40px;">
-                <a href="https://record.revenuenetwork.com/_s_OAdmC6KUepsRaI0hkgHmNd7ZgqdRLk/1/" target="_blank" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 16px 32px; font-size: 18px; font-weight: bold; border-radius: 6px; display: inline-block; text-transform: uppercase;">
-                  Abrir Ignition Poker
-                </a>
-              </div>
-            </td></tr>
-            <tr><td align="center" style="padding: 20px; background-color: #050505; border-top: 1px solid #222222;">
-              <p style="color: #6b7280; font-size: 13px; margin: 0; line-height: 1.5;">
-                Acompáñanos en el Live Stream oficial en <a href="${ignEmailStreamUrl}" style="color: #f97316; text-decoration: none;">Sharkania.com</a><br>
-                ¡Nos vemos en las mesas!
-              </p>
-            </td></tr>
-          </table>
-        </td></tr>
-      </table>`;
-
-      // 1. Encolamos los correos en la base de datos
-      const { data: count, error } = await supabase.rpc("queue_ignition_emails", {
-        p_subject: ignitionEmailSubject,
-        p_body_html: finalHtml
-      });
-
-      if (error) throw error;
-
-      // The protected queue RPC has already enqueued these messages.
-      // Cloudflare Cron processes them automatically every ten minutes.
-      alert(`✅ Se encolaron ${count} correos de Ignition. El envío se realizará automáticamente en el próximo ciclo de correos (cada 10 minutos).`);
-
-      setIgnEmailPassword(""); // Limpiamos solo la contraseña por seguridad
-      setShowIgnitionEmailModal(false);
-    } catch (e: any) {
-      alert("❌ Error: " + e.message);
-    } finally {
-      setIsSendingIgnitionEmails(false);
     }
   };
 
@@ -1265,11 +1184,11 @@ export function SuperAdminPage() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => setShowIgnitionEmailModal(true)}
+                    onClick={() => { setTab("requests"); setReqCategory("ignition"); setReqView("pending"); }}
                     className="border-sk-border-3 hover:border-orange-500 hover:text-orange-500 transition-colors"
                   >
                     <Mail size={14} />
-                    Enviar Correo a Jugadores Ignition
+                    Gestionar correos Ignition
                   </Button>
 
                   {/* 📰 BOTÓN PARA BOLETINES (NEWSLETTER) */}
@@ -2191,71 +2110,6 @@ export function SuperAdminPage() {
 
         </div>
       </div>
-
-      {/* 🔥 MODAL PARAMETRIZADO PARA ENVIAR CORREOS DE IGNITION */}
-      {showIgnitionEmailModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-sk-lg">
-            <div className="px-6 py-4 border-b border-sk-border-2 flex items-center justify-between bg-sk-bg-3 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center">
-                  <Mail size={16} />
-                </div>
-                <div>
-                  <h3 className="text-sk-md font-bold text-sk-text-1">Enviar Correo a Jugadores Ignition</h3>
-                  <p className="text-[11px] text-sk-text-3">Completa los datos. El diseño HTML ya viene incluido.</p>
-                </div>
-              </div>
-              <button onClick={() => setShowIgnitionEmailModal(false)} className="text-sk-text-3 hover:text-white transition-colors">
-                <XIcon size={20} />
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto space-y-4">
-              <div>
-                <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Asunto del Correo</label>
-                <input type="text" value={ignitionEmailSubject} onChange={(e) => setIgnitionEmailSubject(e.target.value)} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-orange-500 focus:outline-none" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 border-t border-sk-border-2 pt-4 mt-4">
-                <div>
-                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Contraseña del Torneo *</label>
-                  <input type="text" value={ignEmailPassword} onChange={(e) => setIgnEmailPassword(e.target.value)} placeholder="Ej: SHARK123" className="w-full bg-sk-bg-0 border border-orange-500/50 rounded p-2 text-sk-sm text-orange-400 font-bold focus:border-orange-500 focus:outline-none placeholder:font-normal placeholder:text-sk-text-4" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Nombre del Torneo (Ignition)</label>
-                  <input type="text" value={ignEmailTournamentName} onChange={(e) => setIgnEmailTournamentName(e.target.value)} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-orange-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Nombre de la Liga</label>
-                  <input type="text" value={ignEmailLeagueName} onChange={(e) => setIgnEmailLeagueName(e.target.value)} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-orange-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Monto Garantizado</label>
-                  <input type="text" value={ignEmailGtd} onChange={(e) => setIgnEmailGtd(e.target.value)} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-orange-500 focus:outline-none" />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Link del Stream en vivo</label>
-                  <input type="url" value={ignEmailStreamUrl} onChange={(e) => setIgnEmailStreamUrl(e.target.value)} className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-orange-500 focus:outline-none" />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 bg-sk-bg-3 border-t border-sk-border-2 shrink-0 flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => setShowIgnitionEmailModal(false)}>Cancelar</Button>
-              <Button 
-                variant="accent" 
-                className="bg-orange-600 hover:bg-orange-500 text-white border-none"
-                onClick={handleSendIgnitionEmails} 
-                isLoading={isSendingIgnitionEmails}
-                disabled={!ignEmailPassword}
-              >
-                <Mail size={14} className="mr-2"/> Enviar y Notificar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 📰 MODAL PARA BOLETÍN SEMANAL (NEWSLETTER) */}
       {showNewsletterModal && (
