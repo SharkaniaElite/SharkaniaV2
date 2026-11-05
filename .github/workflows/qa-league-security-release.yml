@@ -42,6 +42,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
       - name: Verify guarded client and SQL contract without external database
         run: node --test tests/league-membership-guarded-contract.test.mjs
+      - name: Verify read-only shadow standings contract (no write operations)
+        run: node --test tests/league-standings-shadow-contract.test.mjs
       - name: TypeScript compile check
         run: |
           npm ci
