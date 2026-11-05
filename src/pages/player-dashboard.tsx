@@ -31,6 +31,7 @@ export function PlayerDashboardPage() {
   const location = useLocation();
   const ignitionPanelRef = useRef<HTMLDivElement>(null);
   const ignitionEmailInputRef = useRef<HTMLInputElement>(null);
+  const ignitionNoticeConsumedRef = useRef(false);
 
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.display_name ?? "");
@@ -65,7 +66,12 @@ export function PlayerDashboardPage() {
   // Wait for the authoritative profile before showing the corresponding modal.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get("highlight") !== "ignition" || !profile) return;
+    if (params.get("highlight") !== "ignition") {
+      ignitionNoticeConsumedRef.current = false;
+      return;
+    }
+    if (!profile || ignitionNoticeConsumedRef.current) return;
+    ignitionNoticeConsumedRef.current = true;
     setIsHighlighting(true);
     setIgnitionNoticeOpen(true);
     window.history.replaceState(window.history.state, "", location.pathname);
