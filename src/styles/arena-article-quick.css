@@ -1,0 +1,20 @@
+/* Experiencia editorial Sharkania Arena, aislada de las rutas funcionales. */
+.shark-article-page{color:#c7d6de;}
+.shark-article-page .shark-article-context{margin:0 0 15px;color:#5de0ee;font:800 11px/1.5 system-ui,sans-serif;letter-spacing:.17em;text-transform:uppercase;}
+.shark-article-page .shark-article-title{font-size:clamp(30px,4.5vw,47px);letter-spacing:-.045em;line-height:1.13;font-weight:850;color:#edf7fb;overflow-wrap:break-word;max-width:24ch;}
+.shark-article-page .shark-article-lede{font-size:clamp(16px,2vw,19px);line-height:1.7;color:#bdd1dc;border-left-color:#2ccce1;padding-left:20px;}
+.shark-article-page h2{font-size:clamp(21px,3.1vw,27px);letter-spacing:-.02em;line-height:1.24;color:#f1f8fa;padding:0 0 13px;border-bottom:1px solid rgba(89,194,214,.2);margin-top:52px;margin-bottom:22px;scroll-margin-top:120px;}
+.shark-article-page h3{color:#c4f3fb;font-size:clamp(17px,2.5vw,20px);letter-spacing:-.015em;line-height:1.35;}
+.shark-article-page p{overflow-wrap:break-word;}
+.shark-article-page :is(a,button):focus-visible{outline:3px solid #69e6f3;outline-offset:3px;}
+.shark-article-page :is(a):not(.shark-ignition-ad):hover{text-underline-offset:3px;}
+.shark-article-page figure img{max-width:100%;height:auto;}
+.shark-article-page > div{min-width:0;}
+.shark-article-page .shark-article-article-body{min-width:0;}
+.shark-article-page :is(ul,ol){margin-block:22px;}
+.shark-article-page li{line-height:1.7;}
+@media(max-width:600px){
+ .shark-article-page .shark-article-title{max-width:100%;letter-spacing:-.032em;}
+ .shark-article-page .shark-article-lede{padding-left:14px;}
+ .shark-article-page h2{margin-top:42px;}
+}
