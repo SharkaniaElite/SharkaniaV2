@@ -11,9 +11,11 @@ import { GlobalChampionsTicker } from "./global-champions-ticker";
 
 interface PageShellProps {
   children: ReactNode;
+  /** Desactiva publicidad global en contenidos con patrocinador editorial exclusivo. */
+  showMarketing?: boolean;
 }
 
-export function PageShell({ children }: PageShellProps) {
+export function PageShell({ children, showMarketing = true }: PageShellProps) {
   const { banners, loading: bannersLoading } = useBannersWithStatus();
   
   // 1. TOP GLOBAL (Destacado Principal)
@@ -44,7 +46,7 @@ export function PageShell({ children }: PageShellProps) {
 
       <div className="relative left-0 right-0 w-full z-[80] flex flex-col bg-sk-bg-0">
         {/* 🔥 TOP GLOBAL BANNER */}
-        {hasTopBanner && (
+        {showMarketing && hasTopBanner && (
           <div className="w-full bg-sk-bg-0 border-b border-sk-border-2 shadow-md flex justify-center py-3 relative z-[45]">
             <div className="w-full max-w-[1520px] px-2 flex justify-center items-center">
               {hasTopDesktop && (
@@ -61,7 +63,7 @@ export function PageShell({ children }: PageShellProps) {
           </div>
         )}
 
-        <VerifiedBannerStrip banners={banners} loading={bannersLoading} />
+        {showMarketing && <VerifiedBannerStrip banners={banners} loading={bannersLoading} />}
 
       </div>
 

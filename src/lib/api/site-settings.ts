@@ -53,6 +53,8 @@ export interface BannersConfig {
     grid_4: BannerSlotConfig;
     mid: BannerSlotConfig;
     final: BannerSlotConfig;
+    ignition_article_mid: BannerSlotConfig;
+    ignition_article_final: BannerSlotConfig;
     sidebar: BannerSlotConfig;
   };
 }
@@ -79,12 +81,20 @@ export const DEFAULT_BANNERS: BannersConfig = {
     grid_3: { desktop: null, mobile: null },
     grid_4: { desktop: null, mobile: null },
     mid: {
-      desktop: { src: "", href: "", width: 728, height: 90, label: "Leaderboard Blog" },
-      mobile: { src: "", href: "", width: 870, height: 200, label: "Wide Mobile" },
+      desktop: { src: "", href: "", width: 728, height: 90, label: "Banner artículo intermedio" },
+      mobile: { src: "", href: "", width: 320, height: 100, label: "Banner artículo intermedio móvil" },
     },
     final: {
-      desktop: { src: "", href: "", width: 870, height: 200, label: "Wide Footer" },
-      mobile: { src: "", href: "", width: 870, height: 200, label: "Wide Mobile" },
+      desktop: { src: "", href: "", width: 728, height: 90, label: "Banner artículo final" },
+      mobile: { src: "", href: "", width: 320, height: 100, label: "Banner artículo final móvil" },
+    },
+    ignition_article_mid: {
+      desktop: { src: "", href: "", width: 728, height: 90, label: "Ignition artículo medio PC", partner_id: "ignition" },
+      mobile: { src: "", href: "", width: 320, height: 100, label: "Ignition artículo medio móvil", partner_id: "ignition" },
+    },
+    ignition_article_final: {
+      desktop: { src: "", href: "", width: 728, height: 90, label: "Ignition artículo final PC", partner_id: "ignition" },
+      mobile: { src: "", href: "", width: 320, height: 100, label: "Ignition artículo final móvil", partner_id: "ignition" },
     },
     sidebar: {
       desktop: { src: "", href: "", width: 300, height: 250, label: "Rectangle Desktop" },

@@ -85,15 +85,27 @@ const SLOT_INFO = {
   },
   mid: {
     title: "Banner Blog: Medio",
-    description: "Aparece dentro del artículo después del 3er título H2.",
-    desktop: { size: "728×90 px", label: "Leaderboard horizontal", hint: "Máximo impacto sin interrumpir la lectura." },
-    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Se escala al celular." },
+    description: "Aparece dentro del artículo después del 3er título H2. Exportar imagen independiente para cada dispositivo.",
+    desktop: { size: "728×90 px", label: "Banner horizontal", hint: "Exporta una creatividad nativa de 728×90 px." },
+    mobile:  { size: "320×100 px", label: "Banner móvil", hint: "Exporta otra creatividad nativa de 320×100 px." },
   },
   final: {
     title: "Banner Blog: Final",
-    description: "Aparece al terminar el contenido del artículo.",
-    desktop: { size: "870×200 px", label: "Wide banner", hint: "Zona de alta intención." },
-    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Mismo banner en móvil." },
+    description: "Aparece al terminar el contenido del artículo. Exportar imagen independiente para cada dispositivo.",
+    desktop: { size: "728×90 px", label: "Banner horizontal", hint: "Exporta una creatividad nativa de 728×90 px." },
+    mobile:  { size: "320×100 px", label: "Banner móvil", hint: "Exporta otra creatividad nativa de 320×100 px." },
+  },
+  ignition_article_mid: {
+    title: "Exclusivo Ignition: banner intermedio del artículo",
+    description: "Solo en la noticia de Liga SHARKANIA / Ignition. Si faltan creatividades revisadas en ambos tamaños, aparece el diseño de marca integrado.",
+    desktop: { size: "728×90 px", label: "Ignition PC", hint: "Creatividad original 728×90 px; marca Ignition, condiciones verificadas." },
+    mobile: { size: "320×100 px", label: "Ignition móvil", hint: "Creatividad original 320×100 px; no estirar la versión PC." },
+  },
+  ignition_article_final: {
+    title: "Exclusivo Ignition: banner final del artículo",
+    description: "Solo en la noticia de Liga SHARKANIA / Ignition. No sustituye los banners globales de otros artículos.",
+    desktop: { size: "728×90 px", label: "Ignition PC", hint: "Creatividad original 728×90 px; marca Ignition, condiciones verificadas." },
+    mobile: { size: "320×100 px", label: "Ignition móvil", hint: "Creatividad original 320×100 px; no estirar la versión PC." },
   },
   sidebar: {
     title: "Banner Sidebar",
@@ -133,6 +145,18 @@ function BannerSlotEditor({
 
     setUploading(`${side}-${field}`);
     try {
+      // Solo para banners de artículos: validar tamaño real antes de Storage.
+      if (["mid", "final", "ignition_article_mid", "ignition_article_final"].includes(slotKey) && (field === "src" || field === "us_src")) {
+        const expectedWidth = side === "desktop" ? 728 : 320;
+        const expectedHeight = side === "desktop" ? 90 : 100;
+        const bitmap = await createImageBitmap(file);
+        const actualWidth = bitmap.width;
+        const actualHeight = bitmap.height;
+        bitmap.close();
+        if (actualWidth !== expectedWidth || actualHeight !== expectedHeight) {
+          throw new Error(`La imagen ${side} debe medir exactamente ${expectedWidth}×${expectedHeight} px (recibida: ${actualWidth}×${actualHeight}).`);
+        }
+      }
       const fileExt = file.name.split('.').pop();
       const fileName = `banner-${slotKey}-${side}-${field}-${Date.now()}.${fileExt}`;
 
@@ -286,6 +310,37 @@ function BannerSlotEditor({
                     className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
                   />
                 </div>
+
+                {(slotKey === "ignition_article_mid" || slotKey === "ignition_article_final") && (
+                  <div className="mt-3 p-3 rounded-lg border border-orange-500/25 bg-orange-500/5 space-y-3">
+                    <h4 className="text-[11px] font-bold text-orange-200">Revisión editorial del anuncio · Ignition</h4>
+                    <p className="text-[11px] text-sk-text-3">Para activar ambos tamaños se requiere enlace a condiciones oficiales, revisión vigente y creatividades de Ignition. Si falta alguno, se muestra el diseño informativo de respaldo.</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="text-[10px] text-sk-text-3">Revisado el (Chile)
+                        <input type="date" value={banner?.verified_on ?? ""}
+                          onChange={e => updateSide(side, "verified_on", e.target.value)}
+                          className="mt-1 w-full rounded border border-sk-border-2 bg-sk-bg-0 p-2 text-sk-xs text-sk-text-1" />
+                      </label>
+                      <label className="text-[10px] text-sk-text-3">Revisar nuevamente antes de
+                        <input type="date" value={banner?.review_by ?? ""}
+                          onChange={e => updateSide(side, "review_by", e.target.value)}
+                          className="mt-1 w-full rounded border border-sk-border-2 bg-sk-bg-0 p-2 text-sk-xs text-sk-text-1" />
+                      </label>
+                    </div>
+                    <label className="block text-[10px] text-sk-text-3">Fuente oficial de condiciones (https://)
+                      <input type="url" value={banner?.source_url ?? ""}
+                        onChange={e => updateSide(side, "source_url", e.target.value)}
+                        placeholder="https://..."
+                        className="mt-1 w-full rounded border border-sk-border-2 bg-sk-bg-0 p-2 text-sk-xs text-sk-text-1" />
+                    </label>
+                    <label className="block text-[10px] text-sk-text-3">Nombre editorial del anuncio
+                      <input type="text" value={banner?.editorial_title ?? ""}
+                        onChange={e => updateSide(side, "editorial_title", e.target.value)}
+                        placeholder="Ignition Poker · Liga SHARKANIA"
+                        className="mt-1 w-full rounded border border-sk-border-2 bg-sk-bg-0 p-2 text-sk-xs text-sk-text-1" />
+                    </label>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3 mt-1">
                   <div>

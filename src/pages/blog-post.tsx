@@ -10,6 +10,8 @@ import { renderWithLinks, renderWithLinksAndGlossary } from "../lib/render-inlin
 import { useGlossaryTerms } from "../hooks/use-glossary";
 import type { GlossaryTerm } from "../lib/api/glossary";
 import { WptBanner } from "../components/blog/wpt-banner";
+import { ArticleImageBanner, IgnitionArticleBanner, IgnitionBasesBanner, isIgnitionLeagueArticle, isIgnitionBasesArticle, isIgnitionSponsoredArticle } from "../components/blog/article-ads";
+import "../styles/arena-article-quick.css";
 import { PromotionArtwork } from "../components/marketing/promotion-artwork";
 import { PartnerPromotionPanel } from "../components/marketing/partner-promotion-panel";
 import { TableOfContents, slugify } from "../components/blog/table-of-contents";
@@ -108,16 +110,11 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
           </div>
         )}
         {h2Index === 3 && (
-          post.category === "Promociones" ? <PartnerPromotionPanel post={post} /> : post.custom_banner_mid_src ? (
-            <div className="w-full my-8">
-              <small className="block text-[9px] font-mono text-sk-text-4 text-right mb-1 uppercase tracking-widest">Publicidad Exclusiva</small>
-              <a href={post.custom_banner_mid_href ?? "#"} target="_blank" rel="sponsored noopener noreferrer" className="block w-full overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
-                <img src={post.custom_banner_mid_src} alt="Banner Intermedio Exclusivo" className="w-full h-auto object-cover" />
-              </a>
-            </div>
-          ) : (
-            <WptBanner slot="mid" />
-          )
+          isIgnitionBasesArticle(post) ? <IgnitionBasesBanner slot="mid" />
+          : isIgnitionLeagueArticle(post) ? <IgnitionArticleBanner slot="mid" />
+          : post.category === "Promociones" ? <PartnerPromotionPanel post={post} />
+          : post.custom_banner_mid_src ? <ArticleImageBanner src={post.custom_banner_mid_src} href={post.custom_banner_mid_href} label="Publicidad editorial intermedia" />
+          : <WptBanner slot="mid" />
         )}
       </>
     );
@@ -378,7 +375,7 @@ export default function BlogPostPage() {
 
   // Si no es ninguna de las promos especiales, renderizamos el blog normal
   return (
-    <PageShell>
+    <PageShell showMarketing={!isIgnitionSponsoredArticle({ slug: slug ?? "" })}>
       {/* Breadcrumb */}
       <div className="border-b border-sk-border-1 bg-sk-bg-1/80 backdrop-blur-sm sticky top-14 z-40">
         <div className="max-w-3xl mx-auto px-6 py-2.5 flex items-center justify-between">
@@ -447,15 +444,16 @@ export default function BlogPostPage() {
             </div>
           )}
 
-          <style>{`.blog-grid { max-width: 760px; margin: 0 auto; padding: 0 1.5rem; }`}</style>
+          <style>{`.blog-grid { max-width: 800px; margin: 0 auto; padding: 0 1.5rem; }`}</style>
 
-          <div className="blog-grid">
+          <div className="blog-grid shark-article-page">
             <div style={{ minWidth: 0 }}>
               <div className="py-12">
                 <Link to={`/${getEditorialSection(post.category)}`} className="inline-flex items-center gap-1.5 text-sk-sm text-sk-text-3 hover:text-sk-text-1 transition-colors mb-8">
                   <ArrowLeft size={14} /> Volver a {getEditorialSectionLabel(post.category)}
                 </Link>
 
+                <p className="shark-article-context">{post.category === "Noticias" ? "ACTUALIDAD DEL PÓKER" : post.category === "Promociones" ? "PROMOCIONES DE PÓKER" : "BIBLIOTECA DE PÓKER"}</p>
                 <div className="flex items-center gap-3 mb-5 flex-wrap">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-sk-accent-dim text-sk-accent text-[11px] font-semibold uppercase tracking-wider">
                     {post.category}
@@ -466,7 +464,7 @@ export default function BlogPostPage() {
                   <span className="text-[11px] text-sk-text-4">{formatBlogDate(post.published_at)}</span>
                 </div>
 
-                <h1 className="text-sk-3xl font-extrabold text-sk-text-1 tracking-tight leading-tight mb-6">{post.title}</h1>
+                <h1 className="shark-article-title text-sk-3xl font-extrabold text-sk-text-1 tracking-tight leading-tight mb-6">{post.title}</h1>
 
                 {post.category === "Promociones" && (() => {
                   const tags = post.tags || [];
@@ -514,7 +512,7 @@ export default function BlogPostPage() {
                   )}
                 </div>
 
-                <p className="text-sk-lg text-sk-text-2 leading-relaxed border-l-2 border-sk-accent pl-5 mb-10">{post.excerpt}</p>
+                <p className="shark-article-lede text-sk-lg text-sk-text-2 leading-relaxed border-l-2 border-sk-accent pl-5 mb-10">{post.excerpt}</p>
                 <div className="h-px bg-sk-border-2 mb-10" />
 
                 <TableOfContents blocks={post.body} />
@@ -526,16 +524,11 @@ export default function BlogPostPage() {
                   })}
                 </div>
 
-                {post.category === "Promociones" ? null : post.custom_banner_final_src ? (
-                  <div className="w-full mt-10">
-                    <small className="block text-[9px] font-mono text-sk-text-4 text-right mb-1 uppercase tracking-widest">Publicidad Exclusiva</small>
-                    <a href={post.custom_banner_final_href ?? "#"} target="_blank" rel="noopener noreferrer" className="block w-full overflow-hidden rounded-xl border border-sk-accent/30 hover:border-sk-accent transition-colors shadow-[0_0_20px_rgba(34,211,238,0.1)]">
-                      <img src={post.custom_banner_final_src} alt="Banner Final Exclusivo" className="w-full h-auto object-cover" />
-                    </a>
-                  </div>
-                ) : (
-                  <WptBanner slot="final" className="mt-10" />
-                )}
+                {isIgnitionBasesArticle(post) ? <IgnitionBasesBanner slot="final" />
+                 : isIgnitionLeagueArticle(post) ? <IgnitionArticleBanner slot="final" />
+                 : post.category === "Promociones" ? null
+                 : post.custom_banner_final_src ? <ArticleImageBanner src={post.custom_banner_final_src} href={post.custom_banner_final_href} label="Publicidad editorial final" />
+                 : <WptBanner slot="final" className="mt-10" />}
 
                 {/* 🎯 MÓDULO DE MINERÍA SHARK COINS */}
                 <div ref={rewardBoxRef} className="mt-12 p-8 bg-sk-bg-2 border border-sk-border-2 rounded-2xl flex flex-col items-center justify-center text-center shadow-sk-lg relative overflow-hidden">
