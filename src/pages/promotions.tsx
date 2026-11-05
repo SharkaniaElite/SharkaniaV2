@@ -88,8 +88,8 @@ export function PromotionsPage() {
   return (
     <PageShell variant="arena" showMarketing>
       <SEOHead
-        title="Promociones de póker verificadas"
-        description="Promociones de póker verificadas, condiciones de bonos y próximos torneos. Consulta la fecha de revisión, requisitos y disponibilidad por país."
+        title="Liga SHARKANIA, ClubGG y promociones de póker"
+        description="Liga SHARKANIA en Ignition Poker, jackpot del Club Latin Allin Póker en ClubGG y ofertas revisadas de CoinPoker y WPT Global. Revisa condiciones."
         path="/promociones"
       />
       
@@ -102,7 +102,7 @@ export function PromotionsPage() {
             heading="PROMOCIONES"
             highlight="DE PÓKER."
             icon={Gift}
-            description="Consulta campañas, beneficios y eventos publicados por Sharkania. Diferenciamos las ofertas revisadas del archivo histórico y recomendamos comprobar siempre las condiciones oficiales."
+            description="Liga SHARKANIA en Ignition, jackpot Latin Allin Póker en ClubGG y promociones revisadas de CoinPoker y WPT Global."
             count={loading ? undefined : currentPromos.length}
             countLabel="Ofertas y eventos revisados"
             action={<Link to="/noticias">Ver actualidad del póker <ArrowRight size={15} /></Link>}
@@ -114,7 +114,7 @@ export function PromotionsPage() {
 
           <div className="arena-bridge-grid grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
             <ArenaFeaturedPromo number={1} tone="orange" brand="Ignition Poker" logo={logoIgnition}
-              kicker="PRIMERA PRIORIDAD · LIGA SHARKANIA" title="Liga SHARKANIA · noviembre 2026"
+              kicker="LIGA OFICIAL · SHARKANIA" title="Liga SHARKANIA · noviembre 2026"
               description="Cuatro jueves de póker en Ignition: 5, 12, 19 y 26 de noviembre, 21:00 h Chile. Buy-in US$3,30 y US$100 garantizados por fecha."
               detail={<p className="text-xs leading-relaxed text-slate-200">Ranking mensual, puntos dobles el 26 de noviembre y premios adicionales sujetos a inscripción y verificación.</p>}
               footnote="Consulta las bases oficiales, las contraseñas y la elegibilidad antes de participar."
