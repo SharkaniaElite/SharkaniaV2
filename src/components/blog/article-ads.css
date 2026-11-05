@@ -1,0 +1,30 @@
+/* Los banners interiores son módulos independientes de la franja global.
+   La creatividad nunca se estira para adaptar otra proporción. */
+.shark-article-ad { width:100%; max-width:728px; margin:34px auto; }
+.shark-article-ad-label {display:block;text-align:right;font:700 10px/1.4 system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#899fac;margin-bottom:7px;}
+.shark-ignition-ad {box-sizing:border-box;position:relative;isolation:isolate;overflow:hidden;border:1px solid rgba(255,121,57,.3);border-radius:10px;color:#f3f6f8;background:radial-gradient(ellipse at 90% 20%,rgba(255,104,26,.22),transparent 55%),radial-gradient(ellipse at 0% 100%,rgba(34,211,238,.1),transparent 50%),linear-gradient(115deg,#070b10,#141d28 58%,#10121a);text-decoration:none;box-shadow:0 12px 32px rgba(0,0,0,.22);transition:border-color .15s,box-shadow .15s;}
+.shark-ignition-ad:hover{border-color:rgba(255,138,63,.8);box-shadow:0 0 0 2px rgba(255,138,63,.16),0 12px 32px rgba(0,0,0,.25);}
+.shark-ignition-ad:focus-visible,.shark-article-image-ad:focus-visible{outline:3px solid #22d3ee;outline-offset:3px;}
+.shark-ignition-ad-desktop{display:flex;align-items:center;gap:16px;width:100%;max-width:728px;aspect-ratio:728/90;padding:10px 16px;}
+.shark-ignition-ad-brand{flex:0 0 184px;display:flex;align-items:center;justify-content:center;height:100%;border-right:1px solid rgba(255,255,255,.15);padding-right:14px;}
+.shark-ignition-ad-brand img{max-width:100%;max-height:100%;object-fit:contain;}
+.shark-ignition-ad-message{display:flex;flex:1;flex-direction:column;gap:5px;min-width:0;}
+.shark-ignition-ad-message strong{font-weight:850;letter-spacing:.035em;line-height:1;font-size:clamp(15px,2.5vw,23px);}
+.shark-ignition-ad-message small{color:#c0d0d8;font-size:11px;white-space:nowrap;}
+.shark-ignition-ad-action{border:1px solid rgba(255,120,44,.55);border-radius:7px;padding:8px 11px;background:rgba(255,100,36,.11);font-size:11px;font-weight:750;white-space:nowrap;}
+.shark-ignition-ad-mobile{display:none;}
+.shark-article-image-ad{position:relative;display:block;width:100%;aspect-ratio:728/90;background:#0b1520;border:1px solid rgba(34,211,238,.2);border-radius:9px;overflow:hidden;}
+.shark-article-image-ad img{display:block;width:100%;height:100%;object-fit:contain;}
+@media(max-width:767px){
+ .shark-article-ad{max-width:320px;margin:28px auto;}
+ .shark-ignition-ad-desktop{display:none;}
+ .shark-ignition-ad-mobile{display:flex;flex-direction:column;justify-content:center;gap:4px;width:100%;max-width:320px;aspect-ratio:320/100;padding:9px 12px;}
+ .shark-ignition-ad-mobile-top{display:flex;align-items:center;gap:12px;min-height:40px;}
+ .shark-ignition-ad-mobile-top img{width:112px;height:41px;object-fit:contain;flex:none;}
+ .shark-ignition-ad-mobile-copy{display:flex;flex-direction:column;gap:4px;min-width:0;}
+ .shark-ignition-ad-mobile-copy strong{font-size:12px;line-height:1.1;letter-spacing:.025em;}
+ .shark-ignition-ad-mobile-copy small{font-size:9px;color:#c8d1d8;}
+ .shark-ignition-ad-mobile-bottom{align-self:stretch;text-align:center;background:rgba(255,108,42,.15);border:1px solid rgba(255,108,42,.3);border-radius:4px;padding:4px 3px;font-size:10px;font-weight:750;}
+ .shark-article-image-ad{aspect-ratio:320/100;}
+}
+@media(prefers-reduced-motion:reduce){.shark-ignition-ad{transition:none;}}
