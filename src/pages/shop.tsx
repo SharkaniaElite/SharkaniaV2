@@ -6,7 +6,7 @@ import { Button } from "../components/ui/button";
 import { SEOHead } from "../components/seo/seo-head";
 import { useShopProducts, useUserPurchases, useSharkCoinsBalance } from "../hooks/use-shop";
 import { useAuthStore } from "../stores/auth-store";
-import { Lock, Sparkles, CheckCircle2, FlaskConical, Zap, Hammer, ExternalLink, Gift, Clock, AlertTriangle } from "lucide-react";
+import { Lock, CheckCircle2, FlaskConical, Zap, Hammer, ExternalLink, Gift, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "../lib/cn";
 import { useNavigate } from "react-router-dom";
 import type { ShopProduct } from "../types";
