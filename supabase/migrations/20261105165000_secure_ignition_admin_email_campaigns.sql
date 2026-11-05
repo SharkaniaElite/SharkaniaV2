@@ -142,11 +142,19 @@ BEGIN
      OR array_position(p_user_ids,NULL) IS NOT NULL THEN
     RAISE EXCEPTION 'Selección inválida';
   END IF;
-  UPDATE public.email_queue
+  UPDATE public.email_queue q
     SET status='pending', error_log=NULL, sent_at=NULL
-    WHERE campaign_key=p_campaign_key
-      AND recipient_user_id=ANY(p_user_ids)
-      AND status='failed';
+    WHERE q.campaign_key=p_campaign_key
+      AND q.recipient_user_id=ANY(p_user_ids)
+      AND q.status='failed'
+      AND EXISTS (
+        SELECT 1 FROM public.profiles p
+        JOIN auth.users u ON u.id=p.id
+        WHERE p.id=q.recipient_user_id
+          AND p.ignition_league_player IS TRUE
+          AND p.ignition_status='verified'
+          AND u.email_confirmed_at IS NOT NULL
+      );
   GET DIAGNOSTICS v_count=ROW_COUNT;
   RETURN v_count;
 END;
