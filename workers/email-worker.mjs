@@ -64,6 +64,42 @@ async function processQueue(env) {
   };
 }
 
+
+/**
+ * Linkify only plain text fragments of a pre-rendered email.
+ * Existing buttons, <a> tags, HTML attributes, and CSS are left untouched.
+ * URLs from the admin's text areas become clickable in the delivered email.
+ */
+export function linkifyPlainUrlsInHtml(html) {
+  if (typeof html !== "string" || !html) return html;
+  let inAnchor = false;
+  let inRaw = false;
+  return html.split(/(<[^>]*>)/g).map((fragment) => {
+    if (fragment.startsWith("<")) {
+      if (/^<a(?:\s|>)/i.test(fragment)) inAnchor = true;
+      if (/^<\/a\s*>/i.test(fragment)) inAnchor = false;
+      if (/^<(?:style|script|textarea)(?:\s|>)/i.test(fragment)) inRaw = true;
+      if (/^<\/(?:style|script|textarea)\s*>/i.test(fragment)) inRaw = false;
+      return fragment;
+    }
+    if (inAnchor || inRaw) return fragment;
+    return fragment.replace(/https?:\/\/[^\s<>"]+/gi, (full) => {
+      const textUrl = full.replace(/[.,;:!?)]*$/, "");
+      const after = full.slice(textUrl.length);
+      try {
+        const url = new URL(textUrl.replace(/&amp;/gi, "&"));
+        if (!["https:", "http:"].includes(url.protocol)) return full;
+        // Keep the original visible URL; escape all href attribute characters.
+        const href = url.toString().replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return '<a href="' + href + '" target="_blank" rel="noopener noreferrer" style="color:#42d8ed;text-decoration:underline;">' + textUrl + '</a>' + after;
+      } catch {
+        return full;
+      }
+    });
+  }).join("");
+}
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function sendWithResend(item, env) {
@@ -79,7 +115,7 @@ async function sendWithResend(item, env) {
         from: 'Sharkania <no-reply@sharkania.com>',
         to: item.recipient_email,
         subject: item.subject,
-        html: item.body_html,
+        html: linkifyPlainUrlsInHtml(item.body_html),
       }),
     });
 

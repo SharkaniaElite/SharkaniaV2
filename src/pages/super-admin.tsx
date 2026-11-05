@@ -33,6 +33,7 @@ import { AnalyticsTab } from "../components/admin/analytics-tab";
 import { BlogEditor } from "../components/admin/blog-editor"; // 🔥 Agregamos el CMS
 import { syncBlogViewsFromPostHog } from "../lib/api/blog"; // 🔥 Sincronización PostHog
 import { TeleprompterAdminTab } from "../components/admin/teleprompter-admin-tab"; // 🔥 Ticker
+import { escapeNewsletterHtml, newsletterTextToHtml, safeNewsletterUrl } from "../lib/email-rendering";
 
 // ── Tipos ─────────────────────────────────────────────────
 
@@ -664,6 +665,12 @@ export function SuperAdminPage() {
   // 📰 NUEVO: Función para Enviar el Boletín Semanal
   const handleSendNewsletter = async () => {
     if (!nlSubject.trim()) return alert("El asunto es obligatorio.");
+    if (!nlNews.length || nlNews.some(item => !item.title.trim() || !item.description.trim())) {
+      return alert("Completa el titular y la descripción de cada bloque.");
+    }
+    if (nlNews.some(item => (item.image.trim() && !safeNewsletterUrl(item.image)) || (item.link.trim() && !safeNewsletterUrl(item.link)))) {
+      return alert("Los enlaces e imágenes deben tener URL https:// válidas.");
+    }
     
     // Si NO es prueba, lanzamos la alerta de peligro
     if (!isTestMode) {
@@ -673,16 +680,20 @@ export function SuperAdminPage() {
     setIsSendingNewsletter(true);
     try {
       // Ensamblamos el HTML de las noticias en bucle
-      const newsHtml = nlNews.map(item => `
+      const newsHtml = nlNews.map(item => {
+        const imageUrl = safeNewsletterUrl(item.image);
+        const buttonUrl = safeNewsletterUrl(item.link);
+        return `
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 25px; background-color: #1a1a1a; border-radius: 8px; overflow: hidden; border: 1px solid #333;">
-          ${item.image ? `<tr><td><img src="${item.image}" width="600" alt="Noticia" style="width: 100%; max-width: 600px; height: auto; display: block;" /></td></tr>` : ''}
+          ${imageUrl ? `<tr><td><img src="${escapeNewsletterHtml(imageUrl)}" width="600" alt="Noticia" style="width: 100%; max-width: 600px; height: auto; display: block;" /></td></tr>` : ''}
           <tr><td style="padding: 20px;">
-            <h3 style="margin-top: 0; color: #ffffff; font-size: 20px; font-weight: bold;">${item.title}</h3>
-            <p style="color: #d1d5db; font-size: 15px; line-height: 1.6; margin-bottom: ${item.link ? '20px' : '0'};">${item.description.replace(/\n/g, '<br/>')}</p>
-            ${item.link ? `<div><a href="${item.link}" target="_blank" style="background-color: #0ea5e9; color: #ffffff; text-decoration: none; padding: 10px 20px; font-size: 14px; font-weight: bold; border-radius: 4px; display: inline-block;">${item.btnText || 'Leer más'}</a></div>` : ''}
+            <h3 style="margin-top: 0; color: #ffffff; font-size: 20px; font-weight: bold;">${escapeNewsletterHtml(item.title)}</h3>
+            <p style="color: #d1d5db; font-size: 15px; line-height: 1.6; margin-bottom: ${buttonUrl ? '20px' : '0'};">${newsletterTextToHtml(item.description)}</p>
+            ${buttonUrl ? `<div><a href="${escapeNewsletterHtml(buttonUrl)}" target="_blank" style="background-color: #0ea5e9; color: #ffffff; text-decoration: none; padding: 10px 20px; font-size: 14px; font-weight: bold; border-radius: 4px; display: inline-block;">${escapeNewsletterHtml(item.btnText || 'Leer más')}</a></div>` : ''}
           </td></tr>
         </table>
-      `).join('');
+      `;
+      }).join('');
 
       // Construimos el esqueleto principal del correo
       const finalHtml = `
@@ -700,7 +711,7 @@ export function SuperAdminPage() {
               <!-- Reemplaza la URL de abajo por el link de tu nuevo PNG en Supabase -->
               <img src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-5.png" width="130" alt="Shark Mascot" style="display: block; margin: 0 auto 20px auto;" />
               <h2 style="margin: 0 0 15px 0; color: #ffffff; font-size: 24px;">¡Hola {{nickname}}!</h2>
-              <p style="color: #9ca3af; font-size: 16px; line-height: 1.6; margin: 0;">${nlIntro.replace(/\n/g, '<br/>')}</p>
+              <p style="color: #9ca3af; font-size: 16px; line-height: 1.6; margin: 0;">${newsletterTextToHtml(nlIntro)}</p>
             </td></tr>
 
             <!-- BUCLE DE NOTICIAS -->
@@ -2140,6 +2151,7 @@ export function SuperAdminPage() {
                 <div>
                   <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Introducción General (Aparece bajo la mascota)</label>
                   <textarea value={nlIntro} onChange={e => setNlIntro(e.target.value)} className="w-full h-20 bg-sk-bg-2 border border-sk-border-2 rounded p-2 text-sm text-sk-text-1 resize-none focus:border-sk-accent focus:outline-none" />
+                  <p className="mt-2 text-[11px] text-sk-text-3">Los enlaces https:// escritos en la introducción y las descripciones serán clicables en el correo. Los botones usarán el destino indicado en cada bloque.</p>
                 </div>
               </div>
 
@@ -2176,8 +2188,13 @@ export function SuperAdminPage() {
                           <input type="url" value={news.image} onChange={e => setNlNews(nlNews.map((n, i) => i === index ? { ...n, image: e.target.value } : n))} placeholder="https://..." className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" />
                         </div>
                         <div>
-                          <label className="text-[10px] uppercase text-sk-text-3 block mb-1">Link del Botón</label>
+                          <label className="text-[10px] uppercase text-sk-text-3 block mb-1">Link del Botón (https://)</label>
                           <input type="url" value={news.link} onChange={e => setNlNews(nlNews.map((n, i) => i === index ? { ...n, link: e.target.value } : n))} placeholder="https://..." className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" />
+                          {safeNewsletterUrl(news.link) && (
+                            <a href={safeNewsletterUrl(news.link)!} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-sk-accent hover:underline">
+                              <ExternalLink size={12} /> Comprobar destino
+                            </a>
+                          )}
                         </div>
                         {news.link && (
                           <div className="col-span-2">
