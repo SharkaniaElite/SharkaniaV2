@@ -2,14 +2,14 @@
 import { useState, useMemo } from "react";
 import { PageShell } from "../components/layout/page-shell";
 import { RankingTable } from "../components/ranking/ranking-table";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
+import { ArenaWalletStrip } from "../components/arena/arena-wallet-strip";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { usePlayers } from "../hooks/use-players";
 import { usePokerRooms } from "../hooks/use-clubs";
 import { useDebounce } from "../hooks/use-debounce";
-import { useAuthStore } from "../stores/auth-store";
-import { useSharkCoinsBalance } from "../hooks/use-shop";
-import { ChevronLeft, ChevronRight, LineChart, BookOpen, Bot, X, Sparkles, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, LineChart, BookOpen, Bot, X, Trophy } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/cn"; // 👈 Añade esto para las animaciones del panel
@@ -52,8 +52,6 @@ export function RankingPage() {
   // 👇 ESTADOS PARA EL PANEL DE INTELIGENCIA Y LA MASCOTA
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [mascotId, setMascotId] = useState(1);
-  const user = useAuthStore((s) => s.user);
-  const { data: balance } = useSharkCoinsBalance();
 
   // Función para abrir el panel y cambiar de tiburón
   const openIntelligenceHub = () => {
@@ -83,82 +81,39 @@ export function RankingPage() {
   const totalCount = data?.count ?? 0;
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title="Ranking ELO Global"
         description="Los mejores jugadores de poker del mundo ordenados por ELO. Busca, filtra y descubre quién domina."
         path="/ranking"
       />
 
-      <div className="pt-20 pb-16">
-        <div className="max-w-[1200px] mx-auto px-6">
+      <div className="arena-interior">
+        <div className="arena-interior-container">
 
-          {/* ══ HERO SECTION UNIFICADO ══ */}
-          <div className="bg-sk-bg-2 border border-sk-accent/20 rounded-2xl p-6 md:p-10 mb-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_0_40px_rgba(34,211,238,0.05)]">
-            <div className="absolute -top-10 -left-10 w-40 h-40 bg-sk-accent/10 blur-[50px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sk-accent/30 to-transparent" />
-
-            <div className="shrink-0 relative z-10">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute inset-0 bg-sk-accent/10 blur-xl rounded-full scale-150 group-hover:bg-sk-accent/20 transition-colors duration-500" />
-                <img
-                  src={`/mascot/shark-${mascotId}.webp`}
-                  alt="Sharkania Quartermaster"
-                  className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 text-center md:text-left relative z-10">
-              <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
-                <Trophy className="text-sk-accent" size={16} />
-                <p className="font-mono text-[11px] font-bold tracking-[0.15em] uppercase text-sk-accent">
-                  RED ELO ACTIVA
-                </p>
-                <Sparkles className="text-sk-accent animate-pulse" size={16} />
-              </div>
-
-              <h1 className="text-sk-3xl md:text-sk-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-4 leading-none">
-                Ranking Global
-              </h1>
-
-              <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed mb-4">
-                <span className="font-mono text-sk-text-1">{totalCount}</span> perfiles activos en la matriz.
-                {isFetching && (
-                  <span className="ml-3 font-mono text-[11px] text-sk-accent animate-pulse uppercase tracking-widest">
-                    [ Procesando datos... ]
-                  </span>
-                )}
-              </p>
-              
-              <button
-                onClick={openIntelligenceHub}
-                className="inline-flex items-center justify-center md:justify-start gap-2 text-[11px] font-mono font-bold text-sk-accent hover:text-sk-bg-0 hover:bg-sk-accent transition-all border border-sk-accent/50 hover:border-sk-accent rounded-full px-5 py-2.5 shadow-[0_0_15px_rgba(34,211,238,0.1)] group"
-              >
-                <Bot size={16} className="group-hover:animate-pulse" />
-                ANALIZAR ALGORITMO
+          <ArenaPageHero
+            section="ranking"
+            eyebrow="PÓKER COMPETITIVO / ELO"
+            heading="RANKING ELO"
+            highlight="DE PÓKER."
+            icon={Trophy}
+            description={
+              <>Clasificación ELO de jugadores de póker según sus resultados en los torneos registrados.
+                {isFetching && <span className="arena-refresh-label"> · Actualizando clasificación…</span>}
+              </>
+            }
+            count={isLoading ? undefined : totalCount}
+            countLabel="Jugadores registrados"
+            action={
+              <button type="button" onClick={openIntelligenceHub}>
+                <Bot size={16} aria-hidden="true" /> Cómo se calcula el ELO
               </button>
-            </div>
+            }
+          />
 
-            {user && (
-              <div className="shrink-0 bg-sk-bg-0/50 backdrop-blur-md border border-sk-border-2 rounded-xl p-5 text-center min-w-[160px] relative z-10 group-hover:border-sk-accent/40 transition-colors">
-                <p className="text-[10px] font-mono text-sk-text-3 font-bold uppercase tracking-widest mb-3">
-                  Tu Reserva
-                </p>
-                <div className="flex items-center justify-center gap-2 text-sk-3xl font-black text-sk-accent tracking-tighter leading-none mb-1">
-                  {balance ?? 0}
-                  <img
-                    src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif"
-                    alt="SC"
-                    className="w-7 h-7 drop-shadow-md"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-{/* 🧠 INTELIGENCIA TÁCTICA (Links internos) */}
-          <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ArenaWalletStrip />
+          {/* 🧠 INTELIGENCIA TÁCTICA (Links internos) */}
+          <div className="arena-support-links mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
               to="/blog/elo-global-como-medimos-al-mejor-jugador-de-clubes"
               className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-xl border border-sk-border-2 bg-sk-bg-2/50 backdrop-blur-sm hover:bg-sk-bg-3 hover:border-sk-accent/40 hover:shadow-[0_4px_30px_rgba(34,211,238,0.1)] transition-all duration-300"
@@ -201,58 +156,76 @@ export function RankingPage() {
             </Link>
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            <div className="flex-1">
-              <Input
-                variant="search"
-                placeholder="Buscar jugador..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-              />
+          <section className="arena-ranking-filters" aria-label="Filtros del ranking">
+            <div className="arena-ranking-filters-head">
+              <div>
+                <strong>Explorar clasificación</strong>
+                <p>Encuentra jugadores por nombre, país o plataforma.</p>
+              </div>
+              <button
+                type="button"
+                className="arena-ranking-reset"
+                disabled={!search && !countryCode && !roomId}
+                onClick={() => { setSearch(""); setCountryCode(""); setRoomId(""); setPage(1); }}
+              >
+                Limpiar filtros
+              </button>
             </div>
+            <div className="arena-ranking-filter-grid">
+              <div className="arena-ranking-filter-field">
+                <label htmlFor="arena-ranking-search">Jugador</label>
+                <Input
+                  id="arena-ranking-search"
+                  variant="search"
+                  placeholder="Buscar por nickname..."
+                  autoComplete="off"
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                />
+              </div>
+              <div className="arena-ranking-filter-field">
+                <label htmlFor="arena-ranking-country">País</label>
+                <select
+                  id="arena-ranking-country"
+                  value={countryCode}
+                  onChange={(e) => { setCountryCode(e.target.value); setPage(1); }}
+                >
+                  {COUNTRIES.map((country) => (
+                    <option key={country.code} value={country.code}>{country.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="arena-ranking-filter-field">
+                <label htmlFor="arena-ranking-room">Plataforma</label>
+                <select
+                  id="arena-ranking-room"
+                  value={roomId}
+                  onChange={(e) => { setRoomId(e.target.value); setPage(1); }}
+                >
+                  <option value="">Todas las salas</option>
+                  {roomsData?.map((room) => (
+                    <option key={room.id} value={room.id}>{room.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </section>
 
-            <select
-              value={countryCode}
-              onChange={(e) => {
-                setCountryCode(e.target.value);
-                setPage(1);
-              }}
-              className="bg-sk-bg-2 border border-sk-border-2 rounded-md px-3 py-2.5 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={roomId}
-              onChange={(e) => {
-                setRoomId(e.target.value);
-                setPage(1);
-              }}
-              className="bg-sk-bg-2 border border-sk-border-2 rounded-md px-3 py-2.5 text-sk-sm text-sk-text-1 focus:outline-none focus:border-sk-accent"
-            >
-              <option value="">Todas las salas</option>
-              {roomsData?.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.name}
-                </option>
-              ))}
-            </select>
+          <div className="arena-ranking-results-heading" aria-live="polite">
+            <strong>Tabla de clasificación</strong>
+            <span>
+              {isFetching ? "Actualizando resultados…" : `${totalCount.toLocaleString("es-CL")} jugadores · Página ${page} de ${totalPages}`}
+            </span>
           </div>
 
           {/* Table */}
-          <RankingTable
+          <div className="arena-ranking-board-wrap">
+            <RankingTable
             players={players}
             isLoading={isLoading}
             startRank={(page - 1) * PAGE_SIZE + 1}
-          />
+            />
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
