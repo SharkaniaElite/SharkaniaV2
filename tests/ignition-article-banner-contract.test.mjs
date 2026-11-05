@@ -17,7 +17,7 @@ test("Ignition November news has only its own two sponsored inline banners", () 
   assert.match(banners, /href="\/ignition"/);
   assert.match(post, /isIgnitionLeagueArticle\(post\) \? <IgnitionArticleBanner slot="mid"/);
   assert.match(post, /isIgnitionLeagueArticle\(post\) \? <IgnitionArticleBanner slot="final"/);
-  assert.match(post, /<PageShell showMarketing=\{!isIgnitionLeagueArticle/);
+  assert.match(post, /<PageShell showMarketing=\{!isIgnitionSponsoredArticle/);
   assert.match(post, /<WptBanner slot="mid"/); // Existing non-Ignition articles retain their ad route.
   assert.match(post, /<WptBanner slot="final"/);
 });
@@ -28,7 +28,7 @@ test("Article exclusivity also suppresses global top strips and floating ads", (
   assert.match(pageShell, /showMarketing = true/);
   assert.match(pageShell, /showMarketing && hasTopBanner/);
   assert.match(pageShell, /showMarketing && <VerifiedBannerStrip/);
-  assert.match(floating, /location\.pathname === "\/noticias\/liga-sharkania-noviembre-2026-fechas-puntos-premios-ignition"\) return null/);
+  assert.match(floating, /location\.pathname === "\/noticias\/liga-sharkania-noviembre-2026-fechas-puntos-premios-ignition"/);
 });
 
 test("Desktop and mobile article creatives use native non-deforming frames", () => {
