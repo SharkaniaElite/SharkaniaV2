@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { Spinner } from "../components/ui/spinner";
 import { Button } from "../components/ui/button";
 import { SEOHead } from "../components/seo/seo-head";
 import { useShopProducts, useUserPurchases, useSharkCoinsBalance } from "../hooks/use-shop";
 import { useAuthStore } from "../stores/auth-store";
-import { Lock, Sparkles, CheckCircle2, FlaskConical, Zap, Hammer, ExternalLink, Gift, Clock, AlertTriangle } from "lucide-react";
+import { Lock, CheckCircle2, FlaskConical, Zap, Hammer, ExternalLink, Gift, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "../lib/cn";
 import { useNavigate } from "react-router-dom";
 import type { ShopProduct } from "../types";
@@ -316,7 +317,6 @@ import { PurchaseModal } from "../components/shop/purchase-modal";
 // ─── PÁGINA PRINCIPAL ───
 export function ShopPage() {
   const navigate = useNavigate();
-  const [mascotId] = useState(() => Math.floor(Math.random() * 10) + 1);
   const [tab, setTab] = useState<"active" | "upcoming">("active");
   const [selectedProductToBuy, setSelectedProductToBuy] = useState<ShopProduct | null>(null);
 
@@ -398,66 +398,25 @@ export function ShopPage() {
   }, [purchases]);
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title="La Bóveda — Arsenal Táctico"
         description="Adquiere herramientas de inteligencia de poker con tus Shark Coins."
         path="/shop"
       />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[1000px] mx-auto px-6">
+      <div className="arena-public-bridge arena-shop-route">
+        <div className="arena-bridge-content">
           
-          {/* ══ HERO SECTION ══ */}
-          <div className="bg-sk-bg-2 border border-sk-accent/20 rounded-2xl p-6 md:p-10 mb-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_0_40px_rgba(34,211,238,0.05)]">
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-sk-accent/10 blur-[50px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sk-accent/30 to-transparent" />
-
-            <div className="shrink-0 relative z-10">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute inset-0 bg-sk-accent/10 blur-xl rounded-full scale-150 group-hover:bg-sk-accent/20 transition-colors duration-500" />
-                <img
-                  src={`/mascot/shark-${mascotId}.webp`}
-                  alt="Sharkania Quartermaster"
-                  className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 text-center md:text-left relative z-10">
-              <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
-                <Lock className="text-sk-accent" size={16} />
-                <p className="font-mono text-[11px] font-bold tracking-[0.15em] uppercase text-sk-accent">
-                  INTENDENCIA · NIVEL ACCESO
-                </p>
-                <Sparkles className="text-sk-accent animate-pulse" size={16} />
-              </div>
-
-              <h1 className="text-sk-3xl md:text-sk-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-sk-text-1 to-sk-text-4 mb-4 leading-none">
-                La Bóveda
-              </h1>
-
-              <p className="text-sk-sm md:text-sk-base text-sk-text-2 leading-relaxed">
-                El dinero real no sirve aquí. El ecosistema Sharkania funciona bajo estricta meritocracia. <strong className="text-sk-text-1">Estudia, compite y farmea Shark Coins</strong> para desbloquear herramientas que te darán una ventaja sobre el field.
-              </p>
-            </div>
-
-            {user && (
-              <div className="shrink-0 bg-sk-bg-0/50 backdrop-blur-md border border-sk-border-2 rounded-xl p-5 text-center min-w-[160px] relative z-10 group-hover:border-sk-accent/40 transition-colors">
-                <p className="text-[10px] font-mono text-sk-text-3 font-bold uppercase tracking-widest mb-3">
-                  Tu Reserva
-                </p>
-                <div className="flex items-center justify-center gap-2 text-sk-3xl font-black text-sk-accent tracking-tighter leading-none mb-1">
-                  {balance ?? 0}
-                  <img
-                    src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif"
-                    alt="SC"
-                    className="w-7 h-7 drop-shadow-md"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
+          <ArenaPageHero section="shop" eyebrow="LA BÓVEDA / SHARK COINS"
+            heading="TIENDA" highlight="DE PÓKER." icon={Lock}
+            description="Explora herramientas y desbloqueos con Shark Coins. Consulta los recursos disponibles y los que siguen en desarrollo." />
+          {user && <div className="arena-shop-wallet" aria-label="Saldo de Shark Coins">
+            <p>Tu saldo disponible en SHARKANIA</p>
+            <span className="arena-shop-coins">{(balance ?? 0).toLocaleString("es-CL")}
+              <img src="https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/shark-coin-pro.avif"
+                alt="Shark Coins" loading="lazy" decoding="async" />
+            </span>
+          </div>}
           {/* ══ BANNER PARA NO LOGUEADOS CON FOMO (+100 SC) ══ */}
           {!isAuthenticated && (
             <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
@@ -483,7 +442,7 @@ export function ShopPage() {
           )}
 
           {/* ══ CONTROLADOR DE PESTAÑAS ══ */}
-          <div className="flex mb-8 border-b border-sk-border-2">
+          <div className="arena-shop-tabs flex mb-8 border-b border-sk-border-2" role="group" aria-label="Estado de las herramientas">
             <button
               onClick={() => setTab("active")}
               className={cn(

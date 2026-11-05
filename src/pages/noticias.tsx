@@ -2,13 +2,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { SEOHead } from "../components/seo/seo-head";
 import { Megaphone, CalendarDays, ChevronRight, Newspaper, Flame, FileText } from "lucide-react";
-import { getBlogPosts, formatBlogDate } from "../lib/api/blog";
+import { getBlogPosts, formatBlogDate, type BlogPost } from "../lib/api/blog";
+import { getEditorialPath } from "../lib/editorial-routing";
 import { cn } from "../lib/cn";
 
 export function NoticiasPage() {
-  const [posts, setPosts] = useState<any[]>([]); 
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>("Todas");
 
@@ -17,6 +20,7 @@ export function NoticiasPage() {
       .then((data) => {
         setPosts(data);
       })
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -38,39 +42,36 @@ export function NoticiasPage() {
   const regularPosts = filteredPosts.slice(1);
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead 
         title="Noticias y Promociones de Póker | Sharkania" 
         description="Mantente al día con la actualidad del circuito, descubre nuevas promociones, bonos exclusivos y mejora tu juego con nuestros artículos de estrategia." 
         path="/noticias"
       />
 
-      <div className="min-h-screen bg-sk-bg-0 pt-24 pb-20">
+      <div className="arena-interior arena-editorial arena-news">
         
-        {/* ══ HEADER DE LA SECCIÓN ══ */}
-        <section className="relative px-6 mb-12">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-sk-accent/10 blur-[120px] rounded-full pointer-events-none" />
-          
-          <div className="max-w-[1200px] mx-auto relative z-10 text-center">
-            <div className="inline-flex items-center gap-2 bg-sk-bg-3 border border-sk-border-2 px-4 py-1.5 rounded-full text-sk-text-2 font-mono text-xs uppercase tracking-widest font-bold mb-6">
-              <Megaphone size={14} className="text-sk-accent" />
-              Actualidad y Novedades
-            </div>
-            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-6 uppercase">
-              Noticias y <span className="text-transparent bg-clip-text bg-gradient-to-r from-sk-accent to-blue-500">Más</span>
-            </h1>
-            <p className="text-lg text-sk-text-3 max-w-2xl mx-auto">
-              Todo lo que necesitas saber para estar un paso adelante en las mesas. Novedades de la liga, beneficios exclusivos y contenido táctico.
-            </p>
-          </div>
+        <section className="arena-interior-container">
+          <ArenaPageHero
+            section="news"
+            eyebrow="ACTUALIDAD / CIRCUITO"
+            heading="ACTUALIDAD"
+            highlight="DEL PÓKER."
+            icon={Megaphone}
+            description="Consulta noticias de póker, novedades del circuito, guías y promociones publicadas por Sharkania. Usa los filtros para encontrar cada categoría."
+            count={loading ? undefined : posts.length}
+            countLabel="Publicaciones registradas"
+            action={<Link to="/blog">Explorar biblioteca de estrategia <ChevronRight size={16} /></Link>}
+          />
         </section>
 
         {/* ══ FILTROS DE CATEGORÍAS ══ */}
-        <section className="max-w-[1200px] mx-auto px-6 mb-12">
-          <div className="flex items-center justify-start md:justify-center gap-2 overflow-x-auto pb-4 scrollbar-hide">
+        <section className="arena-interior-container mb-10">
+          <div className="arena-editorial-controls flex items-center justify-start gap-2 overflow-x-auto pb-3 scrollbar-hide">
             {categories.map(category => (
               <button
                 key={category}
+                aria-pressed={activeCategory === category}
                 onClick={() => setActiveCategory(category)}
                 className={cn(
                   "px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 border",
@@ -86,7 +87,7 @@ export function NoticiasPage() {
         </section>
 
         {/* ══ CONTENIDO DE NOTICIAS ══ */}
-        <section className="max-w-[1200px] mx-auto px-6">
+        <section className="arena-interior-container">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map(i => (
@@ -95,6 +96,10 @@ export function NoticiasPage() {
                   i === 1 ? "md:col-span-3 h-[400px]" : ""
                 )} />
               ))}
+            </div>
+          ) : error ? (
+            <div role="alert" className="arena-data-surface p-10 text-center text-sk-text-2">
+              No se pudieron cargar las publicaciones. Inténtalo de nuevo más tarde.
             </div>
           ) : filteredPosts.length === 0 ? (
             <div className="text-center py-20 bg-sk-bg-2 border border-sk-border-2 rounded-2xl">
@@ -108,8 +113,8 @@ export function NoticiasPage() {
               {/* NOTICIA DESTACADA (Ocupa todo el ancho arriba) */}
               {featuredPost && (
                 <Link 
-                  to={`/noticias/${featuredPost.slug}`} 
-                  className="group md:col-span-3 flex flex-col md:flex-row bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/50 shadow-sk-md hover:shadow-[0_0_30px_rgba(34,211,238,0.1)] transition-all duration-500"
+                  to={getEditorialPath(featuredPost.category, featuredPost.slug)} 
+                  className="arena-content-card arena-news-featured group md:col-span-3 flex flex-col md:flex-row transition-all duration-300"
                 >
                   <div className="md:w-2/3 h-64 md:h-[450px] relative overflow-hidden bg-sk-bg-3">
                     {featuredPost.image_thumbnail && (
@@ -161,8 +166,8 @@ export function NoticiasPage() {
               {regularPosts.map((post) => (
                 <Link 
                   key={post.id} 
-                  to={`/noticias/${post.slug}`} 
-                  className="group flex flex-col bg-sk-bg-2 border border-sk-border-2 rounded-2xl overflow-hidden hover:border-sk-accent/50 transition-all duration-300 shadow-sk-md hover:shadow-[0_0_20px_rgba(34,211,238,0.1)]"
+                  to={getEditorialPath(post.category, post.slug)} 
+                  className="arena-content-card group flex flex-col transition-all duration-300"
                 >
                   <div className="h-52 overflow-hidden relative border-b border-sk-border-2 bg-sk-bg-3">
                     <div className={cn(

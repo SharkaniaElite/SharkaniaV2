@@ -1,6 +1,7 @@
 // src/pages/glossary-term.tsx
 import { useParams, Link } from "react-router-dom";
 import { PageShell } from "../components/layout/page-shell";
+import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { Spinner } from "../components/ui/spinner";
 import { Button } from "../components/ui/button";
 import { useGlossaryTerm, useGlossaryTerms } from "../hooks/use-glossary";
@@ -39,7 +40,7 @@ export function GlossaryTermPage() {
 
   if (isLoading) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex items-center justify-center">
           <Spinner size="lg" />
         </div>
@@ -49,7 +50,7 @@ export function GlossaryTermPage() {
 
   if (!term) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4">
           <span className="text-5xl">📖</span>
           <h1 className="text-sk-2xl font-bold text-sk-text-1">
@@ -70,14 +71,14 @@ export function GlossaryTermPage() {
   }
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title={`${term.term} — Glosario de Poker`}
         description={term.short_definition}
         path={`/glosario/${term.slug}`}
       />
-      <div className="pt-20 pb-16">
-        <div className="max-w-[760px] mx-auto px-6">
+      <div className="arena-interior arena-editorial">
+        <div className="arena-interior-container arena-glossary-article">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-[11px] text-sk-text-4 mb-8">
             <Link to="/" className="hover:text-sk-text-2 transition-colors">
@@ -91,25 +92,18 @@ export function GlossaryTermPage() {
             <span className="text-sk-text-3">{term.term}</span>
           </nav>
 
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-sk-accent-dim text-sk-accent text-[11px] font-semibold uppercase tracking-wider">
-                {categoryInfo?.icon} {categoryInfo?.label ?? term.category}
-              </span>
-            </div>
-            <h1 className="text-sk-3xl font-extrabold tracking-tight text-sk-text-1 mb-4">
-              {term.term}
-            </h1>
-            <p className="text-sk-lg text-sk-text-2 leading-relaxed border-l-2 border-sk-accent pl-5">
-              {term.short_definition}
-            </p>
-          </div>
+          <ArenaPageHero
+            section="glossary"
+            eyebrow={categoryInfo?.label ?? term.category}
+            heading={term.term}
+            icon={BookOpen}
+            description={term.short_definition}
+          />
 
           <div className="h-px bg-sk-border-2 mb-8" />
 
           {/* Full definition */}
-          <div className="mb-10">
+          <div className="arena-learning-panel p-5 sm:p-8 mb-10">
             <h2 className="text-sk-md font-bold text-sk-text-1 mb-4 flex items-center gap-2">
               <BookOpen size={18} className="text-sk-accent" />
               Definición completa

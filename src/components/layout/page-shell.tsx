@@ -1,4 +1,6 @@
 import { type ReactNode, useState } from "react";
+import "../../styles/arena-interior.css";
+import "../../styles/arena-public-bridge.css";
 import { Navbar } from "./navbar";
 import { Footer } from "./footer";
 import { AdminAccessBanner } from "./admin-access-banner";
@@ -13,9 +15,11 @@ interface PageShellProps {
   children: ReactNode;
   /** Desactiva publicidad global en contenidos con patrocinador editorial exclusivo. */
   showMarketing?: boolean;
+  variant?: "standard" | "arena";
 }
 
-export function PageShell({ children, showMarketing = true }: PageShellProps) {
+export function PageShell({ children, showMarketing = true, variant = "standard" }: PageShellProps) {
+  const isArena = variant === "arena";
   const { banners, loading: bannersLoading } = useBannersWithStatus();
   
   // 1. TOP GLOBAL (Destacado Principal)
@@ -35,8 +39,8 @@ export function PageShell({ children, showMarketing = true }: PageShellProps) {
   };
 
   return (
-    <div className="min-h-screen bg-sk-bg-1 flex flex-col relative overflow-x-clip">
-      <Navbar />
+    <div className={cn("min-h-screen bg-sk-bg-1 flex flex-col relative overflow-x-clip", isArena && "arena-page-shell")}>
+      <Navbar variant={isArena ? "arena" : "standard"} />
       <div style={{ height: "56px", flexShrink: 0 }} />
 
       {/* 🌟 TICKER STICKY: Se queda pegado a 56px del tope (justo debajo del Navbar) */}
