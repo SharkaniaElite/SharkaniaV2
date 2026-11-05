@@ -4,6 +4,35 @@ import { bannerIsReviewed } from "../../lib/marketing-banner-policy";
 import "./article-ads.css";
 
 const IGNITION_LEAGUE_SLUG = "liga-sharkania-noviembre-2026-fechas-puntos-premios-ignition";
+const IGNITION_BASES_SLUG = "bases-oficiales-liga-sharkania-noviembre-2026";
+
+export function isIgnitionBasesArticle(post: Pick<BlogPost, "slug"> | null | undefined): boolean {
+  return post?.slug === IGNITION_BASES_SLUG;
+}
+
+export function isIgnitionSponsoredArticle(post: Pick<BlogPost, "slug"> | null | undefined): boolean {
+  return isIgnitionLeagueArticle(post) || isIgnitionBasesArticle(post);
+}
+
+/** La noticia de las Bases tiene cuatro creatividades editoriales propias,
+ * no hereda los dos slots comerciales generales de la Liga. */
+export function IgnitionBasesBanner({ slot }: { slot: "mid" | "final" }) {
+  const path = "/images/banners/ignition-bases-";
+  const desktop = `${path}${slot}-desktop-728x90.svg`;
+  const mobile = `${path}${slot}-mobile-320x100.svg`;
+  return (
+    <aside className="shark-article-ad" aria-label="Publicidad informativa de Ignition Poker y SHARKANIA">
+      <span className="shark-article-ad-label">Publicidad · Ignition Poker</span>
+      <a className="shark-article-bases-banner" href="/ignition" rel="sponsored" aria-label="Consultar inscripción y condiciones de Ignition Poker">
+        <picture>
+          <source media="(max-width: 767px)" srcSet={mobile} type="image/svg+xml" />
+          <img src={desktop} alt={slot === "mid" ? "Liga SHARKANIA: bases oficiales e Ignition Poker" : "Ignition Poker: cuenta verificada y premios adicionales SHARKANIA"} loading="lazy" decoding="async" width={728} height={90} />
+        </picture>
+      </a>
+    </aside>
+  );
+}
+
 const IGNITION_LOGO = "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/logo-ignition-poker.png";
 
 /** Solo este anuncio de liga bloquea cualquier mezcla con anuncios de otras salas. */
