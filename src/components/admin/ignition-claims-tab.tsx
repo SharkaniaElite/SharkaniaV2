@@ -1,354 +1,250 @@
-// src/components/admin/ignition-claims-tab.tsx
-import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../../lib/supabase';
-import { Button } from '../ui/button';
-import { Spinner } from '../ui/spinner';
-import { Mail, Filter, RefreshCw, Send, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../lib/supabase";
+import { Button } from "../ui/button";
+import { Spinner } from "../ui/spinner";
+import { Mail, Filter, RefreshCw, Send, CheckCircle2, Circle, AlertCircle } from "lucide-react";
 
-interface IgnitionPlayer {
-  id: string;
-  display_name: string | null;
-  email: string | null;
-  ignition_nickname: string | null;
-  ignition_email: string | null;
-  created_at: string;
-  ignition_linked_at: string | null; // 🔥 Nueva columna
-  ignition_password_sent: boolean;
+interface Player {
+  id:string; display_name:string|null; email:string|null;
+  ignition_nickname:string|null; ignition_email:string|null;
+  created_at:string; ignition_linked_at:string|null;
+}
+type Status = "not_queued"|"pending"|"sent"|"failed"|"ineligible";
+type Filter = Status | "all";
+type Delivery = { eligible:boolean; queue_status:Status };
+const DATE_OPTIONS = [
+  {key:"ignition-2026-11-welcome",label:"Bienvenida: cuatro fechas",date:"",num:0},
+  {key:"ignition-2026-11-05",label:"Fecha 1 - 5 noviembre",date:"5",num:1},
+  {key:"ignition-2026-11-12",label:"Fecha 2 - 12 noviembre",date:"12",num:2},
+  {key:"ignition-2026-11-19",label:"Fecha 3 - 19 noviembre",date:"19",num:3},
+  {key:"ignition-2026-11-26",label:"Fecha 4 - 26 noviembre",date:"26",num:4},
+];
+const DATE_STATUSES: Record<Status,string> = {
+  not_queued:"Sin preparar",pending:"En cola",sent:"Aceptado por Resend",
+  failed:"Fallido",ineligible:"No elegible",
+};
+function defaultSubject(key:string):string {
+  const choice=DATE_OPTIONS.find(item=>item.key===key);
+  if(!choice)return "";
+  return choice.num===0 ? "Liga SHARKANIA | Información de las cuatro fechas" :
+    "Liga SHARKANIA | Información fecha " + choice.num + " (" + choice.date + "/11)";
+}
+function defaultMessage(key:string):string {
+  const choice=DATE_OPTIONS.find(item=>item.key===key);
+  if(!choice)return "";
+  if(choice.num===0)return [
+    "Hola {{nickname}},","","Bienvenido a la Liga SHARKANIA de noviembre.",
+    "Jueves 5: [COMPLETAR CLAVE 1]",
+    "Jueves 12: [COMPLETAR CLAVE 2]",
+    "Jueves 19: [COMPLETAR CLAVE 3]",
+    "Jueves 26: [COMPLETAR CLAVE 4]","",
+    "Los torneos comienzan a las 21:00, hora de Chile.",
+    "Consulta las bases oficiales en sharkania.com.",
+    "SHARKANIA",
+  ].join("\n");
+  return [
+    "Hola {{nickname}},",
+    "",
+    "Hoy jueves " + choice.date + " de noviembre jugamos la fecha " + choice.num + " de la Liga SHARKANIA.",
+    "Hora: 21:00, horario de Chile.",
+    "Contraseña: [COMPLETAR CLAVE]",
+    "",
+    "Consulta las bases oficiales y los requisitos de participación.",
+    "SHARKANIA",
+  ].join("\n");
+}
+function formatDate(value:string|null,withTime=false):string {
+  if(!value)return "—";
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime()))return "—";
+  return new Intl.DateTimeFormat("es-CL",{timeZone:"America/Santiago",day:"2-digit",month:"2-digit",year:"numeric",
+    ...(withTime ? {hour:"2-digit",minute:"2-digit"} : {})}).format(d);
 }
 
-export function IgnitionClaimsTab() {
-  const [players, setPlayers] = useState<IgnitionPlayer[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  // ── ESTADOS DEL PANEL DE CORREOS ──
-  const [filter, setFilter] = useState<'all' | 'pending' | 'sent'>('pending');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [subject, setSubject] = useState('');
-  const [content, setContent] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-  const [message, setMessage] = useState('');
+export function IgnitionClaimsTab(){
+  const [campaignKey,setCampaignKey]=useState("ignition-2026-11-welcome");
+  const [subject,setSubject]=useState(defaultSubject("ignition-2026-11-welcome"));
+  const [content,setContent]=useState(defaultMessage("ignition-2026-11-welcome"));
+  const [players,setPlayers]=useState<Player[]>([]);
+  const [delivery,setDelivery]=useState<Map<string,Delivery>>(new Map());
+  const [ready,setReady]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [sending,setSending]=useState(false);
+  const [filter,setFilter]=useState<Filter>("not_queued");
+  const [selectedIds,setSelectedIds]=useState<Set<string>>(new Set());
+  const [message,setMessage]=useState("");
 
-  const fetchPlayers = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, display_name, email, ignition_nickname, ignition_email, created_at, ignition_linked_at, ignition_password_sent')
-      .eq('ignition_league_player', true) 
-      .order('ignition_linked_at', { ascending: false }); // 🔥 Ordenamos: Vinculación más nueva arriba, más antigua abajo
-
-    if (error) {
-      console.error("Error fetching ignition players:", error);
-    } else {
-      setPlayers(data || []);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchPlayers();
-  }, []);
-
-  // ── LÓGICA DE FILTRADO Y SELECCIÓN ──
-  const filteredPlayers = useMemo(() => {
-    if (filter === 'pending') return players.filter(p => !p.ignition_password_sent);
-    if (filter === 'sent') return players.filter(p => p.ignition_password_sent);
-    return players;
-  }, [players, filter]);
-
-  const handleSelectAll = () => {
-    if (selectedIds.size === filteredPlayers.length) {
-      setSelectedIds(new Set()); 
-    } else {
-      setSelectedIds(new Set(filteredPlayers.map(p => p.id))); 
-    }
-  };
-
-  const toggleSelect = (id: string) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
-    setSelectedIds(newSet);
-  };
-
-  // 🔥 PLANTILLA HTML EXCLUSIVA PARA IGNITION
-  const generatePasswordEmailHtml = (nickname: string, messageContent: string) => {
-    return `
-      <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto; background-color: #09090b; color: #ffffff; padding: 20px; border-radius: 10px;">
-        <div style="text-align: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 20px;">
-          <h1 style="color: #f97316; margin: 0;">Liga Ignition x Sharkania</h1>
-        </div>
-        <p style="font-size: 16px;">Hola <strong>${nickname}</strong>,</p>
-        <div style="background-color: #18181b; border: 1px solid #333; border-radius: 8px; margin-top: 25px; padding: 20px;">
-          <p style="color: #e4e4e7; font-size: 15px; line-height: 1.6; margin: 0;">${messageContent.replace(/\n/g, '<br/>')}</p>
-        </div>
-        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; color: #666; font-size: 12px;">
-          <p>Nos vemos en las mesas. ¡Mucho éxito!</p>
-          <p>© ${new Date().getFullYear()} Sharkania Platform</p>
-        </div>
-      </div>
-    `;
-  };
-
-  // ── ACCIONES A LA BASE DE DATOS ──
-  const handleSendEmails = async () => {
-    if (selectedIds.size === 0) return alert("Selecciona al menos un jugador.");
-    if (!subject || !content) return alert("El asunto y el mensaje son obligatorios.");
-
-    setIsSending(true);
-    setMessage("");
-
+  async function refresh(key:string){
+    setLoading(true);setReady(false);
     try {
-      // 🔥 Priorizamos enviar la clave al ignition_email si existe, sino usamos el principal
-      const selectedPlayers = players.filter(p => selectedIds.has(p.id) && (p.ignition_email || p.email));
-
-      const queuePayload = selectedPlayers.map((u) => ({
-        recipient_email: u.ignition_email || u.email,
-        subject: subject,
-        body_html: generatePasswordEmailHtml(u.display_name || u.ignition_nickname || "Jugador", content),
-        status: "pending", 
-        created_at: new Date().toISOString(),
-      }));
-
-      const { error: insertErr } = await supabase.from("email_queue").insert(queuePayload);
-      if (insertErr) throw insertErr;
-
-      const { error: updateErr } = await supabase
-        .from('profiles')
-        .update({ ignition_password_sent: true })
-        .in('id', Array.from(selectedIds));
-
-      if (updateErr) throw updateErr;
-
-      setMessage(`✅ ¡Contraseña encolada exitosamente para ${selectedIds.size} jugadores!`);
-      setSubject('');
-      setContent('');
-      setSelectedIds(new Set());
-      await fetchPlayers();
-
-    } catch (err: any) {
-      console.error(err);
-      setMessage(`❌ Error al enviar: ${err.message}`);
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const handleWeeklyReset = async () => {
-    if (!confirm("¿Estás seguro? Esto volverá a poner a TODOS los jugadores de Ignition como 'Pendiente' (No enviado). Úsalo solo cuando empiece una nueva fecha.")) return;
-
-    setIsResetting(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ ignition_password_sent: false })
-        .eq('ignition_league_player', true);
-
-      if (error) throw error;
-      
-      setSelectedIds(new Set());
-      setFilter('pending');
-      await fetchPlayers();
-      setMessage("🔄 ¡Reinicio semanal completado! Todos están listos para la nueva contraseña.");
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Error al reiniciar los estados.");
-    } finally {
-      setIsResetting(false);
-    }
-  };
-
-  // Formateador de fecha simple (Día/Mes/Año)
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
-  // Formateador de fecha completo (Día/Mes/Año + Hora)
-  const formatDateTime = (dateStr: string | null) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  if (loading) {
-    return <div className="flex justify-center p-12"><Spinner size="lg" /></div>;
+      const [p,d]=await Promise.all([
+        supabase.from("profiles")
+          .select("id,display_name,email,ignition_nickname,ignition_email,created_at,ignition_linked_at")
+          .eq("ignition_league_player",true).order("ignition_linked_at",{ascending:false}),
+        supabase.rpc("ignition_campaign_recipients",{p_campaign_key:key}),
+      ]);
+      if(p.error)throw p.error;
+      if(d.error)throw d.error;
+      const map=new Map<string,Delivery>();
+      for(const row of (d.data??[]) as Array<{player_id:string;eligible:boolean;queue_status:Status}>){
+        map.set(row.player_id,{eligible:row.eligible,queue_status:row.queue_status});
+      }
+      setDelivery(map);
+      setPlayers((p.data??[]) as Player[]);
+      setReady(true);
+    } catch(err){
+      setDelivery(new Map());setPlayers([]);setReady(false);
+      setMessage("❌ No se pudo leer el estado de los envíos. El botón de envío queda inhabilitado: " +
+        (err instanceof Error?err.message:"error de conexión"));
+    } finally{setLoading(false)}
   }
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      
-      {/* ── PANEL DE REDACCIÓN DE CORREO ── */}
-      <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl p-6 shadow-sm">
-        <h3 className="text-sk-lg font-bold text-sk-text-1 mb-4 flex items-center gap-2">
-          <Mail className="text-sk-accent" size={20} /> Enviar Contraseña (Ignition)
-        </h3>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <div>
-              <label className="block text-[11px] font-mono font-bold text-sk-text-3 uppercase mb-1.5">Asunto del Correo</label>
-              <input 
-                type="text" 
-                placeholder="Ej: Contraseña Fecha 2 - Liga Ignition"
-                className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm text-sk-text-1 focus:border-sk-accent outline-none"
-                value={subject}
-                onChange={e => setSubject(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-mono font-bold text-sk-text-3 uppercase mb-1.5">Mensaje y Contraseña</label>
-              <textarea 
-                rows={4} 
-                placeholder="Hola, la contraseña para el torneo de hoy es: TIBURON2026..."
-                className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-sm text-sk-text-1 focus:border-sk-accent outline-none"
-                value={content}
-                onChange={e => setContent(e.target.value)}
-              />
-            </div>
+  useEffect(()=>{void refresh(campaignKey)},[campaignKey]);
+  const statusOf=(id:string):Status=>ready?(delivery.get(id)?.queue_status??"ineligible"):"ineligible";
+  const selectable=(id:string)=>ready && delivery.get(id)?.eligible===true &&
+    (statusOf(id)==="not_queued" || statusOf(id)==="failed");
+  const counts=useMemo(()=>{
+    const res:Record<Filter,number>={all:players.length,not_queued:0,pending:0,sent:0,failed:0,ineligible:0};
+    for(const p of players)res[ready?(delivery.get(p.id)?.queue_status??"ineligible"):"ineligible"]++;
+    return res;
+  },[players,ready,delivery]);
+  const filtered=useMemo(()=>filter==="all"?players:players.filter(p=>statusOf(p.id)===filter),
+    [players,filter,delivery,ready]);
+  function selectAll(){
+    const ids=filtered.filter(p=>selectable(p.id)).map(p=>p.id);
+    const already=ids.length>0&&ids.every(id=>selectedIds.has(id));
+    setSelectedIds(already?new Set():new Set(ids));
+  }
+  function toggle(id:string){
+    if(!selectable(id))return;
+    setSelectedIds(prev=>{
+      const next=new Set(prev);
+      if(next.has(id))next.delete(id);else next.add(id);
+      return next;
+    });
+  }
+  function changeCampaign(key:string){
+    if(!DATE_OPTIONS.some(o=>o.key===key))return;
+    setCampaignKey(key);setSubject(defaultSubject(key));setContent(defaultMessage(key));
+    setFilter("not_queued");setSelectedIds(new Set());setMessage("");
+  }
+  async function queueSelected(){
+    const ids=[...selectedIds];
+    if(!ids.length||!ready)return;
+    if(ids.some(id=>statusOf(id)!=="not_queued")){
+      setMessage("❌ Para preparar selecciona solamente jugadores Sin preparar.");return;
+    }
+    if(!subject.trim()||!content.trim()){setMessage("❌ Escribe asunto y mensaje.");return;}
+    if(/\[(COMPLETAR|CLAVE|CONTRASEÑA)[^\]]*\]/i.test(content)){
+      setMessage("❌ Reemplaza las contraseñas de ejemplo antes de preparar la cola.");return;
+    }
+    const date=DATE_OPTIONS.find(x=>x.key===campaignKey)?.label||campaignKey;
+    if(!window.confirm("¿Preparar " + ids.length + " mensajes para " + date +
+      "? El Worker enviará los correos posteriormente. Esta acción NO es una prueba."))return;
+    setSending(true);setMessage("");
+    try {
+      const {data,error}=await supabase.rpc("queue_ignition_selected_campaign",{
+        p_campaign_key:campaignKey,p_user_ids:ids,p_subject:subject.trim(),p_body_text:content.trim(),
+      });
+      if(error)throw error;
+      const report=data as {queued:number;already_prepared:number;excluded:number}|null;
+      setMessage("✅ En cola: " + (report?.queued??0) + ". Ya preparados: " +
+        (report?.already_prepared??0) + ". No elegibles: " + (report?.excluded??0) +
+        ". La aceptación no equivale a entrega.");
+      setSelectedIds(new Set());await refresh(campaignKey);
+    } catch(err){
+      setMessage("❌ No se pudieron preparar los correos: " +
+        (err instanceof Error?err.message:"Error desconocido"));
+    } finally{setSending(false)}
+  }
+  async function retrySelected(){
+    const ids=[...selectedIds];
+    if(!ids.length||ids.some(id=>statusOf(id)!=="failed")){setMessage("❌ Selecciona solamente correos fallidos.");return;}
+    if(!window.confirm("¿Reintentar " + ids.length + " mensajes fallidos de esta fecha?"))return;
+    setSending(true);
+    try {
+      const {data,error}=await supabase.rpc("retry_ignition_failed_campaign",{
+        p_campaign_key:campaignKey,p_user_ids:ids,
+      });
+      if(error)throw error;
+      setMessage("✅ " + (data??0) + " mensaje(s) volvieron a la cola.");
+      setSelectedIds(new Set());await refresh(campaignKey);
+    } catch(err){
+      setMessage("❌ No se pudieron reintentar: " +(err instanceof Error?err.message:"Error desconocido"));
+    }finally{setSending(false)}
+  }
+  const onlyFailed=selectedIds.size>0&&[...selectedIds].every(id=>statusOf(id)==="failed");
+  if(loading&&players.length===0)return <div className="flex justify-center p-12"><Spinner size="lg"/></div>;
+  return <div className="space-y-6">
+    <section className="rounded-xl border border-sk-border-2 bg-sk-bg-2 p-6">
+      <h3 className="mb-2 flex items-center gap-2 text-sk-lg font-bold text-sk-text-1"><Mail size={20} className="text-sk-accent"/>Correos Ignition · envío manual</h3>
+      <p className="mb-5 text-sm text-sk-text-3">Selecciona la fecha, escribe el texto y elige destinatarios. El panel solo prepara la cola cuando lo confirmas; no envía mensajes al abrirse.</p>
+      <div className="grid gap-5 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <div><label htmlFor="ignition-campaign" className="mb-2 block text-xs font-semibold text-sk-text-2">Fecha o bienvenida</label>
+            <select id="ignition-campaign" value={campaignKey} onChange={e=>changeCampaign(e.target.value)}
+              className="w-full rounded-md border border-sk-border-2 bg-sk-bg-0 p-3 text-sm text-sk-text-1">
+              {DATE_OPTIONS.map(o=><option key={o.key} value={o.key}>{o.label}</option>)}
+            </select></div>
+          <div><label htmlFor="ignition-subject" className="mb-2 block text-xs font-semibold text-sk-text-2">Asunto</label>
+            <input id="ignition-subject" value={subject} maxLength={180} onChange={e=>setSubject(e.target.value)}
+              className="w-full rounded-md border border-sk-border-2 bg-sk-bg-0 p-3 text-sm text-sk-text-1"/></div>
+          <div><label htmlFor="ignition-content" className="mb-2 block text-xs font-semibold text-sk-text-2">Texto del correo (usa {"{{nickname}}"} para personalizar)</label>
+            <textarea id="ignition-content" rows={10} maxLength={7000} value={content} onChange={e=>setContent(e.target.value)}
+              className="w-full rounded-md border border-sk-border-2 bg-sk-bg-0 p-3 text-sm text-sk-text-1"/>
+            <p className="mt-1 text-xs text-sk-text-3">Reemplaza todas las contraseñas de ejemplo. Los destinatarios usan el correo confirmado de Sharkania.</p>
           </div>
-          
-          <div className="bg-sk-bg-3 border border-sk-border-2 rounded-lg p-5 flex flex-col justify-center">
-            <p className="text-sk-sm text-sk-text-2 mb-4 text-center">
-              Se enviará a <strong className="text-sk-text-1">{selectedIds.size} jugadores</strong> seleccionados en la tabla.
-            </p>
-            <Button 
-              variant="accent" 
-              className="w-full font-bold shadow-md shadow-sk-accent/20"
-              onClick={handleSendEmails}
-              disabled={isSending || selectedIds.size === 0}
-            >
-              {isSending ? <Spinner size="sm" className="mr-2" /> : <Send size={16} className="mr-2" />}
-              {isSending ? "Enviando..." : "Enviar Contraseñas"}
-            </Button>
-            
-            {message && (
-              <div className={`mt-4 p-3 rounded text-[11px] font-bold text-center ${message.includes('❌') ? 'bg-sk-red-dim text-sk-red' : 'bg-sk-green-dim text-sk-green'}`}>
-                {message}
-              </div>
-            )}
-          </div>
         </div>
-      </div>
-
-      {/* ── BARRA DE FILTROS Y RESET SEMANAL ── */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-sk-bg-1 p-4 rounded-lg border border-sk-border-2">
-        <div className="flex items-center gap-2">
-          <Filter size={16} className="text-sk-text-3 mr-2" />
-          <Button variant={filter === 'pending' ? 'accent' : 'secondary'} size="sm" onClick={() => setFilter('pending')}>
-            Falta Enviar ({players.filter(p => !p.ignition_password_sent).length})
-          </Button>
-          <Button variant={filter === 'sent' ? 'accent' : 'secondary'} size="sm" onClick={() => setFilter('sent')}>
-            Ya Enviados ({players.filter(p => p.ignition_password_sent).length})
-          </Button>
-          <Button variant={filter === 'all' ? 'accent' : 'secondary'} size="sm" onClick={() => setFilter('all')}>
-            Todos ({players.length})
+        <div className="flex flex-col justify-center gap-4 rounded-lg border border-sk-border-2 bg-sk-bg-3 p-5">
+          <p className="text-center text-sm text-sk-text-2">Seleccionados: <strong className="text-sk-text-1">{selectedIds.size}</strong></p>
+          <p className="text-xs text-sk-text-3">Solo cuentas confirmadas y vinculaciones verificadas. «En cola» no significa «entregado».</p>
+          <Button variant="accent" onClick={onlyFailed?retrySelected:queueSelected}
+            disabled={sending||!ready||selectedIds.size===0}>
+            {sending?<Spinner size="sm"/>:<Send size={16}/>}
+            {onlyFailed?"Reintentar fallidos":"Preparar correos en cola"}
           </Button>
         </div>
-
-        <Button 
-          variant="secondary" 
-          size="sm" 
-          className="border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
-          onClick={handleWeeklyReset}
-          disabled={isResetting}
-        >
-          {isResetting ? <Spinner size="sm" className="mr-2"/> : <RefreshCw size={14} className="mr-2" />}
-          Reset Semanal (Nueva Fecha)
-        </Button>
       </div>
-
-      {/* ── TABLA DE JUGADORES ── */}
-      <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-sk-bg-3 border-b border-sk-border-2">
-                <th className="p-4 w-12">
-                  <button onClick={handleSelectAll} className="text-sk-text-3 hover:text-sk-accent transition-colors">
-                    {selectedIds.size === filteredPlayers.length && filteredPlayers.length > 0 
-                      ? <CheckCircle2 size={20} className="text-sk-accent" /> 
-                      : <Circle size={20} />
-                    }
-                  </button>
-                </th>
-                <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3">Jugador / Email</th>
-                <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3">Ignition Nickname</th>
-                <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3 text-center">Estado Contraseña</th>
-                <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3 text-right">Creación Cuenta Sharkania</th>
-                <th className="p-4 text-[10px] font-mono font-bold uppercase tracking-widest text-sk-text-3 text-right">Vinculación Ignition</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPlayers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-12 text-center text-sk-text-3">
-                    <AlertCircle size={32} className="mx-auto mb-3 opacity-50" />
-                    No hay jugadores en este filtro.
-                  </td>
-                </tr>
-              ) : (
-                filteredPlayers.map((player) => {
-                  const isSelected = selectedIds.has(player.id);
-                  return (
-                    <tr 
-                      key={player.id} 
-                      className={`transition-colors border-b border-sk-border-2/50 last:border-0 cursor-pointer ${isSelected ? 'bg-sk-accent/5' : 'hover:bg-sk-bg-3/50'}`}
-                      onClick={() => toggleSelect(player.id)}
-                    >
-                      <td className="p-4">
-                        {isSelected 
-                          ? <CheckCircle2 size={20} className="text-sk-accent" /> 
-                          : <Circle size={20} className="text-sk-text-4" />
-                        }
-                      </td>
-                      <td className="p-4">
-                        <div className="text-sm font-bold text-sk-text-1">{player.display_name || player.ignition_nickname}</div>
-                        {/* 🔥 Mostramos el ignition_email; si no tiene, mostramos el principal */}
-                        <div className="text-xs text-sk-text-4 font-mono mt-0.5">{player.ignition_email || player.email}</div>
-                      </td>
-                      <td className="p-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                          {player.ignition_nickname}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        {player.ignition_password_sent ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-1 rounded bg-sk-green-dim text-sk-green border border-sk-green/20">
-                            ✓ Enviada
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-1 rounded bg-sk-bg-4 text-sk-text-3 border border-sk-border-2">
-                            Pendiente
-                          </span>
-                        )}
-                      </td>
-                      {/* Fecha de creación de la cuenta (Solo Día/Mes/Año) */}
-                      <td className="p-4 text-xs text-sk-text-3 text-right font-mono">
-                        {formatDate(player.created_at)}
-                      </td>
-                      {/* Fecha y Hora exacta de la Vinculación */}
-                      <td className="p-4 text-xs text-sk-accent text-right font-mono font-bold">
-                        {formatDateTime(player.ignition_linked_at)}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+      {message&&<div role="status" aria-live="polite" className="mt-4 rounded-lg border border-sk-border-2 bg-sk-bg-0 p-3 text-sm text-sk-text-1">{message}</div>}
+    </section>
+    <div className="rounded-lg border border-sk-border-2 bg-sk-bg-1 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="flex items-center gap-2 text-xs text-sk-text-3"><Filter size={15}/> Estado de esta fecha</span>
+        <Button size="sm" variant="secondary" onClick={()=>{setSelectedIds(new Set());void refresh(campaignKey);}} disabled={loading||sending}><RefreshCw size={14}/>Actualizar estados</Button>
       </div>
-
+      <div className="flex flex-wrap gap-2">
+        {(["not_queued","pending","sent","failed","ineligible","all"] as Filter[]).map(value=>
+          <Button key={value} size="sm" variant={filter===value?"accent":"secondary"}
+            onClick={()=>{setFilter(value);setSelectedIds(new Set());}}>
+            {value==="all"?"Todos":DATE_STATUSES[value]} ({counts[value]})
+          </Button>)}
+      </div>
     </div>
-  );
+    <div className="overflow-x-auto rounded-xl border border-sk-border-2 bg-sk-bg-2">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-sk-bg-3 text-[10px] uppercase tracking-wider text-sk-text-3">
+          <tr><th className="p-4"><button type="button" onClick={selectAll} disabled={!ready} aria-label="Seleccionar jugadores aptos del filtro"><CheckCircle2 size={20}/></button></th>
+            <th className="p-4">Jugador / correo</th><th className="p-4">Ignition</th>
+            <th className="p-4">Estado de esta fecha</th><th className="p-4">Cuenta / vinculación</th></tr>
+        </thead>
+        <tbody>
+          {filtered.map(player=>{
+            const state=statusOf(player.id),canChoose=selectable(player.id),chosen=selectedIds.has(player.id);
+            return <tr key={player.id} onClick={()=>canChoose&&toggle(player.id)}
+              className={"border-t border-sk-border-2/60 "+(canChoose?"cursor-pointer hover:bg-sk-bg-3/40":"opacity-75")}>
+              <td className="p-4">{canChoose?(chosen?<CheckCircle2 size={20} className="text-sk-accent"/>:<Circle size={20}/>):<AlertCircle size={18}/>}</td>
+              <td className="p-4"><strong className="block text-sk-text-1">{player.display_name||player.ignition_nickname||"Jugador"}</strong>
+                <span className="text-xs text-sk-text-3">{player.email}</span>
+                {player.ignition_email&&player.email&&player.ignition_email.toLowerCase()!==player.email.toLowerCase()&&
+                  <span className="block text-[10px] text-amber-400">Email Ignition distinto; se usará el correo confirmado Sharkania.</span>}
+              </td>
+              <td className="p-4 font-semibold text-orange-400">{player.ignition_nickname||"—"}</td>
+              <td className="p-4"><span className={"rounded border px-2 py-1 text-xs "+(state==="sent"?"border-green-500/40 text-green-400":state==="failed"?"border-red-500/40 text-red-400":"border-sk-border-2 text-sk-text-3")}>{DATE_STATUSES[state]}</span></td>
+              <td className="p-4 text-xs text-sk-text-3">{formatDate(player.created_at)}<br/>{formatDate(player.ignition_linked_at,true)}</td>
+            </tr>;
+          })}
+          {filtered.length===0&&<tr><td colSpan={5} className="p-10 text-center text-sk-text-3">No hay jugadores en este filtro.</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  </div>;
 }

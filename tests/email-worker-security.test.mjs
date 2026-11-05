@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 const worker = readFileSync("workers/email-worker.mjs", "utf8");
 const admin = readFileSync("src/pages/super-admin.tsx", "utf8");
+const ignition = readFileSync("src/components/admin/ignition-claims-tab.tsx", "utf8");
 
 test("email Worker processes queue via cron and denies public HTTP triggers", () => {
   assert.match(worker, /async scheduled\(event, env, ctx\)/);
@@ -17,7 +18,8 @@ test("email Worker processes queue via cron and denies public HTTP triggers", ()
 });
 
 test("browser enqueues Ignition/newsletter messages but cannot trigger Worker with a shared secret", () => {
-  assert.match(admin, /rpc\("queue_ignition_emails"/);
+  assert.match(ignition, /rpc\("queue_ignition_selected_campaign"/);
+  assert.doesNotMatch(admin, /rpc\("queue_ignition_emails"/);
   assert.match(admin, /rpc\("queue_newsletter_emails"/);
   assert.doesNotMatch(admin, /X-Admin-Secret|ADMIN_TRIGGER_SECRET|sharkania-email-worker\.duhauandres\.workers\.dev/);
   assert.match(admin, /cada 10 minutos/);
