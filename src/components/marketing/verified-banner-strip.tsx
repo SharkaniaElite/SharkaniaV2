@@ -99,7 +99,7 @@ export function VerifiedBannerStrip({ banners, loading = false }: { banners: Ban
               <article key={slot} className="relative snap-start shrink-0 w-[88%] sm:w-full sm:min-w-0 h-[112px] md:h-[118px] rounded-xl border border-sk-border-2 bg-sk-bg-2 overflow-hidden flex items-stretch">
                 <div className="flex w-[100px] sm:w-[120px] shrink-0 flex-col items-center justify-center gap-1 border-r border-sk-border-2 bg-[#070d15] p-3">
                   <img
-                    src={OFFICIAL_LOGOS[config.partner_id || ""] || config.src}
+                    src={config.partner_id ? OFFICIAL_LOGOS[config.partner_id] : config.src}
                     alt={config.partner_id === "latinallin" ? "Logo original de ClubGG y Latin Allin Póker" : config.partner_id ? `Logo oficial de ${config.partner_id}` : ""}
                     width={120} height={90}
                     loading="lazy" decoding="async"
