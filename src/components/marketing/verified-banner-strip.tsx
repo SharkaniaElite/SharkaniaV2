@@ -1,7 +1,6 @@
 import type { BannersConfig, BannerConfig } from "../../lib/api/site-settings";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
-import { isArenaPreviewHost } from "../../lib/arena-preview";
 import { bannerIsExternal, bannerIsReviewed } from "../../lib/marketing-banner-policy";
 import { ArrowUpRight, ShieldCheck } from "lucide-react";
 import posthog from "posthog-js";
@@ -13,9 +12,9 @@ const OFFICIAL_LOGOS: Record<"coinpoker" | "wptglobal" | "ignition" | "latinalli
 };
 
 
-// Solo el preview muestra la futura configuración. Producción sigue leyendo
-// site_settings.banners; en el lanzamiento se actualizarán ambos slots con aprobación.
-const PREVIEW_SUPER_LEFT: BannerConfig = {
+// Dos socios prioritarios arriba, sin eliminar los dos slots originales.
+// 1 Ignition, 2 ClubGG/Latin Allin, 3 CoinPoker, 4 WPT Global.
+const FEATURED_IGNITION: BannerConfig = {
   src: OFFICIAL_LOGOS.ignition,
   href: "/ignition",
   width: 728, height: 90,
@@ -27,7 +26,7 @@ const PREVIEW_SUPER_LEFT: BannerConfig = {
   review_by: "2026-11-27",
   source_url: "https://sharkania.com/noticias/bases-oficiales-liga-sharkania-noviembre-2026",
 };
-const PREVIEW_SUPER_RIGHT: BannerConfig = {
+const FEATURED_LATINALLIN: BannerConfig = {
   src: OFFICIAL_LOGOS.latinallin,
   href: "/como-jugar-en-clubgg",
   width: 728, height: 90,
@@ -39,7 +38,10 @@ const PREVIEW_SUPER_RIGHT: BannerConfig = {
   review_by: "2026-12-05",
   source_url: "https://sharkania.com/como-jugar-en-clubgg",
 };
-type Highlight = { slot: "super_left" | "super_right"; config: BannerConfig; mobile: BannerConfig | null };
+type Highlight = {
+  slot: "featured_ignition" | "featured_latinallin" | "super_left" | "super_right";
+  config: BannerConfig;
+};
 type Jackpot = { bbjClp: number; lastUpdate: string } | null;
 async function fetchLatinJackpot(): Promise<Jackpot> {
   const { data, error } = await supabase.from("site_settings").select("value").eq("key", "latin_club_stats").maybeSingle();
@@ -49,29 +51,33 @@ async function fetchLatinJackpot(): Promise<Jackpot> {
 }
 
 export function VerifiedBannerStrip({ banners, loading = false }: { banners: BannersConfig; loading?: boolean }) {
-  const showPreviewPriority = isArenaPreviewHost();
-  const latinConfigured = banners.slots.super_right.desktop?.partner_id === "latinallin"
-    || banners.slots.super_right.mobile?.partner_id === "latinallin";
   const { data: jackpot } = useQuery({
     queryKey: ["latin-club-stats"],
     queryFn: fetchLatinJackpot,
-    enabled: showPreviewPriority || latinConfigured,
+    enabled: true,
     staleTime: 60_000,
     refetchInterval: 300_000,
     refetchOnWindowFocus: true,
   });
-  const highlights: Highlight[] = (["super_left", "super_right"] as const).flatMap((slot) => {
-    const previewConfig = slot === "super_left" ? PREVIEW_SUPER_LEFT : PREVIEW_SUPER_RIGHT;
-    const pair = showPreviewPriority
-      ? { desktop: previewConfig, mobile: { ...previewConfig, width: 320, height: 100 } }
-      : banners.slots[slot];
-    const desktop = pair?.desktop;
-    const mobile = pair?.mobile;
-    const reviewedDesktop = bannerIsReviewed(desktop) ? desktop! : null;
-    const reviewedMobile = bannerIsReviewed(mobile) ? mobile! : null;
-    const current = reviewedDesktop || reviewedMobile;
-    return current ? [{ slot, config: current, mobile: reviewedMobile }] : [];
+
+  // Los dos destacados preceden a los slots comerciales existentes.
+  // Mantener filtros de vigencia; nunca presentar una promoción no revisada como activa.
+  const featured: Highlight[] = ([
+    { slot: "featured_ignition", config: FEATURED_IGNITION },
+    { slot: "featured_latinallin", config: FEATURED_LATINALLIN },
+  ] as Highlight[]).filter(({ config }) => bannerIsReviewed(config));
+
+  const existing: Highlight[] = (["super_left", "super_right"] as const).flatMap((slot) => {
+    const pair = banners.slots[slot];
+    const reviewedDesktop = bannerIsReviewed(pair?.desktop) ? pair.desktop! : null;
+    const reviewedMobile = bannerIsReviewed(pair?.mobile) ? pair.mobile! : null;
+    const config = reviewedDesktop || reviewedMobile;
+    // Prevent duplication if a CMS slot is later reused for one of the featured brands.
+    if (!config || config.partner_id === "ignition" || config.partner_id === "latinallin") return [];
+    return [{ slot, config }];
   });
+
+  const highlights: Highlight[] = [...featured, ...existing];
   if (!highlights.length && !loading) return null;
 
   return (
@@ -81,9 +87,10 @@ export function VerifiedBannerStrip({ banners, loading = false }: { banners: Ban
       {loading && !highlights.length ? (
         <div aria-hidden="true" className="max-w-[1520px] mx-auto px-3 sm:px-5">
           <div className="h-3 w-44 rounded bg-sk-bg-3/70 mb-3" />
-          <div className="h-[112px] md:h-[118px] grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-xl border border-sk-border-2 bg-sk-bg-2" />
-            <div className="hidden sm:block rounded-xl border border-sk-border-2 bg-sk-bg-2" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {[0, 1, 2, 3].map(index => (
+              <div key={index} className="h-[112px] md:h-[118px] rounded-xl border border-sk-border-2 bg-sk-bg-2" />
+            ))}
           </div>
         </div>
       ) : (
@@ -92,11 +99,11 @@ export function VerifiedBannerStrip({ banners, loading = false }: { banners: Ban
           <span className="flex items-center gap-1.5"><ShieldCheck size={13} aria-hidden="true" /> Promociones revisadas · +18</span>
           <span className="hidden sm:block">Publicidad · Condiciones según la sala y el país</span>
         </div>
-        <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 sm:overflow-visible sm:grid sm:grid-cols-2">
-          {highlights.map(({ slot, config }) => {
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" data-promotion-banner-layout="four">
+          {highlights.map(({ slot, config }, index) => {
             const external = bannerIsExternal(config.href);
             return (
-              <article key={slot} className="relative snap-start shrink-0 w-[88%] sm:w-full sm:min-w-0 h-[112px] md:h-[118px] rounded-xl border border-sk-border-2 bg-sk-bg-2 overflow-hidden flex items-stretch">
+              <article key={slot} data-banner-order={index + 1} className="relative w-full min-w-0 h-[112px] md:h-[118px] rounded-xl border border-sk-border-2 bg-sk-bg-2 overflow-hidden flex items-stretch">
                 <div className="flex w-[100px] sm:w-[120px] shrink-0 flex-col items-center justify-center gap-1 border-r border-sk-border-2 bg-[#070d15] p-3">
                   <img
                     src={config.partner_id ? OFFICIAL_LOGOS[config.partner_id] : config.src}
