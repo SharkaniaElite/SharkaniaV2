@@ -28,3 +28,14 @@
  .shark-article-image-ad{aspect-ratio:320/100;}
 }
 @media(prefers-reduced-motion:reduce){.shark-ignition-ad{transition:none;}}
+
+/* Dos creatividades de partner validadas desde SuperAdmin. */
+.shark-article-ignition-upload-desktop{display:block;max-width:728px;width:100%;aspect-ratio:728/90;margin:0 auto;overflow:hidden;border-radius:10px;background:#0b1520;box-shadow:0 12px 32px rgba(0,0,0,.22);}
+.shark-article-ignition-upload-desktop img{display:block;width:100%;height:100%;object-fit:contain;}
+.shark-article-ignition-upload-mobile{display:none;}
+.shark-article-ignition-upload-desktop:focus-visible,.shark-article-ignition-upload-mobile:focus-visible{outline:3px solid #22d3ee;outline-offset:3px;}
+@media(max-width:767px){
+ .shark-article-ignition-upload-desktop{display:none;}
+ .shark-article-ignition-upload-mobile{display:block;width:100%;max-width:320px;aspect-ratio:320/100;margin:0 auto;overflow:hidden;border-radius:9px;background:#0b1520;}
+ .shark-article-ignition-upload-mobile img{display:block;width:100%;height:100%;object-fit:contain;}
+}
