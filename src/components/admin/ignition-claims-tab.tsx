@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { Mail, Filter, RefreshCw, Send, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { IGNITION_FECHA1, fecha1AccessInstructions } from "../../lib/ignition-liga-fecha1";
 
 interface Player {
   id:string; display_name:string|null; email:string|null;
@@ -39,6 +40,7 @@ function defaultMessage(key:string):string {
     "Jueves 12: [COMPLETAR CLAVE 2]",
     "Jueves 19: [COMPLETAR CLAVE 3]",
     "Jueves 26: [COMPLETAR CLAVE 4]","",
+    fecha1AccessInstructions(), "",
     "Los torneos comienzan a las 21:00, hora de Chile.",
     "Consulta las bases oficiales en sharkania.com.",
     "SHARKANIA",
@@ -50,6 +52,7 @@ function defaultMessage(key:string):string {
     "Hora: 21:00, horario de Chile.",
     "Contraseña: [COMPLETAR CLAVE]",
     "",
+    ...(choice.num === 1 ? [fecha1AccessInstructions(),""] : []),
     "Consulta las bases oficiales y los requisitos de participación.",
     "SHARKANIA",
   ].join("\n");
@@ -260,6 +263,22 @@ export function IgnitionClaimsTab(){
             <textarea id="ignition-content" rows={10} maxLength={7000} value={content} onChange={e=>setContent(e.target.value)}
               className="w-full rounded-md border border-sk-border-2 bg-sk-bg-0 p-3 text-sm text-sk-text-1"/>
             <p className="mt-1 text-xs text-sk-text-3">Reemplaza todas las contraseñas de ejemplo. Los destinatarios usan el correo confirmado de Sharkania.</p>
+            {(campaignKey==="ignition-2026-11-welcome" || campaignKey==="ignition-2026-11-05") && (
+              <div className="mt-3 rounded-lg border border-cyan-400/20 bg-sk-bg-3 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-xs font-semibold text-cyan-200">Guía de acceso · Fecha 1 · ID #82905364</span>
+                  <button type="button" onClick={() => setContent(prev =>
+                    prev.includes(IGNITION_FECHA1.id) ? prev : prev.trimEnd()+"\n\n"+fecha1AccessInstructions()
+                  )} className="rounded-md border border-cyan-500/40 px-3 py-1.5 text-xs font-semibold text-cyan-200 hover:bg-cyan-400/10">
+                    Añadir instrucciones y enlace a este correo
+                  </button>
+                </div>
+                <a href={IGNITION_FECHA1.guideUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block">
+                  <img src={IGNITION_FECHA1.guidePath} alt="Guía visual de búsqueda del torneo Liga Privada - Fecha 1 en Ignition" loading="lazy" className="h-auto w-full rounded-md border border-sk-border-2" />
+                </a>
+                <p className="mt-2 text-[11px] text-sk-text-3">El enlace será clicable en el email. El dibujo del lobby es orientativo; ID de fechas 2 a 4 pendientes.</p>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex flex-col justify-center gap-4 rounded-lg border border-sk-border-2 bg-sk-bg-3 p-5">
