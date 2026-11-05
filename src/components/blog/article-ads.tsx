@@ -1,4 +1,6 @@
 import type { BlogPost } from "../../lib/api/blog";
+import { useBanners } from "../../hooks/use-banners";
+import { bannerIsReviewed } from "../../lib/marketing-banner-policy";
 import "./article-ads.css";
 
 const IGNITION_LEAGUE_SLUG = "liga-sharkania-noviembre-2026-fechas-puntos-premios-ignition";
@@ -11,6 +13,30 @@ export function isIgnitionLeagueArticle(post: Pick<BlogPost, "slug"> | null | un
 
 /** Creatividad editorial propia, sin promesas comerciales ni reutilizar ofertas caducadas. */
 export function IgnitionArticleBanner({ slot }: { slot: "mid" | "final" }) {
+  const config = useBanners().slots[slot === "mid" ? "ignition_article_mid" : "ignition_article_final"];
+  const desktop = config.desktop;
+  const mobile = config.mobile;
+  const approvedPair = desktop?.partner_id === "ignition" && mobile?.partner_id === "ignition"
+    && desktop.width === 728 && desktop.height === 90
+    && mobile.width === 320 && mobile.height === 100
+    && bannerIsReviewed(desktop) && bannerIsReviewed(mobile);
+
+  if (approvedPair && desktop && mobile) {
+    return (
+      <aside className="shark-article-ad" aria-label="Publicidad de Ignition Poker">
+        <span className="shark-article-ad-label">Publicidad · Ignition Poker</span>
+        <a className="shark-article-ignition-upload-desktop" href={desktop.href}
+          target="_blank" rel="sponsored noopener noreferrer" aria-label={desktop.editorial_title || "Información de Ignition Poker"}>
+          <img src={desktop.src} alt={desktop.editorial_title || "Publicidad de Ignition Poker"} width={728} height={90} loading="lazy" decoding="async" />
+        </a>
+        <a className="shark-article-ignition-upload-mobile" href={mobile.href}
+          target="_blank" rel="sponsored noopener noreferrer" aria-label={mobile.editorial_title || "Información de Ignition Poker"}>
+          <img src={mobile.src} alt={mobile.editorial_title || "Publicidad de Ignition Poker"} width={320} height={100} loading="lazy" decoding="async" />
+        </a>
+      </aside>
+    );
+  }
+
   return (
     <aside className="shark-article-ad" aria-label={`Espacio patrocinado por Ignition Poker, ${slot === "mid" ? "intermedio" : "final"}`}>
       <span className="shark-article-ad-label">Publicidad · Ignition Poker</span>
