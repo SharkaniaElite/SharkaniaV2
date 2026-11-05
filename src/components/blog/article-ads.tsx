@@ -1,0 +1,62 @@
+import type { BlogPost } from "../../lib/api/blog";
+import "./article-ads.css";
+
+const IGNITION_LEAGUE_SLUG = "liga-sharkania-noviembre-2026-fechas-puntos-premios-ignition";
+const IGNITION_LOGO = "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/Logos%20Sharkania/logo-ignition-poker.png";
+
+/** Solo este anuncio de liga bloquea cualquier mezcla con anuncios de otras salas. */
+export function isIgnitionLeagueArticle(post: Pick<BlogPost, "slug"> | null | undefined): boolean {
+  return post?.slug === IGNITION_LEAGUE_SLUG;
+}
+
+/** Creatividad editorial propia, sin promesas comerciales ni reutilizar ofertas caducadas. */
+export function IgnitionArticleBanner({ slot }: { slot: "mid" | "final" }) {
+  return (
+    <aside className="shark-article-ad" aria-label={`Espacio patrocinado por Ignition Poker, ${slot === "mid" ? "intermedio" : "final"}`}>
+      <span className="shark-article-ad-label">Publicidad · Ignition Poker</span>
+      <a className="shark-ignition-ad shark-ignition-ad-desktop"
+        href="/ignition" rel="sponsored" aria-label="Ignition Poker: información de la Liga SHARKANIA y requisitos para participar">
+        <span className="shark-ignition-ad-brand">
+          <img src={IGNITION_LOGO} alt="Ignition Poker" width={184} height={52} loading="lazy" decoding="async" />
+        </span>
+        <span className="shark-ignition-ad-message">
+          <strong>LIGA SHARKANIA</strong>
+          <small>Cuatro jueves · noviembre 2026 · +18</small>
+        </span>
+        <span className="shark-ignition-ad-action">Información de la liga <span aria-hidden="true">↗</span></span>
+      </a>
+      <a className="shark-ignition-ad shark-ignition-ad-mobile"
+        href="/ignition" rel="sponsored" aria-label="Ignition Poker: consulta la Liga SHARKANIA y sus condiciones">
+        <span className="shark-ignition-ad-mobile-top">
+          <img src={IGNITION_LOGO} alt="Ignition Poker" width={112} height={41} loading="lazy" decoding="async" />
+          <span className="shark-ignition-ad-mobile-copy"><strong>LIGA SHARKANIA</strong><small>Noviembre 2026 · +18</small></span>
+        </span>
+        <span className="shark-ignition-ad-mobile-bottom">Información y condiciones <span aria-hidden="true">↗</span></span>
+      </a>
+    </aside>
+  );
+}
+
+/**
+ * Las creatividades antiguas del CMS son de una sola talla. Se presentan en
+ * lienzos responsivos con la relación correcta sin deformarlas ni inventar una
+ * versión móvil. Las creatividades nuevas deberán exportarse en ambos tamaños.
+ */
+export function ArticleImageBanner({ src, href, label }: { src: string; href: string | null; label: string }) {
+  if (!src || !href) return null;
+  let target: URL;
+  let imageUrl: URL;
+  try {
+    target = new URL(href, "https://sharkania.com");
+    imageUrl = new URL(src, "https://sharkania.com");
+  } catch { return null; }
+  if (!["https:", "http:"].includes(target.protocol) || imageUrl.protocol !== "https:") return null;
+  return (
+    <aside className="shark-article-ad">
+      <span className="shark-article-ad-label">Publicidad</span>
+      <a className="shark-article-image-ad" href={target.toString()} target="_blank" rel="sponsored noopener noreferrer" aria-label={label}>
+        <img src={imageUrl.toString()} alt={label} loading="lazy" decoding="async" width={728} height={90} />
+      </a>
+    </aside>
+  );
+}
