@@ -7,6 +7,7 @@ export const IGNITION_FECHA1 = {
   timeChile: "21:00",
   guidePath: "/images/guias/ignition-liga-privada-fecha-1.svg",
   guideUrl: "https://sharkania.com/images/guias/ignition-liga-privada-fecha-1.svg",
+  emailGuideImageUrl: "https://sharkania.com/images/guias/ignition-liga-privada-fecha-1-email.jpg",
   articleUrl: "https://sharkania.com/noticias/liga-sharkania-noviembre-2026-fechas-puntos-premios-ignition",
   basesUrl: "https://sharkania.com/noticias/bases-oficiales-liga-sharkania-noviembre-2026",
 } as const;
