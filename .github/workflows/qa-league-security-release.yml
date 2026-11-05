@@ -65,6 +65,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-setup.sql
       - name: Verify roles, creation, editing, sharing, cloning and safe empty-only deletion
         run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-assert.sql
+      - name: Reproduce cross-league tournament assignment under inherited club-only policy (ROLLBACK)
+        run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-tournament-link-risk-qa.sql
       - name: Create second isolated league HTTP QA database
         run: |
           psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_http'
