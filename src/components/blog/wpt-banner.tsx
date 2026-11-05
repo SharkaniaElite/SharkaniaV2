@@ -102,9 +102,9 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
     <div className={className} style={{ width: "100%", margin: "2.5rem 0" }}>
       <style>{`
         .wpt-${s}-label{display:block;font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(113,113,122,0.55);text-align:right;margin-bottom:4px;letter-spacing:0.08em;text-transform:uppercase;line-height:1}
-        .wpt-${s}-a{display:block;line-height:0;border-radius:10px;overflow:hidden;outline:1px solid rgba(34,211,238,0.10);transition:outline-color .25s ease,box-shadow .25s ease}
+        .wpt-${s}-a{display:block;width:100%;line-height:0;border-radius:10px;overflow:hidden;outline:1px solid rgba(34,211,238,0.10);transition:outline-color .25s ease,box-shadow .25s ease;background:#0b1520}
         .wpt-${s}-a:hover{outline-color:rgba(34,211,238,0.30);box-shadow:0 0 28px rgba(34,211,238,0.10)}
-        .wpt-${s}-d{display:block}.wpt-${s}-m{display:none}
+        .wpt-${s}-d{display:block;max-width:728px;aspect-ratio:728/90;margin:0 auto}.wpt-${s}-m{display:none;max-width:320px;aspect-ratio:320/100;margin:0 auto}
         @media(max-width:767px){.wpt-${s}-d{display:none}.wpt-${s}-m{display:block}}
         .wpt-${s}-code{display:flex;align-items:center;justify-content:center;margin-top:8px;font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(161,161,170,0.60);line-height:1}
       `}</style>
@@ -115,8 +115,8 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
         <a href={getHref(desktopBanner)} target="_blank" rel="noopener noreferrer sponsored"
           aria-label={desktopBanner.editorial_title || "Publicidad"} className={`wpt-${s}-a wpt-${s}-d`}>
           <img src={getSrc(desktopBanner)} alt="Promo"
-            width={desktopBanner.width} height={desktopBanner.height}
-            style={{ display: "block", width: "100%", height: "auto", maxWidth: `${desktopBanner.width}px`, margin: "0 auto" }}
+            width={728} height={90}
+            style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
             loading="lazy" />
         </a>
       )}
@@ -125,8 +125,8 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
         <a href={getHref(mobileBanner)} target="_blank" rel="noopener noreferrer sponsored"
           aria-label={mobileBanner.editorial_title || "Publicidad"} className={`wpt-${s}-a wpt-${s}-m`}>
           <img src={getSrc(mobileBanner)} alt="Promo"
-            width={mobileBanner.width} height={mobileBanner.height}
-            style={{ display: "block", width: "100%", height: "auto" }}
+            width={320} height={100}
+            style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
             loading="lazy" />
         </a>
       )}
