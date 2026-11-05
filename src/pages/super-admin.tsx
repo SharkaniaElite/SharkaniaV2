@@ -2151,6 +2151,7 @@ export function SuperAdminPage() {
                 <div>
                   <label className="text-[10px] font-mono uppercase text-sk-text-3 mb-1 block">Introducción General (Aparece bajo la mascota)</label>
                   <textarea value={nlIntro} onChange={e => setNlIntro(e.target.value)} className="w-full h-20 bg-sk-bg-2 border border-sk-border-2 rounded p-2 text-sm text-sk-text-1 resize-none focus:border-sk-accent focus:outline-none" />
+                  <p className="mt-2 text-[11px] text-sk-text-3">Los enlaces https:// escritos en la introducción y las descripciones serán clicables en el correo. Los botones usarán el destino indicado en cada bloque.</p>
                 </div>
               </div>
 
@@ -2189,6 +2190,11 @@ export function SuperAdminPage() {
                         <div>
                           <label className="text-[10px] uppercase text-sk-text-3 block mb-1">Link del Botón (https://)</label>
                           <input type="url" value={news.link} onChange={e => setNlNews(nlNews.map((n, i) => i === index ? { ...n, link: e.target.value } : n))} placeholder="https://..." className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1" />
+                          {safeNewsletterUrl(news.link) && (
+                            <a href={safeNewsletterUrl(news.link)!} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-sk-accent hover:underline">
+                              <ExternalLink size={12} /> Comprobar destino
+                            </a>
+                          )}
                         </div>
                         {news.link && (
                           <div className="col-span-2">
