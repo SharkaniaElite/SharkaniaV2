@@ -65,3 +65,25 @@ test("Editorial reading improvements remain isolated from forms, leagues, and EL
   assert.match(style, /shark-article-page h2/);
   assert.match(style, /focus-visible/);
 });
+
+test("Official November bases have two responsive Ignition banners without competitor ads", () => {
+  const article = read("src/pages/blog-post.tsx");
+  const ads = read("src/components/blog/article-ads.tsx");
+  const css = read("src/components/blog/article-ads.css");
+  const floating = read("src/components/marketing/FloatingCTA.tsx");
+  assert.match(ads, /bases-oficiales-liga-sharkania-noviembre-2026/);
+  assert.match(article, /isIgnitionBasesArticle\(post\) \? <IgnitionBasesBanner slot="mid"/);
+  assert.match(article, /isIgnitionBasesArticle\(post\) \? <IgnitionBasesBanner slot="final"/);
+  assert.match(article, /showMarketing=\{!isIgnitionSponsoredArticle/);
+  assert.match(ads, /<source media="\(max-width: 767px\)" srcSet=\{mobile\}/);
+  assert.match(css, /shark-article-bases-banner\{max-width:320px;aspect-ratio:320\/100/);
+  assert.match(floating, /noticias\/bases-oficiales-liga-sharkania-noviembre-2026/);
+  for(const kind of ["mid","final"]) {
+    const desktop = read(`public/images/banners/ignition-bases-${kind}-desktop-728x90.svg`);
+    const mobile = read(`public/images/banners/ignition-bases-${kind}-mobile-320x100.svg`);
+    assert.match(desktop,/width="728" height="90"/);
+    assert.match(mobile,/width="320" height="100"/);
+    assert.match(desktop,/Ignition/);
+    assert.match(mobile,/Ignition/);
+  }
+});
