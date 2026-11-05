@@ -10,7 +10,7 @@ import { renderWithLinks, renderWithLinksAndGlossary } from "../lib/render-inlin
 import { useGlossaryTerms } from "../hooks/use-glossary";
 import type { GlossaryTerm } from "../lib/api/glossary";
 import { WptBanner } from "../components/blog/wpt-banner";
-import { ArticleImageBanner, IgnitionArticleBanner, isIgnitionLeagueArticle } from "../components/blog/article-ads";
+import { ArticleImageBanner, IgnitionArticleBanner, IgnitionBasesBanner, isIgnitionLeagueArticle, isIgnitionBasesArticle, isIgnitionSponsoredArticle } from "../components/blog/article-ads";
 import "../styles/arena-article-quick.css";
 import { PromotionArtwork } from "../components/marketing/promotion-artwork";
 import { PartnerPromotionPanel } from "../components/marketing/partner-promotion-panel";
@@ -110,7 +110,8 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
           </div>
         )}
         {h2Index === 3 && (
-          isIgnitionLeagueArticle(post) ? <IgnitionArticleBanner slot="mid" />
+          isIgnitionBasesArticle(post) ? <IgnitionBasesBanner slot="mid" />
+          : isIgnitionLeagueArticle(post) ? <IgnitionArticleBanner slot="mid" />
           : post.category === "Promociones" ? <PartnerPromotionPanel post={post} />
           : post.custom_banner_mid_src ? <ArticleImageBanner src={post.custom_banner_mid_src} href={post.custom_banner_mid_href} label="Publicidad editorial intermedia" />
           : <WptBanner slot="mid" />
@@ -374,7 +375,7 @@ export default function BlogPostPage() {
 
   // Si no es ninguna de las promos especiales, renderizamos el blog normal
   return (
-    <PageShell showMarketing={!isIgnitionLeagueArticle({ slug: slug ?? "" })}>
+    <PageShell showMarketing={!isIgnitionSponsoredArticle({ slug: slug ?? "" })}>
       {/* Breadcrumb */}
       <div className="border-b border-sk-border-1 bg-sk-bg-1/80 backdrop-blur-sm sticky top-14 z-40">
         <div className="max-w-3xl mx-auto px-6 py-2.5 flex items-center justify-between">
@@ -523,7 +524,8 @@ export default function BlogPostPage() {
                   })}
                 </div>
 
-                {isIgnitionLeagueArticle(post) ? <IgnitionArticleBanner slot="final" />
+                {isIgnitionBasesArticle(post) ? <IgnitionBasesBanner slot="final" />
+                 : isIgnitionLeagueArticle(post) ? <IgnitionArticleBanner slot="final" />
                  : post.category === "Promociones" ? null
                  : post.custom_banner_final_src ? <ArticleImageBanner src={post.custom_banner_final_src} href={post.custom_banner_final_href} label="Publicidad editorial final" />
                  : <WptBanner slot="final" className="mt-10" />}
