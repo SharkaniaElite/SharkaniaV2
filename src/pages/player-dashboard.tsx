@@ -22,12 +22,15 @@ import { SEOHead } from "../components/seo/seo-head";
 import { SharkCoin } from "../components/ui/shark-coin";
 import { MissionsPanel } from "../components/gamification/missions-panel"; 
 import { cn } from "../lib/cn";
+import { ignitionFlowStatus } from "../lib/ignition-link-status";
+import { IgnitionLinkNotice } from "../components/players/ignition-link-notice";
 
 export function PlayerDashboardPage() {
   const { profile, user, refreshProfile, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const ignitionPanelRef = useRef<HTMLDivElement>(null);
+  const ignitionEmailInputRef = useRef<HTMLInputElement>(null);
 
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.display_name ?? "");
@@ -42,28 +45,39 @@ export function PlayerDashboardPage() {
   const [avatarError, setAvatarError] = useState("");
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
-  // 🔥 Estados para la vinculación de Ignition Poker
-  const hasIgnitionRequest = user?.user_metadata?.ignition_league_player === true || profile?.ignition_league_player === true;
-  const isIgnitionLinked = profile?.ignition_status === 'verified';
-  const [ignitionEmail, setIgnitionEmail] = useState(user?.user_metadata?.ignition_email ?? "");
-  const [ignitionNickname, setIgnitionNickname] = useState(user?.user_metadata?.ignition_nickname ?? "");
+  // Always trust the server-backed profiles row, not editable auth.user_metadata.
+  const ignitionStatus = ignitionFlowStatus(profile);
+  const hasIgnitionRequest = ignitionStatus !== "needs-link";
+  const isIgnitionLinked = ignitionStatus === "linked";
+  const [ignitionEmail, setIgnitionEmail] = useState(profile?.ignition_email ?? "");
+  const [ignitionNickname, setIgnitionNickname] = useState(profile?.ignition_nickname ?? "");
   const [isSubmittingIgnition, setIsSubmittingIgnition] = useState(false);
+  const [ignitionFormError, setIgnitionFormError] = useState("");
   const [isHighlighting, setIsHighlighting] = useState(false);
+  const [ignitionNoticeOpen, setIgnitionNoticeOpen] = useState(false);
 
-  // Efecto para iluminar el panel si viene redirigido desde la Landing
+  useEffect(() => {
+    setIgnitionEmail(profile?.ignition_email ?? "");
+    setIgnitionNickname(profile?.ignition_nickname ?? "");
+  }, [profile?.id, profile?.ignition_email, profile?.ignition_nickname]);
+
+  // Redirected from /ignition after login or after clicking "Mi panel".
+  // Wait for the authoritative profile before showing the corresponding modal.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get("highlight") === "ignition") {
-      setIsHighlighting(true);
-      window.history.replaceState({}, '', location.pathname);
-      
-      setTimeout(() => {
-        ignitionPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 500);
-
-      setTimeout(() => setIsHighlighting(false), 4000);
-    }
-  }, [location]);
+    if (params.get("highlight") !== "ignition" || !profile) return;
+    setIsHighlighting(true);
+    setIgnitionNoticeOpen(true);
+    window.history.replaceState(window.history.state, "", location.pathname);
+    const scrollTimer = window.setTimeout(() => {
+      ignitionPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 350);
+    const highlightTimer = window.setTimeout(() => setIsHighlighting(false), 4000);
+    return () => {
+      window.clearTimeout(scrollTimer);
+      window.clearTimeout(highlightTimer);
+    };
+  }, [location.pathname, location.search, profile?.id, profile?.ignition_status]);
 
   // Get user's nickname claims
   const { data: myClaims, refetch: refetchClaims } = useQuery({
@@ -403,10 +417,10 @@ export function PlayerDashboardPage() {
                   <Badge variant={isIgnitionLinked ? 'green' : 'orange'}>{isIgnitionLinked ? '¡Vinculado a Ignition!' : 'Solicitud en revisión'}</Badge>
                   <div className="mt-2 space-y-1">
                     <p className="text-[11px] text-sk-text-3 font-mono flex justify-between gap-4">
-                      <span>Email:</span> <strong className="text-white">{user?.user_metadata?.ignition_email}</strong>
+                      <span>Email:</span> <strong className="text-white">{profile?.ignition_email}</strong>
                     </p>
                     <p className="text-[11px] text-sk-text-3 font-mono flex justify-between gap-4">
-                      <span>Nickname:</span> <strong className="text-orange-400">{user?.user_metadata?.ignition_nickname}</strong>
+                      <span>Nickname:</span> <strong className="text-orange-400">{profile?.ignition_nickname}</strong>
                     </p>
                   </div>
                 </div>
@@ -417,6 +431,7 @@ export function PlayerDashboardPage() {
                       type="email"
                       placeholder="Correo de Ignition..."
                       value={ignitionEmail}
+                      ref={ignitionEmailInputRef}
                       onChange={(e) => setIgnitionEmail(e.target.value)}
                       className="w-full bg-black/40 border border-orange-500/30 rounded-md py-2 px-3 text-sk-sm text-white font-mono focus:outline-none focus:border-orange-500"
                     />
@@ -435,69 +450,44 @@ export function PlayerDashboardPage() {
                     className="w-full sm:w-auto sm:self-stretch whitespace-nowrap bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 border-none text-white font-bold"
                     isLoading={isSubmittingIgnition}
                     onClick={async () => {
-                      if (!ignitionEmail.trim() || !ignitionEmail.includes("@")) {
-                        alert("Ingresa un correo válido.");
+                      setIgnitionFormError("");
+                      const emailToLink = ignitionEmail.trim();
+                      const nickToLink = ignitionNickname.trim();
+                      if (!emailToLink || !emailToLink.includes("@")) {
+                        setIgnitionFormError("Ingresa el correo que utilizas en Ignition.");
                         return;
                       }
-                      if (!ignitionNickname.trim()) {
-                        alert("Ingresa tu Nickname de Ignition.");
+                      if (!nickToLink) {
+                        setIgnitionFormError("Ingresa tu nickname de Ignition.");
                         return;
                       }
                       setIsSubmittingIgnition(true);
                       try {
-                        const emailToLink = ignitionEmail.trim();
-                        const nickToLink = ignitionNickname.trim();
-
-                        // 1. CONSULTAMOS AL GUARDIA DE SEGURIDAD
-                        const { data: isDuplicate, error: rpcError } = await supabase.rpc("check_ignition_duplicate", {
+                        // Server-side ownership, confirmation and duplicate checks.
+                        // This RPC cannot demote an already verified player.
+                        const { data, error } = await supabase.rpc("request_my_ignition_link", {
                           p_email: emailToLink,
                           p_nickname: nickToLink,
-                          p_user_id: user.id
                         });
-
-                        if (rpcError) throw rpcError;
-
-                        // 2. BLOQUEAMOS SI ESTÁ DUPLICADO
-                        if (isDuplicate) {
-                          alert("⚠️ Error: Este correo o Nickname de Ignition ya está vinculado a otra cuenta de Sharkania.");
-                          setIsSubmittingIgnition(false);
-                          return;
+                        if (error) throw error;
+                        await refreshProfile();
+                        const response = data as { status?: "already_linked" | "pending" } | null;
+                        if (response?.status === "already_linked") {
+                          setMessage("Tu cuenta Ignition ya está vinculada. No es necesario repetir el trámite.");
+                        } else {
+                          setMessage("Solicitud de vinculación recibida. Confirmaremos el nickname antes de habilitar tus beneficios de liga.");
                         }
-
-                        // 3. SI ESTÁ LIBRE, LO VINCULAMOS
-                        
-                        // A) Actualizamos la sesión del navegador para que el usuario vea el cambio
-                        const { error: authError } = await supabase.auth.updateUser({
-                          data: {
-                            ignition_league_player: true,
-                            ignition_email: emailToLink,
-                            ignition_nickname: nickToLink,
-                          }
-                        });
-                        
-                        if (authError) throw authError;
-
-                        // B) 🔥 EL BUG ESTABA AQUÍ: Guardamos los datos en la tabla profiles para el Admin
-                        const { error: profileError } = await supabase.from('profiles').update({
-                          ignition_league_player: true,
-                          ignition_email: emailToLink,
-                          ignition_nickname: nickToLink,
-                          ignition_status: 'pending'
-                        }).eq('id', user.id);
-
-                        if (profileError) throw profileError;
-
-                        alert("Solicitud de vinculación enviada. Quedará pendiente de verificación administrativa.");
-                        window.location.reload();
-                      } catch (e) {
-                        console.error(e);
-                        alert("Error al vincular tu correo.");
+                        setIgnitionNoticeOpen(true);
+                      } catch (error) {
+                        setIgnitionFormError(error instanceof Error ? error.message : "No se pudo registrar la vinculación. Intenta nuevamente.");
+                      } finally {
+                        setIsSubmittingIgnition(false);
                       }
-                      setIsSubmittingIgnition(false);
-                    }}
+                    }
                   >
                     Vincular
                   </Button>
+                  {ignitionFormError && <p role="alert" className="w-full text-xs text-red-300">{ignitionFormError}</p>}
                 </div>
               )}
             </div>
@@ -590,6 +580,19 @@ export function PlayerDashboardPage() {
         </div>
       </div>
       <NicknameClaim isOpen={claimOpen} onClose={() => setClaimOpen(false)} onClaimed={() => refetchClaims()} />
+      {ignitionNoticeOpen && profile && (
+        <IgnitionLinkNotice
+          status={ignitionStatus}
+          onClose={() => setIgnitionNoticeOpen(false)}
+          onProceed={() => {
+            setIgnitionNoticeOpen(false);
+            if (ignitionStatus === "needs-link") {
+              ignitionPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+              window.setTimeout(() => ignitionEmailInputRef.current?.focus(), 200);
+            }
+          }}
+        />
+      )}
     </PageShell>
   );
 }
