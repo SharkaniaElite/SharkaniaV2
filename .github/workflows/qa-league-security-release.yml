@@ -57,6 +57,8 @@ jobs:
         run: |
           npm ci
           npx tsc -b --pretty false
+      - name: Inventory legacy league-related writes and RPCs across all frontend source
+        run: node tests/league-legacy-source-inventory.mjs
       - name: Create isolated league security database
         run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_auth'
       - name: Reproduce legacy unauthorized join then apply protected league SQL
