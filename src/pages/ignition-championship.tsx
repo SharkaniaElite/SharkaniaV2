@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { SEOHead } from "../components/seo/seo-head";
 import { IGNITION_FECHA1 } from "../lib/ignition-liga-fecha1";
+import { ignitionFlowStatus } from "../lib/ignition-link-status";
 import { PageShell } from "../components/layout/page-shell";
 import { cn } from "../lib/cn";
 
@@ -73,7 +74,7 @@ export function IgnitionChampionshipPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, profile: signedInProfile } = useAuthStore();
 
   const inputClass = "w-full bg-black/40 border border-orange-500/30 rounded-md py-3 px-4 text-sk-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-orange-500 focus:shadow-[0_0_15px_rgba(249,115,22,0.3)] transition-all";
   const labelClass = "font-mono text-[11px] font-bold uppercase tracking-widest text-orange-200/80 mb-2 block";
@@ -96,9 +97,6 @@ export function IgnitionChampionshipPage() {
     setLoading(true);
 
     try {
-      const emailToLink = email.trim();
-      const nickToLink = displayName.trim();
-
       // Duplicate checks require a valid session: run after login, not before it.
       if (isExistingUser) {
         // FLUJO 1: LOGIN
@@ -116,53 +114,21 @@ export function IgnitionChampionshipPage() {
           return;
         }
 
-        // Validamos una vez más pasando el User ID real por si acaso
-        const { data: doubleCheckDuplicate, error: duplicateError } = await supabase.rpc("check_ignition_duplicate", {
-          p_email: emailToLink, 
-          p_nickname: nickToLink,
-          p_user_id: data.session.user.id
+        if (!data.session?.user) {
+          throw new Error("No se pudo completar el inicio de sesión. Inténtalo nuevamente.");
+        }
+
+        // A verified Ignition identity must never be downgraded when a user logs in.
+        // Inspect the authoritative profile, then redirect to its existing account panel.
+        const existingProfile = await getProfile(data.session.user.id);
+        if (!existingProfile) throw new Error("No pudimos cargar tu perfil de Sharkania. Inténtalo nuevamente.");
+        useAuthStore.setState({
+          user: data.session.user,
+          profile: existingProfile,
+          isAuthenticated: true,
+          isLoading: false,
         });
-
-        if (duplicateError) throw duplicateError;
-
-        if (doubleCheckDuplicate) {
-          setError("⚠️ Tu usuario de Ignition ya fue reclamado por otra cuenta. Si es un error, contacta a soporte.");
-          await supabase.auth.signOut(); 
-          setLoading(false);
-          return;
-        }
-
-        // Record a pending request; only administrators can verify an Ignition player.
-        const { error: linkError } = await supabase.from('profiles').update({
-          ignition_league_player: true,
-          ignition_email: emailToLink,
-          ignition_nickname: nickToLink,
-          ignition_status: 'pending'
-        }).eq('id', data.session.user.id);
-        if (linkError) {
-          await supabase.auth.signOut();
-          throw linkError;
-        }
-
-        const { error: metadataError } = await supabase.auth.updateUser({
-          data: {
-            ignition_league_player: true,
-            ignition_email: emailToLink,
-            ignition_nickname: nickToLink
-          }
-        });
-        if (metadataError) throw metadataError;
-
-        if (data.session?.user) {
-          const profile = await getProfile(data.session.user.id);
-          useAuthStore.setState({
-            user: data.session.user,
-            profile,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-          navigate("/dashboard?highlight=ignition");
-        }
+        navigate("/dashboard?highlight=ignition", { replace: true });
 
       } else {
         // FLUJO 2: SIGN UP
@@ -395,9 +361,11 @@ export function IgnitionChampionshipPage() {
                   </div>
                   <h2 className="mb-3 text-2xl font-bold text-white">Ya eres parte de Sharkania</h2>
                   <p className="mb-6 text-sm leading-relaxed text-gray-400">
-                    Consulta aquí todas las bases de la Liga SHARKANIA. Para vincular tu
-                    correo y nickname de Ignition, revisar tu solicitud o actualizar tus datos,
-                    ingresa a tu panel.
+                    {signedInProfile && ignitionFlowStatus(signedInProfile) === "linked"
+                      ? "Tu cuenta Ignition ya está vinculada y verificada. No debes registrarla otra vez. Ingresa a tu panel para ver la confirmación y las indicaciones de contraseñas."
+                      : signedInProfile && ignitionFlowStatus(signedInProfile) === "pending"
+                      ? "Ya recibimos tu solicitud de vinculación Ignition. Puedes revisar su estado en tu panel. No hace falta volver a enviar el formulario."
+                      : "Ya tienes una cuenta Sharkania. Entra a tu panel para vincular Ignition, comprobar tu solicitud y cumplir los requisitos de premios de la liga."}
                   </p>
                   <Link to="/dashboard?highlight=ignition" className="inline-block">
                     <Button size="lg" className="bg-gradient-to-r from-orange-500 to-red-600 border-none font-bold text-white">
@@ -488,7 +456,7 @@ export function IgnitionChampionshipPage() {
                       <div className="bg-orange-950/30 border border-orange-500/30 rounded-lg p-3 flex gap-3 items-start mt-4">
                         <AlertCircle className="text-orange-400 shrink-0 mt-0.5" size={18} />
                         <p className="text-xs text-orange-200/80 leading-relaxed">
-                          Como eres nuevo, crearemos tu cuenta en Sharkania y la dejaremos vinculada de inmediato a la liga.
+                          Como eres nuevo, crearemos tu cuenta en Sharkania y registraremos una solicitud de vinculación a Ignition. Debes confirmar tu correo y esperar la validación del nickname antes de acceder a los beneficios de la liga.
                         </p>
                       </div>
 
@@ -572,7 +540,7 @@ export function IgnitionChampionshipPage() {
                     isLoading={loading}
                     disabled={(!isExistingUser && !captchaToken) || loading}
                   >
-                    {isExistingUser ? "Iniciar Sesión y Vincular" : "Registrarse y Participar"}
+                    {isExistingUser ? "Iniciar sesión y revisar vinculación" : "Registrarse y Participar"}
                   </Button>
                 </form>
               )}
