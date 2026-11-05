@@ -27,7 +27,7 @@ BEGIN
     'body_text',body_text, 'enabled_at',enabled_at, 'updated_at',updated_at)
   INTO v FROM private.ignition_auto_welcome_settings WHERE setting_id=1;
   RETURN COALESCE(v,'{"enabled":false,"subject":"","body_text":""}'::jsonb);
-END
+END;
 $function$;
 
 CREATE OR REPLACE FUNCTION public.save_ignition_auto_welcome_settings(
@@ -72,7 +72,7 @@ BEGIN
   RETURN jsonb_build_object('enabled',p_enabled,
     'starts_for_new_links_only',true,
     'enabled_at',(SELECT enabled_at FROM private.ignition_auto_welcome_settings WHERE setting_id=1));
-END
+END;
 $function$;
 
 -- Manual validation by a super-admin, never by user-supplied metadata.
@@ -107,7 +107,7 @@ BEGIN
   END IF;
   UPDATE public.profiles SET ignition_status='verified' WHERE id=p_player_id;
   RETURN true;
-END
+END;
 $function$;
 
 -- Executed by the database Cron role. This function is not callable by users.
@@ -156,7 +156,7 @@ BEGIN
 
   GET DIAGNOSTICS v_count=ROW_COUNT;
   RETURN v_count;
-END
+END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.get_ignition_auto_welcome_settings() FROM PUBLIC,anon,authenticated;
@@ -176,5 +176,5 @@ BEGIN
       'SELECT private.enqueue_ignition_auto_welcome()'
     );
   END IF;
-END
+END;
 $job$;
