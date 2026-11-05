@@ -225,3 +225,43 @@
     font-size:9px;letter-spacing:0
   }
 }
+
+/* Partner cards: priority-order layout, distinct logo-safe artwork. */
+.arena-public-bridge .arena-featured-promo{
+  border-color:rgba(125,185,207,.25);
+  background:linear-gradient(145deg,#11212f,#0c1824);
+  box-shadow:0 14px 36px rgba(0,0,0,.23);
+  transition:transform .2s,border-color .2s,box-shadow .2s;
+  min-width:0;
+}
+.arena-public-bridge .arena-featured-promo:hover{
+  transform:translateY(-3px);border-color:rgba(100,225,241,.55);
+  box-shadow:0 24px 40px rgba(0,0,0,.3);
+}
+.arena-featured-promo--orange .arena-featured-promo-art{
+  background:radial-gradient(circle at 73% 55%,rgba(245,108,30,.3),transparent 49%),url("/images/arena/home-tournaments.webp") 65% center/cover;
+}
+.arena-featured-promo--cyan .arena-featured-promo-art{
+  background:radial-gradient(circle at 60% 50%,rgba(41,204,225,.22),transparent 53%),url("/images/arena/home-hero.webp") center/cover;
+}
+.arena-featured-promo--violet .arena-featured-promo-art{background:radial-gradient(circle at 70% 30%,rgba(134,106,206,.27),transparent 57%),#081521;}
+.arena-featured-promo--gold .arena-featured-promo-art{background:radial-gradient(circle at 73% 50%,rgba(197,150,73,.22),transparent 51%),#081521;}
+.arena-featured-promo .arena-featured-promo-badge{
+  color:#ecfaff;background:rgba(7,24,36,.88);
+  border:1px solid rgba(119,186,207,.34);
+}
+.arena-featured-promo--orange .arena-featured-promo-badge{color:#ffd9c2;border-color:rgba(255,139,72,.46)}
+.arena-featured-promo--cyan .arena-featured-promo-badge{color:#9deafa;border-color:rgba(65,225,235,.45)}
+.arena-featured-promo .arena-featured-promo-cta{
+  color:#d8f7fd;background:rgba(30,112,133,.14);
+  border-color:rgba(84,191,212,.4);
+}
+.arena-featured-promo .arena-featured-promo-cta:hover{background:rgba(33,129,145,.22);border-color:#74dce9}
+.arena-featured-promo--orange .arena-featured-promo-cta{color:#ffdbc5;border-color:rgba(248,129,72,.54);background:rgba(194,84,36,.16)}
+.arena-featured-promo--orange .arena-featured-promo-cta:hover{background:rgba(194,84,36,.25)}
+.arena-public-bridge .arena-tools-grid > *{min-width:0}
+.arena-public-bridge .arena-shop-tabs button{min-height:48px}
+@media(max-width:760px){
+  .arena-public-bridge .arena-featured-promo:hover{transform:none}
+  .arena-public-bridge .arena-featured-promo-art{min-height:174px}
+}
