@@ -127,7 +127,7 @@ export function PlayerProfilePage() {
 
   if (isLoading) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div
           ref={topRef}
           className="pt-20 min-h-screen flex items-center justify-center"
@@ -140,7 +140,7 @@ export function PlayerProfilePage() {
 
   if (error || !player) {
     return (
-      <PageShell>
+      <PageShell variant="arena">
         <div
           ref={topRef}
           className="pt-20 min-h-screen flex flex-col items-center justify-center gap-4"
@@ -175,14 +175,14 @@ export function PlayerProfilePage() {
   const displayEloPeak = unifiedEloPeak ?? player.elo_peak;
 
   return (
-    <PageShell>
+    <PageShell variant="arena">
       <SEOHead
         title={`${cleanNickname} — Perfil`}
         description={`Perfil de ${cleanNickname}. ELO ${Math.round(Number(displayElo)).toLocaleString()}, ${displayStats?.total_tournaments ?? player.total_tournaments} torneos. ${getCountryName(player.country_code)}.`}
         path={`/ranking/${playerSlug}`}
       />
-      <div ref={topRef} className="pt-20 pb-16">
-        <div className="max-w-[1200px] mx-auto px-6">
+      <div ref={topRef} className="arena-interior">
+        <div className="arena-interior-container">
           <Link
             to="/ranking"
             className="inline-flex items-center gap-2 text-sk-sm text-sk-text-2 hover:text-sk-text-1 transition-colors mb-6"
@@ -192,7 +192,8 @@ export function PlayerProfilePage() {
           </Link>
 
           {/* Header */}
-          <div className="bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
+          <div className="arena-profile-hero bg-sk-bg-2 border border-sk-border-2 rounded-lg p-6 mb-6">
+            <p className="arena-profile-kicker">SHARKANIA ARENA / JUGADOR</p>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-sk-bg-4 border-2 border-sk-accent flex items-center justify-center text-sk-2xl font-extrabold text-sk-accent shrink-0 overflow-hidden">
                 {avatarUrl ? (
@@ -208,7 +209,7 @@ export function PlayerProfilePage() {
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
-                  <h1 className="text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
+                  <h1 className="arena-detail-title text-sk-2xl font-extrabold text-sk-text-1 tracking-tight">
                     {cleanNickname}
                   </h1>
                   <FlagIcon countryCode={player.country_code} size={32} />
