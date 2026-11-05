@@ -108,7 +108,7 @@ expectCode(again,200,"superadmin can repeat authorized calculation");
 assert.equal(again.data,2);
 assert.equal(sql("SELECT id FROM public.league_standings WHERE league_id="+safeUuid(leagueA)+" AND player_id="+safeUuid(newPlayer)),newId,"second calculation preserves new ID");
 assert.equal(sql("SELECT id::text||':'||coalesce(ccp_club,'')||':'||total_buy_ins_spent::text||':'||last_tournament_id::text FROM public.league_standings WHERE id="+originalId),originalSnapshot);
-assert.equal(sql("SELECT count(*) FROM public.league_standings WHERE league_id="+safeUuid(leagueA)),2);
+assert.equal(Number(sql("SELECT count(*) FROM public.league_standings WHERE league_id="+safeUuid(leagueA))),2);
 assert.equal(sql("SELECT count(*) FROM public.tournament_results"),resultsBefore);
 assert.equal(sql("SELECT count(*) FROM public.elo_history"),historyBefore);
 assert.equal(sql("SELECT count(*)::text||':'||coalesce(sum(elo_rating),0)::text FROM public.players"),auditBefore);
