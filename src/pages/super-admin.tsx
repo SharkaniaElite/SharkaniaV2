@@ -95,6 +95,18 @@ const SLOT_INFO = {
     desktop: { size: "728×90 px", label: "Banner horizontal", hint: "Exporta una creatividad nativa de 728×90 px." },
     mobile:  { size: "320×100 px", label: "Banner móvil", hint: "Exporta otra creatividad nativa de 320×100 px." },
   },
+  ignition_article_mid: {
+    title: "Exclusivo Ignition: banner intermedio del artículo",
+    description: "Solo en la noticia de Liga SHARKANIA / Ignition. Si faltan creatividades revisadas en ambos tamaños, aparece el diseño de marca integrado.",
+    desktop: { size: "728×90 px", label: "Ignition PC", hint: "Creatividad original 728×90 px; marca Ignition, condiciones verificadas." },
+    mobile: { size: "320×100 px", label: "Ignition móvil", hint: "Creatividad original 320×100 px; no estirar la versión PC." },
+  },
+  ignition_article_final: {
+    title: "Exclusivo Ignition: banner final del artículo",
+    description: "Solo en la noticia de Liga SHARKANIA / Ignition. No sustituye los banners globales de otros artículos.",
+    desktop: { size: "728×90 px", label: "Ignition PC", hint: "Creatividad original 728×90 px; marca Ignition, condiciones verificadas." },
+    mobile: { size: "320×100 px", label: "Ignition móvil", hint: "Creatividad original 320×100 px; no estirar la versión PC." },
+  },
   sidebar: {
     title: "Banner Sidebar",
     description: "Aparece flotando en la columna derecha en pantallas grandes.",
@@ -134,7 +146,7 @@ function BannerSlotEditor({
     setUploading(`${side}-${field}`);
     try {
       // Solo para banners de artículos: validar tamaño real antes de Storage.
-      if ((slotKey === "mid" || slotKey === "final") && field === "src") {
+      if (["mid", "final", "ignition_article_mid", "ignition_article_final"].includes(slotKey) && (field === "src" || field === "us_src")) {
         const expectedWidth = side === "desktop" ? 728 : 320;
         const expectedHeight = side === "desktop" ? 90 : 100;
         const bitmap = await createImageBitmap(file);
