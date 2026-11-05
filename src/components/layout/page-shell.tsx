@@ -1,5 +1,4 @@
 import { type ReactNode, useState } from "react";
-import { cn } from "../../lib/cn";
 import "../../styles/arena-interior.css";
 import "../../styles/arena-public-bridge.css";
 import { Navbar } from "./navbar";
