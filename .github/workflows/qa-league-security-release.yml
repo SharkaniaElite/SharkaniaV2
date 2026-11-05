@@ -44,6 +44,15 @@ jobs:
         run: node --test tests/league-membership-guarded-contract.test.mjs
       - name: Verify read-only shadow standings contract (no write operations)
         run: node --test tests/league-standings-shadow-contract.test.mjs
+      - name: Validate guarded standings QA contract
+        run: node --test tests/league-standings-guarded-contract.test.mjs
+      - name: Create disposable standings QA database
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_standings_guarded'
+      - name: Configure synthetic standings, install QA-only guarded RPC, verify privileges and preservation
+        run: |
+          psql -v ON_ERROR_STOP=1 -d qa_standings_guarded -f tests/fixtures/sharkania-league-standings-guarded-setup.sql
+          psql -v ON_ERROR_STOP=1 -d qa_standings_guarded -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -v ON_ERROR_STOP=1 -d qa_standings_guarded -f tests/fixtures/sharkania-league-standings-guarded-assert.sql
       - name: TypeScript compile check
         run: |
           npm ci
