@@ -175,7 +175,7 @@ export function ClubAdminPage() {
       refresh();
     } catch (err) {
       console.error(err);
-      alert("Error al eliminar torneo");
+      alert(err instanceof Error && err.message.includes("operación en torneos de liga está pausada") ? err.message : "Error al eliminar torneo");
     } finally {
       setDeleting(null);
     }
