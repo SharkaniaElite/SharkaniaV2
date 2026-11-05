@@ -18,7 +18,7 @@ if (process.env.GITHUB_ACTIONS!=="true" ||
  process.env.PGPORT!=="25422" || !anonKey || !serviceKey) {
   throw new Error("STOP: guarded standings real Auth requires ephemeral local-only Supabase");
 }
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const safeUuid=x=>{assert.match(x,UUID);return "'"+x+"'::uuid";};
 const sql=q=>execFileSync("psql",
  ["-X","-At","-v","ON_ERROR_STOP=1","-d","postgres","-c",q],
