@@ -26,7 +26,7 @@ test("verification notices cannot mislead a person without a session", () => {
   assert.match(welcome, /No pudimos comprobar tu cuenta/);
   assert.match(welcome, /No encontramos una sesión válida/);
   assert.match(welcome, /Tu correo está pendiente/);
-  assert.match(welcome, /Tu correo aún no/);
+  assert.match(welcome, /Esta cuenta aún no registra/);
 });
 
 test("login and welcome are noindexed both by React and HTTP headers", () => {
