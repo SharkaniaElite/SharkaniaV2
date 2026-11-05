@@ -12,8 +12,8 @@ const base = process.env.QA_SUPABASE_URL;
 const anonKey = process.env.QA_SUPABASE_ANON_KEY;
 const serviceKey = process.env.QA_SUPABASE_SERVICE_ROLE_KEY;
 if (process.env.GITHUB_ACTIONS !== "true" ||
-    base !== "http://127.0.0.1:54321" ||
-    process.env.PGHOST !== "127.0.0.1" || process.env.PGPORT !== "54322" ||
+    base !== "http://127.0.0.1:25421" ||
+    process.env.PGHOST !== "127.0.0.1" || process.env.PGPORT !== "25422" ||
     !anonKey || !serviceKey) {
   throw new Error("STOP: requires ephemeral LOCAL Supabase Auth/REST and PostgreSQL only");
 }
