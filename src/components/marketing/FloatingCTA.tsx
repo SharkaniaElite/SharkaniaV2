@@ -74,6 +74,9 @@ export function FloatingCTA() {
     return () => clearTimeout(timeoutId);
   }, [location.pathname, config]);
 
+  // La noticia de Liga SHARKANIA tiene patrocinio editorial exclusivo Ignition.
+  // No superponer el CTA flotante global de otra sala a este artículo.
+  if (location.pathname === "/noticias/liga-sharkania-noviembre-2026-fechas-puntos-premios-ignition") return null;
   if (!visible) return null;
 
   // ── RESOLUCIÓN FINAL DE VARIABLES ──
