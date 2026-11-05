@@ -62,9 +62,9 @@ function formatDate(value:string|null,withTime=false):string {
 }
 
 export function IgnitionClaimsTab(){
-  const [campaignKey,setCampaignKey]=useState(DATE_OPTIONS[0].key);
-  const [subject,setSubject]=useState(defaultSubject(DATE_OPTIONS[0].key));
-  const [content,setContent]=useState(defaultMessage(DATE_OPTIONS[0].key));
+  const [campaignKey,setCampaignKey]=useState("ignition-2026-11-welcome");
+  const [subject,setSubject]=useState(defaultSubject("ignition-2026-11-welcome"));
+  const [content,setContent]=useState(defaultMessage("ignition-2026-11-welcome"));
   const [players,setPlayers]=useState<Player[]>([]);
   const [delivery,setDelivery]=useState<Map<string,Delivery>>(new Map());
   const [ready,setReady]=useState(false);
