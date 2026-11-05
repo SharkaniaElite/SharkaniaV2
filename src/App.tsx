@@ -26,7 +26,7 @@ import { PromoMindevPage } from "./pages/promo-mindev";
 import { PromoFullnutsPage } from "./pages/promo-fullnuts";
 
 // 🔥 Lazy imports (CLAVE)
-const HomePage = lazy(() => import("./pages/home").then(m => ({ default: m.HomePage })));
+const HomePage = lazy(() => import("./pages/arena-home").then(m => ({ default: m.ArenaHomePage })));
 const AcademyPage = lazy(() => import("./pages/academy").then(m => ({ default: m.AcademyPage })));
 const AcademyModulePage = lazy(() => import("./pages/academy-module").then(m => ({ default: m.AcademyModulePage })));
 const AcademyLessonPage = lazy(() => import("./pages/academy-lesson").then(m => ({ default: m.AcademyLessonPage })));
