@@ -2,7 +2,7 @@
 import { GoogleAnalytics } from "./components/seo/google-analytics";
 import { StructuredData } from "./components/seo/structured-data";
 import { useEffect, Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "./stores/auth-store";
 import { ProtectedRoute } from "./components/layout/protected-route";
@@ -11,6 +11,7 @@ import { ScrollToTop } from "./components/layout/scroll-to-top";
 import { FloatingCTA } from "./components/marketing/FloatingCTA";
 import { Spinner } from "./components/ui/spinner";
 import { AgeVerificationModal } from "./components/layout/age-verification-modal";
+import { isArenaPreviewAuthBlocked } from "./lib/arena-preview";
 import { EloSystemPage } from "./pages/elo-system";
 import { TutorialCsvPage } from "./pages/tutorial-csv";
 import { RoomProfilerPage } from "./pages/room-profiler";
@@ -84,6 +85,10 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
   const initialized = useAuthStore((s) => s.initialized);
 
   useEffect(() => {
+    if (isArenaPreviewAuthBlocked()) {
+      useAuthStore.setState({user:null,profile:null,isAuthenticated:false,isLoading:false,initialized:true});
+      return;
+    }
     if (!initialized) {
       const cleanup = initialize();
       return cleanup;
@@ -93,12 +98,39 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+
+// Explicit allowlist for preview hosts sharing a read-only public catalog.
+const READ_ONLY_ARENA_PATHS = [
+ /^\/$/, /^\/ranking(?:\/[^/]+)?$/, /^\/calendar$/,
+ /^\/clubs(?:\/[^/]+)?$/, /^\/leagues(?:\/[^/]+)?$/,
+ /^\/tournament\/[^/]+$/, /^\/noticias$/, /^\/blog$/,
+ /^\/glosario(?:\/[^/]+)?$/, /^\/sistema-elo$/,
+ /^\/academia$/, /^\/terms$/, /^\/privacy$/
+];
+function PreviewReadOnlyGate({children}: {children:React.ReactNode}) {
+  const {pathname} = useLocation();
+  if (!isArenaPreviewAuthBlocked() || READ_ONLY_ARENA_PATHS.some(path => path.test(pathname))) {
+    return <>{children}</>;
+  }
+  return (
+    <main className="min-h-screen bg-[#07111b] text-white flex flex-col items-center justify-center gap-4 px-6 text-center">
+      <p className="text-cyan-300 font-bold tracking-[.2em] text-xs">SHARKANIA ARENA · PREVIEW</p>
+      <h1 className="text-3xl font-black">Vista previa de diseño</h1>
+      <p className="text-slate-300 max-w-md leading-relaxed">
+        Las funciones de cuenta, registro, pagos y operaciones privadas están desactivadas
+        en este dominio de pruebas. Utiliza el sitio oficial para esas operaciones.
+      </p>
+      <a href="/" className="rounded border border-cyan-400 px-5 py-3 text-cyan-200 font-bold hover:bg-cyan-400/10">Regresar a SHARKANIA ARENA</a>
+    </main>
+  );
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ScrollToTop />
-        <GoogleAnalytics />
+        {!isArenaPreviewAuthBlocked() && <GoogleAnalytics />}
         <StructuredData />
 
         <AuthInitializer>
@@ -113,6 +145,7 @@ export function App() {
               </div>
             }
           >
+            <PreviewReadOnlyGate>
             <Routes>
               {/* Public */}
               <Route path="/" element={<HomePage />} />
@@ -262,9 +295,10 @@ export function App() {
               />
 
 </Routes>
+            </PreviewReadOnlyGate>
           </Suspense>
 
-          <FloatingCTA />
+          {!isArenaPreviewAuthBlocked() && <FloatingCTA />}
         </AuthInitializer>
       </BrowserRouter>
     </QueryClientProvider>
