@@ -1,39 +1,46 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-const read=(file)=>readFileSync(new URL("../"+file,import.meta.url),"utf8");
-const s=read("src/components/marketing/verified-banner-strip.tsx");
-const shell=read("src/components/layout/page-shell.tsx");
+const read = file => readFileSync(new URL("../" + file, import.meta.url), "utf8");
+const strip = read("src/components/marketing/verified-banner-strip.tsx");
+const shell = read("src/components/layout/page-shell.tsx");
 
-test("Top horizontal banners are left Ignition and right ClubGG + Latin Allin Póker",()=>{
-  assert.match(s,/const PREVIEW_SUPER_LEFT/);
-  assert.match(s,/const PREVIEW_SUPER_RIGHT/);
-  assert.match(s,/partner_id: "ignition"/);
-  assert.match(s,/partner_id: "latinallin"/);
-  assert.match(s,/href: "\/ignition"/);
-  assert.match(s,/href: "\/como-jugar-en-clubgg"/);
-  assert.match(s,/\["super_left", "super_right"\]/);
-  assert.match(s,/slot === "super_left" \? PREVIEW_SUPER_LEFT : PREVIEW_SUPER_RIGHT/);
-  assert.match(shell,/<VerifiedBannerStrip banners=\{banners\}/);
+test("Four navbar banners, in order: Ignition, ClubGG/Latin Allin, CoinPoker, WPT Global", () => {
+  assert.match(strip, /const FEATURED_IGNITION: BannerConfig/);
+  assert.match(strip, /const FEATURED_LATINALLIN: BannerConfig/);
+  assert.match(strip, /href: "\/ignition"/);
+  assert.match(strip, /href: "\/como-jugar-en-clubgg"/);
+  assert.match(strip, /partner_id: "ignition"/);
+  assert.match(strip, /partner_id: "latinallin"/);
+  assert.match(strip, /\["super_left", "super_right"\] as const/);
+  assert.match(strip, /\.\.\.featured, \.\.\.existing/);
+  assert.match(strip, /data-banner-order=\{index \+ 1\}/);
+  assert.match(strip, /data-promotion-banner-layout="four"/);
+  assert.match(shell, /<VerifiedBannerStrip banners=\{banners\}/);
 });
-test("Both images are original Supabase Storage assets; Latin has ClubGG combined mark",()=>{
-  assert.match(s,/Logos%20Sharkania\/logo-ignition-poker.png/);
-  assert.match(s,/img_clubs\/logoLAP-clubbgg.png/);
-  assert.match(s,/img_clubs\/LatinAllinPoker.webp/);
+test("CoinPoker and WPT still originate from existing reviewed CMS slots", () => {
+  assert.match(strip, /banners\.slots\[slot\]/);
+  assert.match(strip, /bannerIsReviewed\(pair\?\.desktop\)/);
+  assert.match(strip, /bannerIsReviewed\(pair\?\.mobile\)/);
+  assert.match(strip, /OFFICIAL_LOGOS\[config\.partner_id\]/);
+  assert.match(strip, /coinpoker:/);
+  assert.match(strip, /wptglobal:/);
 });
-test("Jackpot in header is dynamically refreshed from the same admin setting as the guide",()=>{
-  assert.match(s,/\.eq\("key", "latin_club_stats"\)/);
-  assert.match(s,/Number\.isFinite\(value\.bbjClp\)/);
-  assert.match(s,/refetchInterval: 300_000/);
-  assert.match(s,/refetchOnWindowFocus: true/);
-  assert.match(s,/jackpot\.bbjClp/);
-  assert.match(s,/jackpot\.lastUpdate/);
-  assert.doesNotMatch(s,/7671871|8594561/);
+test("Both partner logos come from verified Supabase storage", () => {
+  assert.match(strip, /Logos%20Sharkania\/logo-ignition-poker.png/);
+  assert.match(strip, /img_clubs\/logoLAP-clubbgg.png/);
+  assert.match(strip, /img_clubs\/LatinAllinPoker.webp/);
 });
-test("Production admin slots are not secretly overwritten by the preview",()=>{
-  assert.match(s,/const showPreviewPriority = isArenaPreviewHost\(\)/);
-  assert.match(s,/: banners\.slots\[slot\]/);
-  assert.match(s,/bannerIsReviewed\(desktop\)/);
-  assert.match(s,/bannerIsReviewed\(mobile\)/);
-  assert.match(s,/rel=\{external \? "sponsored noopener noreferrer"/);
+test("Jackpot is loaded from daily-updated site_settings, not hardcoded", () => {
+  assert.match(strip, /\.eq\("key", "latin_club_stats"\)/);
+  assert.match(strip, /Number\.isFinite\(value\.bbjClp\)/);
+  assert.match(strip, /refetchInterval: 300_000/);
+  assert.match(strip, /refetchOnWindowFocus: true/);
+  assert.match(strip, /jackpot\.bbjClp/);
+  assert.doesNotMatch(strip, /7671871|8594561/);
+});
+test("Responsive banners show all four, never an unseen mobile carousel", () => {
+  assert.match(strip, /grid grid-cols-1 gap-3 sm:grid-cols-2/);
+  assert.doesNotMatch(strip, /overflow-x-auto snap-x/);
+  assert.match(strip, /\[0, 1, 2, 3\]\.map\(index/);
 });
