@@ -73,6 +73,7 @@ async function sendWithResend(item, env) {
       headers: {
         'Authorization': 'Bearer ' + env.RESEND_API_KEY,
         'Content-Type': 'application/json',
+        'Idempotency-Key': 'sharkania-queue-' + item.id,
       },
       body: JSON.stringify({
         from: 'Sharkania <no-reply@sharkania.com>',
@@ -97,7 +98,7 @@ async function sendWithResend(item, env) {
 }
 
 async function updateStatus(id, status, env, error = null) {
-  await fetch(`${env.SUPABASE_URL}/rest/v1/email_queue?id=eq.${id}`, {
+  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/email_queue?id=eq.${id}`, {
     method: 'PATCH',
     headers: {
       "apikey": env.SUPABASE_SERVICE_ROLE_KEY,
@@ -105,9 +106,10 @@ async function updateStatus(id, status, env, error = null) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ 
-      status, 
-      sent_at: status === 'sent' ? new Date().toISOString() : null, 
-      error_log: error 
+      status,
+      sent_at: status === 'sent' ? new Date().toISOString() : null,
+      error_log: error
     })
   });
+  if (!response.ok) throw new Error('Email queue status update failed: HTTP ' + response.status);
 }
