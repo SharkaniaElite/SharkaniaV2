@@ -48,6 +48,9 @@ test("Desktop and mobile article creatives use native non-deforming frames", () 
   assert.match(defaults, /ignition_article_final: BannerSlotConfig/);
   assert.match(admin, /Exclusivo Ignition: banner intermedio del artículo/);
   assert.match(admin, /Exclusivo Ignition: banner final del artículo/);
+  assert.match(admin, /value=\{banner\?\.verified_on \?\? ""\}/);
+  assert.match(admin, /value=\{banner\?\.review_by \?\? ""\}/);
+  assert.match(admin, /value=\{banner\?\.source_url \?\? ""\}/);
   assert.match(admin, /createImageBitmap\(file\)/);
   assert.match(admin, /expectedWidth = side === "desktop" \? 728 : 320/);
   assert.match(admin, /expectedHeight = side === "desktop" \? 90 : 100/);
