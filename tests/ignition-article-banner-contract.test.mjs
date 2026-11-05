@@ -9,6 +9,11 @@ test("Ignition November news has only its own two sponsored inline banners", () 
   assert.match(banners, /liga-sharkania-noviembre-2026-fechas-puntos-premios-ignition/);
   assert.match(banners, /IGNITION_LOGO/);
   assert.match(banners, /Ignition Poker/);
+  assert.match(banners, /useBanners\(\)\.slots\[/);
+  assert.match(banners, /approvedPair/);
+  assert.match(banners, /desktop\?\.partner_id === "ignition"/);
+  assert.match(banners, /mobile\?\.partner_id === "ignition"/);
+  assert.match(banners, /bannerIsReviewed\(desktop\) && bannerIsReviewed\(mobile\)/);
   assert.match(banners, /href="\/ignition"/);
   assert.match(post, /isIgnitionLeagueArticle\(post\) \? <IgnitionArticleBanner slot="mid"/);
   assert.match(post, /isIgnitionLeagueArticle\(post\) \? <IgnitionArticleBanner slot="final"/);
@@ -39,6 +44,10 @@ test("Desktop and mobile article creatives use native non-deforming frames", () 
   assert.match(banner, /objectFit: "contain"/);
   assert.match(defaults, /width: 728, height: 90, label: "Banner artículo final"/);
   assert.match(defaults, /width: 320, height: 100, label: "Banner artículo final móvil"/);
+  assert.match(defaults, /ignition_article_mid: BannerSlotConfig/);
+  assert.match(defaults, /ignition_article_final: BannerSlotConfig/);
+  assert.match(admin, /Exclusivo Ignition: banner intermedio del artículo/);
+  assert.match(admin, /Exclusivo Ignition: banner final del artículo/);
   assert.match(admin, /createImageBitmap\(file\)/);
   assert.match(admin, /expectedWidth = side === "desktop" \? 728 : 320/);
   assert.match(admin, /expectedHeight = side === "desktop" \? 90 : 100/);
