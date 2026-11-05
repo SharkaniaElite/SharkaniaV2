@@ -22,7 +22,7 @@ test("Each November campaign has an independent state and editable copy", () => 
   for (const day of ["05","12","19","26"]) assert.match(tab, new RegExp("ignition-2026-11-" + day));
   assert.match(tab, /ignition-2026-11-welcome/);
   assert.match(tab, /setCampaignKey\(key\)/);
-  assert.match(tab, /setContent\(defaultMessage\(key\)\)/);
+  assert.match(tab, /setContent\(key==="ignition-2026-11-welcome"&&autoReady\?autoSavedBody:defaultMessage\(key\)\)/);
   assert.match(tab, /onlyFailed\?retrySelected:queueSelected/);
   assert.match(tab, /Aceptado por Resend/);
   assert.match(tab, /Sin preparar/);

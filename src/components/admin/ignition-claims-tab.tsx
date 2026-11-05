@@ -8,6 +8,7 @@ interface Player {
   id:string; display_name:string|null; email:string|null;
   ignition_nickname:string|null; ignition_email:string|null;
   created_at:string; ignition_linked_at:string|null;
+  ignition_status:string|null;
 }
 type Status = "not_queued"|"pending"|"sent"|"failed"|"ineligible";
 type Filter = Status | "all";
@@ -73,13 +74,20 @@ export function IgnitionClaimsTab(){
   const [filter,setFilter]=useState<Filter>("not_queued");
   const [selectedIds,setSelectedIds]=useState<Set<string>>(new Set());
   const [message,setMessage]=useState("");
+  const [autoEnabled,setAutoEnabled]=useState(false);
+  const [autoSavedSubject,setAutoSavedSubject]=useState("");
+  const [autoSavedBody,setAutoSavedBody]=useState("");
+  const [autoReady,setAutoReady]=useState(false);
+  const [autoSaving,setAutoSaving]=useState(false);
+  const [autoMessage,setAutoMessage]=useState("");
+  const [validatingId,setValidatingId]=useState<string|null>(null);
 
   async function refresh(key:string){
     setLoading(true);setReady(false);
     try {
       const [p,d]=await Promise.all([
         supabase.from("profiles")
-          .select("id,display_name,email,ignition_nickname,ignition_email,created_at,ignition_linked_at")
+          .select("id,display_name,email,ignition_nickname,ignition_email,created_at,ignition_linked_at,ignition_status")
           .eq("ignition_league_player",true).order("ignition_linked_at",{ascending:false}),
         supabase.rpc("ignition_campaign_recipients",{p_campaign_key:key}),
       ]);
@@ -99,6 +107,31 @@ export function IgnitionClaimsTab(){
     } finally{setLoading(false)}
   }
   useEffect(()=>{void refresh(campaignKey)},[campaignKey]);
+
+  useEffect(()=>{
+    let active=true;
+    const readSettings=async()=>{
+      const {data,error}=await supabase.rpc("get_ignition_auto_welcome_settings");
+      if(!active)return;
+      if(error){
+        setAutoReady(false);
+        setAutoMessage("No se pudo leer la configuración automática. No se activará ninguna automatización.");
+        return;
+      }
+      const saved=data as {enabled?:boolean;subject?:string;body_text?:string}|null;
+      const savedSubject=saved?.subject||defaultSubject("ignition-2026-11-welcome");
+      const savedBody=saved?.body_text||defaultMessage("ignition-2026-11-welcome");
+      setAutoEnabled(saved?.enabled===true);
+      setAutoSavedSubject(savedSubject);
+      setAutoSavedBody(savedBody);
+      setAutoReady(true);
+      // Only replace defaults if the welcome editor was not changed by the admin.
+      setSubject(current=>current===defaultSubject("ignition-2026-11-welcome")?savedSubject:current);
+      setContent(current=>current===defaultMessage("ignition-2026-11-welcome")?savedBody:current);
+    };
+    void readSettings();
+    return()=>{active=false};
+  },[]);
   const statusOf=(id:string):Status=>ready?(delivery.get(id)?.queue_status??"ineligible"):"ineligible";
   const selectable=(id:string)=>ready && delivery.get(id)?.eligible===true &&
     (statusOf(id)==="not_queued" || statusOf(id)==="failed");
@@ -122,9 +155,44 @@ export function IgnitionClaimsTab(){
       return next;
     });
   }
+  async function saveAutoWelcome(){
+    if(campaignKey!=="ignition-2026-11-welcome" || !autoReady || autoSaving)return;
+    if(autoEnabled && /\[(COMPLETAR|CLAVE|CONTRASEÑA)[^\]]*\]/i.test(content)){
+      setAutoMessage("❌ Reemplaza las cuatro contraseñas de ejemplo antes de activar.");
+      return;
+    }
+    if(autoEnabled && !window.confirm("¿Activar el envío automático de esta bienvenida SOLO para nuevas vinculaciones verificadas desde ahora? Los jugadores actuales no recibirán un correo nuevo por activar la opción."))return;
+    if(!autoEnabled && !window.confirm("¿Guardar con el envío automático desactivado?"))return;
+    setAutoSaving(true);setAutoMessage("");
+    try {
+      const {error}=await supabase.rpc("save_ignition_auto_welcome_settings",{
+        p_enabled:autoEnabled,p_subject:subject,p_body_text:content,
+      });
+      if(error)throw error;
+      setAutoSavedSubject(subject);setAutoSavedBody(content);
+      setAutoMessage(autoEnabled?"✅ Bienvenida automática activada para nuevos jugadores confirmados y validados.":"✅ Automatización desactivada. El panel manual permanece disponible.");
+    }catch(err){
+      setAutoMessage("❌ No se guardó la automatización: "+(err instanceof Error?err.message:"Error desconocido"));
+    }finally{setAutoSaving(false)}
+  }
+  async function verifyPlayer(player:Player){
+    if(player.ignition_status!=="pending")return;
+    if(!window.confirm("¿Has comprobado externamente que el nickname '"+(player.ignition_nickname||"")+"' pertenece al jugador y que cumple la elegibilidad? Se validará su vinculación, y recibirá la bienvenida automática si está activada."))return;
+    setValidatingId(player.id);setMessage("");
+    try {
+      const {error}=await supabase.rpc("verify_ignition_pending_player",{p_player_id:player.id});
+      if(error)throw error;
+      setMessage("✅ Vinculación validada. La bienvenida se preparará automáticamente solo si el correo está confirmado y la configuración está activa.");
+      await refresh(campaignKey);
+    }catch(err){
+      setMessage("❌ No se pudo validar: "+(err instanceof Error?err.message:"Error desconocido"));
+    }finally{setValidatingId(null)}
+  }
   function changeCampaign(key:string){
     if(!DATE_OPTIONS.some(o=>o.key===key))return;
-    setCampaignKey(key);setSubject(defaultSubject(key));setContent(defaultMessage(key));
+    setCampaignKey(key);
+    setSubject(key==="ignition-2026-11-welcome"&&autoReady?autoSavedSubject:defaultSubject(key));
+    setContent(key==="ignition-2026-11-welcome"&&autoReady?autoSavedBody:defaultMessage(key));
     setFilter("not_queued");setSelectedIds(new Set());setMessage("");
   }
   async function queueSelected(){
@@ -206,6 +274,27 @@ export function IgnitionClaimsTab(){
       </div>
       {message&&<div role="status" aria-live="polite" className="mt-4 rounded-lg border border-sk-border-2 bg-sk-bg-0 p-3 text-sm text-sk-text-1">{message}</div>}
     </section>
+    {campaignKey==="ignition-2026-11-welcome" && (
+      <section className="rounded-xl border border-cyan-500/25 bg-sk-bg-2 p-5" aria-label="Bienvenida automática para nuevas vinculaciones">
+        <h4 className="mb-2 text-base font-bold text-sk-text-1">Bienvenida automática para nuevos jugadores</h4>
+        <p className="mb-4 text-sm leading-relaxed text-sk-text-3">
+          Una vez que confirmes su correo y valides su vinculación Ignition, el sistema preparará automáticamente esta misma bienvenida.
+          Solo afecta a quienes se vinculen DESPUÉS de activar la función. Reutiliza el mismo estado por jugador para evitar duplicados.
+        </p>
+        <label className="mb-3 flex items-center gap-3 text-sm font-semibold text-sk-text-1">
+          <input type="checkbox" checked={autoEnabled} disabled={!autoReady || autoSaving}
+            onChange={e=>setAutoEnabled(e.target.checked)} className="h-4 w-4 accent-cyan-400"/>
+          Activar bienvenida automática a nuevos jugadores verificados
+        </label>
+        {autoReady && (subject!==autoSavedSubject || content!==autoSavedBody) && (
+          <p className="mb-3 text-xs text-amber-300">Has editado el asunto o mensaje: guarda para actualizar el texto que utilizará la automatización.</p>
+        )}
+        <Button variant="accent" disabled={!autoReady || autoSaving} onClick={saveAutoWelcome}>
+          {autoSaving?<Spinner size="sm"/>:"Guardar configuración automática"}
+        </Button>
+        {autoMessage && <p role="status" className="mt-3 text-sm text-sk-text-2">{autoMessage}</p>}
+      </section>
+    )}
     <div className="rounded-lg border border-sk-border-2 bg-sk-bg-1 p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="flex items-center gap-2 text-xs text-sk-text-3"><Filter size={15}/> Estado de esta fecha</span>
@@ -237,7 +326,16 @@ export function IgnitionClaimsTab(){
                 {player.ignition_email&&player.email&&player.ignition_email.toLowerCase()!==player.email.toLowerCase()&&
                   <span className="block text-[10px] text-amber-400">Email Ignition distinto; se usará el correo confirmado Sharkania.</span>}
               </td>
-              <td className="p-4 font-semibold text-orange-400">{player.ignition_nickname||"—"}</td>
+              <td className="p-4 font-semibold text-orange-400">
+                {player.ignition_nickname||"—"}
+                {player.ignition_status==="pending" && (
+                  <button type="button" disabled={validatingId===player.id}
+                    className="mt-2 block rounded border border-orange-500/40 px-2 py-1 text-xs text-orange-300 hover:bg-orange-500/10 disabled:opacity-50"
+                    onClick={e=>{e.stopPropagation();void verifyPlayer(player);}}>
+                    {validatingId===player.id?"Verificando...":"Validar vinculación"}
+                  </button>
+                )}
+              </td>
               <td className="p-4"><span className={"rounded border px-2 py-1 text-xs "+(state==="sent"?"border-green-500/40 text-green-400":state==="failed"?"border-red-500/40 text-red-400":"border-sk-border-2 text-sk-text-3")}>{DATE_STATUSES[state]}</span></td>
               <td className="p-4 text-xs text-sk-text-3">{formatDate(player.created_at)}<br/>{formatDate(player.ignition_linked_at,true)}</td>
             </tr>;

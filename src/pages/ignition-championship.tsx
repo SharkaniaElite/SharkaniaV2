@@ -196,7 +196,7 @@ export function IgnitionChampionshipPage() {
           });
           navigate("/dashboard?highlight=ignition");
         } else {
-          setSuccess("¡Registro exitoso! Revisa tu bandeja de entrada para confirmar tu cuenta y recibir las contraseñas.");
+          setSuccess("¡Registro recibido! Revisa tu correo y confirma tu cuenta Sharkania. Tu vinculación de Ignition quedará pendiente de validación; recibirás las contraseñas cuando la cuenta y la vinculación estén verificadas y la bienvenida automática esté habilitada.");
         }
       }
     } catch (err) {
