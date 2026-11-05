@@ -18,6 +18,14 @@ Se mantiene la regla de puntuación actual: sumatoria de las mejores `best_dates
 - No aparecen posiciones nuevas calculadas sin fila actual en esta comparación (las filas históricas sin fuente se cuentan por separado).
 - El primer CCP disponible por orden cronológico es solo una sugerencia; el **club bloqueado vigente debe conservarse** hasta definir la regla de negocio y el procedimiento de conciliación.
 
+## Estado variable y análisis de desempates (lectura adicional del 5/11)
+
+- En el momento de esta segunda consulta había **34 ligas** en `public.leagues`, **33** con resultados fuente y **5.752** filas de `league_standings`. El diagnóstico previo del 4/11 registraba 5.731 posiciones; la base está activa y la línea base debe quedar fechada, no tratarse como un conjunto congelado.
+- **5.701** posiciones actuales tienen un par liga-jugador presente en los resultados; las restantes **51** corresponden al diagnóstico histórico sin fuente.
+- Contra el orden candidato, **1.447** posiciones existentes muestran otra cifra de `rank_position` entre las filas con resultados.
+- Desglose **mutuamente excluyente** de esas 1.447: **474** comparten las cuatro métricas de desempate con las actuales y pertenecen a un grupo empatado; **707** tienen las mismas métricas individuales pero no pertenecen a un grupo empatado; **266** difieren además en algún componente de puntuación/participación/mejor puesto/mesas finales.
+- **Ninguna de estas 1.447 posiciones ha sido corregida ni debe cambiarse automáticamente.** En particular, las 707 sin empate necesitan revisar cuándo y cómo se calculó la clasificación anterior, el efecto de filas históricas sin origen y las reglas de orden vigentes. Un ranking candidato no demuestra que el publicado sea incorrecto.
+
 ## Contrato de seguridad antes del nuevo recálculo
 
 1. **Autorizar en servidor** con `auth.uid()` y la membresía `is_primary=true`: únicamente admin del club organizador principal o superadmin. Rechazar anónimo, jugador y admin participante. Nunca confiar en un `club_id` enviado por el navegador.
