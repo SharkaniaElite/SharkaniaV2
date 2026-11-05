@@ -258,20 +258,25 @@ test("PostHog privileged stats require an active super-admin session before vend
   assert.match(config, /\[functions\.posthog-stats\]/);
 });
 
-test("Ignition onboarding waits for login and only creates pending links", () => {
+test("Ignition onboarding preserves verified logins and only creates pending links for new requests", () => {
   const page = readFileSync("src/pages/ignition-championship.tsx", "utf8");
+  const panel = readFileSync("src/pages/player-dashboard.tsx", "utf8");
   const auth = readFileSync("src/lib/api/auth.ts", "utf8");
-  const migration = readFileSync("supabase/migrations/20261031181112_record_ignition_signup_as_pending_20261031.sql", "utf8");
-  assert.equal((page.match(/check_ignition_duplicate/g) || []).length, 1);
-  assert.ok(page.indexOf("signInWithPassword") < page.indexOf('supabase.rpc("check_ignition_duplicate"'));
-  assert.match(page, /if \(duplicateError\) throw duplicateError/);
-  assert.match(page, /ignition_status: 'pending'/);
-  assert.doesNotMatch(page, /ignition_status: 'verified'/);
-  assert.match(page, /if \(linkError\)/);
+  const signup = readFileSync("supabase/migrations/20261031181112_record_ignition_signup_as_pending_20261031.sql", "utf8");
+  const linking = readFileSync("supabase/migrations/20261105195500_request_my_ignition_link_secure.sql", "utf8");
+  assert.match(page, /signInWithPassword/);
+  assert.match(page, /getProfile\(data.session.user.id\)/);
+  assert.match(page, /navigate\("\/dashboard\?highlight=ignition"/);
+  assert.doesNotMatch(page, /check_ignition_duplicate/);
+  assert.doesNotMatch(page, /ignition_status: 'pending'/);
+  assert.match(panel, /rpc\("request_my_ignition_link"/);
+  assert.doesNotMatch(panel, /rpc\("check_ignition_duplicate"/);
+  assert.match(linking, /IF v_status='verified' AND v_linked IS TRUE/);
+  assert.match(linking, /ignition_status='pending'/);
   assert.match(auth, /if \(data\.user && data\.session\)/);
-  assert.match(migration, /ignition_status = 'pending'/);
-  assert.match(migration, /NEW\.raw_user_meta_data ->> 'ignition_league_player'/);
-  assert.match(migration, /role[\s\S]*'player'::public\.user_role/);
+  assert.match(signup, /ignition_status = 'pending'/);
+  assert.match(signup, /NEW\.raw_user_meta_data ->> 'ignition_league_player'/);
+  assert.match(signup, /role[\s\S]*'player'::public\.user_role/);
 });
 
 test("verified Ignition and WPT identities are immutable to normal profile owners", () => {
