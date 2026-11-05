@@ -85,15 +85,15 @@ const SLOT_INFO = {
   },
   mid: {
     title: "Banner Blog: Medio",
-    description: "Aparece dentro del artículo después del 3er título H2.",
-    desktop: { size: "728×90 px", label: "Leaderboard horizontal", hint: "Máximo impacto sin interrumpir la lectura." },
-    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Se escala al celular." },
+    description: "Aparece dentro del artículo después del 3er título H2. Exportar imagen independiente para cada dispositivo.",
+    desktop: { size: "728×90 px", label: "Banner horizontal", hint: "Exporta una creatividad nativa de 728×90 px." },
+    mobile:  { size: "320×100 px", label: "Banner móvil", hint: "Exporta otra creatividad nativa de 320×100 px." },
   },
   final: {
     title: "Banner Blog: Final",
-    description: "Aparece al terminar el contenido del artículo.",
-    desktop: { size: "870×200 px", label: "Wide banner", hint: "Zona de alta intención." },
-    mobile:  { size: "870×200 px", label: "Wide banner", hint: "Mismo banner en móvil." },
+    description: "Aparece al terminar el contenido del artículo. Exportar imagen independiente para cada dispositivo.",
+    desktop: { size: "728×90 px", label: "Banner horizontal", hint: "Exporta una creatividad nativa de 728×90 px." },
+    mobile:  { size: "320×100 px", label: "Banner móvil", hint: "Exporta otra creatividad nativa de 320×100 px." },
   },
   sidebar: {
     title: "Banner Sidebar",
@@ -133,6 +133,18 @@ function BannerSlotEditor({
 
     setUploading(`${side}-${field}`);
     try {
+      // Solo para banners de artículos: validar tamaño real antes de Storage.
+      if ((slotKey === "mid" || slotKey === "final") && field === "src") {
+        const expectedWidth = side === "desktop" ? 728 : 320;
+        const expectedHeight = side === "desktop" ? 90 : 100;
+        const bitmap = await createImageBitmap(file);
+        const actualWidth = bitmap.width;
+        const actualHeight = bitmap.height;
+        bitmap.close();
+        if (actualWidth !== expectedWidth || actualHeight !== expectedHeight) {
+          throw new Error(`La imagen ${side} debe medir exactamente ${expectedWidth}×${expectedHeight} px (recibida: ${actualWidth}×${actualHeight}).`);
+        }
+      }
       const fileExt = file.name.split('.').pop();
       const fileName = `banner-${slotKey}-${side}-${field}-${Date.now()}.${fileExt}`;
 
