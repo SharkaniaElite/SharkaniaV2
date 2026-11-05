@@ -1103,3 +1103,21 @@
     word-break:normal;
   }
 }
+
+/* Mantener el saldo Shark Coins visible en las secciones competitivas
+   que anteriormente lo mostraban dentro de sus cabeceras. */
+.arena-interior:not(.arena-editorial) > .arena-interior-container > .arena-utility-strip {
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  margin:-14px 0 30px;padding:13px 18px;border:1px solid rgba(105,176,194,.25);
+  border-radius:12px;background:linear-gradient(110deg,#10232f,#0a1723);
+}
+.arena-interior:not(.arena-editorial) > .arena-interior-container > .arena-utility-strip p {
+  margin:0;color:#b6cad6;font-size:12px;line-height:1.5;
+}
+.arena-interior:not(.arena-editorial) > .arena-interior-container > .arena-utility-strip strong {color:#65e0ee}
+.arena-interior:not(.arena-editorial) > .arena-interior-container > .arena-utility-strip .arena-wallet-balance {
+  display:flex;align-items:center;gap:8px;color:#f1fbff;font:800 15px/1.2 monospace;
+}
+.arena-interior:not(.arena-editorial) > .arena-interior-container > .arena-utility-strip img {
+  width:21px;height:21px;object-fit:contain;
+}
