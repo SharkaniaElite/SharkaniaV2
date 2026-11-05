@@ -57,6 +57,8 @@ jobs:
         run: |
           npm ci
           npx tsc -b --pretty false
+      - name: Assert fail-closed legacy tournament wrappers in guarded mode
+        run: node --test tests/league-legacy-tournament-guards.test.mjs
       - name: Inventory legacy league-related writes and RPCs across all frontend source
         run: node tests/league-legacy-source-inventory.mjs
       - name: Create isolated league security database
