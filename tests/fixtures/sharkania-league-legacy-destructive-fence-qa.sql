@@ -117,12 +117,17 @@ SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
 DO $qa$
 BEGIN
  PERFORM public.qa_simulate_legacy_delete('00000000-0000-0000-0000-000000000012');
+END $qa$;
+RESET ROLE;
+-- The fake authenticated QA role has no direct SELECT on protected business
+-- tables. Assert results as DB owner outside the authenticated role instead.
+DO $qa$
+BEGIN
  IF EXISTS(SELECT 1 FROM public.tournaments WHERE id='00000000-0000-0000-0000-000000000012')
  OR EXISTS(SELECT 1 FROM public.tournament_results WHERE tournament_id='00000000-0000-0000-0000-000000000012')
  THEN RAISE EXCEPTION 'FAIL: unrelated non-league tournament was blocked'; END IF;
  RAISE NOTICE 'PASS: existing non-league tournament deletion still works in isolated QA';
 END $qa$;
-RESET ROLE;
 
 DO $qa$
 BEGIN
