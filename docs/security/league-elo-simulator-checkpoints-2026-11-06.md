@@ -20,6 +20,12 @@ Se compararon las discontinuidades por mes y día sin acceder a identificadores 
 - Los 165 saltos corresponden a la misma sala que el registro anterior del jugador; 87 también pertenecen a la misma liga y figuran en el torneo programado antes de su evento ELO anterior. **Ninguno de los 165 es un reinicio exacto del ELO anterior o nuevo a 1200**, en la muestra.
 - Los otros dos torneos del 6 nov, `Liga Clausura PokerAustral` y `MSOP Noviembre`, no mostraron discontinuidades ELO. **No hay evidencia suficiente** para atribuir el problema a CLP, al motor ELO, a una importación o a una carrera de escritura específicos. No se cambió ningún resultado.
 
+**Control de correspondencia adicional, también SELECT-only:**
+
+- Las **244** filas de `elo_history` de ambos torneos tienen una fila de `tournament_results` asociada y **0 diferencias** en `elo_before`, `elo_after` y `elo_change` entre ambas tablas.
+- Para los **157 nicknames distintos** de esos dos torneos, todos conservan una fila de `players` y el `players.elo_rating` actual coincide con el **último `elo_history.elo_after`** de su historial; **0 diferencias** superiores a 0,011 en ese control.
+- **Interpretación limitada:** existe coherencia entre tablas del evento y del ELO materializado actual, pero todavía se detectan 165 discontinuidades entre eventos consecutivos. No declarar el histórico global íntegro ni alterar el historial a partir de esta coincidencia.
+
 **Hipótesis pendiente de verificar:** la publicación masiva/invertida de fechas de CCP y la falta de transacciones coordinadas podrían influir, pero NO son explicación demostrada de los saltos. Hay que correlacionar los logs del uploader y el estado previo de `players.elo_rating`, cuando exista evidencia fiable, antes de corregir nada.
 
 ## Nuevo módulo QA
