@@ -2,6 +2,19 @@
 -- ALL transactions, users, leagues and results are synthetic.
 -- This creates no persistent production artifacts.
 BEGIN;
+-- Existing player P51 has a second nickname in another room attached to the
+-- SAME profile. Unified Elo must accumulate BOTH identities' Elo changes.
+INSERT INTO public.players(id,profile_id,room_id,elo_rating,elo_peak)
+VALUES ('00000000-0000-0000-0000-000000000053',
+        '00000000-0000-0000-0000-000000000061',
+        '00000000-0000-0000-0000-000000000032',1240,1240);
+INSERT INTO public.elo_history(
+ tournament_id,player_id,elo_before,elo_after,elo_change,recorded_at
+) VALUES (
+ '00000000-0000-0000-0000-000000000012',
+ '00000000-0000-0000-0000-000000000053',
+ 1200,1240,40,'2026-11-03T23:00:00Z'
+);
 -- Include the actual guarded results RPC, already created from prototype SQL.
 -- Source player P51 existing league_standings row must preserve its identity.
 CREATE OR REPLACE FUNCTION public.qa_inject_elo_failure()
@@ -146,6 +159,64 @@ END $test$;
 DROP TRIGGER qa_fault_inject_elo ON public.elo_history;
 DROP FUNCTION public.qa_inject_elo_failure();
 
+-- Force a second failure at the VERY END: standings update happens only
+-- after results, Elo, player totals, profile Elo and tournament status.
+CREATE OR REPLACE FUNCTION public.qa_inject_rank_failure()
+RETURNS trigger LANGUAGE plpgsql SET search_path TO ''
+AS $f$
+BEGIN
+ IF NEW.player_id='00000000-0000-0000-0000-000000000052' THEN
+  RAISE EXCEPTION 'QA injection: final standing row failed' USING ERRCODE='PT501';
+ END IF;
+ RETURN NEW;
+END;
+$f$;
+CREATE TRIGGER qa_fault_inject_standing
+BEFORE INSERT OR UPDATE ON public.league_standings
+FOR EACH ROW EXECUTE FUNCTION public.qa_inject_rank_failure();
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $test$
+DECLARE payload jsonb:='[
+ {"player_id":"00000000-0000-0000-0000-000000000051","position":1,
+  "prize_won":20,"bounties_won":2,"league_points_earned":30,
+  "ccp_club":"CCP-P51","buy_ins_count":2},
+ {"player_id":"00000000-0000-0000-0000-000000000052","position":2,
+  "prize_won":0,"bounties_won":0,"league_points_earned":12,
+  "ccp_club":"CCP-P52","buy_ins_count":1}
+]'::jsonb;
+BEGIN
+ BEGIN
+  PERFORM public.publish_league_results_guarded_qa(
+   '00000000-0000-0000-0000-000000000071','upload',payload);
+  RAISE EXCEPTION 'FAIL: ranking error did not revert completed writes';
+ EXCEPTION WHEN SQLSTATE 'PT501' THEN
+  RAISE NOTICE 'PASS: late standings error rolled back entire publication';
+ END;
+END $test$;
+RESET ROLE;
+
+DO $test$
+BEGIN
+ IF EXISTS(SELECT 1 FROM public.tournament_results WHERE tournament_id=
+   '00000000-0000-0000-0000-000000000071')
+ OR EXISTS(SELECT 1 FROM public.elo_history WHERE tournament_id=
+   '00000000-0000-0000-0000-000000000071')
+ OR EXISTS(SELECT 1 FROM public.tournaments WHERE id=
+   '00000000-0000-0000-0000-000000000071' AND results_uploaded)
+ OR EXISTS(SELECT 1 FROM public.players WHERE total_tournaments<>0)
+ OR EXISTS(SELECT 1 FROM public.profiles WHERE unified_elo IS NOT NULL)
+ OR (SELECT id FROM public.league_standings WHERE league_id=
+   '00000000-0000-0000-0000-000000000041' AND player_id=
+   '00000000-0000-0000-0000-000000000051')
+  <> '00000000-0000-0000-0000-000000000075'::uuid
+ THEN RAISE EXCEPTION 'FAIL: late standing failure left partial Elo or ranking changes'; END IF;
+ RAISE NOTICE 'PASS: complete rollback despite failure in final ranking materialization';
+END $test$;
+DROP TRIGGER qa_fault_inject_standing ON public.league_standings;
+DROP FUNCTION public.qa_inject_rank_failure();
+
 -- Historical exception must be caught BEFORE results write.
 INSERT INTO public.league_standings(league_id,player_id,total_points,ccp_club)
 VALUES ('00000000-0000-0000-0000-000000000041',
@@ -231,15 +302,22 @@ BEGIN
       AND ccp_club='CCP-LOCKED' AND total_buy_ins_spent=95)
  OR (SELECT count(*) FROM public.profiles u
     JOIN public.players p ON p.profile_id=u.id
-    WHERE p.id IN ('00000000-0000-0000-0000-000000000051',
-                   '00000000-0000-0000-0000-000000000052')
-      AND u.unified_elo=p.elo_rating)<>2
+    WHERE p.id='00000000-0000-0000-0000-000000000052'
+      AND u.unified_elo=p.elo_rating)<>1
  OR NOT EXISTS(SELECT 1 FROM public.players WHERE id=
        '00000000-0000-0000-0000-000000000051' AND elo_rating>1200
        AND total_prize_won=22 AND total_cashes=1 AND total_wins=1)
  OR NOT EXISTS(SELECT 1 FROM public.players WHERE id=
-       '00000000-0000-0000-0000-000000000052' AND elo_rating<1200
+       '00000000-0000-0000-0000-000000000052' AND elo_rating=1177.77
        AND total_cashes=0 AND total_wins=0)
+ OR NOT EXISTS(SELECT 1 FROM public.players WHERE id=
+       '00000000-0000-0000-0000-000000000051' AND elo_rating=1222.23)
+ OR NOT EXISTS(SELECT 1 FROM public.profiles
+    WHERE id='00000000-0000-0000-0000-000000000061'
+      AND unified_elo=1262.23)
+ OR NOT EXISTS(SELECT 1 FROM public.players
+    WHERE id='00000000-0000-0000-0000-000000000053'
+      AND elo_rating=1240 AND total_tournaments=0)
  THEN RAISE EXCEPTION 'FAIL: coordinated Elo/rank/profile/stat invariants broke'; END IF;
  RAISE NOTICE 'PASS: atomic results/Elo/players/unified profiles/standings verified';
 END $test$;
