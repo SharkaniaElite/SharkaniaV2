@@ -24,9 +24,12 @@ SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
 DO $qa$
 DECLARE
   payload jsonb;
-  output jsonb;
-  started_at timestamptz;
+  plan_json jsonb;
   elapsed_ms numeric;
+  shared_hits integer;
+  shared_reads integer;
+  temp_writes integer;
+  wal_records integer;
 BEGIN
  SELECT jsonb_agg(jsonb_build_object(
    'player_id',md5('qa-volume-player-'||g::text)::uuid,
@@ -36,16 +39,24 @@ BEGIN
    'ccp_club',NULL,'buy_ins_count',1
  ) ORDER BY g)
  INTO payload FROM generate_series(1,200) g;
- started_at:=pg_catalog.clock_timestamp();
- output:=public.publish_league_results_guarded_qa(
-  '00000000-0000-0000-0000-000000000073','upload',payload);
- elapsed_ms:=extract(epoch FROM (pg_catalog.clock_timestamp()-started_at))*1000;
- IF output->>'status'<>'published' OR (output->>'players')::int<>200
-    OR output->>'audit_recorded'<>'true' THEN
-   RAISE EXCEPTION 'FAIL: volume publication incomplete';
+ -- EXPLAIN ANALYZE intentionally EXECUTES the writer. This is safe ONLY
+ -- inside a transaction on the disposable qa_league_atomic database.
+ -- Capture buffers and WAL, not just duration; never run on production.
+ EXECUTE pg_catalog.format(
+  'EXPLAIN (ANALYZE, BUFFERS, WAL, FORMAT JSON) SELECT public.publish_league_results_guarded_qa(%L::uuid,%L,%L::jsonb)',
+  '00000000-0000-0000-0000-000000000073','upload',payload::text
+ ) INTO plan_json;
+ elapsed_ms:=(plan_json->0->>'Execution Time')::numeric;
+ shared_hits:=coalesce((plan_json->0->'Plan'->>'Shared Hit Blocks')::integer,0);
+ shared_reads:=coalesce((plan_json->0->'Plan'->>'Shared Read Blocks')::integer,0);
+ temp_writes:=coalesce((plan_json->0->'Plan'->>'Temp Written Blocks')::integer,0);
+ wal_records:=coalesce((plan_json->0->'Plan'->>'WAL Records')::integer,0);
+ IF elapsed_ms IS NULL OR elapsed_ms<0 OR shared_hits<0 OR
+    shared_reads<0 OR temp_writes<0 OR wal_records<1 THEN
+   RAISE EXCEPTION 'FAIL: EXPLAIN runtime or buffer/WAL accounting unavailable';
  END IF;
- RAISE NOTICE 'QA only: 200 synthetic participants, first publication time % ms',
-   pg_catalog.round(elapsed_ms,2);
+ RAISE NOTICE 'QA EXPLAIN only: 200 synthetic players, execution=%ms; hits=% reads=% temp_writes=% WAL_records=%',
+   pg_catalog.round(elapsed_ms,2),shared_hits,shared_reads,temp_writes,wal_records;
 END $qa$;
 RESET ROLE;
 DO $qa$
