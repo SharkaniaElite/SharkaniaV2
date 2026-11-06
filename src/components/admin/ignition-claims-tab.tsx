@@ -360,7 +360,7 @@ export function IgnitionClaimsTab(){
         </div>
       </div>
       <p className="mb-3 text-xs text-sk-text-3">CSV para cotejar resultados con Ignition: correo Ignition, correo Sharkania y nickname. Exporta «Todos» sin importar el filtro o estado de correos. Contiene datos personales; compártelo solo por un canal autorizado.</p>
-      {csvMessage&&<p role="status" aria-live="polite" className="mb-3 text-xs text-sk-text-2">{csvMessage}</p>
+      {csvMessage&&<p role="status" aria-live="polite" className="mb-3 text-xs text-sk-text-2">{csvMessage}</p>}
       <div className="flex flex-wrap gap-2">
         {(["not_queued","pending","sent","failed","ineligible","all"] as Filter[]).map(value=>
           <Button key={value} size="sm" variant={filter===value?"accent":"secondary"}
