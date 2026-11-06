@@ -26,7 +26,9 @@ test("Auth listener is synchronous to avoid Supabase auth-lock deadlock", () => 
   assert.match(body, /setTimeout\(\(\) => \{/);
   assert.match(body, /void fetchProfile\(userId\)/);
   assert.ok(body.indexOf("setTimeout(() => {") < body.indexOf("fetchProfile(userId)"));
-  assert.doesNotMatch(body.slice(0, body.indexOf("setTimeout(() => {")), /await\s+|fetchProfile\(/);
+  const codeBeforeDeferral = body.slice(0, body.indexOf("setTimeout(() => {"))
+    .replace(/\/\/[^\n]*\n/g, "\n");
+  assert.doesNotMatch(codeBeforeDeferral, /await\s+|fetchProfile\(/);
 });
 
 test("Initialization uses one Auth source and closes remount subscriptions", () => {
