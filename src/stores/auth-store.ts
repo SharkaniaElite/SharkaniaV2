@@ -74,17 +74,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const userId = session.user.id;
       const changedUser = get().user?.id !== userId;
+      const needsProfileRefresh = event === "SIGNED_IN" ||
+        event === "INITIAL_SESSION" || changedUser;
+      const loadingProfile = needsProfileRefresh && (changedUser || !get().profile);
+
       set({
         user: session.user,
         isAuthenticated: true,
-        isLoading: false,
+        // Preserve the role-guard spinner until the initial profile is known.
+        // A separate bounded timeout below prevents an infinite loading screen.
+        isLoading: loadingProfile || (!needsProfileRefresh && get().isLoading),
         ...(changedUser ? { profile: null } : {}),
       });
       posthog.identify(userId, { email: session.user.email });
 
-      if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION" && !changedUser) {
-        return;
-      }
+      if (!needsProfileRefresh) return;
 
       const sequenceAtSchedule = ++authSequence;
 
@@ -93,15 +97,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // from overwriting a later sign-out or a different account.
       setTimeout(() => {
         if (!active || authSequence !== sequenceAtSchedule) return;
+        const profileTimeout = setTimeout(() => {
+          if (active && authSequence === sequenceAtSchedule &&
+              get().user?.id === userId && get().isLoading) {
+            set({ isLoading: false });
+          }
+        }, 5000);
         void fetchProfile(userId)
           .then((profile) => {
+            clearTimeout(profileTimeout);
             if (!active || authSequence !== sequenceAtSchedule ||
                 !get().isAuthenticated || get().user?.id !== userId) return;
             if (profile) posthog.setPersonProperties({ role: profile.role });
             set({ profile, isLoading: false });
           })
           .catch((error: unknown) => {
-            if (active && authSequence === sequenceAtSchedule) {
+            clearTimeout(profileTimeout);
+            if (active && authSequence === sequenceAtSchedule &&
+                get().user?.id === userId) {
+              set({ isLoading: false });
               console.warn("Could not refresh the signed-in profile:", error);
             }
           });
