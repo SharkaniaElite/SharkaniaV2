@@ -29,6 +29,57 @@ BEGIN
 END;
 $f$;
 
+-- Fail while inserting a checkpoint. The preceding publication row must
+-- roll back together with the incomplete checkpoint and ALL business rows.
+CREATE OR REPLACE FUNCTION public.qa_fail_checkpoint()
+RETURNS trigger LANGUAGE plpgsql SET search_path TO ''
+AS $f$
+BEGIN
+ IF NEW.player_id='00000000-0000-0000-0000-000000000052' THEN
+  RAISE EXCEPTION 'QA injected failure while writing second checkpoint'
+    USING ERRCODE='PT502';
+ END IF;
+ RETURN NEW;
+END;
+$f$;
+CREATE TRIGGER qa_fail_checkpoint_insert
+BEFORE INSERT ON sharkania_release_qa.elo_player_checkpoint
+FOR EACH ROW EXECUTE FUNCTION public.qa_fail_checkpoint();
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $test$
+DECLARE payload jsonb:='[
+ {"player_id":"00000000-0000-0000-0000-000000000051","position":1,
+  "prize_won":20,"bounties_won":2,"league_points_earned":30,
+  "ccp_club":"CCP-P51","buy_ins_count":2},
+ {"player_id":"00000000-0000-0000-0000-000000000052","position":2,
+  "prize_won":0,"bounties_won":0,"league_points_earned":12,
+  "ccp_club":"CCP-P52","buy_ins_count":1}
+]'::jsonb;
+BEGIN
+ BEGIN
+  PERFORM public.publish_league_results_guarded_qa(
+   '00000000-0000-0000-0000-000000000071','upload',payload);
+  RAISE EXCEPTION 'FAIL: a bad checkpoint should prevent publication';
+ EXCEPTION WHEN SQLSTATE 'PT502' THEN
+  RAISE NOTICE 'PASS: failed second checkpoint rejected entire publication';
+ END;
+END $test$;
+RESET ROLE;
+DO $test$
+BEGIN
+ IF EXISTS(SELECT 1 FROM sharkania_release_qa.elo_publication
+           WHERE tournament_id='00000000-0000-0000-0000-000000000071')
+ OR EXISTS(SELECT 1 FROM public.tournament_results
+           WHERE tournament_id='00000000-0000-0000-0000-000000000071')
+ OR EXISTS(SELECT 1 FROM public.elo_history
+           WHERE tournament_id='00000000-0000-0000-0000-000000000071')
+ THEN RAISE EXCEPTION 'FAIL: partial audit or business rows survived'; END IF;
+ RAISE NOTICE 'PASS: audit and business rows rolled back together';
+END $test$;
+DROP TRIGGER qa_fail_checkpoint_insert ON sharkania_release_qa.elo_player_checkpoint;
+DROP FUNCTION public.qa_fail_checkpoint();
+
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
 DO $test$
@@ -148,6 +199,8 @@ BEGIN
            WHERE id='00000000-0000-0000-0000-000000000071' AND results_uploaded)
  OR EXISTS(SELECT 1 FROM public.players WHERE total_tournaments<>0)
  OR EXISTS(SELECT 1 FROM public.profiles WHERE unified_elo IS NOT NULL)
+ OR EXISTS(SELECT 1 FROM sharkania_release_qa.elo_publication
+           WHERE tournament_id='00000000-0000-0000-0000-000000000071')
  OR (SELECT id FROM public.league_standings
    WHERE league_id='00000000-0000-0000-0000-000000000041'
      AND player_id='00000000-0000-0000-0000-000000000051')
@@ -207,6 +260,8 @@ BEGIN
    '00000000-0000-0000-0000-000000000071' AND results_uploaded)
  OR EXISTS(SELECT 1 FROM public.players WHERE total_tournaments<>0)
  OR EXISTS(SELECT 1 FROM public.profiles WHERE unified_elo IS NOT NULL)
+ OR EXISTS(SELECT 1 FROM sharkania_release_qa.elo_publication
+           WHERE tournament_id='00000000-0000-0000-0000-000000000071')
  OR (SELECT id FROM public.league_standings WHERE league_id=
    '00000000-0000-0000-0000-000000000041' AND player_id=
    '00000000-0000-0000-0000-000000000051')
@@ -318,7 +373,43 @@ BEGIN
  OR NOT EXISTS(SELECT 1 FROM public.players
     WHERE id='00000000-0000-0000-0000-000000000053'
       AND elo_rating=1240 AND total_tournaments=0)
- THEN RAISE EXCEPTION 'FAIL: coordinated Elo/rank/profile/stat invariants broke'; END IF;
+ OR (SELECT count(*) FROM sharkania_release_qa.elo_publication
+    WHERE tournament_id='00000000-0000-0000-0000-000000000071')<>1
+ OR (SELECT count(*) FROM sharkania_release_qa.elo_player_checkpoint cp
+     JOIN sharkania_release_qa.elo_publication ep ON ep.id=cp.publication_id
+     WHERE ep.tournament_id='00000000-0000-0000-0000-000000000071')<>2
+ OR NOT EXISTS(SELECT 1 FROM sharkania_release_qa.elo_publication ep
+    WHERE ep.tournament_id='00000000-0000-0000-0000-000000000071'
+     AND ep.actor_profile_id='00000000-0000-0000-0000-000000000002'
+     AND ep.algorithm_version='legacy-js-v1'
+     AND ep.input_fingerprint ~ '^[a-f0-9]{64}
+ RAISE NOTICE 'PASS: atomic results/Elo/players/unified profiles/standings verified';
+END $test$;
+
+-- Entire test is isolated; end without persistence even in this temporary DB.
+ROLLBACK;
+DO $test$
+BEGIN
+ IF EXISTS(SELECT 1 FROM public.tournament_results
+    WHERE tournament_id='00000000-0000-0000-0000-000000000071')
+ OR EXISTS(SELECT 1 FROM public.elo_history
+    WHERE tournament_id='00000000-0000-0000-0000-000000000071')
+ OR NOT EXISTS(SELECT 1 FROM public.tournaments
+    WHERE id='00000000-0000-0000-0000-000000000071'
+      AND results_uploaded=false)
+ OR EXISTS(SELECT 1 FROM sharkania_release_qa.elo_publication
+    WHERE tournament_id='00000000-0000-0000-0000-000000000071')
+ THEN RAISE EXCEPTION 'FAIL: QA transaction changes were not rolled back';END IF;
+ RAISE NOTICE 'PASS FINAL: atomic league writer checks fully rolled back';
+END $test$;
+)
+ OR (SELECT count(*) FROM sharkania_release_qa.elo_player_checkpoint cp
+     JOIN sharkania_release_qa.elo_publication ep ON ep.id=cp.publication_id
+     WHERE ep.tournament_id='00000000-0000-0000-0000-000000000071'
+       AND cp.elo_before=1200 AND cp.elo_peak_before=1200
+       AND cp.tournaments_before=0
+       AND cp.elo_after IN (1222.23,1177.77))<>2
+ THEN RAISE EXCEPTION 'FAIL: coordinated Elo/rank/profile/audit invariants broke'; END IF;
  RAISE NOTICE 'PASS: atomic results/Elo/players/unified profiles/standings verified';
 END $test$;
 
