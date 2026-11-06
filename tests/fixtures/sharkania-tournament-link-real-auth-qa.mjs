@@ -28,8 +28,10 @@ const leagueA="00000000-0000-0000-0000-000000000041";
 const leagueB="00000000-0000-0000-0000-000000000042";
 const tournamentA="00000000-0000-0000-0000-000000000011";
 const tournamentB="00000000-0000-0000-0000-000000000012";
-const newB="00000000-0000-0000-0000-000000000017";
+const freshB="00000000-0000-0000-0000-000000000017";
 const blockedB="00000000-0000-0000-0000-000000000018";
+const newB="00000000-0000-0000-0000-000000000019";
+const freshA="00000000-0000-0000-0000-000000000020";
 
 for(const role of ["organizer","participant","player","superadmin"]) {
  const email="qa-linked-"+role+"-"+nonce+"@example.test";
@@ -89,10 +91,16 @@ expect(await request("player","PATCH",tournamentB,{league_id:leagueB}),
 assert.equal(sql("SELECT club_id::text||':'||COALESCE(league_id::text,'NULL')||':'||buy_in::text FROM public.tournaments WHERE id="+safeUuid(tournamentB)),baseline);
 
 expect(await request("participant","PATCH",tournamentB,{league_id:leagueB}),
- 204,"primary B admin can link its own tournament to league B");
-assert.equal(sql("SELECT league_id::text FROM public.tournaments WHERE id="+safeUuid(tournamentB)),leagueB);
+ 409,"even primary B cannot reassign completed unlinked historical tournament");
+assert.equal(sql("SELECT club_id::text||':'||COALESCE(league_id::text,'NULL')||':'||buy_in::text FROM public.tournaments WHERE id="+safeUuid(tournamentB)),baseline);
 
-expect(await request("participant","PATCH",tournamentB,{buy_in:16}),
+expect(await request("participant","POST",null,{id:freshB,club_id:clubB,buy_in:10}),
+ 201,"B can create a fresh unlinked tournament");
+expect(await request("participant","PATCH",freshB,{league_id:leagueB}),
+ 204,"B can link fresh tournament to B-owned league");
+assert.equal(sql("SELECT league_id::text FROM public.tournaments WHERE id="+safeUuid(freshB)),leagueB);
+
+expect(await request("participant","PATCH",freshB,{buy_in:16}),
  204,"primary B can edit normal buy-in metadata without changing league link");
 expect(await request("participant","POST",null,{id:newB,club_id:clubB,buy_in:3.30,league_id:leagueB}),
  201,"primary B can create linked tournament in league B");
@@ -100,15 +108,21 @@ assert.equal(sql("SELECT league_id::text FROM public.tournaments WHERE id="+safe
 
 expect(await request("superadmin","PATCH",tournamentB,{league_id:leagueA}),
  403,"superadmin cannot put B-owned tournament into league A");
-assert.equal(sql("SELECT league_id::text FROM public.tournaments WHERE id="+safeUuid(tournamentB)),leagueB);
-
-expect(await request("participant","PATCH",tournamentB,{league_id:null}),
- 204,"primary B can detach own tournament");
 assert.equal(sql("SELECT COALESCE(league_id::text,'NULL') FROM public.tournaments WHERE id="+safeUuid(tournamentB)),"NULL");
+
+expect(await request("participant","PATCH",freshB,{league_id:null}),
+ 204,"primary B can detach fresh tournament");
+assert.equal(sql("SELECT COALESCE(league_id::text,'NULL') FROM public.tournaments WHERE id="+safeUuid(freshB)),"NULL");
+
 expect(await request("organizer","PATCH",tournamentA,{league_id:null}),
- 204,"organizer A can detach its own tournament");
-expect(await request("organizer","PATCH",tournamentA,{league_id:leagueA}),
- 204,"organizer A can restore its own league link");
+ 409,"organizer A cannot unlink its completed tournament with historical results");
+assert.equal(sql("SELECT league_id::text FROM public.tournaments WHERE id="+safeUuid(tournamentA)),leagueA);
+expect(await request("organizer","POST",null,{id:freshA,club_id:clubA,buy_in:10}),
+ 201,"organizer A can create a new unlinked tournament");
+expect(await request("organizer","PATCH",freshA,{league_id:leagueA}),
+ 204,"organizer A can link fresh tournament to own league");
+expect(await request("organizer","PATCH",freshA,{league_id:null}),
+ 204,"organizer A can detach fresh unused tournament");
 
 assert.equal(sql("SELECT count(*) FROM public.tournament_results"),resultsBefore);
 assert.equal(sql("SELECT count(*) FROM public.league_standings"),standingsBefore);
