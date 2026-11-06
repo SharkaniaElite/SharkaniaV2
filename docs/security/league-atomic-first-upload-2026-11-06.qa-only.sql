@@ -47,6 +47,10 @@ DECLARE
  v_rank_written integer;
  v_result jsonb;
  v_calculated jsonb := '[]'::jsonb;
+ v_canonical_payload jsonb;
+ v_input_fingerprint text;
+ v_publication_id uuid;
+ v_checkpoint_rows integer;
  v_row record;
  v_player record;
  v_profile record;
@@ -190,36 +194,87 @@ BEGIN
  FROM public.players p WHERE p.id=ANY(v_player_ids);
  v_weight:=(v_sum_elo/v_n)/1200;
 
- -- Calculate all changes from the SAME Elo snapshot before writing players.
- FOR v_row IN
-   SELECT * FROM pg_catalog.jsonb_to_recordset(p_results)
-   AS x(player_id uuid,position integer,prize_won numeric,
-        bounties_won numeric,league_points_earned numeric,
-        ccp_club text,buy_ins_count numeric)
-   ORDER BY position
- LOOP
-   SELECT p.elo_rating,p.total_tournaments
-     INTO v_before,v_players_found
-   FROM public.players p WHERE p.id=v_row.player_id;
-   v_score:=(v_n-v_row.position)::numeric/(v_n-1);
-   v_avg_opp:=(v_sum_elo-v_before)/(v_n-1);
-   v_expect:=1/(1+pg_catalog.power(10::numeric,(v_avg_opp-v_before)/400));
-   v_k:=(CASE WHEN v_players_found<30 THEN 40 ELSE 20 END)
-     *(1+pg_catalog.log(v_buyin+1)*0.1)
-     *(1+pg_catalog.log(v_n::numeric)*0.15);
-   v_raw_change:=v_k*v_weight*(v_score-v_expect);
-   v_after:=pg_catalog.round(GREATEST(100::numeric,v_before+v_raw_change),2);
-   v_delta:=pg_catalog.round(v_raw_change,2);
-   v_calculated:=v_calculated||pg_catalog.jsonb_build_array(
-     pg_catalog.jsonb_build_object(
-       'player_id',v_row.player_id,'position',v_row.position,
-       'prize_won',v_row.prize_won,'bounties_won',v_row.bounties_won,
-       'league_points_earned',v_row.league_points_earned,
-       'ccp_club',v_row.ccp_club,'buy_ins_count',v_row.buy_ins_count,
-       'elo_before',v_before,'elo_after',v_after,'elo_change',v_delta
-     )
-   );
- END LOOP;
+ -- Compute all players from ONE locked snapshot, in one set-oriented SELECT.
+ -- No per-player SELECT or JSON array concatenation loop (avoids N+1).
+ WITH entries AS (
+   SELECT p.id AS player_id,p.elo_rating AS elo_before,
+          p.total_tournaments,x.position,x.prize_won,x.bounties_won,
+          x.league_points_earned,x.ccp_club,x.buy_ins_count
+   FROM pg_catalog.jsonb_to_recordset(p_results) AS x(
+     player_id uuid,position integer,prize_won numeric,
+     bounties_won numeric,league_points_earned numeric,
+     ccp_club text,buy_ins_count numeric)
+   JOIN public.players p ON p.id=x.player_id
+ ), factors AS (
+   SELECT e.*,
+     (v_n-e.position)::numeric/(v_n-1) AS score,
+     1/(1+pg_catalog.power(10::numeric,
+       ((v_sum_elo-e.elo_before)/(v_n-1)-e.elo_before)/400)) AS expected,
+     (CASE WHEN e.total_tournaments<30 THEN 40 ELSE 20 END)
+       *(1+pg_catalog.log(v_buyin+1)*0.1)
+       *(1+pg_catalog.log(v_n::numeric)*0.15) AS k
+   FROM entries e
+ ), changes AS (
+   SELECT f.*, f.k*v_weight*(f.score-f.expected) AS raw_change
+   FROM factors f
+ )
+ SELECT COALESCE(pg_catalog.jsonb_agg(
+   pg_catalog.jsonb_build_object(
+     'player_id',q.player_id,'position',q.position,
+     'prize_won',q.prize_won,'bounties_won',q.bounties_won,
+     'league_points_earned',q.league_points_earned,
+     'ccp_club',q.ccp_club,'buy_ins_count',q.buy_ins_count,
+     'elo_before',q.elo_before,
+     'elo_after',pg_catalog.round(GREATEST(100::numeric,
+       q.elo_before+q.raw_change),2),
+     'elo_change',pg_catalog.round(q.raw_change,2)
+   ) ORDER BY q.position), '[]'::jsonb)
+ INTO v_calculated FROM changes q;
+ IF pg_catalog.jsonb_array_length(v_calculated)<>v_n THEN
+   RAISE EXCEPTION 'Elo calculation missed a participant' USING ERRCODE='PT409';
+ END IF;
+
+ -- SHA-256 computed on the SERVER from typed, position-sorted inputs.
+ -- Reordering the request array does not change the fingerprint. Only a
+ -- single bounded aggregate is needed, not N individual hashes.
+ SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(x)
+    ORDER BY x.position),'[]'::jsonb)
+ INTO v_canonical_payload
+ FROM pg_catalog.jsonb_to_recordset(p_results) AS x(
+   player_id uuid,position integer,prize_won numeric,
+   bounties_won numeric,league_points_earned numeric,
+   ccp_club text,buy_ins_count numeric);
+ v_input_fingerprint:=pg_catalog.encode(pg_catalog.sha256(
+   pg_catalog.convert_to(pg_catalog.jsonb_build_object(
+     'algorithm_version','legacy-js-v1',
+     'tournament_id',p_tournament_id,'league_id',v_league,
+     'buy_in',v_buyin,'currency',v_currency,
+     'results',v_canonical_payload)::text,'UTF8')),'hex');
+
+ -- Append exactly one publication and one checkpoint per player BEFORE
+ -- modifying results/ELO/stats. Later failures roll everything back.
+ INSERT INTO sharkania_release_qa.elo_publication(
+   tournament_id,league_id,actor_profile_id,algorithm_version,input_fingerprint
+ ) VALUES (
+   p_tournament_id,v_league,(SELECT auth.uid()),
+   'legacy-js-v1',v_input_fingerprint
+ ) RETURNING id INTO v_publication_id;
+
+ INSERT INTO sharkania_release_qa.elo_player_checkpoint(
+   publication_id,player_id,elo_before,elo_after,elo_peak_before,
+   tournaments_before,cashes_before,wins_before,prize_won_before,
+   buy_ins_before,elo_change
+ )
+ SELECT v_publication_id,p.id,p.elo_rating,x.elo_after,p.elo_peak,
+   p.total_tournaments,p.total_cashes,p.total_wins,
+   p.total_prize_won,p.total_buy_ins_spent,x.elo_change
+ FROM pg_catalog.jsonb_to_recordset(v_calculated) AS x(
+   player_id uuid,elo_after numeric,elo_change numeric)
+ JOIN public.players p ON p.id=x.player_id;
+ GET DIAGNOSTICS v_checkpoint_rows = ROW_COUNT;
+ IF v_checkpoint_rows<>v_n THEN
+   RAISE EXCEPTION 'Incomplete audit checkpoint coverage' USING ERRCODE='PT409';
+ END IF;
 
  INSERT INTO public.tournament_results (
    tournament_id,player_id,position,prize_won,bounties_won,
@@ -293,7 +348,8 @@ BEGIN
  v_result:=pg_catalog.jsonb_build_object(
    'status','published','tournament_id',p_tournament_id,
    'league_id',v_league,'players',v_n,
-   'standings_updated',v_rank_written,'atomic',true);
+   'standings_updated',v_rank_written,'atomic',true,
+   'audit_recorded',true);
  RETURN v_result;
 END;
 $guarded$;
