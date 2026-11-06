@@ -100,6 +100,23 @@ BEGIN
     END IF;
   END IF;
 
+  -- Historical results must NEVER be removed from the league by merely
+  -- relinking the tournament (even when its organizer authorizes the edit).
+  -- This also prevents taking already-completed unlinked tournaments and
+  -- retroactively assigning their points to another league.
+  -- UPDATE holds the tournament row lock; concurrent result deletion
+  -- obtains the same lock in the accompanying legacy-delete fence.
+  IF TG_OP='UPDATE' AND (
+     OLD.results_uploaded IS TRUE
+     OR EXISTS (SELECT 1 FROM public.tournament_results tr
+                WHERE tr.tournament_id=OLD.id)
+     OR EXISTS (SELECT 1 FROM public.elo_history eh
+                WHERE eh.tournament_id=OLD.id)
+  ) THEN
+    RAISE EXCEPTION 'Recorded results or ELO prevent tournament reassignment'
+      USING ERRCODE='PT409';
+  END IF;
+
   RETURN NEW;
 END;
 $guard$;
