@@ -61,6 +61,8 @@ jobs:
         run: node --test tests/league-legacy-tournament-guards.test.mjs
       - name: Plan historical ELO dependency closure, detect missing and broken history without writes
         run: node --test tests/elo-replay-preflight.test.mjs
+      - name: Simulate historical ELO correction/deletion from explicit checkpoints (read-only)
+        run: node --test tests/elo-replay-simulator.test.mjs
       - name: Inventory legacy league-related writes and RPCs across all frontend source
         run: node tests/league-legacy-source-inventory.mjs
       - name: Create isolated league security database
