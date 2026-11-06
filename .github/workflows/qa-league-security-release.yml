@@ -1,0 +1,163 @@
+name: QA league security release A (isolated only)
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  league-security:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_local_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_local_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL command line available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Create synthetic Supabase API roles on fresh PostgreSQL service
+        run: |
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
+      - name: Verify guarded client and SQL contract without external database
+        run: node --test tests/league-membership-guarded-contract.test.mjs
+      - name: Verify read-only shadow standings contract (no write operations)
+        run: node --test tests/league-standings-shadow-contract.test.mjs
+      - name: Validate guarded standings QA contract
+        run: node --test tests/league-standings-guarded-contract.test.mjs
+      - name: Create disposable standings QA database
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_standings_guarded'
+      - name: Configure synthetic standings, install QA-only guarded RPC, verify privileges and preservation
+        run: |
+          psql -v ON_ERROR_STOP=1 -d qa_standings_guarded -f tests/fixtures/sharkania-league-standings-guarded-setup.sql
+          psql -v ON_ERROR_STOP=1 -d qa_standings_guarded -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -v ON_ERROR_STOP=1 -d qa_standings_guarded -f tests/fixtures/sharkania-league-standings-guarded-assert.sql
+      - name: TypeScript compile check
+        run: |
+          npm ci
+          npx tsc -b --pretty false
+      - name: Assert fail-closed legacy tournament wrappers in guarded mode
+        run: node --test tests/league-legacy-tournament-guards.test.mjs
+      - name: Plan historical ELO dependency closure, detect missing and broken history without writes
+        run: node --test tests/elo-replay-preflight.test.mjs
+      - name: Simulate historical ELO correction/deletion from explicit checkpoints (read-only)
+        run: node --test tests/elo-replay-simulator.test.mjs
+      - name: Audit ELO checkpoint evidence without inventing historical stats (read-only)
+        run: node --test tests/elo-checkpoint-evidence.test.mjs
+      - name: Enforce bounded database IO and no N-plus-1 queries in league writer
+        run: node --test tests/league-db-resource-contract.test.mjs
+      - name: Inventory legacy league-related writes and RPCs across all frontend source
+        run: node tests/league-legacy-source-inventory.mjs
+      - name: Create isolated league security database
+        run: psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_auth'
+      - name: Reproduce legacy unauthorized join then apply protected league SQL
+        run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+      - name: Verify roles, creation, editing, sharing, cloning and safe empty-only deletion
+        run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-assert.sql
+      - name: Reproduce cross-league tournament assignment under inherited club-only policy (ROLLBACK)
+        run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-tournament-link-risk-qa.sql
+      - name: Verify protected tournament-league association with mock Auth, RLS and full rollback
+        run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-tournament-link-guarded-qa.sql
+      - name: Verify legacy destructive tournament, ELO and ranking paths fail closed (ROLLBACK)
+        run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-legacy-destructive-fence-qa.sql
+      - name: Build isolated transactional league-results QA with verified Elo formulas
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]] || {
+            echo "STOP: atomic league-result QA is restricted to ephemeral postgres"; exit 1;
+          }
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "CREATE DATABASE qa_league_atomic;"
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f tests/fixtures/sharkania-elo-publication-evidence-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f tests/fixtures/sharkania-league-atomic-first-upload-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f tests/fixtures/sharkania-league-atomic-volume-qa.sql
+      - name: Verify genuine two-session duplicate and league publication concurrency
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]] || {
+            echo "STOP: concurrency QA requires local ephemeral PostgreSQL"; exit 1;
+          }
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "CREATE DATABASE qa_league_race;"
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
+          PGDATABASE=qa_league_race node tests/fixtures/sharkania-league-atomic-concurrency-qa.mjs
+      - name: Compare duplicate standings indexes and constraint safety with EXPLAIN on 25k synthetic rows
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f tests/fixtures/sharkania-standings-index-qa.sql
+      - name: Create second isolated league HTTP QA database
+        run: |
+          psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_http'
+          psql -v ON_ERROR_STOP=1 -d qa_league_http -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+          psql -v ON_ERROR_STOP=1 -d qa_league_http <<'SQL'
+          -- Synthetic Auth stub accepts PostgREST v14 JSON JWT claims.
+          CREATE OR REPLACE FUNCTION auth.uid()
+          RETURNS uuid LANGUAGE sql STABLE AS $auth$
+            SELECT NULLIF(coalesce(
+              NULLIF(current_setting('request.jwt.claim.sub',true),''),
+              current_setting('request.jwt.claims',true)::jsonb->>'sub'
+            ),'')::uuid
+          $auth$;
+          CREATE ROLE qa_league_http_authenticator WITH LOGIN PASSWORD 'fake_only_qa_league_local_2026';
+          GRANT authenticated TO qa_league_http_authenticator;
+          GRANT anon TO qa_league_http_authenticator;
+          SQL
+      - name: Check PostgREST HTTP JWT authorization and atomic duplicate races
+        shell: bash
+        env:
+          PGDATABASE: qa_league_http
+          QA_LEAGUE_HTTP_URL: http://127.0.0.1:3001
+          QA_LEAGUE_JWT_SECRET: fake_only_ci_league_test_jwt_secret_never_prod_2026
+        run: |
+          set -euo pipefail
+          trap 'docker rm -f sharkania-league-release-qa >/dev/null 2>&1 || true' EXIT
+          docker run --name sharkania-league-release-qa --rm -d --network host \
+            -e PGRST_DB_URI='postgres://qa_league_http_authenticator:fake_only_qa_league_local_2026@127.0.0.1:5432/qa_league_http' \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$QA_LEAGUE_JWT_SECRET" \
+            -e PGRST_SERVER_HOST=127.0.0.1 \
+            -e PGRST_SERVER_PORT=3001 \
+            postgrest/postgrest:v14.18
+          ready=false
+          for _ in $(seq 1 50); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ 2>/dev/null || true)
+            if [[ "$code" =~ ^(2|3|4)[0-9][0-9]$ ]]; then
+              ready=true
+              break
+            fi
+            sleep 0.4
+          done
+          if [[ "$ready" != true ]]; then
+            docker logs sharkania-league-release-qa
+            echo 'FAIL: isolated PostgREST did not start'
+            exit 1
+          fi
+          node tests/fixtures/sharkania-league-postgrest-http-qa.mjs

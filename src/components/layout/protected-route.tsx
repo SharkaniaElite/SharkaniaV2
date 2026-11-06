@@ -13,6 +13,33 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   const { isAuthenticated, isLoading, profile } = useAuthStore();
   const location = useLocation(); // 👈 Capturamos la ubicación actual
 
+  // UI fail-closed: Cloudflare Pages preview currently embeds Sharkania's
+  // PRODUCTION Supabase URL. Never let an accidental login navigate into
+  // authenticated management pages of this preview.
+  // This is defense-in-depth only: RLS/server privileges remain authoritative.
+  const configuredSupabaseUrl = String(import.meta.env.VITE_SUPABASE_URL ?? "");
+  const previewUsingProduction = (
+    typeof window !== "undefined" &&
+    window.location.hostname.endsWith(".pages.dev") &&
+    (
+      configuredSupabaseUrl === "https://nhpjzywfzljtlqaigzed.supabase.co" ||
+      configuredSupabaseUrl === "https://nhpjzywfzljtlqaigzed.supabase.co/"
+    )
+  );
+  if (previewUsingProduction) {
+    return (
+      <main role="alert" className="min-h-screen bg-sk-bg-1 flex items-center justify-center p-6">
+        <div className="max-w-xl rounded-xl border border-sk-border-2 bg-sk-bg-2 p-6 text-sk-text-1">
+          <h1 className="text-xl font-bold mb-3">Administración bloqueada en este preview</h1>
+          <p>Este preview de Cloudflare está conectado a la base de datos real.
+          Por seguridad, las rutas autenticadas se han deshabilitado aquí.
+          Usa el sitio oficial para la operación normal o un entorno QA
+          completamente aislado para las pruebas.</p>
+        </div>
+      </main>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-sk-bg-1 flex items-center justify-center">
