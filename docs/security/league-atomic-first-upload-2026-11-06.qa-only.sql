@@ -33,6 +33,7 @@ DECLARE
  v_max_pos int;
  v_invalid int;
  v_players_found int;
+ v_invalid_room_count integer;
  v_player_ids uuid[];
  v_sum_elo numeric;
  v_weight numeric;
@@ -159,19 +160,19 @@ BEGIN
      USING ERRCODE='PT422';
  END IF;
 
- -- Lock all players in stable order, prior to Elo computation, to avoid
- -- inconsistent snapshots inside this atomic call.
- v_players_found := 0;
- FOR v_player IN
+ -- Lock only the affected player rows in deterministic UUID order.
+ -- Aggregate validations ONCE instead of iterating N times in PL/pgSQL.
+ SELECT count(*)::integer,
+        count(*) FILTER (WHERE q.room_id IS DISTINCT FROM v_room)::integer
+ INTO v_players_found,v_invalid_room_count
+ FROM (
    SELECT p.id,p.room_id FROM public.players p
    WHERE p.id=ANY(v_player_ids) ORDER BY p.id FOR UPDATE
- LOOP
-   IF v_player.room_id IS DISTINCT FROM v_room THEN
-     RAISE EXCEPTION 'Player nickname does not belong to tournament room'
-       USING ERRCODE='PT422';
-   END IF;
-   v_players_found:=v_players_found+1;
- END LOOP;
+ ) q;
+ IF v_invalid_room_count<>0 THEN
+   RAISE EXCEPTION 'Player nickname does not belong to tournament room'
+     USING ERRCODE='PT422';
+ END IF;
  IF v_players_found<>v_n THEN
    RAISE EXCEPTION 'Unknown players: resolve nicknames before publishing'
      USING ERRCODE='PT422';
