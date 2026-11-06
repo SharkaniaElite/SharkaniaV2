@@ -96,6 +96,19 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
           psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f tests/fixtures/sharkania-league-atomic-first-upload-qa.sql
           psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f tests/fixtures/sharkania-league-atomic-volume-qa.sql
+      - name: Verify genuine two-session duplicate and league publication concurrency
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]] || {
+            echo "STOP: concurrency QA requires local ephemeral PostgreSQL"; exit 1;
+          }
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "CREATE DATABASE qa_league_race;"
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
+          PGDATABASE=qa_league_race node tests/fixtures/sharkania-league-atomic-concurrency-qa.mjs
       - name: Create second isolated league HTTP QA database
         run: |
           psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_http'
