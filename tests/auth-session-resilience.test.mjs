@@ -33,7 +33,7 @@ test("Auth listener is synchronous to avoid Supabase auth-lock deadlock", () => 
 
 test("Initialization uses one Auth source and closes remount subscriptions", () => {
   assert.doesNotMatch(auth, /supabase\.auth\.getSession\(/);
-  assert.match(auth, /event !== "INITIAL_SESSION"/);
+  assert.match(auth, /event === "INITIAL_SESSION"/);
   assert.match(auth, /subscription\.unsubscribe\(\)/);
   assert.match(auth, /set\(\{ initialized: false \}\)/);
   assert.match(app, /return initialize\(\);\s*\}, \[initialize\]\)/);
@@ -47,6 +47,14 @@ test("Delayed profile read cannot restore state after logout, account change or 
   assert.match(auth, /!get\(\)\.isAuthenticated/);
   assert.match(auth, /active = false/);
   assert.match(auth, /if \(active && get\(\)\.isLoading\)/);
+});
+
+test("Protected routes retain loading state while retrieving role and always resolve", () => {
+  assert.match(auth, /const loadingProfile = needsProfileRefresh/);
+  assert.match(auth, /isLoading: loadingProfile \|\|/);
+  assert.match(auth, /const profileTimeout = setTimeout\(\(\) => \{/);
+  assert.match(auth, /clearTimeout\(profileTimeout\)/);
+  assert.match(auth, /\}, 5000\);/);
 });
 
 test("No secrets, production API writes or broad authentication bypasses introduced", () => {
