@@ -82,18 +82,17 @@ const queryClient = new QueryClient({
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const initialize = useAuthStore((s) => s.initialize);
-  const initialized = useAuthStore((s) => s.initialized);
 
   useEffect(() => {
     if (isArenaPreviewAuthBlocked()) {
       useAuthStore.setState({user:null,profile:null,isAuthenticated:false,isLoading:false,initialized:true});
       return;
     }
-    if (!initialized) {
-      const cleanup = initialize();
-      return cleanup;
-    }
-  }, [initialize, initialized]);
+    // Do not depend on initialized: that state flips inside initialize().
+    // Depending on it immediately runs the cleanup and unsubscribes Auth.
+    // The cleanup now resets the store guard for React StrictMode remounts.
+    return initialize();
+  }, [initialize]);
 
   return <>{children}</>;
 }

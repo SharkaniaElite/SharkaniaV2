@@ -42,42 +42,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (get().initialized) return () => {};
     set({ initialized: true });
 
+    let active = true;
+    let authSequence = 0;
+
+    // Never trap the public app behind an indefinitely pending Auth request.
     const initTimeout = setTimeout(() => {
-      if (get().isLoading) {
+      if (active && get().isLoading) {
         set({ isLoading: false });
       }
     }, 5000);
 
-    // 1. CARGA INICIAL
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // IMPORTANT: Supabase Auth callbacks must remain synchronous.
+    // Calling the SAME Supabase client and awaiting a query inside this
+    // callback can deadlock the auth lock and freeze subsequent requests.
+    // INITIAL_SESSION replaces a separate, duplicate getSession() request.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
       clearTimeout(initTimeout);
-      if (session?.user) {
-        // 🎯 IDENTIFICACIÓN INMEDIATA (Rápida)
-        posthog.identify(session.user.id, {
-          email: session.user.email,
-        });
 
-        const profile = await fetchProfile(session.user.id);
-        
-        // 🎯 ACTUALIZACIÓN DE PROPIEDADES (Con camelCase)
-        if (profile) {
-          posthog.setPersonProperties({ role: profile.role });
-        }
-
-        set({
-          user: session.user,
-          profile,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      } else {
-        set({ isLoading: false });
-      }
-    });
-
-    // 2. ESCUCHA DE CAMBIOS
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
+      if (event === "SIGNED_OUT" || !session?.user) {
+        authSequence++;
         posthog.reset();
         set({
           user: null,
@@ -88,27 +72,64 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
 
-      if (session?.user) {
-        // Identificar rápido para ganar la carrera contra el cambio de página
-        posthog.identify(session.user.id, {
-          email: session.user.email,
-        });
+      const userId = session.user.id;
+      const changedUser = get().user?.id !== userId;
+      const needsProfileRefresh = event === "SIGNED_IN" ||
+        event === "INITIAL_SESSION" || changedUser;
+      const loadingProfile = needsProfileRefresh && (changedUser || !get().profile);
 
-        set({ user: session.user, isAuthenticated: true });
+      set({
+        user: session.user,
+        isAuthenticated: true,
+        // Preserve the role-guard spinner until the initial profile is known.
+        // A separate bounded timeout below prevents an infinite loading screen.
+        isLoading: loadingProfile || (!needsProfileRefresh && get().isLoading),
+        ...(changedUser ? { profile: null } : {}),
+      });
+      posthog.identify(userId, { email: session.user.email });
 
-        if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-          const profile = await fetchProfile(session.user.id);
-          
-          if (profile) {
-            posthog.setPersonProperties({ role: profile.role });
+      if (!needsProfileRefresh) return;
+
+      const sequenceAtSchedule = ++authSequence;
+
+      // Scheduling outside the current callback releases the Auth lock before
+      // fetchProfile() runs. The sequence guard prevents stale sign-in responses
+      // from overwriting a later sign-out or a different account.
+      setTimeout(() => {
+        if (!active || authSequence !== sequenceAtSchedule) return;
+        const profileTimeout = setTimeout(() => {
+          if (active && authSequence === sequenceAtSchedule &&
+              get().user?.id === userId && get().isLoading) {
+            set({ isLoading: false });
           }
-
-          set({ profile, isLoading: false });
-        }
-      }
+        }, 5000);
+        void fetchProfile(userId)
+          .then((profile) => {
+            clearTimeout(profileTimeout);
+            if (!active || authSequence !== sequenceAtSchedule ||
+                !get().isAuthenticated || get().user?.id !== userId) return;
+            if (profile) posthog.setPersonProperties({ role: profile.role });
+            set({ profile, isLoading: false });
+          })
+          .catch((error: unknown) => {
+            clearTimeout(profileTimeout);
+            if (active && authSequence === sequenceAtSchedule &&
+                get().user?.id === userId) {
+              set({ isLoading: false });
+              console.warn("Could not refresh the signed-in profile:", error);
+            }
+          });
+      }, 0);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      authSequence++;
+      clearTimeout(initTimeout);
+      subscription.unsubscribe();
+      // React StrictMode and route remounts must be able to re-subscribe.
+      set({ initialized: false });
+    };
   },
 
   setProfile: (profile) => {
@@ -123,7 +144,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user } = get();
     if (!user) return;
     const profile = await fetchProfile(user.id);
-    if (profile) {
+    if (profile && get().user?.id === user.id && get().isAuthenticated) {
       set({ profile });
       posthog.setPersonProperties({ role: profile.role });
     }
