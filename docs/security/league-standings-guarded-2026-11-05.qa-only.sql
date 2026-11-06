@@ -97,7 +97,7 @@ BEGIN
       )::integer AS proposed_rank
     FROM aggregated a
   )
-  INSERT INTO public.league_standings (
+  INSERT INTO public.league_standings AS existing (
     league_id,player_id,total_points,tournaments_played,best_position,
     final_tables_count,rank_position,ccp_club,total_buy_ins_spent
   )
@@ -111,7 +111,16 @@ BEGIN
     best_position=EXCLUDED.best_position,
     final_tables_count=EXCLUDED.final_tables_count,
     rank_position=EXCLUDED.rank_position,
-    updated_at=pg_catalog.now();
+    updated_at=pg_catalog.now()
+  -- Avoid no-op updates to unrelated ranking rows. These generate WAL,
+  -- bloat and extra disk I/O on Micro even when the final rank is unchanged.
+  WHERE (existing.total_points,existing.tournaments_played,
+         existing.best_position,existing.final_tables_count,
+         existing.rank_position)
+    IS DISTINCT FROM
+        (EXCLUDED.total_points,EXCLUDED.tournaments_played,
+         EXCLUDED.best_position,EXCLUDED.final_tables_count,
+         EXCLUDED.rank_position);
   GET DIAGNOSTICS v_written = ROW_COUNT;
   RETURN v_written;
 END;
