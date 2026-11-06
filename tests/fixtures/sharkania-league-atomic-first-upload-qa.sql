@@ -382,11 +382,19 @@ BEGIN
     WHERE ep.tournament_id='00000000-0000-0000-0000-000000000071'
      AND ep.actor_profile_id='00000000-0000-0000-0000-000000000002'
      AND ep.algorithm_version='legacy-js-v1'
-     AND ep.input_fingerprint ~ '^[a-f0-9]{64}
- RAISE NOTICE 'PASS: atomic results/Elo/players/unified profiles/standings verified';
+     AND char_length(ep.input_fingerprint)=64
+     AND ep.input_fingerprint !~ '[^a-f0-9]')
+ OR (SELECT count(*) FROM sharkania_release_qa.elo_player_checkpoint cp
+     JOIN sharkania_release_qa.elo_publication ep ON ep.id=cp.publication_id
+     WHERE ep.tournament_id='00000000-0000-0000-0000-000000000071'
+       AND cp.elo_before=1200 AND cp.elo_peak_before=1200
+       AND cp.tournaments_before=0
+       AND cp.elo_after IN (1222.23,1177.77))<>2
+ THEN RAISE EXCEPTION 'FAIL: coordinated Elo/rank/profile/audit invariants broke'; END IF;
+ RAISE NOTICE 'PASS: atomic results/Elo/players/unified profiles/standings/audit verified';
 END $test$;
 
--- Entire test is isolated; end without persistence even in this temporary DB.
+-- This entire test runs in QA and rolls back its synthetic player and audit data.
 ROLLBACK;
 DO $test$
 BEGIN
@@ -399,31 +407,6 @@ BEGIN
       AND results_uploaded=false)
  OR EXISTS(SELECT 1 FROM sharkania_release_qa.elo_publication
     WHERE tournament_id='00000000-0000-0000-0000-000000000071')
- THEN RAISE EXCEPTION 'FAIL: QA transaction changes were not rolled back';END IF;
- RAISE NOTICE 'PASS FINAL: atomic league writer checks fully rolled back';
-END $test$;
-)
- OR (SELECT count(*) FROM sharkania_release_qa.elo_player_checkpoint cp
-     JOIN sharkania_release_qa.elo_publication ep ON ep.id=cp.publication_id
-     WHERE ep.tournament_id='00000000-0000-0000-0000-000000000071'
-       AND cp.elo_before=1200 AND cp.elo_peak_before=1200
-       AND cp.tournaments_before=0
-       AND cp.elo_after IN (1222.23,1177.77))<>2
- THEN RAISE EXCEPTION 'FAIL: coordinated Elo/rank/profile/audit invariants broke'; END IF;
- RAISE NOTICE 'PASS: atomic results/Elo/players/unified profiles/standings verified';
-END $test$;
-
--- Entire test is isolated; end without persistence even in this temporary DB.
-ROLLBACK;
-DO $test$
-BEGIN
- IF EXISTS(SELECT 1 FROM public.tournament_results
-    WHERE tournament_id='00000000-0000-0000-0000-000000000071')
- OR EXISTS(SELECT 1 FROM public.elo_history
-    WHERE tournament_id='00000000-0000-0000-0000-000000000071')
- OR NOT EXISTS(SELECT 1 FROM public.tournaments
-    WHERE id='00000000-0000-0000-0000-000000000071'
-      AND results_uploaded=false)
- THEN RAISE EXCEPTION 'FAIL: QA transaction changes were not rolled back';END IF;
- RAISE NOTICE 'PASS FINAL: atomic league writer checks fully rolled back';
+ THEN RAISE EXCEPTION 'FAIL: QA transaction changes were not rolled back'; END IF;
+ RAISE NOTICE 'PASS FINAL: atomic results and audit checked and fully rolled back';
 END $test$;
