@@ -23,6 +23,7 @@ const sql=q=>execFileSync("psql",
 const service=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
 const nonce=randomBytes(6).toString("hex");
 const tokens={};
+const actors={};
 const clubA="00000000-0000-0000-0000-000000000021";
 const clubB="00000000-0000-0000-0000-000000000022";
 const leagueA="00000000-0000-0000-0000-000000000041";
@@ -50,6 +51,7 @@ for(const role of ["organizer","secondary","player"]){
  const checked=await client.auth.getUser(token);
  assert.ifError(checked.error);
  tokens[role]=token;
+ actors[role]=id;
 }
 console.log("PASS: real GoTrue sessions for primary, secondary and normal player");
 
@@ -88,6 +90,7 @@ const beforeStandings=sql("SELECT count(*) FROM public.league_standings WHERE le
 const existingId=sql("SELECT id FROM public.league_standings WHERE league_id="+asUuid(leagueA)+" AND player_id="+asUuid(p1));
 const existingLocked=sql("SELECT ccp_club||':'||total_buy_ins_spent::text FROM public.league_standings WHERE league_id="+asUuid(leagueA)+" AND player_id="+asUuid(p1));
 assert.match(existingId,UUID);
+assert.equal(sql("SELECT count(*) FROM sharkania_release_qa.elo_publication WHERE tournament_id="+asUuid(tournament)),"0");
 
 expect(await rpc(null,"upload",payload),401,"anonymous cannot run guarded publication");
 expect(await rpc("player","upload",payload),403,"ordinary player cannot publish league results");
@@ -97,9 +100,12 @@ expect(await rpc("organizer","upload",[payload[0],{...payload[1],position:1}]),
 assert.equal(sql("SELECT count(*) FROM public.tournament_results WHERE tournament_id="+asUuid(tournament)),"0",
  "forbidden/invalid HTTP calls must not write results");
 assert.equal(sql("SELECT count(*) FROM public.elo_history WHERE tournament_id="+asUuid(tournament)),beforeElo);
+assert.equal(sql("SELECT count(*) FROM sharkania_release_qa.elo_publication WHERE tournament_id="+asUuid(tournament)),"0");
 assert.equal(sql("SELECT count(*) FROM public.league_standings WHERE league_id="+asUuid(leagueA)),beforeStandings);
 
-expect(await rpc("organizer","upload",payload),200,"authorized initial publication commits in one server transaction");
+const published=await rpc("organizer","upload",payload);
+expect(published,200,"authorized initial publication commits in one server transaction");
+assert.equal(published.data.audit_recorded,true,"publication RPC must certify its audit row");
 assert.equal(sql("SELECT count(*) FROM public.tournament_results WHERE tournament_id="+asUuid(tournament)),"2");
 assert.equal(sql("SELECT count(*) FROM public.elo_history WHERE tournament_id="+asUuid(tournament)),"2");
 assert.equal(sql("SELECT elo_rating FROM public.players WHERE id="+asUuid(p1)),"1222.23");
@@ -109,8 +115,31 @@ assert.equal(sql("SELECT id FROM public.league_standings WHERE league_id="+asUui
 assert.equal(sql("SELECT ccp_club||':'||total_buy_ins_spent::text FROM public.league_standings WHERE league_id="+asUuid(leagueA)+" AND player_id="+asUuid(p1)),existingLocked);
 assert.equal(sql("SELECT results_uploaded::text||':'||status::text FROM public.tournaments WHERE id="+asUuid(tournament)),"true:completed");
 
+const ledgerCount=sql("SELECT count(*) FROM sharkania_release_qa.elo_publication WHERE tournament_id="+asUuid(tournament));
+const snapshotCount=sql("SELECT count(*) FROM sharkania_release_qa.elo_player_checkpoint cp JOIN sharkania_release_qa.elo_publication ep ON ep.id=cp.publication_id WHERE ep.tournament_id="+asUuid(tournament));
+assert.equal(ledgerCount,"1","single durable audit event per published tournament");
+assert.equal(snapshotCount,"2","exactly one pre-write checkpoint per participant");
+assert.equal(sql("SELECT actor_profile_id::text FROM sharkania_release_qa.elo_publication WHERE tournament_id="+asUuid(tournament)),actors.organizer);
+assert.equal(sql("SELECT count(*) FROM sharkania_release_qa.elo_player_checkpoint cp JOIN sharkania_release_qa.elo_publication ep ON ep.id=cp.publication_id WHERE ep.tournament_id="+asUuid(tournament)+" AND cp.elo_before=1200 AND cp.tournaments_before=0 AND cp.elo_after IN (1222.23,1177.77)"),"2");
+const actualHash=sql("SELECT input_fingerprint FROM sharkania_release_qa.elo_publication WHERE tournament_id="+asUuid(tournament));
+assert.match(actualHash,/^[0-9a-f]{64}$/);
+const reversedPayload=JSON.stringify([...payload].reverse()).replaceAll("'","''");
+const canonicalHashSql="SELECT encode(sha256(convert_to(jsonb_build_object("+
+ "'algorithm_version','legacy-js-v1','tournament_id',"+asUuid(tournament)+
+ ",'league_id',"+asUuid(leagueA)+",'buy_in',3.30::numeric,"+
+ "'currency','USD','results',("+
+ "SELECT jsonb_agg(to_jsonb(x) ORDER BY x.position) FROM jsonb_to_recordset('"+
+ reversedPayload+"'::jsonb) AS x("+
+ "player_id uuid,position integer,prize_won numeric,bounties_won numeric,"+
+ "league_points_earned numeric,ccp_club text,buy_ins_count numeric)"+
+ "))::text,'UTF8')),'hex')";
+assert.equal(actualHash,sql(canonicalHashSql),
+ "fingerprint must be server-side canonical, independent of input array order");
+
+
 expect(await rpc("organizer","upload",payload),409,"replay of successful publication cannot double-count Elo");
 expect(await rpc("organizer","edit",payload),409,"historical edit needs the future deterministic replay engine");
 expect(await rpc("organizer","delete",null),409,"historical delete needs the future deterministic replay engine");
 assert.equal(sql("SELECT count(*) FROM public.elo_history WHERE tournament_id="+asUuid(tournament)),"2");
-console.log("PASS FINAL: guarded initial league publication across real local GoTrue/PostgREST, no partial writes");
+assert.equal(sql("SELECT count(*) FROM sharkania_release_qa.elo_publication WHERE tournament_id="+asUuid(tournament)),"1");
+console.log("PASS FINAL: atomic initial publication, SHA256 server audit, pre-state checkpoints and no duplication over real GoTrue/PostgREST");
