@@ -208,7 +208,7 @@ BEGIN
      *(1+pg_catalog.log(v_buyin+1)*0.1)
      *(1+pg_catalog.log(v_n::numeric)*0.15);
    v_raw_change:=v_k*v_weight*(v_score-v_expect);
-   v_after:=pg_catalog.round(pg_catalog.greatest(100::numeric,v_before+v_raw_change),2);
+   v_after:=pg_catalog.round(GREATEST(100::numeric,v_before+v_raw_change),2);
    v_delta:=pg_catalog.round(v_raw_change,2);
    v_calculated:=v_calculated||pg_catalog.jsonb_build_array(
      pg_catalog.jsonb_build_object(
@@ -244,7 +244,7 @@ BEGIN
 
  UPDATE public.players p SET
    elo_rating=x.elo_after,
-   elo_peak=pg_catalog.greatest(p.elo_peak,x.elo_after),
+   elo_peak=GREATEST(p.elo_peak,x.elo_after),
    total_tournaments=p.total_tournaments+1,
    total_cashes=p.total_cashes+(CASE WHEN x.prize_won+x.bounties_won>0 THEN 1 ELSE 0 END),
    total_wins=p.total_wins+(CASE WHEN x.position=1 THEN 1 ELSE 0 END),
@@ -275,7 +275,7 @@ BEGIN
      ),(SELECT p.elo_rating FROM public.players p WHERE p.profile_id=v_profile.id LIMIT 1))
        INTO v_unified;
    ELSE
-     SELECT pg_catalog.greatest(100::numeric,1200+coalesce(sum(eh.elo_change),0))
+     SELECT GREATEST(100::numeric,1200+coalesce(sum(eh.elo_change),0))
        INTO v_unified
      FROM public.elo_history eh
      JOIN public.players p ON p.id=eh.player_id
