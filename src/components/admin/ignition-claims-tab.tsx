@@ -61,7 +61,7 @@ function defaultMessage(key:string):string {
 // cannot be interpreted as spreadsheet formulas.
 function csvCell(value:string|null):string {
   const trimmed=(value??"").trim();
-  const safe=/^[=+\\-@\\t\\r\\n]/.test(trimmed)?"'"+trimmed:trimmed;
+  const safe=/^[=+\-@\t\r\n]/.test(trimmed)?"'"+trimmed:trimmed;
   return '"'+safe.replace(/"/g,'""')+'"';
 }
 function formatDate(value:string|null,withTime=false):string {
@@ -161,7 +161,7 @@ export function IgnitionClaimsTab(){
       ["email_ignition","email_sharkania","nickname_ignition"],
       ...players.map(p=>[p.ignition_email,p.email,p.ignition_nickname]),
     ];
-    const content="\\uFEFF"+rows.map(row=>row.map(csvCell).join(",")).join("\\r\\n")+"\\r\\n";
+    const content="\uFEFF"+rows.map(row=>row.map(csvCell).join(",")).join("\r\n")+"\r\n";
     const file=new Blob([content],{type:"text/csv;charset=utf-8"});
     const url=URL.createObjectURL(file);
     const anchor=document.createElement("a");
