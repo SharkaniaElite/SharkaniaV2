@@ -15,6 +15,7 @@ on:
       - "tests/fixtures/sharkania-tournament-link-real-auth-setup.sql"
       - "tests/fixtures/sharkania-tournament-link-real-auth-qa.mjs"
       - "docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql"
+      - "docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql"
       - "tests/fixtures/sharkania-league-atomic-real-auth-setup.sql"
       - "tests/fixtures/sharkania-league-atomic-real-auth-qa.mjs"
       - "package-lock.json"
@@ -140,6 +141,7 @@ jobs:
             echo "STOP: results QA must never reach remote Supabase"; exit 1;
           }
           psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-league-atomic-real-auth-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql
           psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
           psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
           sleep 2
