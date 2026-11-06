@@ -9,6 +9,19 @@
 - Las magnitudes descartan atribuir todos los saltos simplemente al redondeo. **La causa específica aún no se demostró.** No se corrigieron datos, no se cambió el orden histórico y no se asignaron ELO nuevos.
 - Los eventos de publicación no equivalen necesariamente a la fecha programada de cada torneo. En el estudio anterior se identificaron **72 inversiones de fecha** en el orden histórico de carga.
 
+## Foco de investigación de noviembre — confirmado por SQL SELECT
+
+Se compararon las discontinuidades por mes y día sin acceder a identificadores personales:
+
+- Octubre: **0 saltos / 2.934** enlaces ELO comparables.
+- Noviembre (hasta 6 nov): **165 saltos / 606** enlaces comparables. Los días 2, 4 y 5 de noviembre no tenían saltos; **los 165 ocurrieron el 6 de noviembre**, en solo dos torneos.
+- Los dos torneos son `22K LIGA CCP NOVIEMBRE 2026 - FECHA 2 - 1M GTD` (prefijo de torneo `05a8c00a`, **78** saltos entre 100 historias comparables, 111 resultados) y `22K LIGA CCP NOVIEMBRE 2026 - FECHA 1 - 1M GTD` (prefijo `03470545`, **87** saltos entre 129 historias comparables, 133 resultados).
+- **Orden efectivo de grabación ELO: Fecha 2 a las 11:29:44 UTC y Fecha 1 a las 11:30:43 UTC del 6 nov**, pese a que la Fecha 1 estaba programada antes que la Fecha 2. Es una inversión cronológica comprobada.
+- Los 165 saltos corresponden a la misma sala que el registro anterior del jugador; 87 también pertenecen a la misma liga y figuran en el torneo programado antes de su evento ELO anterior. **Ninguno de los 165 es un reinicio exacto del ELO anterior o nuevo a 1200**, en la muestra.
+- Los otros dos torneos del 6 nov, `Liga Clausura PokerAustral` y `MSOP Noviembre`, no mostraron discontinuidades ELO. **No hay evidencia suficiente** para atribuir el problema a CLP, al motor ELO, a una importación o a una carrera de escritura específicos. No se cambió ningún resultado.
+
+**Hipótesis pendiente de verificar:** la publicación masiva/invertida de fechas de CCP y la falta de transacciones coordinadas podrían influir, pero NO son explicación demostrada de los saltos. Hay que correlacionar los logs del uploader y el estado previo de `players.elo_rating`, cuando exista evidencia fiable, antes de corregir nada.
+
 ## Nuevo módulo QA
 
 `src/lib/elo-replay-simulator.ts` exporta `simulateHistoricalEloScenario(...)`, simulador **puro**, sin API ni operaciones SQL. Recibe:
