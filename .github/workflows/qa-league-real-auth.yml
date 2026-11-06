@@ -14,6 +14,9 @@ on:
       - "docs/security/tournament-league-link-guard-2026-11-06.qa-only.sql"
       - "tests/fixtures/sharkania-tournament-link-real-auth-setup.sql"
       - "tests/fixtures/sharkania-tournament-link-real-auth-qa.mjs"
+      - "docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql"
+      - "tests/fixtures/sharkania-league-atomic-real-auth-setup.sql"
+      - "tests/fixtures/sharkania-league-atomic-real-auth-qa.mjs"
       - "package-lock.json"
   workflow_dispatch:
 permissions:
@@ -129,6 +132,19 @@ jobs:
           sleep 2
       - name: Verify league-tournament authorization with actual GoTrue JWT and PostgREST
         run: node tests/fixtures/sharkania-tournament-link-real-auth-qa.mjs
+      - name: Install atomic first-upload results QA only into local Supabase/PostgREST
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "25422" ]] || {
+            echo "STOP: results QA must never reach remote Supabase"; exit 1;
+          }
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-league-atomic-real-auth-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
+          sleep 2
+      - name: Verify guarded first publication over local real GoTrue JWT and PostgREST
+        run: node tests/fixtures/sharkania-league-atomic-real-auth-qa.mjs
       - name: Stop ephemeral local stack
         if: always()
         shell: bash
