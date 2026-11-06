@@ -105,7 +105,7 @@ expectCode(await rpc("superadmin",leagueB),409,"orphan historical standing block
 assert.equal(sql("SELECT id::text||':'||total_points::text||':'||coalesce(ccp_club,'') FROM public.league_standings WHERE id="+orphanId),orphanSnapshot);
 const again=await rpc("superadmin",leagueA);
 expectCode(again,200,"superadmin can repeat authorized calculation");
-assert.equal(again.data,2);
+assert.equal(again.data,0,"unchanged league must generate ZERO redundant ranking writes");
 assert.equal(sql("SELECT id FROM public.league_standings WHERE league_id="+safeUuid(leagueA)+" AND player_id="+safeUuid(newPlayer)),newId,"second calculation preserves new ID");
 assert.equal(sql("SELECT id::text||':'||coalesce(ccp_club,'')||':'||total_buy_ins_spent::text||':'||last_tournament_id::text FROM public.league_standings WHERE id="+originalId),originalSnapshot);
 assert.equal(Number(sql("SELECT count(*) FROM public.league_standings WHERE league_id="+safeUuid(leagueA))),2);
