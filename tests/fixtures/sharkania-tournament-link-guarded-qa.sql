@@ -22,6 +22,13 @@ INSERT INTO public.tournaments(id,club_id,buy_in,league_id) VALUES
  '00000000-0000-0000-0000-000000000022',
  10,
  '00000000-0000-0000-0000-000000000041');
+-- Two unused tournaments make safe owner-approved linkage tests possible:
+-- linked tournaments with historical results must remain immutable instead.
+INSERT INTO public.tournaments(id,club_id,buy_in,league_id) VALUES
+('00000000-0000-0000-0000-000000000019',
+ '00000000-0000-0000-0000-000000000022',10,NULL),
+('00000000-0000-0000-0000-000000000020',
+ '00000000-0000-0000-0000-000000000021',10,NULL);
 
 \ir ../../docs/security/tournament-league-link-guard-2026-11-06.qa-only.sql
 
@@ -66,14 +73,23 @@ BEGIN
     RAISE EXCEPTION 'FAIL: rejected mutation changed a tournament';
   END IF;
 
-  UPDATE public.tournaments
-   SET league_id='00000000-0000-0000-0000-000000000042'
-   WHERE id='00000000-0000-0000-0000-000000000012';
-  GET DIAGNOSTICS v_rows = ROW_COUNT;
-  IF v_rows<>1 THEN RAISE EXCEPTION 'FAIL: primary B cannot link its OWN league'; END IF;
+  BEGIN
+    UPDATE public.tournaments
+     SET league_id='00000000-0000-0000-0000-000000000042'
+     WHERE id='00000000-0000-0000-0000-000000000012';
+    RAISE EXCEPTION 'FAIL: linked historical results reassigned from B tournament';
+  EXCEPTION WHEN SQLSTATE 'PT409' THEN
+    RAISE NOTICE 'PASS: prior results block relinking even by own club admin';
+  END;
 
   UPDATE public.tournaments
-   SET buy_in=11 WHERE id='00000000-0000-0000-0000-000000000012';
+   SET league_id='00000000-0000-0000-0000-000000000042'
+   WHERE id='00000000-0000-0000-0000-000000000019';
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  IF v_rows<>1 THEN RAISE EXCEPTION 'FAIL: primary B cannot link fresh OWN tournament'; END IF;
+
+  UPDATE public.tournaments
+   SET buy_in=11 WHERE id='00000000-0000-0000-0000-000000000019';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows<>1 THEN RAISE EXCEPTION 'FAIL: ordinary tournament edit blocked'; END IF;
 
@@ -88,10 +104,10 @@ BEGIN
   END IF;
 
   UPDATE public.tournaments SET league_id=NULL
-   WHERE id='00000000-0000-0000-0000-000000000012';
+   WHERE id='00000000-0000-0000-0000-000000000019';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
-  IF v_rows<>1 THEN RAISE EXCEPTION 'FAIL: primary B cannot unlink own league'; END IF;
-  RAISE NOTICE 'PASS: B primary can link/create/edit/unlink B own tournaments';
+  IF v_rows<>1 THEN RAISE EXCEPTION 'FAIL: primary B cannot unlink fresh own league'; END IF;
+  RAISE NOTICE 'PASS: B primary can link/create/edit/unlink fresh B tournaments';
 END $qa$;
 RESET ROLE;
 
@@ -101,14 +117,22 @@ SET LOCAL request.jwt.claim.sub = '00000000-0000-0000-0000-000000000002';
 DO $qa$
 DECLARE v_rows integer;
 BEGIN
-  UPDATE public.tournaments SET league_id=NULL
-   WHERE id='00000000-0000-0000-0000-000000000011';
-  GET DIAGNOSTICS v_rows = ROW_COUNT;
-  IF v_rows<>1 THEN RAISE EXCEPTION 'FAIL: organizer A cannot unlink own league'; END IF;
+  BEGIN
+    UPDATE public.tournaments SET league_id=NULL
+      WHERE id='00000000-0000-0000-0000-000000000011';
+    RAISE EXCEPTION 'FAIL: organizer A unlinked historical A league results';
+  EXCEPTION WHEN SQLSTATE 'PT409' THEN
+    RAISE NOTICE 'PASS: organizer A cannot unlink tournament with played results';
+  END;
+
   UPDATE public.tournaments SET league_id='00000000-0000-0000-0000-000000000041'
-   WHERE id='00000000-0000-0000-0000-000000000011';
+   WHERE id='00000000-0000-0000-0000-000000000020';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
-  IF v_rows<>1 THEN RAISE EXCEPTION 'FAIL: organizer A cannot relink A league'; END IF;
+  IF v_rows<>1 THEN RAISE EXCEPTION 'FAIL: organizer A cannot link fresh A tournament'; END IF;
+  UPDATE public.tournaments SET league_id=NULL
+   WHERE id='00000000-0000-0000-0000-000000000020';
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  IF v_rows<>1 THEN RAISE EXCEPTION 'FAIL: organizer A cannot unlink fresh A tournament'; END IF;
 
   BEGIN
     UPDATE public.tournaments
@@ -155,7 +179,9 @@ DO $qa$
 BEGIN
   IF EXISTS(SELECT 1 FROM public.tournaments
     WHERE id IN ('00000000-0000-0000-0000-000000000015',
-                 '00000000-0000-0000-0000-000000000016'))
+                 '00000000-0000-0000-0000-000000000016',
+                 '00000000-0000-0000-0000-000000000019',
+                 '00000000-0000-0000-0000-000000000020'))
      OR NOT EXISTS(SELECT 1 FROM public.tournaments
     WHERE id='00000000-0000-0000-0000-000000000012' AND league_id IS NULL)
      OR EXISTS(SELECT 1 FROM pg_trigger
