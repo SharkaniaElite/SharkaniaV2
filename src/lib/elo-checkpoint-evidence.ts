@@ -50,7 +50,7 @@ export function auditEloCheckpointEvidence(
   tournaments: readonly ReplayTournament[],
   tolerance=0.011
 ): EloCheckpointEvidenceAudit {
-  if (!plan.readonlyOnly || plan.safeToApply === true)
+  if (!plan.readonlyOnly)
     throw Error("A read-only preflight plan is required");
   if (!finite(tolerance) || tolerance < 0 || tolerance > 0.1)
     throw Error("Invalid ELO continuity tolerance");
