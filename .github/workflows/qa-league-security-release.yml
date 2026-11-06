@@ -63,6 +63,8 @@ jobs:
         run: node --test tests/elo-replay-preflight.test.mjs
       - name: Simulate historical ELO correction/deletion from explicit checkpoints (read-only)
         run: node --test tests/elo-replay-simulator.test.mjs
+      - name: Audit ELO checkpoint evidence without inventing historical stats (read-only)
+        run: node --test tests/elo-checkpoint-evidence.test.mjs
       - name: Inventory legacy league-related writes and RPCs across all frontend source
         run: node tests/league-legacy-source-inventory.mjs
       - name: Create isolated league security database
