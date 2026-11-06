@@ -1,0 +1,260 @@
+\set ON_ERROR_STOP on
+-- ALL transactions, users, leagues and results are synthetic.
+-- This creates no persistent production artifacts.
+BEGIN;
+-- Include the actual guarded results RPC, already created from prototype SQL.
+-- Source player P51 existing league_standings row must preserve its identity.
+CREATE OR REPLACE FUNCTION public.qa_inject_elo_failure()
+RETURNS trigger LANGUAGE plpgsql SET search_path TO ''
+AS $f$
+BEGIN
+ IF NEW.player_id='00000000-0000-0000-0000-000000000052' THEN
+  RAISE EXCEPTION 'QA injection: simulate second Elo history INSERT failure'
+   USING ERRCODE='PT500';
+ END IF;
+ RETURN NEW;
+END;
+$f$;
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
+DO $test$
+DECLARE payload jsonb:='[
+ {"player_id":"00000000-0000-0000-0000-000000000051","position":1,
+  "prize_won":20,"bounties_won":2,"league_points_earned":30,
+  "ccp_club":"CCP-P51","buy_ins_count":2},
+ {"player_id":"00000000-0000-0000-0000-000000000052","position":2,
+  "prize_won":0,"bounties_won":0,"league_points_earned":12,
+  "ccp_club":"CCP-P52","buy_ins_count":1}
+]'::jsonb;
+BEGIN
+ BEGIN
+  PERFORM public.publish_league_results_guarded_qa(
+   '00000000-0000-0000-0000-000000000071','upload',payload);
+  RAISE EXCEPTION 'FAIL: club B uploaded results of A league';
+ EXCEPTION WHEN SQLSTATE '42501' THEN
+  RAISE NOTICE 'PASS: secondary club cannot publish to primary A league';
+ END;
+END $test$;
+RESET ROLE;
+
+SET LOCAL ROLE anon;
+SET LOCAL request.jwt.claim.sub='';
+DO $test$
+BEGIN
+ BEGIN
+  PERFORM public.publish_league_results_guarded_qa(
+   '00000000-0000-0000-0000-000000000071','upload','[]'::jsonb);
+  RAISE EXCEPTION 'FAIL: anonymous published results';
+ EXCEPTION WHEN SQLSTATE '42501' THEN
+  RAISE NOTICE 'PASS: anonymous cannot execute guarded results writer';
+ END;
+END $test$;
+RESET ROLE;
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $test$
+DECLARE
+ payload jsonb:='[
+ {"player_id":"00000000-0000-0000-0000-000000000051","position":1,
+  "prize_won":20,"bounties_won":2,"league_points_earned":30,
+  "ccp_club":"CCP-P51","buy_ins_count":2},
+ {"player_id":"00000000-0000-0000-0000-000000000052","position":2,
+  "prize_won":0,"bounties_won":0,"league_points_earned":12,
+  "ccp_club":"CCP-P52","buy_ins_count":1}
+]'::jsonb;
+BEGIN
+ FOR i IN 1..2 LOOP
+  BEGIN
+   PERFORM public.publish_league_results_guarded_qa(
+    '00000000-0000-0000-0000-000000000071',
+    CASE WHEN i=1 THEN 'edit' ELSE 'delete' END,payload);
+   RAISE EXCEPTION 'FAIL: old results edit/delete unexpectedly enabled';
+  EXCEPTION WHEN SQLSTATE 'PT409' THEN
+   RAISE NOTICE 'PASS: historical edit/delete fail closed pending Elo replay';
+  END;
+ END LOOP;
+ BEGIN
+  PERFORM public.publish_league_results_guarded_qa(
+   '00000000-0000-0000-0000-000000000071','upload',
+   pg_catalog.jsonb_set(payload,'{1,position}','1'::jsonb));
+  RAISE EXCEPTION 'FAIL: duplicate finishing position accepted';
+ EXCEPTION WHEN SQLSTATE 'PT422' THEN
+  RAISE NOTICE 'PASS: duplicate positions rejected before any write';
+ END;
+ BEGIN
+  PERFORM public.publish_league_results_guarded_qa(
+   '00000000-0000-0000-0000-000000000071','upload',
+   pg_catalog.jsonb_set(payload,'{1,player_id}',
+     '"00000000-0000-0000-0000-000000000051"'::jsonb));
+  RAISE EXCEPTION 'FAIL: duplicate player accepted';
+ EXCEPTION WHEN SQLSTATE 'PT422' THEN
+  RAISE NOTICE 'PASS: duplicate player ID rejected';
+ END;
+
+ -- A database error after results INSERT but during Elo-history INSERT must
+ -- abort the ENTIRE operation, leaving all five tables unchanged.
+END $test$;
+RESET ROLE;
+
+CREATE TRIGGER qa_fault_inject_elo
+BEFORE INSERT ON public.elo_history FOR EACH ROW
+EXECUTE FUNCTION public.qa_inject_elo_failure();
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $test$
+DECLARE
+ payload jsonb:='[
+ {"player_id":"00000000-0000-0000-0000-000000000051","position":1,
+  "prize_won":20,"bounties_won":2,"league_points_earned":30,
+  "ccp_club":"CCP-P51","buy_ins_count":2},
+ {"player_id":"00000000-0000-0000-0000-000000000052","position":2,
+  "prize_won":0,"bounties_won":0,"league_points_earned":12,
+  "ccp_club":"CCP-P52","buy_ins_count":1}
+]'::jsonb;
+BEGIN
+ BEGIN
+  PERFORM public.publish_league_results_guarded_qa(
+   '00000000-0000-0000-0000-000000000071','upload',payload);
+  RAISE EXCEPTION 'FAIL: Elo failure did not abort transaction';
+ EXCEPTION WHEN SQLSTATE 'PT500' THEN
+  RAISE NOTICE 'PASS: injected Elo failure aborted the atomic call';
+ END;
+END $test$;
+RESET ROLE;
+
+DO $test$
+BEGIN
+ IF EXISTS(SELECT 1 FROM public.tournament_results
+           WHERE tournament_id='00000000-0000-0000-0000-000000000071')
+ OR EXISTS(SELECT 1 FROM public.elo_history
+           WHERE tournament_id='00000000-0000-0000-0000-000000000071')
+ OR EXISTS(SELECT 1 FROM public.tournaments
+           WHERE id='00000000-0000-0000-0000-000000000071' AND results_uploaded)
+ OR EXISTS(SELECT 1 FROM public.players WHERE total_tournaments<>0)
+ OR EXISTS(SELECT 1 FROM public.profiles WHERE unified_elo IS NOT NULL)
+ OR (SELECT id FROM public.league_standings
+   WHERE league_id='00000000-0000-0000-0000-000000000041'
+     AND player_id='00000000-0000-0000-0000-000000000051')
+   <> '00000000-0000-0000-0000-000000000075'::uuid
+ THEN RAISE EXCEPTION 'FAIL: injected Elo exception left partially written data'; END IF;
+ RAISE NOTICE 'PASS: result/Elo/player/profile/tournament/standings are unchanged after rollback';
+END $test$;
+
+DROP TRIGGER qa_fault_inject_elo ON public.elo_history;
+DROP FUNCTION public.qa_inject_elo_failure();
+
+-- Historical exception must be caught BEFORE results write.
+INSERT INTO public.league_standings(league_id,player_id,total_points,ccp_club)
+VALUES ('00000000-0000-0000-0000-000000000041',
+        '00000000-0000-0000-0000-000000000099',90,'CCP-HISTORIC');
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $test$
+DECLARE payload jsonb:='[
+ {"player_id":"00000000-0000-0000-0000-000000000051","position":1,
+  "prize_won":20,"bounties_won":2,"league_points_earned":30,
+  "ccp_club":"CCP-P51","buy_ins_count":2},
+ {"player_id":"00000000-0000-0000-0000-000000000052","position":2,
+  "prize_won":0,"bounties_won":0,"league_points_earned":12,
+  "ccp_club":"CCP-P52","buy_ins_count":1}
+]'::jsonb;
+BEGIN
+ BEGIN
+  PERFORM public.publish_league_results_guarded_qa(
+   '00000000-0000-0000-0000-000000000071','upload',payload);
+  RAISE EXCEPTION 'FAIL: orphan standings were not protected';
+ EXCEPTION WHEN SQLSTATE 'PT409' THEN
+  RAISE NOTICE 'PASS: orphan standings prohibit historical league recalculation';
+ END;
+END $test$;
+RESET ROLE;
+DO $test$
+BEGIN
+ IF NOT EXISTS(SELECT 1 FROM public.league_standings WHERE player_id=
+   '00000000-0000-0000-0000-000000000099' AND total_points=90)
+ OR EXISTS(SELECT 1 FROM public.tournament_results WHERE tournament_id=
+   '00000000-0000-0000-0000-000000000071')
+ THEN RAISE EXCEPTION 'FAIL: orphan changed and/or result inserted despite rejection';END IF;
+END $test$;
+DELETE FROM public.league_standings WHERE player_id=
+ '00000000-0000-0000-0000-000000000099';
+
+-- Authorized initial upload: all writes succeed or none.
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $test$
+DECLARE
+ payload jsonb:='[
+ {"player_id":"00000000-0000-0000-0000-000000000051","position":1,
+  "prize_won":20,"bounties_won":2,"league_points_earned":30,
+  "ccp_club":"CCP-P51","buy_ins_count":2},
+ {"player_id":"00000000-0000-0000-0000-000000000052","position":2,
+  "prize_won":0,"bounties_won":0,"league_points_earned":12,
+  "ccp_club":"CCP-P52","buy_ins_count":1}
+]'::jsonb;
+ result jsonb;
+BEGIN
+ result:=public.publish_league_results_guarded_qa(
+  '00000000-0000-0000-0000-000000000071','upload',payload);
+ IF result->>'status'<>'published' OR (result->>'players')::integer<>2
+ THEN RAISE EXCEPTION 'FAIL: authorized writer did not report full publication'; END IF;
+ RAISE NOTICE 'PASS: primary organizer atomically published 2 result rows';
+ BEGIN
+  PERFORM public.publish_league_results_guarded_qa(
+   '00000000-0000-0000-0000-000000000071','upload',payload);
+  RAISE EXCEPTION 'FAIL: duplicate publication succeeded';
+ EXCEPTION WHEN SQLSTATE 'PT409' THEN
+  RAISE NOTICE 'PASS: duplicate initial publication cannot double-count Elo';
+ END;
+END $test$;
+RESET ROLE;
+
+DO $test$
+BEGIN
+ IF (SELECT count(*) FROM public.tournament_results WHERE tournament_id=
+     '00000000-0000-0000-0000-000000000071')<>2
+ OR (SELECT count(*) FROM public.elo_history WHERE tournament_id=
+     '00000000-0000-0000-0000-000000000071')<>2
+ OR (SELECT count(*) FROM public.players WHERE total_tournaments=1)<>2
+ OR NOT EXISTS(SELECT 1 FROM public.tournaments WHERE id=
+      '00000000-0000-0000-0000-000000000071' AND results_uploaded=true AND status='completed')
+ OR (SELECT id FROM public.league_standings WHERE league_id=
+      '00000000-0000-0000-0000-000000000041' AND player_id=
+      '00000000-0000-0000-0000-000000000051')
+    <> '00000000-0000-0000-0000-000000000075'::uuid
+ OR NOT EXISTS(SELECT 1 FROM public.league_standings
+    WHERE league_id='00000000-0000-0000-0000-000000000041'
+      AND player_id='00000000-0000-0000-0000-000000000051'
+      AND ccp_club='CCP-LOCKED' AND total_buy_ins_spent=95)
+ OR (SELECT count(*) FROM public.profiles u
+    JOIN public.players p ON p.profile_id=u.id
+    WHERE p.id IN ('00000000-0000-0000-0000-000000000051',
+                   '00000000-0000-0000-0000-000000000052')
+      AND u.unified_elo=p.elo_rating)<>2
+ OR NOT EXISTS(SELECT 1 FROM public.players WHERE id=
+       '00000000-0000-0000-0000-000000000051' AND elo_rating>1200
+       AND total_prize_won=22 AND total_cashes=1 AND total_wins=1)
+ OR NOT EXISTS(SELECT 1 FROM public.players WHERE id=
+       '00000000-0000-0000-0000-000000000052' AND elo_rating<1200
+       AND total_cashes=0 AND total_wins=0)
+ THEN RAISE EXCEPTION 'FAIL: coordinated Elo/rank/profile/stat invariants broke'; END IF;
+ RAISE NOTICE 'PASS: atomic results/Elo/players/unified profiles/standings verified';
+END $test$;
+
+-- Entire test is isolated; end without persistence even in this temporary DB.
+ROLLBACK;
+DO $test$
+BEGIN
+ IF EXISTS(SELECT 1 FROM public.tournament_results
+    WHERE tournament_id='00000000-0000-0000-0000-000000000071')
+ OR EXISTS(SELECT 1 FROM public.elo_history
+    WHERE tournament_id='00000000-0000-0000-0000-000000000071')
+ OR NOT EXISTS(SELECT 1 FROM public.tournaments
+    WHERE id='00000000-0000-0000-0000-000000000071'
+      AND results_uploaded=false)
+ THEN RAISE EXCEPTION 'FAIL: QA transaction changes were not rolled back';END IF;
+ RAISE NOTICE 'PASS FINAL: atomic league writer checks fully rolled back';
+END $test$;
