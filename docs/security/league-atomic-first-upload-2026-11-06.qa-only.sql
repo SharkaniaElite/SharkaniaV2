@@ -311,34 +311,43 @@ BEGIN
    bounties_won numeric,elo_after numeric
  ) WHERE p.id=x.player_id;
 
- -- Match existing unified Elo semantics: one alias uses the latest Elo;
- -- multiple aliases use 1200 + the cumulative recorded Elo changes. A
- -- separate historical parity gate remains mandatory before deployment.
- FOR v_profile IN
-   SELECT DISTINCT p.profile_id AS id FROM public.players p
+ -- Lock only affected profile rows in UUID order, then materialize their
+ -- unified Elo using ONE set-based UPDATE. No per-profile SELECT/UPDATE loop.
+ -- Semantics match the legacy code: one alias uses latest historical Elo,
+ -- multiple aliases use 1200+the sum of Elo history deltas.
+ PERFORM u.id FROM public.profiles u
+ WHERE u.id IN (
+   SELECT DISTINCT p.profile_id FROM public.players p
    WHERE p.id=ANY(v_player_ids) AND p.profile_id IS NOT NULL
-   ORDER BY p.profile_id
- LOOP
-   PERFORM u.id FROM public.profiles u WHERE u.id=v_profile.id FOR UPDATE;
-   SELECT count(*) INTO v_alias_count
-   FROM public.players p WHERE p.profile_id=v_profile.id;
-   IF v_alias_count=1 THEN
-     SELECT coalesce((
-       SELECT eh.elo_after FROM public.elo_history eh
-       JOIN public.players p ON p.id=eh.player_id
-       WHERE p.profile_id=v_profile.id
-       ORDER BY eh.recorded_at DESC,eh.id DESC LIMIT 1
-     ),(SELECT p.elo_rating FROM public.players p WHERE p.profile_id=v_profile.id LIMIT 1))
-       INTO v_unified;
-   ELSE
-     SELECT GREATEST(100::numeric,1200+coalesce(sum(eh.elo_change),0))
-       INTO v_unified
-     FROM public.elo_history eh
-     JOIN public.players p ON p.id=eh.player_id
-     WHERE p.profile_id=v_profile.id;
-   END IF;
-   UPDATE public.profiles SET unified_elo=v_unified WHERE id=v_profile.id;
- END LOOP;
+ ) ORDER BY u.id FOR UPDATE;
+ WITH affected_profiles AS MATERIALIZED (
+   SELECT DISTINCT p.profile_id FROM public.players p
+   WHERE p.id=ANY(v_player_ids) AND p.profile_id IS NOT NULL
+ ), aliases AS (
+   SELECT p.profile_id,count(*)::integer AS alias_count,
+          max(p.elo_rating) AS single_alias_elo
+   FROM public.players p
+   JOIN affected_profiles a ON a.profile_id=p.profile_id
+   GROUP BY p.profile_id
+ ), histories AS (
+   SELECT p.profile_id,coalesce(sum(eh.elo_change),0) AS total_change,
+     (array_agg(eh.elo_after ORDER BY eh.recorded_at DESC,eh.id DESC)
+       FILTER (WHERE eh.id IS NOT NULL))[1] AS latest_elo
+   FROM public.players p
+   JOIN affected_profiles a ON a.profile_id=p.profile_id
+   LEFT JOIN public.elo_history eh ON eh.player_id=p.id
+   GROUP BY p.profile_id
+ ), projected AS (
+   SELECT a.profile_id,
+     CASE WHEN a.alias_count=1
+       THEN coalesce(h.latest_elo,a.single_alias_elo)
+       ELSE GREATEST(100::numeric,1200::numeric+h.total_change)
+     END AS unified_elo
+   FROM aliases a JOIN histories h ON h.profile_id=a.profile_id
+ )
+ UPDATE public.profiles prof SET unified_elo=x.unified_elo
+ FROM projected x WHERE prof.id=x.profile_id
+   AND prof.unified_elo IS DISTINCT FROM x.unified_elo;
 
  UPDATE public.tournaments SET results_uploaded=true,status='completed'
  WHERE id=p_tournament_id;
