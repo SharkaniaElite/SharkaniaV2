@@ -68,10 +68,20 @@ DO $t$ BEGIN
     AND total_points=5
  ) THEN RAISE EXCEPTION 'FAIL: orphan history was modified'; END IF;
 END $t$;
--- Repeat authorized run: should not regenerate existing IDs or locked fields.
+-- A second no-change recalc must not write already-correct standings.
+-- The return count counts inserts/real updates, not every computed row.
 SET ROLE authenticated;
 SET request.jwt.claim.sub = '00000000-0000-0000-0000-000000000004';
-SELECT public.recalculate_league_standings_guarded('00000000-0000-0000-0000-000000000011');
+DO $t$
+DECLARE n integer;
+BEGIN
+ SELECT public.recalculate_league_standings_guarded(
+  '00000000-0000-0000-0000-000000000011') INTO n;
+ IF n<>0 THEN
+   RAISE EXCEPTION 'FAIL: no-op recalc wrote % unchanged ranking rows',n;
+ END IF;
+ RAISE NOTICE 'PASS: repeated unchanged recalc writes ZERO rows';
+END $t$;
 RESET ROLE;
 DO $t$ BEGIN
  IF NOT EXISTS (
