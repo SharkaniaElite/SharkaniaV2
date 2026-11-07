@@ -27,6 +27,13 @@
 /blog/*
   Cache-Control: public, max-age=0, must-revalidate
 
+# ── Autenticación: no indexar rutas privadas de entrada ──
+# X-Robots-Tag protege incluso a rastreadores que no ejecutan el JavaScript de la SPA.
+/login
+  X-Robots-Tag: noindex, nofollow
+/welcome
+  X-Robots-Tag: noindex, nofollow
+
 # ── Assets con hash en el nombre: cache inmutable 1 año ──
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
