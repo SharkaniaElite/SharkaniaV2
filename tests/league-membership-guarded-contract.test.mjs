@@ -69,7 +69,8 @@ test("league form sends all data in a single guarded RPC before legacy writes", 
   assert.match(guarded, /p_room_ids: \[\.\.\.input\.roomIds\]/);
   assert.match(leagueForm, /if \(GUARDED_LEAGUE_RPC_ENABLED\) \{/);
   assert.match(leagueForm, /await saveLeagueGuarded\(\{/);
-  assert.match(leagueForm, /fields:\s*\{/);
+  assert.match(leagueForm, /const fields = \{/);
+  assert.match(leagueForm, /fields,\s*roomIds: form\.room_ids/);
   assert.match(leagueForm, /roomIds: form\.room_ids/);
   assert.ok(
     leagueForm.indexOf("await saveLeagueGuarded({") <
@@ -136,4 +137,40 @@ test("release A guarded flag blocks league result writes before any mutation", (
     assert.match(beforeWrites, /setMessage\(\{[\s\S]*?type: "error",[\s\S]*?\}\);\s*return;\s*\}/);
   }
   assert.match(legacy, /if \(GUARDED_LEAGUE_RPC_ENABLED\) \{\s*throw new Error\("El recálculo manual de ligas requiere/);
+});
+
+
+test("guarded league forms avoid existence reads, clone is disclosed, and unchanged saves avoid WAL", () => {
+  const guarded = read("src/lib/api/guarded-leagues.ts");
+  const formBranch = leagueForm.slice(
+    leagueForm.indexOf("if (GUARDED_LEAGUE_RPC_ENABLED) {"),
+    leagueForm.indexOf("let leagueId: string;")
+  );
+  const duplicateBranch = legacy.slice(
+    legacy.indexOf("if (GUARDED_LEAGUE_RPC_ENABLED) {", legacy.indexOf("export async function duplicateLeague(")),
+    legacy.indexOf("// 1. Obtener la liga original", legacy.indexOf("export async function duplicateLeague("))
+  );
+  assert.ok(formBranch.length > 300 && duplicateBranch.length > 200);
+  assert.doesNotMatch(formBranch, /\.from\(["']leagues["']\)\.select/);
+  assert.doesNotMatch(duplicateBranch, /\.from\(["']leagues["']\)\.select/);
+  assert.match(formBranch, /error instanceof GuardedLeagueSlugConflictError|saveError instanceof GuardedLeagueSlugConflictError/);
+  assert.match(duplicateBranch, /error instanceof GuardedLeagueSlugConflictError/);
+  assert.match(guarded, /isSlugConflict\(error\.code, error\.message\)/);
+  assert.match(clubAdmin, /Los clubes participantes adicionales NO quedarán inscritos automáticamente/);
+  assert.match(clubAdmin, /tampoco se copiarán torneos, resultados ni rankings/);
+
+  const save = sql.slice(sql.indexOf("CREATE OR REPLACE FUNCTION public.save_league_guarded("),
+    sql.indexOf("CREATE OR REPLACE FUNCTION public.delete_empty_league_guarded("));
+  const rooms = sql.slice(sql.indexOf("CREATE OR REPLACE FUNCTION public.set_league_rooms_guarded("),
+    sql.indexOf("CREATE OR REPLACE FUNCTION public.duplicate_league_guarded("));
+  for (const section of [save, rooms]) {
+    assert.match(section, /NOT \(lr\.room_id = ANY\(v_rooms\)\)/);
+    assert.match(section, /WHERE NOT EXISTS\s*\(/);
+    assert.match(section, /lr\.league_id=.*? AND lr\.room_id=x\.id/);
+  }
+  assert.match(save, /IS DISTINCT FROM\s*\(v_name,nullif/);
+  assert.match(fixture, /identical guarded save creates zero league tuple changes and keeps room IDs/);
+  assert.match(fixture, /delta room writes preserve existing relation IDs/);
+  assert.match(fixture, /forced late clone room error rolled back entire RPC/);
+  assert.match(fixture, /forced clone rollback left no orphan league/);
 });
