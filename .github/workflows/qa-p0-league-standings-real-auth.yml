@@ -1,12 +1,14 @@
 name: QA P0 Standings RLS — real GoTrue and PostgREST local
 on:
   pull_request:
-    branches: [main]
+    branches: [main, security/p0-league-standings-rls-2026-11-07]
     paths:
       - ".github/workflows/qa-p0-league-standings-real-auth.yml"
       - "docs/security/league-standings-rls-p0-2026-11-07.qa-only.sql"
       - "tests/fixtures/sharkania-p0-rls-real-auth-setup.sql"
       - "tests/fixtures/sharkania-p0-rls-real-auth-qa.mjs"
+      - "tests/fixtures/sharkania-p1-league-real-auth-setup.sql"
+      - "docs/security/league-membership-ownership-p1-2026-11-07.qa-only.sql"
       - "package-lock.json"
   workflow_dispatch:
 permissions:
@@ -71,6 +73,7 @@ jobs:
             echo "STOP: cannot load test fixture against any remote DB"; exit 1;
           }
           psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-p0-rls-real-auth-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-p1-league-real-auth-setup.sql
           psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
           sleep 2
       - name: Verify legacy vulnerability and P0 patch with genuine GoTrue sessions over REST
