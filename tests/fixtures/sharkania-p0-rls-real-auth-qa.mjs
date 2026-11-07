@@ -158,3 +158,86 @@ expectRows(await rest(null,"league_standings","PATCH",filterA,{total_points:666}
 assert.equal(points(leagueA,playerA),"12");
 assert.equal(points(leagueB,playerB),"14");
 console.log("PASS FINAL: real local GoTrue and PostgREST RLS verified; no remote credentials or production writes");
+
+// P1: verify current secondary club membership escalation and the proposed
+// reduction using the SAME four authentic GoTrue users on local PostgREST.
+const leagueC="00000000-0000-0000-0000-000000000043";
+const leagueD="00000000-0000-0000-0000-000000000044";
+const leagueE="00000000-0000-0000-0000-000000000045";
+const memberC="?league_id=eq."+leagueC+"&club_id=eq."+clubB;
+expectRows(await rest("secondary","leagues","PATCH","?id=eq."+leagueA,
+ {name:"Unauthorized change"}),1,
+ "old league RLS lets a secondary club edit another organizer league");
+sql("UPDATE public.leagues SET name='League A' WHERE id="+safe(leagueA));
+const oldJoin=await rest("secondary","league_clubs","POST","",{
+ league_id:leagueC,club_id:clubB,is_primary:false
+});
+assert.equal(oldJoin.status,201,"old membership RLS allows arbitrary secondary self-join");
+sql("DELETE FROM public.league_clubs WHERE league_id="+safe(leagueC)+" AND club_id="+safe(clubB));
+const oldPlayerLeague=await rest("player","leagues","POST","",{
+ id:leagueE,name:"Unauthorized player league"
+});
+assert.equal(oldPlayerLeague.status,201,"old policy lets any logged-in player create a league");
+sql("DELETE FROM public.leagues WHERE id="+safe(leagueE));
+console.log("PASS: P1 reproduced legacy secondary self-join, foreign league edit and player creation");
+
+execFileSync("psql",["-X","-v","ON_ERROR_STOP=1","-d","postgres",
+ "-f","docs/security/league-membership-ownership-p1-2026-11-07.qa-only.sql"],
+ {encoding:"utf8",timeout:12000,stdio:"pipe"});
+sql("NOTIFY pgrst, 'reload schema'");
+await new Promise(resolve=>setTimeout(resolve,1200));
+
+const blockedJoin=await rest("secondary","league_clubs","POST","",{
+ league_id:leagueC,club_id:clubB,is_primary:false
+});
+assert.equal(blockedJoin.status,403,"secondary self-join into foreign league must fail");
+expectRows(await rest("secondary","leagues","PATCH","?id=eq."+leagueA,
+ {name:"Still unauthorized"}),0,
+ "club B may no longer edit league A just because it participates");
+expectRows(await rest("secondary","leagues","DELETE","?id=eq."+leagueA),0,
+ "secondary club cannot delete primary A league");
+
+expectRows(await rest("secondary","league_clubs","PATCH",membership,
+ {is_primary:false}),0,
+ "non-superadmin cannot alter its own primary/secondary membership");
+expectRows(await rest("secondary","league_clubs","DELETE",
+ "?league_id=eq."+leagueB+"&club_id=eq."+clubB),0,
+ "non-superadmin cannot orphan its own principal league");
+expectRows(await rest("secondary","leagues","PATCH","?id=eq."+leagueB,
+ {name:"Authorized League B"}),1,
+ "club B can still edit its own primary league");
+
+expectRows(await rest("organizer","leagues","PATCH","?id=eq."+leagueA,
+ {name:"Authorized League A"}),1,
+ "club A can still edit its own league");
+const playerLeague=await rest("player","leagues","POST","",{
+ id:leagueE,name:"Should not exist"
+});
+assert.equal(playerLeague.status,403,"ordinary player must not create a league");
+
+const newLeague=await rest("organizer","leagues","POST","",{
+ id:leagueD,name:"Legitimate new league"
+});
+assert.equal(newLeague.status,201,"existing admin league creation via REST must survive");
+const newMembership=await rest("organizer","league_clubs","POST","",{
+ league_id:leagueD,club_id:clubA,is_primary:true
+});
+assert.equal(newMembership.status,201,"existing UI primary club linkage must survive");
+assert.equal(sql("SELECT count(*) FROM public.league_clubs WHERE league_id="+safe(leagueD)+
+ " AND is_primary"),"1");
+const unauthenticatedRead=await rest(null,"leagues","GET",
+ "?select=id,name&order=id.asc");
+expectRows(unauthenticatedRead,4,"public league list remains readable");
+
+const superJoin=await rest("superadmin","league_clubs","POST","",{
+ league_id:leagueC,club_id:clubB,is_primary:false
+});
+assert.equal(superJoin.status,201,"superadmin retains cohost repair ability");
+expectRows(await rest("organizer","league_clubs","PATCH",
+ "?league_id=eq."+leagueA+"&club_id=eq."+clubA,
+ {is_primary:false}),0,
+ "primary club admin cannot disable own main membership");
+assert.equal(sql("SELECT count(*) FROM public.league_clubs WHERE league_id="+safe(leagueA)+
+ " AND is_primary"),"1");
+console.log("PASS FINAL P1: local GoTrue/PostgREST prevents secondary self-join, foreign league edits and orphaned primary while keeping admin creation");
+
