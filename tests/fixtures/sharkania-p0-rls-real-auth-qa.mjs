@@ -179,13 +179,34 @@ const oldPlayerLeague=await rest("player","leagues","POST","",{
 });
 assert.equal(oldPlayerLeague.status,201,"old policy lets any logged-in player create a league");
 sql("DELETE FROM public.leagues WHERE id="+safe(leagueE));
-console.log("PASS: P1 reproduced legacy secondary self-join, foreign league edit and player creation");
+const roomA="?league_id=eq."+leagueA+"&room_id=eq.00000000-0000-0000-0000-000000000031";
+const oldRoom=await rest("player","league_rooms","POST","",{
+ league_id:leagueA,room_id:"00000000-0000-0000-0000-000000000032"
+});
+assert.equal(oldRoom.status,201,"old policy lets ordinary player insert room into foreign league");
+sql("DELETE FROM public.league_rooms WHERE league_id="+safe(leagueA)+
+ " AND room_id='00000000-0000-0000-0000-000000000032'::uuid");
+console.log("PASS: P1 reproduced legacy secondary self-join, foreign league edit, player creation and room insertion");
 
 execFileSync("psql",["-X","-v","ON_ERROR_STOP=1","-d","postgres",
  "-f","docs/security/league-membership-ownership-p1-2026-11-07.qa-only.sql"],
  {encoding:"utf8",timeout:12000,stdio:"pipe"});
 sql("NOTIFY pgrst, 'reload schema'");
 await new Promise(resolve=>setTimeout(resolve,1200));
+
+const blockedRoom=await rest("player","league_rooms","POST","",{
+ league_id:leagueA,room_id:"00000000-0000-0000-0000-000000000032"
+});
+assert.equal(blockedRoom.status,403,"ordinary player cannot insert rooms in foreign league");
+expectRows(await rest("player","league_rooms","DELETE",roomA),0,
+ "ordinary player cannot delete a league room");
+expectRows(await rest("secondary","league_rooms","DELETE",roomA),0,
+ "secondary club cannot delete organizer room");
+const deniedSecondaryRoom=await rest("secondary","league_rooms","POST","",{
+ league_id:leagueA,room_id:"00000000-0000-0000-0000-000000000032"
+});
+assert.equal(deniedSecondaryRoom.status,403,
+ "secondary cannot insert room into foreign primary league");
 
 const blockedJoin=await rest("secondary","league_clubs","POST","",{
  league_id:leagueC,club_id:clubB,is_primary:false
@@ -215,6 +236,13 @@ const playerLeague=await rest("player","leagues","POST","",{
 });
 assert.equal(playerLeague.status,403,"ordinary player must not create a league");
 
+expectRows(await rest("organizer","league_rooms","DELETE",roomA),1,
+ "primary organizer can delete own league room");
+const authorizedRoom=await rest("organizer","league_rooms","POST","",{
+ league_id:leagueA,room_id:"00000000-0000-0000-0000-000000000032"
+});
+assert.equal(authorizedRoom.status,201,
+ "primary organizer can insert replacement league room");
 const newLeague=await rest("organizer","leagues","POST","",{
  id:leagueD,name:"Legitimate new league"
 });
@@ -239,5 +267,5 @@ expectRows(await rest("organizer","league_clubs","PATCH",
  "primary club admin cannot disable own main membership");
 assert.equal(sql("SELECT count(*) FROM public.league_clubs WHERE league_id="+safe(leagueA)+
  " AND is_primary"),"1");
-console.log("PASS FINAL P1: local GoTrue/PostgREST prevents secondary self-join, foreign league edits and orphaned primary while keeping admin creation");
+console.log("PASS FINAL P1: local GoTrue/PostgREST protects membership, metadata and rooms without breaking legitimate admin creation or room editing");
 
