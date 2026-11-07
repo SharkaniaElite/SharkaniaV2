@@ -1,12 +1,15 @@
 name: QA P0 Standings RLS — synthetic only
 on:
   pull_request:
-    branches: [main]
+    branches: [main, security/p0-league-standings-rls-2026-11-07]
     paths:
       - "docs/security/league-standings-rls-p0-2026-11-07.qa-only.sql"
       - "tests/fixtures/sharkania-p0-league-standings-rls-qa.sql"
       - "tests/fixtures/sharkania-p0-standings-legacy-compat-qa.sql"
       - "tests/league-standings-p0-rls-contract.test.mjs"
+      - "tests/fixtures/sharkania-p1-league-membership-rls-qa.sql"
+      - "tests/league-membership-ownership-p1-contract.test.mjs"
+      - "docs/security/league-membership-ownership-p1-2026-11-07.qa-only.sql"
       - ".github/workflows/qa-p0-league-standings-rls.yml"
   workflow_dispatch:
 permissions:
@@ -43,6 +46,8 @@ jobs:
           fi
       - name: Enforce safe and bounded authorization policy contract
         run: node --test tests/league-standings-p0-rls-contract.test.mjs
+      - name: Validate P1 authorization and legacy admin flow contract
+        run: node --test tests/league-membership-ownership-p1-contract.test.mjs
       - name: Reproduce permissive RLS then test primary-admin-only replacement and full rollback
         run: |
           set -euo pipefail
