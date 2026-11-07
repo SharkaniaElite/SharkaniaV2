@@ -303,11 +303,11 @@ BEGIN
 
   INSERT INTO public.leagues(
     name,description,rules_url,start_date,end_date,status,
-    scoring_system_id,total_dates,best_dates_to_count,slug
+    scoring_system_id,total_dates,best_dates_to_count,slug,is_demo
   )
   SELECT v_name,l.description,l.rules_url,l.start_date,l.end_date,
          'upcoming',l.scoring_system_id,l.total_dates,
-         l.best_dates_to_count,v_slug
+         l.best_dates_to_count,v_slug,l.is_demo
   FROM public.leagues l WHERE l.id=p_source_league_id
   RETURNING id INTO v_new;
 
