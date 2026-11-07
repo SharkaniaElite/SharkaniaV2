@@ -10,6 +10,40 @@
 -- Long-term guarded RPC cutover should revoke direct DML entirely.
 -- All SQL runs inside the caller's transaction in the isolated QA fixture.
 
+-- Fail closed if the policy landscape has changed since the
+-- SELECT-only catalog audit. PostgreSQL PERMISSIVE policies combine by OR,
+-- so overlooking a new broad write policy would invalidate this mitigation.
+DO $audit$
+DECLARE v_expected integer;
+BEGIN
+ SELECT count(*) INTO v_expected FROM pg_catalog.pg_policies
+ WHERE schemaname='public' AND tablename='league_standings'
+   AND policyname IN (
+     'Permitir actualizar a usuarios autenticados',
+     'Permitir eliminar a usuarios autenticados',
+     'Permitir insertar a usuarios autenticados');
+ IF v_expected<>3 THEN
+  RAISE EXCEPTION 'STOP: legacy standings policy landscape changed'
+   USING ERRCODE='PT409';
+ END IF;
+ IF EXISTS (
+  SELECT 1 FROM pg_catalog.pg_policies
+  WHERE schemaname='public' AND tablename='league_standings'
+    AND cmd IN ('INSERT','UPDATE','DELETE')
+    AND policyname NOT IN (
+      'Permitir actualizar a usuarios autenticados',
+      'Permitir eliminar a usuarios autenticados',
+      'Permitir insertar a usuarios autenticados',
+      'Standings: super admin insert',
+      'Standings: super admin update',
+      'Standings: super admin delete')
+ ) THEN
+  RAISE EXCEPTION 'STOP: unreviewed standings write policy detected'
+   USING ERRCODE='PT409';
+ END IF;
+END;
+$audit$;
+
 -- Defense in depth against a legacy secondary club self-promoting to
 -- primary via an unrelated permissive league_clubs policy. A league must not
 -- acquire two primary clubs. Uses the same index name as PR #65 to avoid a
