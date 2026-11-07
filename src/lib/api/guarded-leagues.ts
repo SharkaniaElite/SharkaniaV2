@@ -10,6 +10,19 @@ import { supabase } from "../supabase";
 export const GUARDED_LEAGUE_RPC_ENABLED =
   import.meta.env.VITE_LEAGUE_GUARDED_RPC === "true";
 
+/** Returned only when a guarded RPC detects a league slug collision. */
+export class GuardedLeagueSlugConflictError extends Error {
+  constructor() {
+    super("Ya existe una liga con esa URL.");
+    this.name = "GuardedLeagueSlugConflictError";
+  }
+}
+
+function isSlugConflict(code: string | undefined, message: string | undefined) {
+  return (code === "PT409" && /slug|URL/i.test(message ?? "")) ||
+    (code === "23505" && /idx_leagues_slug|leagues_slug/i.test(message ?? ""));
+}
+
 const UUID_PATTERN =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
@@ -102,8 +115,11 @@ export async function saveLeagueGuarded(input: {
     p_room_ids: [...input.roomIds],
   });
   if (error) {
+    if (isSlugConflict(error.code, error.message)) {
+      throw new GuardedLeagueSlugConflictError();
+    }
     if (error.code === "PT409" || error.code === "23505") {
-      throw new Error("Ya existe una liga con esa URL o se produjo un conflicto de edición.");
+      throw new Error("Conflicto al guardar la liga. Comprueba su estado antes de reintentar.");
     }
     if (error.code === "42501") {
       throw new Error("No tienes autorización sobre el club organizador de esta liga.");
@@ -140,6 +156,12 @@ export async function duplicateLeagueGuarded(
     p_new_slug: cleanSlug,
   });
   if (error) {
+    if (isSlugConflict(error.code, error.message)) {
+      throw new GuardedLeagueSlugConflictError();
+    }
+    if (error.code === "42501") {
+      throw new Error("Solo el administrador del club organizador puede duplicar la liga.");
+    }
     throw new Error("No se pudo duplicar la liga. Comprueba la propiedad, los permisos y la URL.");
   }
   if (typeof data !== "string" || !UUID_PATTERN.test(data)) {
