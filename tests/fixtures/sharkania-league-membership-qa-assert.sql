@@ -265,6 +265,7 @@ BEGIN
       AND l.start_date='2026-11-01' AND l.end_date='2026-12-01'
       AND l.scoring_system_id='00000000-0000-0000-0000-000000000061'
       AND l.total_dates=9 AND l.best_dates_to_count=5
+      AND l.is_demo IS TRUE
   ) OR (SELECT count(*) FROM public.league_clubs lc
         WHERE lc.league_id=v_clone)<>1
     OR NOT EXISTS (
