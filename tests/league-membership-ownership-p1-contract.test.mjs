@@ -7,12 +7,12 @@ test("P1 fail-closed on unknown old policy or absent P0 unique primary index",()
  assert.match(sql,/STOP: P0 unique primary index missing/);
  assert.match(sql,/old league membership\/ownership policies have changed/);
  assert.match(sql,/unreviewed league write policy exists/);
- assert.match(sql,/v_expected|n<>6/);
+ assert.match(sql,/v_expected|n<>8/);
 });
-test("P1 removes all six broad policies and creates only 6 role-scoped replacements",()=>{
- assert.equal((sql.match(/^DROP POLICY "/gm)||[]).length,6);
- assert.equal((sql.match(/^CREATE POLICY /gm)||[]).length,6);
- assert.equal((sql.match(/ FOR (?:INSERT|UPDATE|DELETE) TO authenticated/g)||[]).length,6);
+test("P1 removes all eight broad policies and creates only 8 role-scoped replacements",()=>{
+ assert.equal((sql.match(/^DROP POLICY "/gm)||[]).length,8);
+ assert.equal((sql.match(/^CREATE POLICY /gm)||[]).length,8);
+ assert.equal((sql.match(/ FOR (?:INSERT|UPDATE|DELETE) TO authenticated/g)||[]).length,8);
  assert.doesNotMatch(sql,/CREATE UNIQUE INDEX|ALTER TABLE|CREATE TRIGGER|UPDATE public\.league_standings/);
 });
 test("no N+1 standings authorization; primary only for league edit and delete",()=>{
@@ -29,4 +29,8 @@ test("old legitimate admin web form can create a league and its primary membersh
  assert.match(qa,/secondary self-join rejected/);
  assert.match(qa,/secondary cannot self-join, edit foreign league, or remove primary/);
  assert.match(qa,/superadmin still can repair league membership/);
+ assert.match(qa,/ordinary player room INSERT blocked/);
+ assert.match(qa,/primary A cannot delete own rooms/);
+ assert.match(sql,/CREATE POLICY league_rooms_primary_insert_p1/);
+ assert.match(sql,/CREATE POLICY league_rooms_primary_delete_p1/);
 });
