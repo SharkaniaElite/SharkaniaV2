@@ -51,6 +51,16 @@ AS $fn$
  WHERE ca.club_id=p_id AND ca.user_id=(SELECT auth.uid()));
 $fn$;
 GRANT SELECT ON public.league_clubs TO anon,authenticated;
+GRANT INSERT,UPDATE,DELETE ON public.league_clubs TO authenticated;
+ALTER TABLE public.league_clubs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "League clubs: lectura publica"
+  ON public.league_clubs FOR SELECT USING (true);
+CREATE POLICY "League clubs: admin update"
+  ON public.league_clubs FOR UPDATE
+  USING (public.is_super_admin() OR public.is_club_admin(club_id));
+CREATE POLICY "League clubs: admin insert"
+  ON public.league_clubs FOR INSERT
+  WITH CHECK (public.is_super_admin() OR public.is_club_admin(club_id));
 GRANT SELECT,INSERT,UPDATE,DELETE ON public.league_standings TO anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.is_super_admin(),public.is_club_admin(uuid) TO anon,authenticated;
 ALTER TABLE public.league_standings ENABLE ROW LEVEL SECURITY;
@@ -89,6 +99,29 @@ END $qa$;
 RESET ROLE;
 UPDATE public.league_standings SET total_points=10;
 
+-- Reproduce a separate old-policy escape hatch before proposing the
+-- narrow unique-primary invariant. Club B can promote itself in league A.
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
+DO $qa$
+DECLARE n integer;
+BEGIN
+ UPDATE public.league_clubs SET is_primary=true
+ WHERE league_id='00000000-0000-0000-0000-000000000041'
+ AND club_id='00000000-0000-0000-0000-000000000022';
+ GET DIAGNOSTICS n=ROW_COUNT;
+ IF n<>1 OR (SELECT count(*) FROM public.league_clubs
+   WHERE league_id='00000000-0000-0000-0000-000000000041'
+     AND is_primary)=1 THEN
+   RAISE EXCEPTION 'FAIL: old secondary promotion vulnerability not reproduced';
+ END IF;
+ RAISE NOTICE 'CONFIRMED QA: secondary club can self-promote and create TWO primaries without constraint';
+ UPDATE public.league_clubs SET is_primary=false
+ WHERE league_id='00000000-0000-0000-0000-000000000041'
+ AND club_id='00000000-0000-0000-0000-000000000022';
+END $qa$;
+RESET ROLE;
+
 -- Apply the reviewable emergency policy only to this disposable database.
 \ir ../../docs/security/league-standings-rls-p0-2026-11-07.qa-only.sql
 DO $qa$
@@ -105,6 +138,28 @@ BEGIN
  THEN RAISE EXCEPTION 'FAIL: expected three primary-organizer policies'; END IF;
  RAISE NOTICE 'PASS: unsafe permissive policies replaced rather than supplemented';
 END $qa$;
+
+-- The old membership UPDATE policy is still permissive, but the new
+-- partial unique index rejects secondary-club self-promotion. This gate
+-- prevents a B admin from making itself a second primary.
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
+DO $qa$
+BEGIN
+ BEGIN
+  UPDATE public.league_clubs SET is_primary=true
+  WHERE league_id='00000000-0000-0000-0000-000000000041'
+    AND club_id='00000000-0000-0000-0000-000000000022';
+  RAISE EXCEPTION 'FAIL: B can still self-promote to second primary';
+ EXCEPTION WHEN unique_violation THEN
+  RAISE NOTICE 'PASS: unique partial index blocks secondary self-promotion';
+ END;
+ IF (SELECT count(*) FROM public.league_clubs
+   WHERE league_id='00000000-0000-0000-0000-000000000041'
+     AND is_primary)<>1
+ THEN RAISE EXCEPTION 'FAIL: primary cardinality was corrupted'; END IF;
+END $qa$;
+RESET ROLE;
 
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000003';
