@@ -164,6 +164,11 @@ BEGIN
 END;
 $qa$;
 
--- Apply patch only in this isolated temporary QA PostgreSQL database.
-\ir ../../docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql
-SELECT 'PASS: league security proposal compiled in PostgreSQL QA' AS status;
+-- CI can intentionally retain the old policies to prove fail-closed
+-- behavior against a P1/unknown policy. Otherwise test the guarded cutover.
+\if :{?QA_SKIP_CUTOVER}
+  \echo 'QA: legacy policy baseline retained for negative preflight test'
+\else
+  \ir ../../docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql
+  SELECT 'PASS: league security proposal compiled in PostgreSQL QA' AS status;
+\endif
