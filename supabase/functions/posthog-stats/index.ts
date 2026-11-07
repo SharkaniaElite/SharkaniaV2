@@ -80,6 +80,7 @@ serve(async (req: Request) => {
       "topK(3)(properties.$device_type) as v_devices",
       "FROM events",
       "WHERE event = '$pageview'",
+      "AND properties.$host IN ('sharkania.com', 'www.sharkania.com')",
       "AND timestamp > now() - INTERVAL " + rangeMap[range],
       "AND properties.$current_url NOT LIKE '%localhost%'",
       "AND properties.$current_url NOT LIKE '%127.0.0.1%'",
