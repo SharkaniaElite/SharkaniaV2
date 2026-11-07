@@ -497,6 +497,129 @@ $qa$;
 RESET ROLE;
 
 
+-- Extra QA: saving unchanged metadata and rooms must NOT rewrite existing
+-- league tuples or delete/reinsert room relationship UUIDs.
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $qa$
+DECLARE
+ v_id uuid := '00000000-0000-0000-0000-000000000041';
+ v_before_tid tid;
+ v_after_tid tid;
+ v_before_room_ids uuid[];
+ v_after_room_ids uuid[];
+ v_meta jsonb;
+ v_name text;
+ v_slug text;
+ v_rooms uuid[];
+ v_primary uuid;
+BEGIN
+ SELECT l.ctid,l.name,l.slug,
+        pg_catalog.jsonb_build_object(
+         'description',l.description,
+         'start_date',l.start_date,'end_date',l.end_date,
+         'rules_url',l.rules_url,'status',l.status,
+         'total_dates',l.total_dates,'best_dates_to_count',l.best_dates_to_count),
+        (SELECT lc.club_id FROM public.league_clubs lc
+         WHERE lc.league_id=l.id AND lc.is_primary)
+ INTO v_before_tid,v_name,v_slug,v_meta,v_primary
+ FROM public.leagues l WHERE l.id=v_id;
+ SELECT pg_catalog.array_agg(lr.id ORDER BY lr.room_id),
+        pg_catalog.array_agg(lr.room_id ORDER BY lr.room_id)
+ INTO v_before_room_ids,v_rooms
+ FROM public.league_rooms lr WHERE lr.league_id=v_id;
+ IF v_primary IS NULL OR v_before_room_ids IS NULL THEN
+   RAISE EXCEPTION 'FAIL: missing synthetic primary or rooms for idempotence';
+ END IF;
+ PERFORM public.save_league_guarded(
+   v_id,v_primary,v_name,v_slug,v_meta,v_rooms);
+ PERFORM public.save_league_guarded(
+   v_id,v_primary,v_name,v_slug,v_meta,v_rooms);
+ SELECT l.ctid INTO v_after_tid FROM public.leagues l WHERE l.id=v_id;
+ SELECT pg_catalog.array_agg(lr.id ORDER BY lr.room_id)
+ INTO v_after_room_ids FROM public.league_rooms lr WHERE lr.league_id=v_id;
+ IF v_before_tid IS DISTINCT FROM v_after_tid OR
+    v_before_room_ids IS DISTINCT FROM v_after_room_ids THEN
+  RAISE EXCEPTION 'FAIL: unchanged league save rewrote metadata or room relationships';
+ END IF;
+ RAISE NOTICE 'PASS: identical guarded save creates zero league tuple changes and keeps room IDs';
+END;
+$qa$;
+
+-- Set-difference test: retain the unchanged room's UUID even as one extra
+-- room gets added then removed. Do not delete/reinsert the shared room.
+DO $qa$
+DECLARE
+ v_id uuid := '00000000-0000-0000-0000-000000000041';
+ v_room_id uuid;
+BEGIN
+ SELECT id INTO v_room_id FROM public.league_rooms WHERE
+ league_id=v_id AND room_id='00000000-0000-0000-0000-000000000032';
+ PERFORM public.set_league_rooms_guarded(v_id,ARRAY[
+  '00000000-0000-0000-0000-000000000031'::uuid,
+  '00000000-0000-0000-0000-000000000032'::uuid]);
+ IF (SELECT id FROM public.league_rooms WHERE league_id=v_id
+  AND room_id='00000000-0000-0000-0000-000000000032') IS DISTINCT FROM v_room_id
+ THEN RAISE EXCEPTION 'FAIL: delta-add rewrote unchanged room'; END IF;
+ PERFORM public.set_league_rooms_guarded(v_id,ARRAY[
+  '00000000-0000-0000-0000-000000000032'::uuid]);
+ PERFORM public.set_league_rooms_guarded(v_id,ARRAY[
+  '00000000-0000-0000-0000-000000000032'::uuid]);
+ IF (SELECT count(*) FROM public.league_rooms WHERE league_id=v_id)<>1
+ OR (SELECT id FROM public.league_rooms WHERE league_id=v_id
+    AND room_id='00000000-0000-0000-0000-000000000032') IS DISTINCT FROM v_room_id
+ THEN RAISE EXCEPTION 'FAIL: delta-remove or no-op set changed stable room ID'; END IF;
+ RAISE NOTICE 'PASS: delta room writes preserve existing relation IDs, including repeated no-op';
+END;
+$qa$;
+RESET ROLE;
+
+-- Force an error AFTER the new league and principal have already been
+-- inserted by the atomic clone RPC. PostgreSQL must roll the entire call
+-- back, including metadata, membership, and room rows.
+CREATE FUNCTION public.qa_force_room_insert_error()
+RETURNS trigger LANGUAGE plpgsql SET search_path TO ''
+AS $qa$
+BEGIN
+ IF NEW.room_id='00000000-0000-0000-0000-000000000032'::uuid
+  AND EXISTS(SELECT 1 FROM public.leagues l WHERE l.id=NEW.league_id
+             AND l.slug='qa-forced-rollback') THEN
+   RAISE EXCEPTION 'QA forced late room failure' USING ERRCODE='PT422';
+ END IF;
+ RETURN NEW;
+END;
+$qa$;
+CREATE TRIGGER qa_force_room_insert_error
+ BEFORE INSERT ON public.league_rooms
+ FOR EACH ROW EXECUTE FUNCTION public.qa_force_room_insert_error();
+
+SET ROLE authenticated;
+SET request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+DO $qa$
+BEGIN
+ BEGIN
+  PERFORM public.duplicate_league_guarded(
+  '00000000-0000-0000-0000-000000000041'::uuid,
+  'Must rollback','qa-forced-rollback');
+  RAISE EXCEPTION 'FAIL: clone accepted a forced late failure';
+ EXCEPTION WHEN SQLSTATE 'PT422' THEN
+  RAISE NOTICE 'PASS: forced late clone room error rolled back entire RPC';
+ END;
+END;
+$qa$;
+RESET ROLE;
+DO $qa$
+BEGIN
+ IF EXISTS (SELECT 1 FROM public.leagues WHERE slug='qa-forced-rollback') THEN
+  RAISE EXCEPTION 'FAIL: failed atomic clone left a partial league'; END IF;
+ RAISE NOTICE 'PASS: forced clone rollback left no orphan league';
+END;
+$qa$;
+DROP TRIGGER qa_force_room_insert_error ON public.league_rooms;
+DROP FUNCTION public.qa_force_room_insert_error();
+
+
+
 DO $qa$
 BEGIN
   IF (SELECT count(*) FROM public.league_rooms
