@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Modal } from "../ui/modal";
 import { supabase } from "../../lib/supabase";
-import { GUARDED_LEAGUE_RPC_ENABLED, saveLeagueGuarded } from "../../lib/api/guarded-leagues";
+import { GuardedLeagueSlugConflictError, GUARDED_LEAGUE_RPC_ENABLED, saveLeagueGuarded } from "../../lib/api/guarded-leagues";
 import { usePokerRooms } from "../../hooks/use-clubs";
 import type { League } from "../../types";
 
@@ -116,40 +116,43 @@ export function LeagueForm({ isOpen, onClose, onSaved, clubId, league }: LeagueF
         if (!isEdit && !baseSlug) {
           throw new Error("El nombre de la liga no genera una URL válida.");
         }
-        let slug = isEdit && league ? league.slug : baseSlug;
-        if (!isEdit) {
-          let found = false;
-          for (let attempt = 0; attempt < 30; attempt++) {
-            slug = attempt ? `${baseSlug}-${attempt}` : baseSlug;
-            const { data, error: lookupError } = await supabase
-              .from("leagues").select("id").eq("slug", slug).maybeSingle();
-            if (lookupError) throw new Error("No se pudo comprobar la URL de la liga.");
-            if (!data) {
-              found = true;
-              break;
+        const slugBase = isEdit && league ? league.slug : baseSlug;
+        const fields = {
+          description: payload.description,
+          start_date: payload.start_date,
+          end_date: payload.end_date,
+          rules_url: payload.rules_url,
+          total_dates: totalDates,
+          best_dates_to_count: bestDates,
+          status: payload.status,
+        };
+
+        // Optimized: ONE atomic RPC in the common case, with no browser
+        // SELECT for checking slug availability. The server's unique index
+        // settles collisions safely, and only collisions cause a retry.
+        let saved = false;
+        for (let attempt = 0; attempt < (isEdit ? 1 : 30); attempt++) {
+          const slug = attempt ? `${slugBase}-${attempt}` : slugBase;
+          try {
+            await saveLeagueGuarded({
+              leagueId: isEdit && league ? league.id : null,
+              primaryClubId: clubId,
+              name: form.name,
+              slug,
+              fields,
+              roomIds: form.room_ids,
+            });
+            saved = true;
+            break;
+          } catch (saveError) {
+            if (!(saveError instanceof GuardedLeagueSlugConflictError) || isEdit) {
+              throw saveError;
             }
           }
-          if (!found) throw new Error("No hay una URL libre para esa liga.");
         }
-
-        // One server transaction: metadata, primary club and rooms.
-        // Never fall back to legacy browser INSERT/UPDATE/DELETE on failure.
-        await saveLeagueGuarded({
-          leagueId: isEdit && league ? league.id : null,
-          primaryClubId: clubId,
-          name: form.name,
-          slug,
-          fields: {
-            description: payload.description,
-            start_date: payload.start_date,
-            end_date: payload.end_date,
-            rules_url: payload.rules_url,
-            total_dates: totalDates,
-            best_dates_to_count: bestDates,
-            status: payload.status,
-          },
-          roomIds: form.room_ids,
-        });
+        if (!saved) {
+          throw new Error("No hay una URL libre para esta liga. Prueba con otro nombre.");
+        }
         onSaved();
         onClose();
         return;
