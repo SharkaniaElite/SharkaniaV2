@@ -130,6 +130,19 @@ export function ClubAdminPage() {
   const { data: leagues } = useQuery({
     queryKey: ["club-leagues-full", firstClubId],
     queryFn: async () => {
+      // With guarded RPC disabled, preserve the exact legacy REST query and
+      // rendering contract. Extra joins are only needed for the future cutover.
+      if (!GUARDED_LEAGUE_RPC_ENABLED) {
+        const { data, error } = await supabase
+          .from("league_clubs")
+          .select("leagues(*)")
+          .eq("club_id", firstClubId!);
+        if (error) throw error;
+        return (data ?? [])
+          .flatMap((d: any) => d.leagues)
+          .filter(Boolean) as unknown as AdminLeague[];
+      }
+
       const { data, error } = await supabase
         .from("league_clubs")
         .select("is_primary, leagues(*, league_clubs(club_id, is_primary))")
