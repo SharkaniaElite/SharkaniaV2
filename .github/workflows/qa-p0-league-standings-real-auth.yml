@@ -1,0 +1,83 @@
+name: QA P0 Standings RLS — real GoTrue and PostgREST local
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/qa-p0-league-standings-real-auth.yml"
+      - "docs/security/league-standings-rls-p0-2026-11-07.qa-only.sql"
+      - "tests/fixtures/sharkania-p0-rls-real-auth-setup.sql"
+      - "tests/fixtures/sharkania-p0-rls-real-auth-qa.mjs"
+      - "package-lock.json"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-real-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "25422"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      QA_SUPABASE_URL: http://127.0.0.1:25421
+      SUPABASE_API_PORT: "25421"
+      SUPABASE_DB_PORT: "25422"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install pinned Supabase tooling and psql
+        run: |
+          npm ci
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Initialize unlinked ephemeral local Supabase Auth and REST
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/sharkania-p0-rls-stack"
+          cd "$RUNNER_TEMP/sharkania-p0-rls-stack"
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" init
+          if ! "$GITHUB_WORKSPACE/node_modules/.bin/supabase" start \
+            --exclude realtime,storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor,postgres-meta \
+            >"$RUNNER_TEMP/p0-local-start.log" 2>&1; then
+            grep -Ei 'error|fatal|failed|timeout|docker' "$RUNNER_TEMP/p0-local-start.log" |
+              grep -Eiv 'secret|token|key|password|credential' | tail -25 || true
+            exit 1
+          fi
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" status -o env > "$RUNNER_TEMP/p0-local-vars.env"
+          api_url=$(sed -n 's/^API_URL=//p' "$RUNNER_TEMP/p0-local-vars.env" | tr -d '"')
+          [[ "$GITHUB_ACTIONS" == "true" && "$api_url" == "$QA_SUPABASE_URL" ]] || {
+            echo "STOP: only local Supabase API endpoint accepted"; exit 1;
+          }
+          for key in ANON_KEY SERVICE_ROLE_KEY; do
+            value=$(sed -n "s/^$key=//p" "$RUNNER_TEMP/p0-local-vars.env" | tr -d '"')
+            [[ -n "$value" ]] || { echo "STOP: no local key for $key"; exit 1; }
+            echo "::add-mask::$value"
+            echo "QA_SUPABASE_$key=$value" >> "$GITHUB_ENV"
+          done
+          chmod 600 "$RUNNER_TEMP/p0-local-vars.env"
+          echo "PASS: local-only Auth and PostgREST ready"
+      - name: Load fake public tables and old policies in local Postgres
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "25422" ]] || {
+            echo "STOP: cannot load test fixture against any remote DB"; exit 1;
+          }
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-p0-rls-real-auth-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
+          sleep 2
+      - name: Verify legacy vulnerability and P0 patch with genuine GoTrue sessions over REST
+        run: node tests/fixtures/sharkania-p0-rls-real-auth-qa.mjs
+      - name: Stop ephemeral local Supabase
+        if: always()
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP/sharkania-p0-rls-stack" || exit 0
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" stop --no-backup >/dev/null 2>&1 || true
