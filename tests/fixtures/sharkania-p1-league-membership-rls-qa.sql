@@ -55,9 +55,7 @@ CREATE POLICY "Leagues: admin o super eliminar"
  public.is_super_admin() OR EXISTS(
   SELECT 1 FROM public.league_clubs lc
   WHERE lc.league_id=leagues.id AND public.is_club_admin(lc.club_id)));
-CREATE POLICY "League clubs: admin insert"
- ON public.league_clubs FOR INSERT WITH CHECK (
- public.is_super_admin() OR public.is_club_admin(club_id));
+-- Old INSERT and UPDATE policies come from the P0 fixture; only DELETE is missing here.
 CREATE POLICY "League clubs: admin delete"
  ON public.league_clubs FOR DELETE USING (
  public.is_super_admin() OR public.is_club_admin(club_id));
