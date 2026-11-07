@@ -39,3 +39,7 @@ test("legacy results mutations are explicitly fenced if guarded flag becomes act
  assert.match(editor, /GUARDED_LEAGUE_RPC_ENABLED && tournament\.league_id/);
  assert.match(bulk, /GUARDED_LEAGUE_RPC_ENABLED/);
 });
+test("legacy flag-off renders the original league query without guarded joins", () => {
+ assert.match(club, /if \(!GUARDED_LEAGUE_RPC_ENABLED\) \{[\s\S]*?\.select\("leagues\(\*\)"\)/);
+ assert.match(club, /\.select\("is_primary, leagues\(\*, league_clubs\(club_id, is_primary\)\)"\)/);
+});
