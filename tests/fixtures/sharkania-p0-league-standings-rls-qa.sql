@@ -263,6 +263,7 @@ BEGIN
  RAISE NOTICE 'PASS: anon cannot write but can read public standings';
 END $qa$;
 RESET ROLE;
+\ir sharkania-p0-standings-legacy-compat-qa.sql
 ROLLBACK;
 DO $qa$
 BEGIN
