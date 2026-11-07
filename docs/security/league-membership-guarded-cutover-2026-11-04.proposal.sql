@@ -223,9 +223,17 @@ BEGIN
              WHERE NOT EXISTS (SELECT 1 FROM public.poker_rooms r WHERE r.id=x.id)) THEN
     RAISE EXCEPTION 'Unknown poker room' USING ERRCODE='PT422';
   END IF;
-  DELETE FROM public.league_rooms WHERE league_id=p_league_id;
+  -- Set difference avoids row churn, WAL and new relationship UUIDs
+  -- when the administrator submits an unchanged room selection.
+  DELETE FROM public.league_rooms lr
+  WHERE lr.league_id=p_league_id
+    AND NOT (lr.room_id = ANY(v_rooms));
   INSERT INTO public.league_rooms(league_id,room_id)
-  SELECT p_league_id,x.id FROM pg_catalog.unnest(v_rooms) AS x(id);
+  SELECT p_league_id,x.id FROM pg_catalog.unnest(v_rooms) AS x(id)
+  WHERE NOT EXISTS (
+    SELECT 1 FROM public.league_rooms lr
+    WHERE lr.league_id=p_league_id AND lr.room_id=x.id
+  );
   RETURN v_n;
 END;
 $func$;
@@ -453,6 +461,8 @@ BEGIN
       RAISE EXCEPTION 'Slug changes require a separate authorized flow'
         USING ERRCODE='PT422';
     END IF;
+    -- Do not generate UPDATE/WAL for an unchanged form submission.
+    -- This also avoids firing updated_at triggers unnecessarily.
     UPDATE public.leagues l SET
       name=v_name,description=nullif(v_fields->>'description',''),
       start_date=(v_fields->>'start_date')::date,
@@ -460,12 +470,27 @@ BEGIN
       rules_url=nullif(v_fields->>'rules_url',''),
       total_dates=v_total,best_dates_to_count=v_best,
       status=(v_fields->>'status')::public.league_status
-    WHERE l.id=v_league;
+    WHERE l.id=v_league
+      AND (l.name,l.description,l.start_date,l.end_date,l.rules_url,
+           l.total_dates,l.best_dates_to_count,l.status)
+      IS DISTINCT FROM
+          (v_name,nullif(v_fields->>'description',''),
+           (v_fields->>'start_date')::date,
+           (v_fields->>'end_date')::date,
+           nullif(v_fields->>'rules_url',''),
+           v_total,v_best,(v_fields->>'status')::public.league_status);
   END IF;
 
-  DELETE FROM public.league_rooms lr WHERE lr.league_id=v_league;
+  -- Delta-only room writes: existing rows keep their IDs and no WAL is
+  -- generated merely by submitting the same room list again.
+  DELETE FROM public.league_rooms lr
+  WHERE lr.league_id=v_league AND NOT (lr.room_id = ANY(v_rooms));
   INSERT INTO public.league_rooms(league_id,room_id)
-  SELECT v_league,x.id FROM pg_catalog.unnest(v_rooms) AS x(id);
+  SELECT v_league,x.id FROM pg_catalog.unnest(v_rooms) AS x(id)
+  WHERE NOT EXISTS(
+    SELECT 1 FROM public.league_rooms lr
+    WHERE lr.league_id=v_league AND lr.room_id=x.id
+  );
   RETURN v_league;
 END;
 $func$;
