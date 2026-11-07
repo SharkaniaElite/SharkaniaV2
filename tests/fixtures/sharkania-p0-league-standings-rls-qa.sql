@@ -12,7 +12,7 @@ $fn$;
 CREATE FUNCTION auth.role() RETURNS text
 LANGUAGE sql STABLE SET search_path TO ''
 AS $fn$ SELECT current_user::text; $fn$;
-GRANT USAGE ON SCHEMA auth TO anon,authenticated;
+GRANT USAGE ON SCHEMA auth,public TO anon,authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid(),auth.role() TO anon,authenticated;
 
 CREATE TABLE public.profiles(id uuid PRIMARY KEY,role text NOT NULL);
