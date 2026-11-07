@@ -10,7 +10,7 @@ test("the P0 migration is the original one-time fail-closed transaction", () => 
   assert.match(sql, /SET LOCAL lock_timeout=/);
   assert.match(sql, /SET LOCAL statement_timeout=/);
   assert.match(sql, /5789/);
-  assert.match(sql, /cnt<>41/);
+  assert.match(sql, /n<>41/);
   assert.match(sql, /index preexists, review its exact definition/);
   assert.match(sql, /legacy standings policy landscape changed/);
   assert.match(sql, /unreviewed standings write policy detected/);
