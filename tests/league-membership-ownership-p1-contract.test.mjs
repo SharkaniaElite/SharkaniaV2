@@ -25,7 +25,7 @@ test("no N+1 standings authorization; primary only for league edit and delete",(
 test("old legitimate admin web form can create a league and its primary membership",()=>{
  assert.match(sql,/is_primary IS TRUE AND public\.is_club_admin\(club_id\)/);
  assert.match(sql,/SELECT 1 FROM public\.club_admins ca/);
- assert.match(qa,/current club admin two-step league creation and edit still work/);
+ assert.match(qa,/current club admin two-step league creation and room edit still work/);
  assert.match(qa,/secondary self-join rejected/);
  assert.match(qa,/secondary cannot self-join, edit foreign league, or remove primary/);
  assert.match(qa,/superadmin still can repair league membership/);
