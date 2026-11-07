@@ -96,6 +96,7 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
           psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f tests/fixtures/sharkania-league-atomic-first-upload-qa.sql
           psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f tests/fixtures/sharkania-league-atomic-volume-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_atomic -f tests/fixtures/sharkania-league-standings-volume-explain-qa.sql
       - name: Verify genuine two-session duplicate and league publication concurrency
         shell: bash
         run: |
@@ -108,7 +109,9 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
           psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql
           psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f docs/security/league-legacy-destructive-delete-fence-2026-11-06.qa-only.sql
           PGDATABASE=qa_league_race node tests/fixtures/sharkania-league-atomic-concurrency-qa.mjs
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f tests/fixtures/sharkania-league-legacy-writer-integration-qa.sql
       - name: Compare duplicate standings indexes and constraint safety with EXPLAIN on 25k synthetic rows
         run: |
           psql -X -v ON_ERROR_STOP=1 -d qa_league_race -f tests/fixtures/sharkania-standings-index-qa.sql
