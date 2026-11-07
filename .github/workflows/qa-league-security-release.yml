@@ -75,6 +75,35 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-setup.sql
       - name: Verify roles, creation, editing, sharing, cloning and safe empty-only deletion
         run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-membership-qa-assert.sql
+      - name: QA fail-closed cutover refuses extra P1 policy and missing legacy policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_ACTIONS}" == "true" && "${PGHOST}" == "127.0.0.1" ]] || exit 1
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "CREATE DATABASE qa_league_cutover_conflict;"
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -d qa_league_cutover_conflict -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_cutover_conflict -c "CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE;"
+          # This exact P1 policy name is deliberately added on the disposable DB only.
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_cutover_conflict -c "CREATE POLICY leagues_primary_update_p1 ON public.leagues FOR UPDATE TO authenticated USING (true) WITH CHECK (true);"
+          set +e
+          output=$(psql -X -v ON_ERROR_STOP=1 -d qa_league_cutover_conflict -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql 2>&1)
+          code=$?
+          set -e
+          if [[ "$code" -eq 0 || "$output" != *"STOP: unreviewed league write policy exists"* ]]; then
+            printf '%s\n' "$output"; echo "FAIL: P1 policy was not rejected before cutover"; exit 1
+          fi
+          [[ "$(psql -X -At -d qa_league_cutover_conflict -c "SELECT count(*) FROM pg_policies WHERE schemaname='public' AND policyname='leagues_primary_update_p1';")" == "1" ]]
+          [[ "$(psql -X -At -d qa_league_cutover_conflict -c "SELECT count(*) FROM pg_proc WHERE proname='save_league_guarded' AND pronamespace='public'::regnamespace;")" == "0" ]]
+          # A P1 migration already applied would also remove the old names.
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_cutover_conflict -c 'DROP POLICY "Leagues: admin puede crear" ON public.leagues;'
+          set +e
+          output=$(psql -X -v ON_ERROR_STOP=1 -d qa_league_cutover_conflict -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql 2>&1)
+          code=$?
+          set -e
+          if [[ "$code" -eq 0 || "$output" != *"STOP: legacy league policies changed"* ]]; then
+            printf '%s\n' "$output"; echo "FAIL: missing legacy baseline was not rejected"; exit 1
+          fi
+          echo "PASS: Release A requires explicit P1 reconciliation and preserves the existing catalog on preflight failure"
       - name: Reproduce cross-league tournament assignment under inherited club-only policy (ROLLBACK)
         run: psql -v ON_ERROR_STOP=1 -d qa_league_auth -f tests/fixtures/sharkania-league-tournament-link-risk-qa.sql
       - name: Verify protected tournament-league association with mock Auth, RLS and full rollback
