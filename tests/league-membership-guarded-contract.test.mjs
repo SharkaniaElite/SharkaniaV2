@@ -174,3 +174,22 @@ test("guarded league forms avoid existence reads, clone is disclosed, and unchan
   assert.match(fixture, /forced late clone room error rolled back entire RPC/);
   assert.match(fixture, /forced clone rollback left no orphan league/);
 });
+
+
+test("Release A fails closed if interim P1 or unknown league writes are present", () => {
+  assert.match(sql, /DO \$league_cutover_preflight\$/);
+  assert.match(sql, /STOP: legacy league policies changed/);
+  assert.match(sql, /STOP: unreviewed league write policy exists/);
+  assert.match(sql, /STOP: league has missing or multiple primary clubs/);
+  assert.match(sql, /league_rooms' AND policyname IN[\s\S]*?League rooms: super admin update/);
+  assert.match(sql, /cmd IN \('ALL','INSERT','UPDATE','DELETE'\)/);
+  assert.ok(
+    sql.indexOf("DO $league_cutover_preflight$") <
+      sql.indexOf("DROP POLICY IF EXISTS"),
+    "Catalog preflight must happen before any policy/privilege mutation",
+  );
+  assert.match(workflow, /qa_league_cutover_conflict/);
+  assert.match(workflow, /CREATE POLICY leagues_primary_update_p1/);
+  assert.match(workflow, /STOP: unreviewed league write policy exists/);
+  assert.match(workflow, /STOP: legacy league policies changed/);
+});
