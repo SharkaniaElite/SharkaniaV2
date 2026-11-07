@@ -50,8 +50,22 @@ Se inspeccionó `main`: `applyLeaguePoints` hace SELECT/INSERT/UPDATE por jugado
 5. Vigilar errores RLS, latencia y número de consultas mediante observabilidad. No habilitar comprobaciones/EXPLAIN ANALYZE de escritura a través de la API productiva. Si aparecen errores, **rollback seguro sin restablecer las tres políticas amplias**: congelar escrituras de standings temporalmente y trabajar con admins autorizados mientras se corrige la compatibilidad.
 6. Mantener PR #65 aparte: sus vallas para `league_clubs` impiden autoinscripción y cambios de liga no autorizados. El índice propuesto aquí **no cierra todas** las vulnerabilidades de `league_clubs`, `leagues`, RPC viejas ni resultados CSV.
 
+## Prueba adicional con GoTrue y PostgREST reales en Supabase local
+
+`.github/workflows/qa-p0-league-standings-real-auth.yml` levanta una instancia **efímera, desvinculada y limitada a 127.0.0.1** de Supabase Auth + API REST. `tests/fixtures/sharkania-p0-rls-real-auth-setup.sql` prepara únicamente tablas/ligas/jugadores ficticios; `tests/fixtures/sharkania-p0-rls-real-auth-qa.mjs` crea cuatro cuentas de prueba reales en GoTrue y utiliza JWT y HTTP a PostgREST.
+
+La [ejecución aislada de GitHub Actions](https://github.com/SharkaniaElite/SharkaniaV2/actions/runs/42403476103) terminó **PASS**:
+
+- Reprodujo por HTTP que una cuenta ordinaria podía modificar puntos ajenos bajo la RLS antigua.
+- Reprodujo la autopromoción del club secundario bajo la política de membresía antigua y luego la anuló en el entorno de prueba.
+- Aplicó el SQL P0 **solo en el Supabase local**, confirmó el índice único parcial y las restricciones por liga.
+- Verificó GET público; INSERT/UPDATE/DELETE de jugador común bloqueados; secundario bloqueado en liga ajena, permitido en la propia; principal autorizado solo en su liga; WITH CHECK impide transferir posiciones; superadministrador conserva acceso; intento de autopromoción rechazado con HTTP 409.
+- No conectó a ninguna URL remota, no utilizó usuarios ni datos reales y no alteró Sharkania productivo.
+
+Esta prueba añade certeza del comportamiento REST y JWT, pero **no sustituye una prueba funcional completa de todas las pantallas actuales**, con ligas compartidas y administradores de distintas organizaciones, ni las comprobaciones de backup/corte productivo.
+
 ## GO / NO GO
 
-**GO QA únicamente.** Aunque los controles de PostgreSQL aprobaron, faltan una prueba de compatibilidad completa en un clon de infraestructura con Auth/PostgREST, evaluación de políticas de administración compartida en casos especiales, aprobación del usuario y un procedimiento operativo respaldado. Hasta entonces: **no merge, no apply_migration, no cambios en base, no release.**
+**GO QA únicamente.** Las pruebas PostgreSQL y **GoTrue/PostgREST locales reales** aprobaron. Todavía faltan revisión funcional de todas las pantallas administrativas y casos de ligas compartidas, aprobación explícita del usuario, backups y un procedimiento transaccional de corte y rollback seguro. Hasta entonces: **no merge, no apply_migration, no cambios productivos, no release.**
 
 **Prioridad:** atender esta mitigación P0 antes de ampliar la refactorización ELO. El sistema de rankings actual permanece funcionando sin cambios.
