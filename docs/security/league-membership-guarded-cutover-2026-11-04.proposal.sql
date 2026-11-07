@@ -24,6 +24,81 @@
 -- league_clubs and league_rooms. Do not deploy privileges without parity.
 BEGIN;
 
+-- Fail-closed integration gate. This proposal assumes the eight original
+-- league write policies, plus at most the three known superadmin-only room
+-- policies. PR #80 is an alternative interim RLS strategy: never stack it
+-- blindly with this transactional Release A cutover. P0 standings RLS and its
+-- unique primary index are intentionally preserved.
+DO $league_cutover_preflight$
+DECLARE
+  v_expected integer;
+  v_unreviewed text;
+BEGIN
+  IF NOT (SELECT relrowsecurity FROM pg_class
+          WHERE oid='public.leagues'::regclass)
+    OR NOT (SELECT relrowsecurity FROM pg_class
+            WHERE oid='public.league_clubs'::regclass)
+    OR NOT (SELECT relrowsecurity FROM pg_class
+            WHERE oid='public.league_rooms'::regclass)
+  THEN
+    RAISE EXCEPTION 'STOP: league RLS must be enabled before Release A'
+      USING ERRCODE='PT409';
+  END IF;
+
+  SELECT count(*) INTO v_expected
+  FROM pg_policies
+  WHERE schemaname='public'
+    AND (
+      (tablename='league_clubs' AND policyname IN
+        ('League clubs: admin insert','League clubs: admin update',
+         'League clubs: admin delete'))
+      OR (tablename='leagues' AND policyname IN
+        ('Leagues: admin puede crear','Leagues: admin o super editar',
+         'Leagues: admin o super eliminar'))
+      OR (tablename='league_rooms' AND policyname IN
+        ('Permitir insertar league_rooms','Permitir borrar league_rooms'))
+    );
+  IF v_expected <> 8 THEN
+    RAISE EXCEPTION 'STOP: legacy league policies changed; reconcile P1 and Release A before cutover'
+      USING ERRCODE='PT409';
+  END IF;
+
+  SELECT string_agg(format('%I.%I (%s)',tablename,policyname,cmd), ', ')
+  INTO v_unreviewed
+  FROM pg_policies
+  WHERE schemaname='public'
+    AND tablename IN ('league_clubs','leagues','league_rooms')
+    AND cmd IN ('ALL','INSERT','UPDATE','DELETE')
+    AND NOT (
+      (tablename='league_clubs' AND policyname IN
+        ('League clubs: admin insert','League clubs: admin update',
+         'League clubs: admin delete'))
+      OR (tablename='leagues' AND policyname IN
+        ('Leagues: admin puede crear','Leagues: admin o super editar',
+         'Leagues: admin o super eliminar'))
+      OR (tablename='league_rooms' AND policyname IN
+        ('Permitir insertar league_rooms','Permitir borrar league_rooms',
+         'League rooms: super admin insert','League rooms: super admin update',
+         'League rooms: super admin delete'))
+    );
+  IF v_unreviewed IS NOT NULL THEN
+    RAISE EXCEPTION 'STOP: unreviewed league write policy exists: %',
+      v_unreviewed USING ERRCODE='PT409';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.leagues l
+    LEFT JOIN public.league_clubs lc
+      ON lc.league_id=l.id AND lc.is_primary IS TRUE
+    GROUP BY l.id
+    HAVING count(lc.id) <> 1
+  ) THEN
+    RAISE EXCEPTION 'STOP: league has missing or multiple primary clubs'
+      USING ERRCODE='PT409';
+  END IF;
+END;
+$league_cutover_preflight$;
+
 -- The existing leagues were inspected read-only: no league has zero or
 -- multiple primary clubs. Enforce AT MOST one organizer at the DB layer.
 -- Combined with the guarded creation RPC, this also guarantees a primary
