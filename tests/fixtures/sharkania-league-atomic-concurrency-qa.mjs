@@ -91,6 +91,35 @@ assert.equal(query("SELECT count(*) FROM sharkania_release_qa.elo_publication WH
 assert.equal(query("SELECT count(*) FROM public.elo_history WHERE tournament_id='"+
  t1+"'"),"2");
 
+// Real old-editor call order: DELETE results can acquire the result row
+// before its BEFORE DELETE fence tries to lock the parent tournament.
+// Hold that tournament in another transaction to assert the fence waits,
+// then fails closed after the lock is released. No production changes.
+const legacyHolder=psqlSession("qa_legacy_holder",
+  "BEGIN;\nSET LOCAL statement_timeout='12s';\n"+
+  "UPDATE public.tournaments SET status=status WHERE id='"+t1+"';\n"+
+  "\\echo HOLD_legacy\nSELECT pg_sleep(3);\nCOMMIT;\n\\echo HOLDER_COMMITTED\n");
+await until(()=>legacyHolder.out.includes("HOLD_legacy"));
+const oldEditor=psqlSession("qa_legacy_editor",
+  "BEGIN;\nSET LOCAL statement_timeout='12s';\n"+
+  "DO $old$\nBEGIN\n BEGIN\n"+
+  "  DELETE FROM public.tournament_results WHERE tournament_id='"+t1+"';\n"+
+  "  RAISE EXCEPTION 'FAIL: old editor deleted protected results';\n"+
+  " EXCEPTION WHEN SQLSTATE 'PT409' THEN\n"+
+  "  RAISE NOTICE 'PASS: old editor blocked after tournament row lock';\n"+
+  " END;\nEND $old$;\nCOMMIT;\n\\echo LEGACY_REJECTED\n");
+await waitForLock("qa_legacy_editor");
+const [holderDone,editorDone]=await Promise.all([legacyHolder.done,oldEditor.done]);
+assert.match(holderDone.stdout,/HOLDER_COMMITTED/);
+assert.match(editorDone.stdout,/LEGACY_REJECTED/);
+assert.match(editorDone.stderr,/old editor blocked after tournament row lock/);
+assert.equal(query("SELECT count(*) FROM public.tournament_results WHERE tournament_id='"+
+  t1+"'"),"2");
+assert.equal(query("SELECT count(*) FROM public.elo_history WHERE tournament_id='"+
+  t1+"'"),"2");
+console.log("PASS: legacy editor waits for locked tournament, then fails closed without deleting results");
+
+
 query("INSERT INTO public.tournaments (id,club_id,buy_in,league_id,room_id,currency,start_datetime) VALUES "+
  "('"+t2+"','00000000-0000-0000-0000-000000000021',3.30,'"+league+
  "','00000000-0000-0000-0000-000000000031','USD','2026-11-06T20:00:00Z'),"+
