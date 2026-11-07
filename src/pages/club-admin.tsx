@@ -55,6 +55,11 @@ export function ClubAdminPage() {
     );
 
     if (!newName || newName.trim() === "") return;
+    if (GUARDED_LEAGUE_RPC_ENABLED && !window.confirm(
+      "La copia tendrá un nuevo identificador y conservará el club organizador, las reglas y las salas. " +
+      "Los clubes participantes adicionales NO quedarán inscritos automáticamente, y tampoco se copiarán torneos, resultados ni rankings. " +
+      "¿Continuar con la duplicación protegida?"
+    )) return;
 
     setDuplicatingLeague(l.id);
     try {
@@ -62,7 +67,7 @@ export function ClubAdminPage() {
       refresh();
     } catch (err) {
       console.error(err);
-      alert("Error al duplicar la liga. Revisa la consola.");
+      alert(err instanceof Error ? err.message : "No se pudo duplicar la liga.");
     } finally {
       setDuplicatingLeague(null);
     }
