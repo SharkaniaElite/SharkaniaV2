@@ -6,6 +6,7 @@ import { Modal } from "../ui/modal";
 import { calculateElo } from "../../lib/api/elo-engine";
 import { applyLeaguePoints, prepareTournamentForReedit } from "../../lib/api/tournaments"; 
 import { forceRecalculateStandings } from "../../lib/api/leagues";
+import { GUARDED_LEAGUE_RPC_ENABLED } from "../../lib/api/guarded-leagues";
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/cn";
 import {
@@ -184,6 +185,16 @@ export function ResultsUpload({
   };
 
   const handleResolveAndUpload = async () => {
+    // Release A does not ship the authorized standings recalculation RPC yet.
+    // Fail BEFORE resolving/creating players or writing any results/ELO data.
+    if (GUARDED_LEAGUE_RPC_ENABLED && tournament.league_id) {
+      setMessage({
+        text: "La carga de resultados para torneos de liga está pausada hasta habilitar el recálculo seguro de clasificaciones. No se guardaron cambios.",
+        type: "error",
+      });
+      return;
+    }
+
     const validationErrors: string[] = [];
 
     const emptyNicknames = rows.filter((r) => !r.nickname.trim());
