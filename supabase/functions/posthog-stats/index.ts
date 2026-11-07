@@ -72,18 +72,39 @@ serve(async (req: Request) => {
       return json(503, { error: "analytics_unavailable" });
     }
 
+    // Every statistic uses the same production-only events. Count unique
+    // PostHog person IDs instead of repeating pageviews for reloads/visits.
+    // For page rankings, uniqueness applies PER path, not globally.
     const hogqlQuery = [
-      "SELECT",
-      "count(DISTINCT person_id) as v_unique,",
-      "topK(5)(properties.$current_url) as v_pages,",
-      "topK(5)(properties.$geoip_country_name) as v_countries,",
-      "topK(3)(properties.$device_type) as v_devices",
+      "WITH base AS (",
+      "SELECT person_id, properties.$pathname AS page,",
+      "properties.$geoip_country_name AS country,",
+      "properties.$device_type AS device",
       "FROM events",
       "WHERE event = '$pageview'",
+      "AND properties.$host IN ('sharkania.com', 'www.sharkania.com')",
       "AND timestamp > now() - INTERVAL " + rangeMap[range],
       "AND properties.$current_url NOT LIKE '%localhost%'",
       "AND properties.$current_url NOT LIKE '%127.0.0.1%'",
       "AND person.properties.email NOT IN ('duhauandres@gmail.com', 'andresduhau@gmail.com')",
+      ")",
+      "SELECT",
+      "(SELECT uniqExact(person_id) FROM base) AS v_unique,",
+      "(SELECT groupArray(page) FROM (",
+      "SELECT page, uniqExact(person_id) AS unique_people FROM base",
+      "WHERE page IS NOT NULL AND page != ''",
+      "GROUP BY page ORDER BY unique_people DESC, page ASC LIMIT 5",
+      ")) AS v_pages,",
+      "(SELECT groupArray(country) FROM (",
+      "SELECT country, uniqExact(person_id) AS unique_people FROM base",
+      "WHERE country IS NOT NULL AND country != ''",
+      "GROUP BY country ORDER BY unique_people DESC, country ASC LIMIT 5",
+      ")) AS v_countries,",
+      "(SELECT groupArray(device) FROM (",
+      "SELECT device, uniqExact(person_id) AS unique_people FROM base",
+      "WHERE device IS NOT NULL AND device != ''",
+      "GROUP BY device ORDER BY unique_people DESC, device ASC LIMIT 3",
+      ")) AS v_devices",
     ].join(" ");
 
     const posthogResponse = await fetch(
