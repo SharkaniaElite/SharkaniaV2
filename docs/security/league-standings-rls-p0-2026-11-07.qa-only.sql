@@ -10,6 +10,14 @@
 -- Long-term guarded RPC cutover should revoke direct DML entirely.
 -- All SQL runs inside the caller's transaction in the isolated QA fixture.
 
+-- Defense in depth against a legacy secondary club self-promoting to
+-- primary via an unrelated permissive league_clubs policy. A league must not
+-- acquire two primary clubs. Uses the same index name as PR #65 to avoid a
+-- duplicate index (and its redundant disk/WAL costs) on future integration.
+-- Compatibility and current unique-primary data were checked SELECT-only.
+CREATE UNIQUE INDEX IF NOT EXISTS league_clubs_one_primary_per_league_guarded
+ ON public.league_clubs(league_id) WHERE is_primary IS TRUE;
+
 DROP POLICY IF EXISTS "Permitir actualizar a usuarios autenticados"
  ON public.league_standings;
 DROP POLICY IF EXISTS "Permitir eliminar a usuarios autenticados"
@@ -25,11 +33,15 @@ CREATE POLICY standings_primary_guarded_insert_p0
   (SELECT auth.uid()) IS NOT NULL
   AND (
    (SELECT public.is_super_admin())
-   OR EXISTS (
-    SELECT 1 FROM public.league_clubs lc
-    WHERE lc.league_id=league_standings.league_id
-      AND lc.is_primary IS TRUE
-      AND (SELECT public.is_club_admin(lc.club_id))
+   OR league_standings.league_id IN (
+    -- Independent primary-club authorization set is built once per
+    -- statement when PostgreSQL chooses a hashed SubPlan. Do not evaluate
+    -- is_club_admin() once per standings row.
+    SELECT lc.league_id FROM public.league_clubs lc
+    WHERE lc.is_primary IS TRUE
+    GROUP BY lc.league_id
+    HAVING count(*)=1
+       AND pg_catalog.bool_or(public.is_club_admin(lc.club_id))
    )
   )
  );
@@ -42,11 +54,15 @@ CREATE POLICY standings_primary_guarded_update_p0
   (SELECT auth.uid()) IS NOT NULL
   AND (
    (SELECT public.is_super_admin())
-   OR EXISTS (
-    SELECT 1 FROM public.league_clubs lc
-    WHERE lc.league_id=league_standings.league_id
-      AND lc.is_primary IS TRUE
-      AND (SELECT public.is_club_admin(lc.club_id))
+   OR league_standings.league_id IN (
+    -- Independent primary-club authorization set is built once per
+    -- statement when PostgreSQL chooses a hashed SubPlan. Do not evaluate
+    -- is_club_admin() once per standings row.
+    SELECT lc.league_id FROM public.league_clubs lc
+    WHERE lc.is_primary IS TRUE
+    GROUP BY lc.league_id
+    HAVING count(*)=1
+       AND pg_catalog.bool_or(public.is_club_admin(lc.club_id))
    )
   )
  )
@@ -54,11 +70,15 @@ CREATE POLICY standings_primary_guarded_update_p0
   (SELECT auth.uid()) IS NOT NULL
   AND (
    (SELECT public.is_super_admin())
-   OR EXISTS (
-    SELECT 1 FROM public.league_clubs lc
-    WHERE lc.league_id=league_standings.league_id
-      AND lc.is_primary IS TRUE
-      AND (SELECT public.is_club_admin(lc.club_id))
+   OR league_standings.league_id IN (
+    -- Independent primary-club authorization set is built once per
+    -- statement when PostgreSQL chooses a hashed SubPlan. Do not evaluate
+    -- is_club_admin() once per standings row.
+    SELECT lc.league_id FROM public.league_clubs lc
+    WHERE lc.is_primary IS TRUE
+    GROUP BY lc.league_id
+    HAVING count(*)=1
+       AND pg_catalog.bool_or(public.is_club_admin(lc.club_id))
    )
   )
  );
@@ -71,11 +91,15 @@ CREATE POLICY standings_primary_guarded_delete_p0
   (SELECT auth.uid()) IS NOT NULL
   AND (
    (SELECT public.is_super_admin())
-   OR EXISTS (
-    SELECT 1 FROM public.league_clubs lc
-    WHERE lc.league_id=league_standings.league_id
-      AND lc.is_primary IS TRUE
-      AND (SELECT public.is_club_admin(lc.club_id))
+   OR league_standings.league_id IN (
+    -- Independent primary-club authorization set is built once per
+    -- statement when PostgreSQL chooses a hashed SubPlan. Do not evaluate
+    -- is_club_admin() once per standings row.
+    SELECT lc.league_id FROM public.league_clubs lc
+    WHERE lc.is_primary IS TRUE
+    GROUP BY lc.league_id
+    HAVING count(*)=1
+       AND pg_catalog.bool_or(public.is_club_admin(lc.club_id))
    )
   )
  );
