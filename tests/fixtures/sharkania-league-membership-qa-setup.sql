@@ -134,6 +134,19 @@ CREATE POLICY "Permitir borrar league_rooms"
 ON public.league_rooms FOR DELETE TO authenticated
 USING (auth.uid() IS NOT NULL);
 
+-- These three superadmin room policies were also observed read-only in
+-- production. Include them so the QA positive preflight matches the real
+-- eleven-policy write catalog (8 legacy + 3 superadmin).
+CREATE POLICY "League rooms: super admin insert"
+ON public.league_rooms FOR INSERT
+WITH CHECK (public.is_super_admin());
+CREATE POLICY "League rooms: super admin update"
+ON public.league_rooms FOR UPDATE
+USING (public.is_super_admin());
+CREATE POLICY "League rooms: super admin delete"
+ON public.league_rooms FOR DELETE
+USING (public.is_super_admin());
+
 -- Reproduce the actual old policies in a transaction that rolls back.
 BEGIN;
 SET LOCAL ROLE authenticated;
