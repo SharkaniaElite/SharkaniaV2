@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
-import { Mail, Filter, RefreshCw, Send, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { Mail, Filter, RefreshCw, Send, CheckCircle2, Circle, AlertCircle, Download } from "lucide-react";
 import { IGNITION_FECHA1, fecha1AccessInstructions } from "../../lib/ignition-liga-fecha1";
 
 interface Player {
@@ -57,6 +57,13 @@ function defaultMessage(key:string):string {
     "SHARKANIA",
   ].join("\n");
 }
+// Escape CSV fields (including Excel formula prefixes) so user-entered nicknames
+// cannot be interpreted as spreadsheet formulas.
+function csvCell(value:string|null):string {
+  const trimmed=(value??"").trim();
+  const safe=/^[=+\-@\t\r\n]/.test(trimmed)?"'"+trimmed:trimmed;
+  return '"'+safe.replace(/"/g,'""')+'"';
+}
 function formatDate(value:string|null,withTime=false):string {
   if(!value)return "—";
   const d=new Date(value);
@@ -77,6 +84,7 @@ export function IgnitionClaimsTab(){
   const [filter,setFilter]=useState<Filter>("not_queued");
   const [selectedIds,setSelectedIds]=useState<Set<string>>(new Set());
   const [message,setMessage]=useState("");
+  const [csvMessage,setCsvMessage]=useState("");
   const [autoEnabled,setAutoEnabled]=useState(false);
   const [autoSavedSubject,setAutoSavedSubject]=useState("");
   const [autoSavedBody,setAutoSavedBody]=useState("");
@@ -145,6 +153,32 @@ export function IgnitionClaimsTab(){
   },[players,ready,delivery]);
   const filtered=useMemo(()=>filter==="all"?players:players.filter(p=>statusOf(p.id)===filter),
     [players,filter,delivery,ready]);
+  function downloadLinkedPlayersCsv(){
+    // Export the same complete linked-player dataset as "Todos", independently
+    // of the visible filter, email campaign, selections or mailing eligibility.
+    if(!ready||loading||players.length===0)return;
+    const rows:(string|null)[][]=[
+      ["email_ignition","email_sharkania","nickname_ignition"],
+      ...players.map(p=>[p.ignition_email,p.email,p.ignition_nickname]),
+    ];
+    const content="\uFEFF"+rows.map(row=>row.map(csvCell).join(",")).join("\r\n")+"\r\n";
+    const file=new Blob([content],{type:"text/csv;charset=utf-8"});
+    const url=URL.createObjectURL(file);
+    const anchor=document.createElement("a");
+    const date=new Intl.DateTimeFormat("sv-SE",{
+      timeZone:"America/Santiago",year:"numeric",month:"2-digit",day:"2-digit",
+    }).format(new Date());
+    anchor.href=url;
+    anchor.download="sharkania-ignition-vinculados-"+date+".csv";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+    const missing=players.filter(p=>!p.ignition_email?.trim()).length;
+    setCsvMessage("CSV de "+players.length+" vinculados generado."+
+      (missing?" "+missing+" registro(s) sin correo de Ignition; revisa la columna email_sharkania.":"")+
+      " Incluye también vinculaciones pendientes, no solo las elegibles para correos.");
+  }
   function selectAll(){
     const ids=filtered.filter(p=>selectable(p.id)).map(p=>p.id);
     const already=ids.length>0&&ids.every(id=>selectedIds.has(id));
@@ -315,10 +349,18 @@ export function IgnitionClaimsTab(){
       </section>
     )}
     <div className="rounded-lg border border-sk-border-2 bg-sk-bg-1 p-4">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <span className="flex items-center gap-2 text-xs text-sk-text-3"><Filter size={15}/> Estado de esta fecha</span>
-        <Button size="sm" variant="secondary" onClick={()=>{setSelectedIds(new Set());void refresh(campaignKey);}} disabled={loading||sending}><RefreshCw size={14}/>Actualizar estados</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="secondary" onClick={downloadLinkedPlayersCsv}
+            disabled={!ready||loading||players.length===0}>
+            <Download size={14}/>Generar CSV con todos los vinculados ({counts.all})
+          </Button>
+          <Button size="sm" variant="secondary" onClick={()=>{setSelectedIds(new Set());setCsvMessage("");void refresh(campaignKey);}} disabled={loading||sending}><RefreshCw size={14}/>Actualizar estados</Button>
+        </div>
       </div>
+      <p className="mb-3 text-xs text-sk-text-3">CSV para cotejar resultados con Ignition: correo Ignition, correo Sharkania y nickname. Exporta «Todos» sin importar el filtro o estado de correos. Contiene datos personales; compártelo solo por un canal autorizado.</p>
+      {csvMessage&&<p role="status" aria-live="polite" className="mb-3 text-xs text-sk-text-2">{csvMessage}</p>}
       <div className="flex flex-wrap gap-2">
         {(["not_queued","pending","sent","failed","ineligible","all"] as Filter[]).map(value=>
           <Button key={value} size="sm" variant={filter===value?"accent":"secondary"}
