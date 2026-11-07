@@ -1,6 +1,6 @@
 // src/lib/api/leagues.ts
 import { supabase } from "../supabase";
-import { GUARDED_LEAGUE_RPC_ENABLED, duplicateLeagueGuarded } from "./guarded-leagues";
+import { GUARDED_LEAGUE_RPC_ENABLED, GuardedLeagueSlugConflictError, duplicateLeagueGuarded } from "./guarded-leagues";
 import type {
   League,
   LeagueWithClubs,
@@ -199,14 +199,16 @@ export async function duplicateLeague(leagueId: string, newName: string): Promis
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
     if (!base) throw new Error("El nombre elegido no genera una URL válida.");
+    // A single authorized RPC is enough when the slug is free; only a
+    // unique-index collision causes another RPC. No 30-read preflight loop.
     for (let attempt = 0; attempt < 30; attempt++) {
       const slug = attempt ? `${base}-${attempt}` : base;
-      const { data, error } = await supabase
-        .from("leagues").select("id").eq("slug", slug).maybeSingle();
-      if (error) throw new Error("No se pudo verificar la URL de la liga.");
-      if (data) continue;
-      await duplicateLeagueGuarded(leagueId, newName, slug);
-      return true;
+      try {
+        await duplicateLeagueGuarded(leagueId, newName, slug);
+        return true;
+      } catch (error) {
+        if (!(error instanceof GuardedLeagueSlugConflictError)) throw error;
+      }
     }
     throw new Error("No fue posible encontrar una URL libre para la nueva liga.");
   }
