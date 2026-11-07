@@ -103,7 +103,17 @@ BEGIN
   )
   SELECT p_league_id,r.player_id,r.points,r.played,r.best_position,
     r.final_tables,r.proposed_rank,r.first_ccp,r.all_registrations
-  FROM ranked r WHERE true
+  FROM ranked r
+  LEFT JOIN public.league_standings prior
+    ON prior.league_id=p_league_id AND prior.player_id=r.player_id
+  -- Filter BEFORE entering INSERT/ON CONFLICT. A no-op conflict may still
+  -- lock all matching rows and write WAL even when DO UPDATE WHERE is false.
+  -- This saves per-row conflict tuple locks for unchanged 200+ player leagues.
+  WHERE prior.player_id IS NULL OR
+        (prior.total_points,prior.tournaments_played,
+         prior.best_position,prior.final_tables_count,prior.rank_position)
+     IS DISTINCT FROM
+        (r.points,r.played,r.best_position,r.final_tables,r.proposed_rank)
   ON CONFLICT (league_id,player_id)
   DO UPDATE SET
     total_points=EXCLUDED.total_points,
