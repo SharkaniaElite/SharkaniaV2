@@ -264,6 +264,7 @@ BEGIN
 END $qa$;
 RESET ROLE;
 \ir sharkania-p0-standings-legacy-compat-qa.sql
+\ir sharkania-p1-league-membership-rls-qa.sql
 ROLLBACK;
 DO $qa$
 BEGIN
