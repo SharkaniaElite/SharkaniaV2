@@ -12,6 +12,30 @@ INSERT INTO public.leagues(id,name) VALUES
 INSERT INTO public.league_clubs(league_id,club_id,is_primary) VALUES
  ('00000000-0000-0000-0000-000000000043',
   '00000000-0000-0000-0000-000000000021',true);
+CREATE TABLE public.league_rooms(
+ league_id uuid NOT NULL,room_id uuid NOT NULL,
+ PRIMARY KEY(league_id,room_id));
+INSERT INTO public.league_rooms VALUES
+ ('00000000-0000-0000-0000-000000000041',
+  '00000000-0000-0000-0000-000000000031'),
+ ('00000000-0000-0000-0000-000000000042',
+  '00000000-0000-0000-0000-000000000031');
+GRANT SELECT,INSERT,DELETE ON public.league_rooms TO anon,authenticated;
+ALTER TABLE public.league_rooms ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "League rooms: lectura publica"
+ ON public.league_rooms FOR SELECT USING(true);
+CREATE POLICY "Permitir insertar league_rooms"
+ ON public.league_rooms FOR INSERT TO authenticated
+ WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Permitir borrar league_rooms"
+ ON public.league_rooms FOR DELETE TO authenticated
+ USING (auth.uid() IS NOT NULL);
+CREATE POLICY "League rooms: super admin insert"
+ ON public.league_rooms FOR INSERT WITH CHECK(public.is_super_admin());
+CREATE POLICY "League rooms: super admin delete"
+ ON public.league_rooms FOR DELETE USING(public.is_super_admin());
+CREATE POLICY "League rooms: super admin update"
+ ON public.league_rooms FOR UPDATE USING(public.is_super_admin());
 GRANT SELECT,INSERT,UPDATE,DELETE ON public.leagues TO authenticated;
 GRANT SELECT ON public.leagues TO anon;
 GRANT SELECT ON public.club_admins TO authenticated;
