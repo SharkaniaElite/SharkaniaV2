@@ -66,6 +66,7 @@ BEGIN
   initial_temp:=COALESCE((initial->0->'Plan'->>'Temp Written Blocks')::int,0);
   again_temp:=COALESCE((again->0->'Plan'->>'Temp Written Blocks')::int,0);
   IF initial_ms IS NULL OR again_ms IS NULL THEN RAISE EXCEPTION 'Missing EXPLAIN metrics'; END IF;
+  IF again_wal<>0 THEN RAISE EXCEPTION 'FAIL: 1000-row unchanged ranking emitted % WAL records',again_wal; END IF;
   RAISE NOTICE 'QA ranking 5 rounds/1000 rows: initial=%ms WAL=% shared_reads=% temp_writes=%; repeated=%ms WAL=% shared_reads=% temp_writes=%; changed_rows_on_third=0',
     initial_ms,initial_wal,initial_reads,initial_temp,
     again_ms,again_wal,again_reads,again_temp;
@@ -84,6 +85,9 @@ BEGIN
   SELECT public.recalculate_league_standings_guarded(
     '00000000-0000-0000-0000-000000000044') INTO unchanged_rows;
   IF unchanged_rows<>0 THEN RAISE EXCEPTION 'FAIL: ranking 4000 no-op rewrote rows'; END IF;
+  IF COALESCE((again->0->'Plan'->>'WAL Records')::int,0)<>0 THEN
+    RAISE EXCEPTION 'FAIL: 4000-row unchanged ranking generated WAL';
+  END IF;
   RAISE NOTICE 'QA ranking 20 rounds/4000 rows: initial=%ms WAL=% shared_reads=% temp_writes=%; repeated=%ms WAL=% shared_reads=% temp_writes=%',
     (initial->0->>'Execution Time'),
     (initial->0->'Plan'->>'WAL Records'),(initial->0->'Plan'->>'Shared Read Blocks'),
@@ -106,6 +110,9 @@ BEGIN
   SELECT public.recalculate_league_standings_guarded(
     '00000000-0000-0000-0000-000000000044') INTO unchanged_rows;
   IF unchanged_rows<>0 THEN RAISE EXCEPTION 'FAIL: ranking 8000 no-op rewrote rows'; END IF;
+  IF COALESCE((again->0->'Plan'->>'WAL Records')::int,0)<>0 THEN
+    RAISE EXCEPTION 'FAIL: 8000-row unchanged ranking generated WAL';
+  END IF;
   RAISE NOTICE 'QA ranking 40 rounds/8000 rows: initial=%ms WAL=% shared_reads=% temp_writes=%; repeated=%ms WAL=% shared_reads=% temp_writes=%',
     (initial->0->>'Execution Time'),
     (initial->0->'Plan'->>'WAL Records'),(initial->0->'Plan'->>'Shared Read Blocks'),
