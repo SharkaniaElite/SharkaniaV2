@@ -16,7 +16,8 @@ CREATE TABLE public.leagues(
   description text, rules_url text,
   start_date date, end_date date,
   status public.league_status NOT NULL DEFAULT 'upcoming',
-  scoring_system_id uuid, total_dates integer, best_dates_to_count integer
+  scoring_system_id uuid, total_dates integer, best_dates_to_count integer,
+  is_demo boolean NOT NULL DEFAULT false
 );
 -- Production already has this unique index; mirror it in the fake schema.
 CREATE UNIQUE INDEX idx_leagues_slug ON public.leagues(slug);
@@ -67,6 +68,9 @@ INSERT INTO public.leagues(
  '00000000-0000-0000-0000-000000000061',9,5),
 ('00000000-0000-0000-0000-000000000042','QA League B',
  'qa-league-b',null,null,null,null,'upcoming',null,null,null);
+-- Keep legacy clone parity for demo source leagues.
+UPDATE public.leagues SET is_demo=true
+WHERE id='00000000-0000-0000-0000-000000000041';
 UPDATE public.tournaments SET league_id='00000000-0000-0000-0000-000000000041'
 WHERE id='00000000-0000-0000-0000-000000000011';
 
