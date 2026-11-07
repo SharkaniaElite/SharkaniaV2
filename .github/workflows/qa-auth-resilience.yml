@@ -17,5 +17,7 @@ jobs:
       - run: npm ci
       - name: Verify no Auth event deadlock, safe remounts and session race guards
         run: node --test tests/auth-session-resilience.test.mjs
+      - name: Exercise auth runtime with controlled fake sessions (no production API)
+        run: node --test tests/auth-session-runtime.test.mjs
       - name: TypeScript strict build
         run: npx tsc -b --pretty false
