@@ -1,5 +1,6 @@
 // src/lib/api/leagues.ts
 import { supabase } from "../supabase";
+import { GUARDED_LEAGUE_RPC_ENABLED, GuardedLeagueSlugConflictError, duplicateLeagueGuarded } from "./guarded-leagues";
 import type {
   League,
   LeagueWithClubs,
@@ -130,6 +131,9 @@ export async function searchLeagues(
   })) as League[];
 }
 export async function forceRecalculateStandings(leagueId: string): Promise<boolean> {
+  if (GUARDED_LEAGUE_RPC_ENABLED) {
+    throw new Error("El recálculo manual de ligas requiere la futura RPC autorizada; no se ejecutaron escrituras heredadas.");
+  }
   const { error } = await supabase.rpc('recalculate_league_standings', {
     p_league_id: leagueId
   });
@@ -187,6 +191,27 @@ export async function forceRecalculateStandings(leagueId: string): Promise<boole
 
 // ── 👯‍♂️ MOTOR DE CLONACIÓN DE LIGAS ──
 export async function duplicateLeague(leagueId: string, newName: string): Promise<boolean> {
+  if (GUARDED_LEAGUE_RPC_ENABLED) {
+    // Safe server-side clone: the organizer + room configuration are copied,
+    // but secondary clubs are NOT automatically enrolled without consent.
+    const base = newName.toLowerCase().normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (!base) throw new Error("El nombre elegido no genera una URL válida.");
+    // A single authorized RPC is enough when the slug is free; only a
+    // unique-index collision causes another RPC. No 30-read preflight loop.
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const slug = attempt ? `${base}-${attempt}` : base;
+      try {
+        await duplicateLeagueGuarded(leagueId, newName, slug);
+        return true;
+      } catch (error) {
+        if (!(error instanceof GuardedLeagueSlugConflictError)) throw error;
+      }
+    }
+    throw new Error("No fue posible encontrar una URL libre para la nueva liga.");
+  }
   // 1. Obtener la liga original con sus relaciones (clubes y salas)
   const { data: original, error: fetchError } = await supabase
     .from("leagues")
