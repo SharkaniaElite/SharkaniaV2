@@ -11,7 +11,9 @@ BEGIN
  IF NOT (SELECT relrowsecurity FROM pg_class
      WHERE oid='public.league_clubs'::regclass)
  OR NOT (SELECT relrowsecurity FROM pg_class
-     WHERE oid='public.leagues'::regclass) THEN
+     WHERE oid='public.leagues'::regclass)
+ OR NOT (SELECT relrowsecurity FROM pg_class
+     WHERE oid='public.league_rooms'::regclass) THEN
   RAISE EXCEPTION 'STOP: league RLS disabled' USING ERRCODE='PT409';
  END IF;
  IF NOT EXISTS (
@@ -30,8 +32,10 @@ BEGIN
     'League clubs: admin delete')
   OR tablename='leagues' AND policyname IN (
     'Leagues: admin puede crear','Leagues: admin o super editar',
-    'Leagues: admin o super eliminar'));
- IF n<>6 THEN
+    'Leagues: admin o super eliminar')
+  OR tablename='league_rooms' AND policyname IN (
+    'Permitir insertar league_rooms','Permitir borrar league_rooms'));
+ IF n<>8 THEN
   RAISE EXCEPTION 'STOP: old league membership/ownership policies have changed'
    USING ERRCODE='PT409';
  END IF;
@@ -45,6 +49,11 @@ BEGIN
    (tablename='leagues' AND cmd IN ('INSERT','UPDATE','DELETE')
      AND policyname NOT IN ('Leagues: admin puede crear',
        'Leagues: admin o super editar','Leagues: admin o super eliminar'))
+   OR
+   (tablename='league_rooms' AND cmd IN ('INSERT','UPDATE','DELETE')
+     AND policyname NOT IN ('Permitir insertar league_rooms',
+       'Permitir borrar league_rooms','League rooms: super admin insert',
+       'League rooms: super admin delete','League rooms: super admin update'))
   )
  ) THEN
   RAISE EXCEPTION 'STOP: unreviewed league write policy exists'
@@ -61,6 +70,8 @@ DROP POLICY "League clubs: admin delete" ON public.league_clubs;
 DROP POLICY "Leagues: admin puede crear" ON public.leagues;
 DROP POLICY "Leagues: admin o super editar" ON public.leagues;
 DROP POLICY "Leagues: admin o super eliminar" ON public.leagues;
+DROP POLICY "Permitir insertar league_rooms" ON public.league_rooms;
+DROP POLICY "Permitir borrar league_rooms" ON public.league_rooms;
 
 -- For existing frontend: creating a new league still inserts the leagues
 -- row first and its primary club link second. Only recognized club admins
@@ -142,3 +153,34 @@ CREATE POLICY league_clubs_super_delete_p1
  ON public.league_clubs FOR DELETE TO authenticated
  USING ((SELECT auth.uid()) IS NOT NULL AND
         (SELECT public.is_super_admin()));
+
+
+-- The old web form deletes prior room links and inserts the selected rooms
+-- in separate requests. This policy preserves the primary organizer's
+-- authorized operations and denies foreign authenticated accounts.
+CREATE POLICY league_rooms_primary_insert_p1
+ ON public.league_rooms FOR INSERT TO authenticated
+ WITH CHECK (
+  (SELECT auth.uid()) IS NOT NULL
+  AND (
+   (SELECT public.is_super_admin())
+   OR league_id IN (
+    SELECT lc.league_id FROM public.league_clubs lc
+    WHERE lc.is_primary IS TRUE GROUP BY lc.league_id
+    HAVING count(*)=1 AND bool_or(public.is_club_admin(lc.club_id))
+   )
+  )
+ );
+CREATE POLICY league_rooms_primary_delete_p1
+ ON public.league_rooms FOR DELETE TO authenticated
+ USING (
+  (SELECT auth.uid()) IS NOT NULL
+  AND (
+   (SELECT public.is_super_admin())
+   OR league_id IN (
+    SELECT lc.league_id FROM public.league_clubs lc
+    WHERE lc.is_primary IS TRUE GROUP BY lc.league_id
+    HAVING count(*)=1 AND bool_or(public.is_club_admin(lc.club_id))
+   )
+  )
+ );
