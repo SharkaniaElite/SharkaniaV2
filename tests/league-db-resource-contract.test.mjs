@@ -32,6 +32,8 @@ test("publication uses one canonical server fingerprint and batch N-of-N checkpo
 });
 test("standings avoid re-writing unchanged ranks to reduce WAL and IO",()=>{
  assert.match(standings,/INSERT INTO public\.league_standings AS existing/);
+ assert.match(standings,/LEFT JOIN public\.league_standings prior/);
+ assert.match(standings,/prior\.player_id IS NULL OR/);
  assert.match(standings,/IS DISTINCT FROM\s*\(/);
  assert.match(standings,/updated_at=pg_catalog\.now\(\)/);
  const guarded=readFileSync(new URL("./fixtures/sharkania-league-standings-guarded-assert.sql",import.meta.url),"utf8");
