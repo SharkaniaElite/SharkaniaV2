@@ -13,6 +13,7 @@ import { AlertTriangle, Trash2, Plus, RotateCcw, Upload } from "lucide-react";
 import type { TournamentWithDetails } from "../../types";
 import { parseCSVSmart } from "../../lib/csv-parser";
 import { forceRecalculateStandings } from "../../lib/api/leagues";
+import { GUARDED_LEAGUE_RPC_ENABLED } from "../../lib/api/guarded-leagues";
 
 interface EditableRow {
   id: string;
@@ -237,6 +238,16 @@ export function ResultsEditor({
 
   // 🔥 EL CEREBRO DE LA OPERACIÓN (BORRÓN Y CUENTA NUEVA)
   const handleSave = async () => {
+    // Release A has no guarded standings recalculation RPC. Block this flow
+    // BEFORE reset/delete, player creation, ELO or league points can change.
+    if (GUARDED_LEAGUE_RPC_ENABLED && tournament.league_id) {
+      setMessage({
+        text: "La edición de resultados de torneos de liga está pausada hasta habilitar el recálculo seguro de clasificaciones. No se guardaron cambios.",
+        type: "error",
+      });
+      return;
+    }
+
     const errors: string[] = [];
 
     // Validaciones básicas

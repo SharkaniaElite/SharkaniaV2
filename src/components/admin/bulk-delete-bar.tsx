@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "../ui/button";
 import { Trash2, X, CheckSquare, Square, AlertTriangle } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { GUARDED_LEAGUE_RPC_ENABLED } from "../../lib/api/guarded-leagues";
 
 interface BulkDeleteBarProps {
   selectedIds: string[];
@@ -31,6 +32,20 @@ export function BulkDeleteBar({
     setResult(null);
 
     try {
+      // Draft-only client preflight. Not a replacement for database RPC security.
+      // When league protection is enabled, fail closed on any league tournament.
+      if (GUARDED_LEAGUE_RPC_ENABLED) {
+        const uniqueIds = [...new Set(selectedIds)];
+        const { data: tournaments, error: lookupError } = await supabase
+          .from("tournaments").select("id, league_id").in("id", uniqueIds);
+        if (lookupError) throw lookupError;
+        if ((tournaments?.length ?? 0) !== uniqueIds.length) {
+          throw new Error("No se pudo verificar la lista completa de torneos. No se eliminó ninguno.");
+        }
+        if (tournaments?.some((t) => t.league_id)) {
+          throw new Error("La eliminación masiva de torneos asociados a ligas está pausada hasta habilitar un proceso protegido.");
+        }
+      }
       const { data, error } = await supabase.rpc("bulk_delete_scheduled_tournaments", {
         p_tournament_ids: selectedIds,
       });

@@ -1,5 +1,6 @@
 // src/lib/api/tournaments.ts
 import { supabase } from "../supabase";
+import { GUARDED_LEAGUE_RPC_ENABLED } from "./guarded-leagues";
 import { isPublicTournamentVisible, publicTournamentCutoffIso } from "../tournament-lifecycle";
 import type {
   TournamentWithDetails,
@@ -211,14 +212,32 @@ export async function getTournamentResults(tournamentId: string): Promise<Tourna
   return (data as TournamentResultWithPlayer[]) ?? [];
 }
 
+// Release A defense in depth: guard the old UI helpers when the league
+// protection flag is enabled. This is NOT a database security boundary:
+// the underlying SECURITY DEFINER RPCs still require a server-side cutover.
+async function assertLegacyTournamentMutationAllowed(tournamentId: string): Promise<void> {
+  if (!GUARDED_LEAGUE_RPC_ENABLED) return;
+  const { data, error } = await supabase.from("tournaments")
+    .select("league_id").eq("id", tournamentId).maybeSingle();
+  if (error) throw error; // Fail closed on unreadable rows or unavailable API.
+  if (!data) throw new Error("No fue posible verificar el torneo antes de modificarlo.");
+  if (data.league_id) {
+    throw new Error("Por seguridad, esta operación en torneos de liga está pausada hasta habilitar su versión protegida. No se realizaron cambios.");
+  }
+}
+
 // ── UTILIDADES ──
 
 export async function deleteTournamentSafe(tournamentId: string) {
+  await assertLegacyTournamentMutationAllowed(tournamentId);
   const { error } = await supabase.rpc('delete_tournament_god_mode', { tournament_id_to_delete: tournamentId });
   if (error) throw error;
 }
 
 export async function applyLeaguePoints(tournamentId: string, leagueId: string) {
+  if (GUARDED_LEAGUE_RPC_ENABLED) {
+    throw new Error("No se permiten escrituras de posiciones desde el navegador con la protección de ligas activa.");
+  }
   const { data: results } = await supabase.from("tournament_results").select("player_id, league_points_earned, position, ccp_club, buy_ins_count").eq("tournament_id", tournamentId);
   if (!results || results.length === 0) return;
   const playersMap = new Map();
@@ -242,6 +261,7 @@ export async function applyLeaguePoints(tournamentId: string, leagueId: string) 
 }
 
 export async function prepareTournamentForReedit(tournamentId: string) {
+  await assertLegacyTournamentMutationAllowed(tournamentId);
   const { data, error } = await supabase.rpc('reset_tournament_impact', { tournament_id_to_reset: tournamentId });
   if (error) throw error;
   return data;

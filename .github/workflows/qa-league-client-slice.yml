@@ -1,0 +1,28 @@
+name: QA Release A league client slice (flag off)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/api/guarded-leagues.ts"
+      - "src/lib/api/leagues.ts"
+      - "src/lib/api/tournaments.ts"
+      - "src/components/admin/league-form.tsx"
+      - "src/components/admin/results-editor.tsx"
+      - "src/components/admin/results-upload.tsx"
+      - "src/components/admin/bulk-delete-bar.tsx"
+      - "src/pages/club-admin.tsx"
+      - "tests/league-release-a-client-slice.test.mjs"
+      - ".github/workflows/qa-league-client-slice.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  client-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify dormant guarded client and legacy writer fences
+        run: node --test tests/league-release-a-client-slice.test.mjs
