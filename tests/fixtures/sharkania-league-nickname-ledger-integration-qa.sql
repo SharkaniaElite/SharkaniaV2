@@ -23,6 +23,12 @@ INSERT INTO public.tournaments(
   '00000000-0000-0000-0000-000000000041',
   '00000000-0000-0000-0000-000000000031','EUR','2026-11-06T03:00:00Z');
 
+-- Same visible nickname in another poker room MUST remain a separate player.
+INSERT INTO public.players(id,nickname,slug,room_id,elo_rating,elo_peak)
+VALUES ('00000000-0000-0000-0000-000000000084','SharkHero',
+        'qa-other-room-sharkhero','00000000-0000-0000-0000-000000000032',
+        1350,1350);
+
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
 DO $qa$
@@ -168,6 +174,15 @@ BEGIN
        AND lower(btrim(p.nickname))='sharkhero'
        AND p.id<>'00000000-0000-0000-0000-000000000051'
     )
+    OR NOT EXISTS (
+      SELECT 1 FROM public.players p
+      WHERE p.id='00000000-0000-0000-0000-000000000084'
+       AND p.nickname='SharkHero' AND p.elo_rating=1350
+       AND p.room_id='00000000-0000-0000-0000-000000000032')
+    OR EXISTS (
+      SELECT 1 FROM public.tournament_results r
+      WHERE r.tournament_id='00000000-0000-0000-0000-000000000077'
+       AND r.player_id='00000000-0000-0000-0000-000000000084')
     OR NOT EXISTS (
       SELECT 1 FROM public.tournament_results r
       WHERE r.tournament_id='00000000-0000-0000-0000-000000000077'
