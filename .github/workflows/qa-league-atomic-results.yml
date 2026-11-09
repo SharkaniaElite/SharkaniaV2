@@ -1,0 +1,79 @@
+name: QA atomic league results — first upload only (isolated)
+on:
+  pull_request:
+    paths:
+      - "docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql"
+      - "docs/security/league-result-currency-cutover-2026-11-09.md"
+      - "docs/security/league-standings-guarded-2026-11-05.qa-only.sql"
+      - "docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql"
+      - "tests/fixtures/sharkania-league-atomic-*.sql"
+      - "tests/league-atomic-results-cutover-contract.test.mjs"
+      - ".github/workflows/qa-league-atomic-results.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  first-upload-pg17:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_atomic_only_local
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_atomic_only_local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Enforce local-only PostgreSQL and test-only SQL scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_ACTIONS}" == "true" && "${PGHOST}" == "127.0.0.1" && "${PGPORT}" == "5432" ]] || exit 1
+          if ! command -v psql >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y postgresql-client; fi
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_atomic_results'
+          node --test tests/league-atomic-results-cutover-contract.test.mjs
+      - name: Bootstrap synthetic schema and Release A ACL (not linked to Supabase)
+        shell: bash
+        env:
+          PGDATABASE: qa_atomic_results
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
+      - name: Verify non-USD and unresolved players fail before any business write
+        env:
+          PGDATABASE: qa_atomic_results
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-atomic-currency-gates-qa.sql
+      - name: Verify successful USD upload, complete audit, ELO and rollback on failures
+        env:
+          PGDATABASE: qa_atomic_results
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-atomic-first-upload-qa.sql
+      - name: Verify independent 3-player JS Elo parity across K=40/20 threshold
+        env:
+          PGDATABASE: qa_atomic_results
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-atomic-k-boundary-qa.sql
+      - name: Verify bounded synthetic 200-player upload (not production benchmarking)
+        env:
+          PGDATABASE: qa_atomic_results
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-atomic-volume-qa.sql
