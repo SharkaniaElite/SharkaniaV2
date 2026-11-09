@@ -53,6 +53,12 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql
           psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -f tests/fixtures/sharkania-league-membership-qa-assert.sql
           psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -f tests/fixtures/sharkania-league-backend-acl-qa.sql
+      - name: Reproduce cross-league tournament link bypass, then enforce guarded ownership with rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -f tests/fixtures/sharkania-league-tournament-link-risk-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -f tests/fixtures/sharkania-tournament-link-guarded-qa.sql
       - name: Negative PG17 cutover must reject unknown policy and preserve state
         shell: bash
         run: |
