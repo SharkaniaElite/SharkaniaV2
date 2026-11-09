@@ -54,9 +54,20 @@ for(const role of ["organizer","secondary","player"]){
 }
 console.log("PASS: 3 actual local GoTrue sessions for primary, secondary and player");
 
-sql("INSERT INTO public.tournaments(id,club_id,buy_in,league_id,room_id,currency,start_datetime) VALUES("+
-  safeUuid(tour)+","+safeUuid(clubA)+",3.30,"+
-  safeUuid(leagueA)+","+safeUuid(roomA)+",'USD','2026-11-12T22:00:00Z')");
+// The local tournament-link trigger requires a genuine organizer JWT.
+// Create the tournament through PostgREST, never by bypassing the trigger
+// with an unauthenticated owner SQL insertion.
+const inserted=await fetch(base+"/rest/v1/tournaments",{
+  method:"POST",
+  headers:{"Content-Type":"application/json",apikey:anon,
+    Authorization:"Bearer "+tokens.organizer},
+  body:JSON.stringify({
+    id:tour,club_id:clubA,league_id:leagueA,room_id:roomA,
+    buy_in:3.30,currency:"USD",start_datetime:"2026-11-12T22:00:00Z"
+  }),signal:AbortSignal.timeout(15000)
+});
+assert.equal(inserted.status,201,
+  "authorized local organizer must create tournament via real PostgREST: "+(await inserted.text()).slice(0,300));
 
 async function invoke(role,results){
  const response=await fetch(base+"/rest/v1/rpc/publish_league_nickname_results_guarded_qa",{
