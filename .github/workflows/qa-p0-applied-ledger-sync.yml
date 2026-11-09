@@ -1,0 +1,22 @@
+name: QA already-applied P0 migration ledger (no database)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20261107191558_p0_restrict_league_standings_rls_20261107.sql"
+      - "docs/security/league-standings-p0-production-applied-2026-11-07.md"
+      - "tests/p0-applied-migration-ledger.test.mjs"
+      - ".github/workflows/qa-p0-applied-ledger-sync.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate original applied SQL and evidence without executing migration
+        run: node --test tests/p0-applied-migration-ledger.test.mjs
