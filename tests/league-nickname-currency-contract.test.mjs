@@ -55,6 +55,8 @@ test("QA proves negative authorization, normalized identity and late failure rol
   assert.match(fixture,/CSV-supplied player_id spoofing was accepted/);
   assert.match(fixture,/SharkHero/);
   assert.match(fixture,/NuevoTiburon/);
+  assert.match(fixture,/qa-other-room-sharkhero/);
+  assert.match(fixture,/p\.room_id='00000000-0000-0000-0000-000000000032'/);
   assert.match(fixture,/j\.currency='USD'/);
   assert.match(fixture,/j\.buy_ins_count=2 AND j\.entry_spend=6\.60/);
   assert.match(fixture,/pt503/i);
