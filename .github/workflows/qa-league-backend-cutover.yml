@@ -96,6 +96,7 @@ jobs:
           set -euo pipefail
           psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_backend_orphan'
           psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -d qa_league_backend_orphan -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_orphan -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
           psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_orphan -c "UPDATE public.league_clubs SET is_primary=false WHERE league_id='00000000-0000-0000-0000-000000000042'"
           set +e
           output=$(psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_orphan -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql 2>&1)
