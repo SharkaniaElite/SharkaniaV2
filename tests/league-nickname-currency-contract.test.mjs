@@ -63,3 +63,20 @@ test("QA proves negative authorization, normalized identity and late failure rol
   assert.match(fixture,/s\.postings_before IS DISTINCT FROM/);
   assert.match(fixture,/^ROLLBACK;/m);
 });
+
+test("native-currency totals are grouped, never converted, and immutability is exercised",()=>{
+  const currencyQA=read("tests/fixtures/sharkania-league-currency-separation-qa.sql");
+  assert.match(setup,/CREATE VIEW sharkania_release_qa\.currency_totals_by_player/);
+  assert.match(setup,/security_invoker = true/);
+  assert.match(setup,/GROUP BY j\.player_id,j\.currency/);
+  assert.match(setup,/sum\(j\.entry_spend\) AS total_entry_spend/);
+  assert.match(setup,/REVOKE ALL ON sharkania_release_qa\.currency_totals_by_player/);
+  for(const currency of ["USD","EUR","CLP"]) assert.ok(currencyQA.includes("currency='"+currency+"'"));
+  assert.match(currencyQA,/currency='USD' AND total_entry_spend=6\.60/);
+  assert.match(currencyQA,/currency='EUR' AND total_entry_spend=36/);
+  assert.match(currencyQA,/currency='CLP' AND total_entry_spend=6600/);
+  assert.match(currencyQA,/WHEN SQLSTATE 'PT409'/);
+  assert.match(currencyQA,/has_table_privilege\('authenticated'/);
+  assert.match(currencyQA,/^ROLLBACK;/m);
+  assert.match(workflow,/sharkania-league-currency-separation-qa\.sql/);
+});
