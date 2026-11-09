@@ -62,3 +62,19 @@ test("workflow uses only a disposable PostgreSQL 17, includes negative preflight
   assert.doesNotMatch(workflow, /\bsupabase db push\b|\bmcp__Supabase__apply_migration\b|supabase\.co|project_ref/i);
   assert.match(client, /VITE_LEAGUE_GUARDED_RPC === "true"/);
 });
+
+test("tournament-league ownership guard is QA-only, scoped and entirely rolled back", () => {
+  const trigger = read("docs/security/tournament-league-link-guard-2026-11-06.qa-only.sql");
+  const exploit = read("tests/fixtures/sharkania-league-tournament-link-risk-qa.sql");
+  const guarded = read("tests/fixtures/sharkania-tournament-link-guarded-qa.sql");
+  assert.match(trigger, /QA ONLY, NEVER RUN IN PRODUCTION/);
+  assert.match(trigger, /NEW\.league_id IS NOT DISTINCT FROM OLD\.league_id/);
+  assert.match(trigger, /public\.is_super_admin\(\)/);
+  assert.match(trigger, /public\.is_club_admin\(/);
+  assert.match(exploit, /^BEGIN;/m);
+  assert.match(exploit, /^ROLLBACK;/m);
+  assert.match(guarded, /^BEGIN;/m);
+  assert.match(guarded, /^ROLLBACK;/m);
+  assert.match(workflow, /sharkania-league-tournament-link-risk-qa\.sql/);
+  assert.match(workflow, /sharkania-tournament-link-guarded-qa\.sql/);
+});
