@@ -144,6 +144,8 @@ jobs:
           }
           psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-league-nickname-ledger-setup-qa.sql
           psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-atomic-nickname-currency-2026-11-09.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-atomic-results-currency-neutral-v2-2026-11-09.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-atomic-nickname-currency-neutral-v2-2026-11-09.qa-only.sql
           psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
           sleep 2
       - name: Verify NEW nickname writer with actual local JWT and PostgREST
