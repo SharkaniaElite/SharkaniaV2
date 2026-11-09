@@ -16,6 +16,8 @@ test("proposal remains QA-only and requires an unmodified expected legacy policy
   assert.match(sql, /v_expected <> 8/);
   assert.match(sql, /cmd IN \('ALL','INSERT','UPDATE','DELETE'\)/);
   assert.match(sql, /STOP: unreviewed league write policy exists/);
+  assert.match(sql, /STOP: P0 unique primary index has changed or is missing/);
+  assert.match(sql, /i.indisunique AND i.indisvalid AND i.indisready/);
   assert.match(sql, /STOP: league has missing or multiple primary clubs/);
   assert.ok(sql.indexOf("DO $league_cutover_preflight$") < sql.indexOf("DROP POLICY"));
   assert.ok(sql.indexOf("DO $league_cutover_preflight$") < sql.indexOf("CREATE OR REPLACE FUNCTION"));
@@ -54,6 +56,7 @@ test("workflow uses only a disposable PostgreSQL 17, includes negative preflight
   assert.match(workflow, /PGHOST: 127\.0\.0\.1/);
   assert.match(workflow, /QA_SKIP_CUTOVER=1/);
   assert.match(workflow, /unexpected_global_all/);
+  assert.match(workflow, /qa_league_backend_bad_index/);
   assert.match(workflow, /STOP: legacy league policies changed/);
   assert.match(workflow, /STOP: league has missing or multiple primary clubs/);
   assert.doesNotMatch(workflow, /\bsupabase db push\b|\bmcp__Supabase__apply_migration\b|supabase\.co|project_ref/i);
