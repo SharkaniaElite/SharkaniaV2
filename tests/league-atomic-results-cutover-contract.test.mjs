@@ -69,3 +69,17 @@ test("CI operates only on a disposable PostgreSQL 17 instance", () => {
   assert.match(workflow, /sharkania-league-atomic-volume-qa\.sql/);
   assert.doesNotMatch(workflow, /\bsupabase db push\b|\bsupabase functions deploy\b|nhpjzywfzljtlqaigzed|\.supabase\.co/);
 });
+
+test("3-player legacy JS Elo parity covers the 29/30 K boundary, bounties and rollback", () => {
+  const parity = read("tests/fixtures/sharkania-league-atomic-k-boundary-qa.sql");
+  assert.match(parity, /total_tournaments=30 AND total_wins=1/);
+  assert.match(parity, /total_tournaments=31 AND total_wins=0/);
+  assert.match(parity, /total_tournaments=32 AND total_wins=0/);
+  assert.match(parity, /elo_rating=1222\.79/);
+  assert.match(parity, /elo_rating=1392\.05/);
+  assert.match(parity, /elo_rating=996\.56/);
+  assert.match(parity, /total_prize_won=4/);
+  assert.match(parity, /elo_player_checkpoint/);
+  assert.match(parity, /^ROLLBACK;/m);
+  assert.match(workflow, /sharkania-league-atomic-k-boundary-qa\.sql/);
+});
