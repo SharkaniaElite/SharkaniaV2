@@ -45,11 +45,15 @@ DECLARE
      "ccp_club":null,"buy_ins_count":1}]'::jsonb;
   v_denied boolean;
 BEGIN
+  -- Exact synthetic IDs are supplied by the fixture, not queried through a
+  -- role without table SELECT; the SECURITY DEFINER RPC owns authorization.
   FOR v_currency, v_tournament IN
-    SELECT t.currency,t.id FROM public.tournaments t
-    WHERE t.id IN ('00000000-0000-0000-0000-000000000072'::uuid,
-                   '00000000-0000-0000-0000-000000000073'::uuid)
-    ORDER BY t.currency
+    SELECT x.currency,x.tournament_id
+    FROM (VALUES
+      ('CLP'::text,'00000000-0000-0000-0000-000000000073'::uuid),
+      ('EUR'::text,'00000000-0000-0000-0000-000000000072'::uuid)
+    ) AS x(currency,tournament_id)
+    ORDER BY x.currency
   LOOP
     v_denied := false;
     BEGIN
