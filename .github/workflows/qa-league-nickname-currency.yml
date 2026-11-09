@@ -60,3 +60,7 @@ jobs:
         env:
           PGDATABASE: qa_nickname_ledger
         run: psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-nickname-ledger-integration-qa.sql
+      - name: Verify USD EUR CLP financial totals never combine currencies
+        env:
+          PGDATABASE: qa_nickname_ledger
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-currency-separation-qa.sql
