@@ -21,7 +21,7 @@ test("v2 is an explicitly named QA candidate and cannot silently overwrite v1",(
  assert.match(v2,/currency-neutral-v2-PROPOSAL/);
  assert.match(nick,/public\.publish_league_results_v2_qa/);
  assert.doesNotMatch(legacy,/currency-neutral-v2-PROPOSAL/);
- assert.match(v2,/REVOKE ALL ON FUNCTION public\.publish_league_results_v2_qa/);
+ assert.match(v2,/REVOKE EXECUTE ON FUNCTION public\.publish_league_results_v2_qa/);
  assert.match(nick,/REVOKE EXECUTE ON FUNCTION public\.publish_league_nickname_results_v2_qa/);
 });
 
