@@ -1,0 +1,127 @@
+name: QA final league cutover prerequisites — v2 replay safety and tested backup
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release-final-pg17:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_release_disposable_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_release_disposable_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Reject any remote QA configuration, install locked TypeScript dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]]
+          npm ci
+          node --test tests/elo-replay-preflight.test.mjs
+          node --test tests/elo-replay-simulator.test.mjs
+          node --test tests/league-final-cutover-readiness-contract.test.mjs
+          if ! command -v psql >/dev/null 2>&1 || ! command -v pg_dump >/dev/null 2>&1 || ! command -v pg_restore >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_release_final'
+      - name: Build isolated preflight-matched Release A with immutable audit and both separated writers
+        env:
+          PGDATABASE: qa_release_final
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-nickname-ledger-setup-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-nickname-currency-2026-11-09.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-elo-policy-versions-2026-11-09.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-results-currency-neutral-v2-2026-11-09.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-nickname-currency-neutral-v2-2026-11-09.qa-only.sql
+      - name: Test proposed future ELO policy, native CLP/EUR and mixed-league rejection
+        env:
+          PGDATABASE: qa_release_final
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-elo-policy-versions-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-future-multicurrency-v2-qa.sql
+      - name: Protect linked history from destructive legacy definer and direct DML (transaction rolled back)
+        env:
+          PGDATABASE: qa_release_final
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-legacy-destructive-fence-qa.sql
+      - name: Publish one synthetic authorized event for full backup/restore verification
+        env:
+          PGDATABASE: qa_release_final
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -c "INSERT INTO public.tournaments(id,club_id,buy_in,league_id,room_id,currency,start_datetime) VALUES ('00000000-0000-0000-0000-000000000093','00000000-0000-0000-0000-000000000021',3.30,'00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000031','USD','2026-11-07T19:00:00Z')"
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-concurrency-race-call-qa.sql
+          [[ "$(psql -X -At -c "SELECT count(*) FROM sharkania_release_qa.elo_publication WHERE tournament_id='00000000-0000-0000-0000-000000000093'")" == "1" ]]
+          [[ "$(psql -X -At -c "SELECT count(*) FROM sharkania_release_qa.currency_posting WHERE tournament_id='00000000-0000-0000-0000-000000000093'")" == "2" ]]
+      - name: Dump synthetic PostgreSQL then RESTORE into a distinct fresh database and compare canonical records
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$PGHOST" == 127.0.0.1 && "$PGPORT" == 5432 ]]
+          snapshot="$RUNNER_TEMP/qa-release-$(date -u +%Y%m%d).dump"
+          pg_dump -F c -d qa_release_final -f "$snapshot"
+          test -s "$snapshot"
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_release_restored'
+          pg_restore --exit-on-error --no-owner -d qa_release_restored "$snapshot"
+          for table in \
+            public.leagues public.league_clubs public.league_rooms \
+            public.tournaments public.players public.profiles \
+            public.tournament_results public.elo_history \
+            public.league_standings \
+            sharkania_release_qa.elo_publication \
+            sharkania_release_qa.elo_player_checkpoint \
+            sharkania_release_qa.currency_posting; do
+            stmt="SELECT pg_catalog.md5(COALESCE(pg_catalog.string_agg(pg_catalog.to_jsonb(t)::text, '|' ORDER BY pg_catalog.to_jsonb(t)::text),'')) FROM $table t"
+            source_hash=$(psql -X -At -d qa_release_final -c "$stmt")
+            restored_hash=$(psql -X -At -d qa_release_restored -c "$stmt")
+            if [[ "$source_hash" != "$restored_hash" ]]; then
+              echo "FAIL: backup/restore data hash mismatch: $table"
+              exit 1
+            fi
+            echo "PASS: data restored identically in $table"
+          done
+          for db in qa_release_final qa_release_restored; do
+            count=$(psql -X -At -d "$db" -c "SELECT count(*) FROM sharkania_release_qa.elo_publication WHERE tournament_id='00000000-0000-0000-0000-000000000093'")
+            [[ "$count" == 1 ]] || exit 1
+            count=$(psql -X -At -d "$db" -c "SELECT count(*) FROM pg_catalog.pg_policies WHERE schemaname='public' AND tablename IN ('leagues','league_clubs','league_rooms')")
+            [[ "$count" -ge 3 ]] || exit 1
+            count=$(psql -X -At -d "$db" -c "SELECT pg_catalog.has_function_privilege('anon','public.publish_league_nickname_results_v2_qa(uuid,jsonb)','EXECUTE')::text")
+            [[ "$count" == f ]] || exit 1
+            count=$(psql -X -At -d "$db" -c "SELECT pg_catalog.has_function_privilege('authenticated','public.publish_league_nickname_results_v2_qa(uuid,jsonb)','EXECUTE')::text")
+            [[ "$count" == t ]] || exit 1
+          done
+          echo 'PASS FINAL: isolated BACKUP and separate DATABASE RESTORE preserve all business rows, audit evidence, RLS and guarded RPC ACL'
