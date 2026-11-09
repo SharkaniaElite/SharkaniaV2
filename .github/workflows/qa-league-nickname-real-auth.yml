@@ -1,0 +1,154 @@
+name: QA league nickname writer over REAL local GoTrue and PostgREST
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-auth-local:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "25422"
+      SUPABASE_API_PORT: "25421"
+      SUPABASE_DB_PORT: "25422"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      QA_SUPABASE_URL: http://127.0.0.1:25421
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install pinned project tooling and psql
+        run: |
+          npm ci
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Initialize ephemeral, unlinked local Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/sharkania-league-auth-stack"
+          cd "$RUNNER_TEMP/sharkania-league-auth-stack"
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" init
+          # This isolated workflow needs only Postgres, Auth and REST/Kong.
+          # Avoid the runner default PostgreSQL port and unnecessary service starts.
+          if ! "$GITHUB_WORKSPACE/node_modules/.bin/supabase" start \
+            --exclude realtime,storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor,postgres-meta \
+            >"$RUNNER_TEMP/qa-local-start.log" 2>&1; then
+            echo "FAIL: ephemeral Supabase CLI could not start. Sanitized diagnostics:"
+            grep -Ei 'error|fatal|failed|timeout|docker' "$RUNNER_TEMP/qa-local-start.log" |
+              grep -Eiv 'secret|token|key|password|credential' | tail -30 || true
+            exit 1
+          fi
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" status -o env > "$RUNNER_TEMP/qa-local-vars.env"
+          api_url=$(sed -n 's/^API_URL=//p' "$RUNNER_TEMP/qa-local-vars.env" | tr -d '"')
+          [[ "$api_url" == "$QA_SUPABASE_URL" ]] || {
+            echo "STOP: Supabase local API URL is not the expected loopback value"; exit 1;
+          }
+          for key in ANON_KEY SERVICE_ROLE_KEY; do
+            value=$(sed -n "s/^$key=//p" "$RUNNER_TEMP/qa-local-vars.env" | tr -d '"')
+            [[ -n "$value" ]] || { echo "STOP: missing local $key"; exit 1; }
+            echo "::add-mask::$value"
+            echo "QA_SUPABASE_$key=$value" >> "$GITHUB_ENV"
+          done
+          chmod 600 "$RUNNER_TEMP/qa-local-vars.env"
+          echo "PASS: local-only Auth and REST ports established"
+      - name: Prepare existing synthetic league fixture without replacing real Auth
+        shell: bash
+        run: |
+          set -euo pipefail
+          export QA_TEMP_ROOT="$RUNNER_TEMP/sharkania-league-real-auth-qa"
+          mkdir -p "$QA_TEMP_ROOT/tests/fixtures" "$QA_TEMP_ROOT/docs/security"
+          cp tests/fixtures/sharkania-league-membership-qa-setup.sql "$QA_TEMP_ROOT/tests/fixtures/"
+          cp docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql "$QA_TEMP_ROOT/docs/security/"
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import assert from "node:assert/strict";
+          const src=fs.readFileSync("tests/fixtures/sharkania-elo-qa-setup.sql","utf8");
+          const cleaned=src
+            .replace(/^CREATE SCHEMA auth;\r?\n/m,"")
+            .replace(/^CREATE FUNCTION auth\.uid\(\) RETURNS uuid LANGUAGE sql STABLE AS \$\$\r?\n[\s\S]*?^\$\$;\r?\n/m,"");
+          assert.ok(!cleaned.includes("CREATE SCHEMA auth;"));
+          assert.ok(!cleaned.includes("CREATE FUNCTION auth.uid()"));
+          fs.writeFileSync(process.env.QA_TEMP_ROOT+"/tests/fixtures/sharkania-elo-qa-setup.sql",cleaned);
+          NODE
+          echo "PASS: fixtures retain GoTrue-managed auth schema and real auth.uid()"
+      - name: Load synthetic business schema and protected SQL into ephemeral Supabase DB
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Never pass any remote Supabase URL/connection secret to this command.
+          psql -X -v ON_ERROR_STOP=1 -d postgres \
+            -f "$RUNNER_TEMP/sharkania-league-real-auth-qa/tests/fixtures/sharkania-league-membership-qa-setup.sql"
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
+      - name: Validate GoTrue sessions and protected league RPC over real local API
+        run: node tests/fixtures/sharkania-league-real-auth-qa.mjs
+      - name: Install guarded standings prototype exclusively in isolated local GoTrue stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "25422" ]] || {
+            echo "STOP: real-Auth standings QA requires isolated local Supabase"; exit 1;
+          }
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-league-standings-real-auth-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
+          sleep 2
+      - name: Validate guarded standings with REAL GoTrue sessions over local PostgREST
+        run: node tests/fixtures/sharkania-league-standings-real-auth-qa.mjs
+      - name: Install tournament-link guard exclusively into local GoTrue database
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "25422" ]] || {
+            echo "STOP: tournament ownership QA requires local Supabase only"; exit 1;
+          }
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-tournament-link-real-auth-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
+          sleep 2
+      - name: Verify league-tournament authorization with actual GoTrue JWT and PostgREST
+        run: node tests/fixtures/sharkania-tournament-link-real-auth-qa.mjs
+      - name: Install atomic first-upload results QA only into local Supabase/PostgREST
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "25422" ]] || {
+            echo "STOP: results QA must never reach remote Supabase"; exit 1;
+          }
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-league-atomic-real-auth-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
+          sleep 2
+      - name: Verify guarded first publication over local real GoTrue JWT and PostgREST
+        run: node tests/fixtures/sharkania-league-atomic-real-auth-qa.mjs
+      - name: Install nickname/immutable-currency QA ONLY into the local GoTrue database
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "25422" ]] || {
+            echo "STOP: isolated real-Auth nickname QA requires local Supabase"; exit 1;
+          }
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-league-nickname-ledger-setup-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-atomic-nickname-currency-2026-11-09.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
+          sleep 2
+      - name: Verify NEW nickname writer with actual local JWT and PostgREST
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" ]] || exit 1
+          node tests/fixtures/sharkania-league-nickname-real-auth-qa.mjs
+      - name: Stop ephemeral local stack
+        if: always()
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP/sharkania-league-auth-stack" || exit 0
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" stop --no-backup >/dev/null 2>&1 || true
