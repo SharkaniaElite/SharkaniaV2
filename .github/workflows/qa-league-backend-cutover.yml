@@ -76,6 +76,20 @@ jobs:
           set -e
           if [[ "$code" -eq 0 || "$output" != *"STOP: legacy league policies changed"* ]]; then echo "$output"; exit 1; fi
           [[ "$(psql -X -At -d qa_league_backend_negative -c "SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='save_league_guarded'")" == 0 ]]
+      - name: Wrong same-name P0 index cannot bypass unique-organizer preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_backend_bad_index'
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -d qa_league_backend_bad_index -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_bad_index -c 'CREATE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id)'
+          set +e
+          output=$(psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_bad_index -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql 2>&1)
+          code=$?
+          set -e
+          if [[ "$code" -eq 0 || "$output" != *"STOP: P0 unique primary index has changed or is missing"* ]]; then echo "$output"; exit 1; fi
+          [[ "$(psql -X -At -d qa_league_backend_bad_index -c "SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='save_league_guarded'")" == 0 ]]
+          echo 'PASS: an index with the correct name but wrong properties cannot pass the cutover'
       - name: Missing primary organizer is rejected before changes
         shell: bash
         run: |
