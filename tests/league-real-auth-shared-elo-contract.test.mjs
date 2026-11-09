@@ -19,7 +19,7 @@ test("GoTrue/PostgREST uses real JWTs but STRICTLY loopback-only Supabase",()=>{
  assert.match(authWorkflow,/Stop ephemeral local stack/);
  assert.match(authWorkflow,/nickname-real-auth-qa\.mjs/);
  assert.match(authWorkflow,/docs\/security\/league-atomic-nickname-currency-2026-11-09\.qa-only\.sql/);
- assert.match(authTest,/service\.auth\.admin\.createUser/);
+ assert.match(authTest,/admin\.auth\.admin\.createUser/);
  assert.match(authTest,/client\.auth\.signInWithPassword/);
  assert.match(authTest,/client\.auth\.getUser\(jwt\)/);
  assert.match(authTest,/\/rest\/v1\/rpc\/publish_league_nickname_results_guarded_qa/);
