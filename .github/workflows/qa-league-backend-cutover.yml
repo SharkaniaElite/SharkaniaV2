@@ -41,6 +41,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install pinned frontend dependencies for read-only TypeScript AST inventory
+        run: npm ci
+      - name: Enumerate live main league/result mutation call sites without writing
+        run: node tests/league-legacy-source-inventory.mjs
       - name: Validate backend and dormant frontend contracts
         run: node --test tests/league-backend-cutover-isolated.test.mjs
       - name: Positive PG17 cutover against fake P0-ready production catalogue
