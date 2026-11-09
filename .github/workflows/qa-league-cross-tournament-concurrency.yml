@@ -1,0 +1,146 @@
+name: QA shared-player Elo concurrency across distinct tournaments (PG17 isolated)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  policy-and-race-pg17:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_elo_disposable_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_elo_disposable_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fail unless isolated and install QA client
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]]
+          node --test tests/league-elo-policy-concurrency-contract.test.mjs
+          if ! command -v psql >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y postgresql-client; fi
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_elo_concurrency'
+      - name: Build synthetic SQL schema and existing guarded writers
+        shell: bash
+        env:
+          PGDATABASE: qa_elo_concurrency
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-nickname-ledger-setup-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-nickname-currency-2026-11-09.qa-only.sql
+      - name: Verify versioned legacy Elo and quote-only currency-neutral proposal
+        env:
+          PGDATABASE: qa_elo_concurrency
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-elo-policy-versions-2026-11-09.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-elo-policy-versions-qa.sql
+      - name: Seed an unpublished synthetic league tournament
+        env:
+          PGDATABASE: qa_elo_concurrency
+        shell: bash
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -c "INSERT INTO public.tournaments(id,club_id,buy_in,league_id,room_id,currency,start_datetime) VALUES ('00000000-0000-0000-0000-000000000093','00000000-0000-0000-0000-000000000021',3.30,'00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000031','USD','2026-11-07T19:00:00Z')"
+      - name: Race two separately authenticated SQL transactions for the SAME tournament
+        env:
+          PGDATABASE: qa_elo_concurrency
+        shell: bash
+        run: |
+          set -euo pipefail
+          logs=$(mktemp -d)
+          set +e
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-concurrency-race-call-qa.sql >"$logs/first.log" 2>&1 &
+          pid1=$!
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-concurrency-race-call-qa.sql >"$logs/second.log" 2>&1 &
+          pid2=$!
+          wait "$pid1"; a=$?
+          wait "$pid2"; b=$?
+          set -e
+          if [[ "$a" -eq 0 && "$b" -ne 0 ]]; then
+            grep -q 'Tournament already processed, cancelled or contains prior results' "$logs/second.log"
+          elif [[ "$b" -eq 0 && "$a" -ne 0 ]]; then
+            grep -q 'Tournament already processed, cancelled or contains prior results' "$logs/first.log"
+          else
+            cat "$logs/first.log" "$logs/second.log"
+            echo "FAIL: expected exactly one commit and one guarded rejection (codes $a/$b)"
+            exit 1
+          fi
+          echo 'PASS: competing authenticated clients yielded one commit and one safe rejection'
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-concurrency-race-assert-qa.sql
+      - name: Seed TWO distinct chronologically ordered tournaments with the same league and players
+        env:
+          PGDATABASE: qa_elo_concurrency
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -c "INSERT INTO public.tournaments(id,club_id,buy_in,league_id,room_id,currency,start_datetime) VALUES ('00000000-0000-0000-0000-000000000094','00000000-0000-0000-0000-000000000021',3.30,'00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000031','USD','2026-11-12T19:00:00Z'),('00000000-0000-0000-0000-000000000095','00000000-0000-0000-0000-000000000021',3.30,'00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000031','USD','2026-11-13T19:00:00Z')"
+      - name: Race two DIFFERENT tournaments sharing players, observe real lock wait and sequential Elo
+        env:
+          PGDATABASE: qa_elo_concurrency
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=/tmp/sharkania-qa-cross-first-locked
+          rm -f "$ready"
+          logs=$(mktemp -d)
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-cross-tournament-first-qa.sql >"$logs/first.log" 2>&1 &
+          first_pid=$!
+          found=false
+          for attempt in $(seq 1 90); do
+            if [[ -f "$ready" ]]; then found=true; break; fi
+            if ! kill -0 "$first_pid" 2>/dev/null; then break; fi
+            sleep 0.1
+          done
+          if [[ "$found" != true ]]; then
+            cat "$logs/first.log"
+            echo "FAIL: early tournament did not publish inside held transaction"; exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-cross-tournament-second-qa.sql >"$logs/second.log" 2>&1 &
+          second_pid=$!
+          observed=false
+          for attempt in $(seq 1 30); do
+            blocked=$(psql -X -At -c "SELECT count(*) FROM pg_catalog.pg_stat_activity WHERE datname='qa_elo_concurrency' AND wait_event_type='Lock' AND query ILIKE '%publish_league_nickname_results_guarded_qa%'")
+            if [[ "$blocked" -gt 0 ]]; then observed=true; break; fi
+            sleep 0.1
+          done
+          set +e
+          wait "$first_pid"; first_exit=$?
+          wait "$second_pid"; second_exit=$?
+          set -e
+          if [[ "$first_exit" -ne 0 || "$second_exit" -ne 0 || "$observed" != true ]]; then
+            cat "$logs/first.log" "$logs/second.log"
+            echo "FAIL: two different tournaments must commit sequentially with observed lock wait: $first_exit/$second_exit observed=$observed"
+            exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-cross-tournament-assert-qa.sql
+          echo 'PASS: observed concurrent PG lock wait and correct Elo chronology across two distinct tournaments'
+
