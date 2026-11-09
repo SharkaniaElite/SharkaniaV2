@@ -44,7 +44,10 @@ BEGIN
          SELECT 1 FROM pg_catalog.pg_proc
          WHERE oid=v_sig::regprocedure
            AND prosecdef=true
-           AND proconfig @> ARRAY['search_path=']
+           AND EXISTS (
+             SELECT 1 FROM pg_catalog.unnest(proconfig) AS cfg(setting)
+             WHERE cfg.setting LIKE 'search_path=%'
+           )
        )
     THEN RAISE EXCEPTION 'FAIL: unexpected RPC EXECUTE, security mode or search_path for %',v_sig; END IF;
   END LOOP;
