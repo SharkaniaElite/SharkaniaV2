@@ -1,0 +1,66 @@
+name: QA league nickname and per-currency ledger (PG17 isolated)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  atomic-nickname-ledger:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_nickname_disposable_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_nickname_disposable_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify isolated-only guard and run contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]]
+          node --test tests/league-nickname-currency-contract.test.mjs
+          if ! command -v psql >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y postgresql-client; fi
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_nickname_ledger'
+      - name: Bootstrap synthetic league and standings security
+        shell: bash
+        env:
+          PGDATABASE: qa_nickname_ledger
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-standings-guarded-2026-11-05.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-nickname-ledger-setup-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-nickname-currency-2026-11-09.qa-only.sql
+      - name: Run permissions, nickname creation, country, currency and rollback assertions
+        env:
+          PGDATABASE: qa_nickname_ledger
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-nickname-ledger-integration-qa.sql
+      - name: Verify USD EUR CLP financial totals never combine currencies
+        env:
+          PGDATABASE: qa_nickname_ledger
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-currency-separation-qa.sql
