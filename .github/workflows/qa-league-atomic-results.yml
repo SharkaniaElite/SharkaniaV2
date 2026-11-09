@@ -68,6 +68,10 @@ jobs:
         env:
           PGDATABASE: qa_atomic_results
         run: psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-atomic-first-upload-qa.sql
+      - name: Verify independent 3-player JS Elo parity across K=40/20 threshold
+        env:
+          PGDATABASE: qa_atomic_results
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-atomic-k-boundary-qa.sql
       - name: Verify bounded synthetic 200-player upload (not production benchmarking)
         env:
           PGDATABASE: qa_atomic_results
