@@ -64,4 +64,20 @@ CREATE TRIGGER qa_immutable_currency_posting
  BEFORE UPDATE OR DELETE ON sharkania_release_qa.currency_posting
  FOR EACH ROW EXECUTE FUNCTION sharkania_release_qa.reject_publication_mutation();
 
+-- Materialize no mixed-currency total: every aggregate is keyed by currency.
+-- This PG17 security-invoker view resides in the private schema; API roles
+-- have neither schema USAGE nor SELECT on the underlying posting table.
+CREATE VIEW sharkania_release_qa.currency_totals_by_player
+WITH (security_invoker = true) AS
+SELECT j.player_id,j.currency,
+       count(*)::integer AS published_tournaments,
+       sum(j.buy_ins_count)::integer AS total_entries,
+       sum(j.entry_spend) AS total_entry_spend,
+       sum(j.prize_won) AS total_prize_won,
+       sum(j.bounties_won) AS total_bounties_won
+FROM sharkania_release_qa.currency_posting j
+GROUP BY j.player_id,j.currency;
+REVOKE ALL ON sharkania_release_qa.currency_totals_by_player
+  FROM PUBLIC,anon,authenticated;
+
 \echo 'PASS: private per-currency amount ledger and unique nickname QA schema ready'
