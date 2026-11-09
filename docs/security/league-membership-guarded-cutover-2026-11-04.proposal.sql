@@ -45,6 +45,25 @@ BEGIN
       USING ERRCODE='PT409';
   END IF;
 
+  -- P0 was deployed separately: a same-name replacement index that is
+  -- not UNIQUE or has another predicate must NEVER be silently accepted.
+  -- CREATE INDEX IF NOT EXISTS below only checks the name, not its definition.
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_index i
+    JOIN pg_catalog.pg_class ix ON ix.oid=i.indexrelid
+    WHERE i.indrelid='public.league_clubs'::regclass
+      AND ix.relname='league_clubs_one_primary_per_league_guarded'
+      AND i.indisunique AND i.indisvalid AND i.indisready
+      AND i.indnkeyatts=1 AND i.indnatts=1
+      AND pg_catalog.pg_get_indexdef(i.indexrelid,1,true)='league_id'
+      AND pg_catalog.pg_get_expr(i.indpred,i.indrelid)
+          ILIKE '%is_primary IS TRUE%'
+  ) THEN
+    RAISE EXCEPTION 'STOP: P0 unique primary index has changed or is missing'
+      USING ERRCODE='PT409';
+  END IF;
+
   SELECT count(*) INTO v_expected
   FROM pg_policies
   WHERE schemaname='public'
