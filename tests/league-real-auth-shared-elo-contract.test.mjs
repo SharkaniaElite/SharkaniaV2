@@ -54,3 +54,38 @@ test("two distinct tournaments share exact player IDs, serialise and continue El
  assert.match(assertSQL,/count\(\*\) FROM sharkania_release_qa\.elo_player_checkpoint/);
  assert.doesNotMatch(raceWorkflow,/(supabase db push|supabase functions deploy|--remote|nhpjzywfzljtlqaigzed|\.supabase\.co)/);
 });
+
+test("independent primary organizers are isolated but shared players across leagues keep one chronological Elo",()=>{
+ const seed=read("tests/fixtures/sharkania-league-cross-league-seed-qa.sql");
+ const access=read("tests/fixtures/sharkania-league-cross-league-ownership-qa.sql");
+ const leagueA=read("tests/fixtures/sharkania-league-cross-league-first-qa.sql");
+ const leagueB=read("tests/fixtures/sharkania-league-cross-league-second-qa.sql");
+ const verify=read("tests/fixtures/sharkania-league-cross-league-assert-qa.sql");
+ const older=read("tests/fixtures/sharkania-league-cross-league-out-of-order-qa.sql");
+
+ assert.match(seed,/00000000-0000-0000-0000-000000000041/);
+ assert.match(seed,/00000000-0000-0000-0000-000000000042/);
+ assert.match(seed,/00000000-0000-0000-0000-000000000021/);
+ assert.match(seed,/00000000-0000-0000-0000-000000000022/);
+ assert.match(seed,/00000000-0000-0000-0000-000000000031/);
+ assert.match(access,/club A organizer modified club B league/);
+ assert.match(access,/club B organizer modified club A league/);
+ assert.match(access,/WHEN SQLSTATE '42501'/);
+ assert.match(leagueA,/request\.jwt\.claim\.sub='00000000-0000-0000-0000-000000000002'/);
+ assert.match(leagueB,/request\.jwt\.claim\.sub='00000000-0000-0000-0000-000000000005'/);
+ assert.match(leagueA,/00000000-0000-0000-0000-000000000097/);
+ assert.match(leagueB,/00000000-0000-0000-0000-000000000098/);
+ assert.match(leagueA,/pg_catalog\.pg_sleep\(4\)/);
+ assert.match(raceWorkflow,/Race TWO leagues sharing player identities/);
+ assert.match(raceWorkflow,/sharkania-league-cross-league-ownership-qa\.sql/);
+ assert.match(raceWorkflow,/sharkania-league-cross-league-assert-qa\.sql/);
+ assert.match(raceWorkflow,/sharkania-league-cross-league-out-of-order-qa\.sql/);
+ assert.match(verify,/a\.elo_after=b\.elo_before/);
+ assert.match(verify,/actor_profile_id=/);
+ assert.match(verify,/p\.total_tournaments<>4/);
+ assert.match(verify,/j\.entry_spend=6\.60/);
+ assert.match(older,/Later tournament results exist for an affected player/);
+ assert.match(older,/EarlierUnbornPlayer/);
+ assert.match(older,/rejected retroactive cross-league upload left partial data/);
+ assert.doesNotMatch(raceWorkflow,/--remote|\.supabase\.co|db push/);
+});

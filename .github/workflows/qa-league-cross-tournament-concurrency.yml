@@ -144,4 +144,59 @@ jobs:
           fi
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-cross-tournament-assert-qa.sql
           echo 'PASS: observed concurrent PG lock wait and correct Elo chronology across two distinct tournaments'
-
+      - name: Seed TWO leagues and verify each primary organizer cannot write to the other league
+        shell: bash
+        env:
+          PGDATABASE: qa_elo_concurrency
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-cross-league-seed-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-cross-league-ownership-qa.sql
+      - name: Race TWO leagues sharing player identities, confirm lock, actor boundaries and chronological Elo
+        shell: bash
+        env:
+          PGDATABASE: qa_elo_concurrency
+        run: |
+          set -euo pipefail
+          ready=/tmp/sharkania-qa-different-leagues-a-published
+          rm -f "$ready"
+          logs=$(mktemp -d)
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-cross-league-first-qa.sql >"$logs/first.log" 2>&1 &
+          first_pid=$!
+          found=false
+          for attempt in $(seq 1 90); do
+            if [[ -f "$ready" ]]; then found=true; break; fi
+            if ! kill -0 "$first_pid" 2>/dev/null; then break; fi
+            sleep 0.1
+          done
+          if [[ "$found" != true ]]; then
+            cat "$logs/first.log"
+            echo 'FAIL: first independent league did not reach held transaction'
+            exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-cross-league-second-qa.sql >"$logs/second.log" 2>&1 &
+          second_pid=$!
+          observed=false
+          for attempt in $(seq 1 30); do
+            blocked=$(psql -X -At -c "SELECT count(*) FROM pg_catalog.pg_stat_activity WHERE datname='qa_elo_concurrency' AND wait_event_type='Lock' AND query ILIKE '%publish_league_nickname_results_guarded_qa%'")
+            if [[ "$blocked" -gt 0 ]]; then observed=true; break; fi
+            sleep 0.1
+          done
+          set +e
+          wait "$first_pid"; first_exit=$?
+          wait "$second_pid"; second_exit=$?
+          set -e
+          if [[ "$first_exit" -ne 0 || "$second_exit" -ne 0 || "$observed" != true ]]; then
+            cat "$logs/first.log" "$logs/second.log"
+            echo "FAIL: separate leagues must share serializable Elo order: codes $first_exit/$second_exit, lock observed=$observed"
+            exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-cross-league-assert-qa.sql
+          echo 'PASS: two separate league organizers committed once each, with observed lock and shared player Elo continuity'
+      - name: Reject an earlier result across leagues and roll back any newly created nickname
+        shell: bash
+        env:
+          PGDATABASE: qa_elo_concurrency
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-cross-league-out-of-order-qa.sql
