@@ -85,8 +85,14 @@ jobs:
         run: |
           set -euo pipefail
           # Never pass any remote Supabase URL/connection secret to this command.
-          psql -X -v ON_ERROR_STOP=1 -d postgres \
+          # P0 was already deployed in real production, so this disposable
+          # database must first recreate its exact unique index before invoking
+          # the guarded Release A preflight.
+          psql -X -v ON_ERROR_STOP=1 -d postgres -v QA_SKIP_CUTOVER=1 \
             -f "$RUNNER_TEMP/sharkania-league-real-auth-qa/tests/fixtures/sharkania-league-membership-qa-setup.sql"
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+          psql -X -v ON_ERROR_STOP=1 -d postgres \
+            -f "$RUNNER_TEMP/sharkania-league-real-auth-qa/docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql"
           psql -X -v ON_ERROR_STOP=1 -d postgres -c "NOTIFY pgrst, 'reload schema';"
       - name: Validate GoTrue sessions and protected league RPC over real local API
         run: node tests/fixtures/sharkania-league-real-auth-qa.mjs
