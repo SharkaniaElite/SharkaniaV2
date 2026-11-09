@@ -119,9 +119,9 @@ jobs:
             [[ "$count" == 1 ]] || exit 1
             count=$(psql -X -At -d "$db" -c "SELECT count(*) FROM pg_catalog.pg_policies WHERE schemaname='public' AND tablename IN ('leagues','league_clubs','league_rooms')")
             [[ "$count" -ge 3 ]] || exit 1
-            count=$(psql -X -At -d "$db" -c "SELECT pg_catalog.has_function_privilege('anon','public.publish_league_nickname_results_v2_qa(uuid,jsonb)','EXECUTE')::text")
-            [[ "$count" == f ]] || exit 1
-            count=$(psql -X -At -d "$db" -c "SELECT pg_catalog.has_function_privilege('authenticated','public.publish_league_nickname_results_v2_qa(uuid,jsonb)','EXECUTE')::text")
-            [[ "$count" == t ]] || exit 1
+            count=$(psql -X -At -d "$db" -c "SELECT pg_catalog.has_function_privilege('anon','public.publish_league_nickname_results_v2_qa(uuid,jsonb)','EXECUTE')")
+            [[ "$count" == f ]] || { echo "FAIL: anonymous RPC EXECUTE unexpectedly enabled in $db: $count"; exit 1; }
+            count=$(psql -X -At -d "$db" -c "SELECT pg_catalog.has_function_privilege('authenticated','public.publish_league_nickname_results_v2_qa(uuid,jsonb)','EXECUTE')")
+            [[ "$count" == t ]] || { echo "FAIL: authenticated RPC EXECUTE missing in $db: $count"; exit 1; }
           done
           echo 'PASS FINAL: isolated BACKUP and separate DATABASE RESTORE preserve all business rows, audit evidence, RLS and guarded RPC ACL'
