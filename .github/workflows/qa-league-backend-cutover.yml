@@ -1,0 +1,117 @@
+name: QA Release A backend cutover (ephemeral PostgreSQL only)
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  league-backend-pg17:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_league_disposable_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_league_disposable_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify local-only test environment and install psql if needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_ACTIONS}" == true && "${PGHOST}" == 127.0.0.1 && "${PGPORT}" == 5432 ]]
+          if ! command -v psql >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y postgresql-client; fi
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned frontend dependencies for read-only TypeScript AST inventory
+        run: npm ci
+      - name: Enumerate live main league/result mutation call sites without writing
+        run: node tests/league-legacy-source-inventory.mjs
+      - name: Validate backend and dormant frontend contracts
+        run: node --test tests/league-backend-cutover-isolated.test.mjs
+      - name: Positive PG17 cutover against fake P0-ready production catalogue
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_backend_positive'
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -d qa_league_backend_positive -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -f tests/fixtures/sharkania-league-membership-qa-assert.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -f tests/fixtures/sharkania-league-backend-acl-qa.sql
+      - name: Reproduce cross-league tournament link bypass, then enforce guarded ownership with rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -f tests/fixtures/sharkania-league-tournament-link-risk-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_positive -f tests/fixtures/sharkania-tournament-link-guarded-qa.sql
+      - name: Negative PG17 cutover must reject unknown policy and preserve state
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_backend_negative'
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -d qa_league_backend_negative -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_negative -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_negative -c 'CREATE POLICY unexpected_global_all ON public.leagues FOR ALL TO authenticated USING (true) WITH CHECK (true)'
+          set +e
+          output=$(psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_negative -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql 2>&1)
+          code=$?
+          set -e
+          if [[ "$code" -eq 0 || "$output" != *"STOP: unreviewed league write policy exists"* ]]; then echo "$output"; exit 1; fi
+          [[ "$(psql -X -At -d qa_league_backend_negative -c "SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='save_league_guarded'")" == 0 ]]
+          [[ "$(psql -X -At -d qa_league_backend_negative -c "SELECT count(*) FROM pg_policies WHERE policyname='unexpected_global_all'")" == 1 ]]
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_negative -c 'DROP POLICY unexpected_global_all ON public.leagues'
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_negative -c 'DROP POLICY "Leagues: admin puede crear" ON public.leagues'
+          set +e
+          output=$(psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_negative -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql 2>&1)
+          code=$?
+          set -e
+          if [[ "$code" -eq 0 || "$output" != *"STOP: legacy league policies changed"* ]]; then echo "$output"; exit 1; fi
+          [[ "$(psql -X -At -d qa_league_backend_negative -c "SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='save_league_guarded'")" == 0 ]]
+      - name: Wrong same-name P0 index cannot bypass unique-organizer preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_backend_bad_index'
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -d qa_league_backend_bad_index -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_bad_index -c 'CREATE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id)'
+          set +e
+          output=$(psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_bad_index -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql 2>&1)
+          code=$?
+          set -e
+          if [[ "$code" -eq 0 || "$output" != *"STOP: P0 unique primary index has changed or is missing"* ]]; then echo "$output"; exit 1; fi
+          [[ "$(psql -X -At -d qa_league_backend_bad_index -c "SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='save_league_guarded'")" == 0 ]]
+          echo 'PASS: an index with the correct name but wrong properties cannot pass the cutover'
+      - name: Missing primary organizer is rejected before changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_league_backend_orphan'
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -d qa_league_backend_orphan -f tests/fixtures/sharkania-league-membership-qa-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_orphan -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+          psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_orphan -c "UPDATE public.league_clubs SET is_primary=false WHERE league_id='00000000-0000-0000-0000-000000000042'"
+          set +e
+          output=$(psql -X -v ON_ERROR_STOP=1 -d qa_league_backend_orphan -f docs/security/league-membership-guarded-cutover-2026-11-04.proposal.sql 2>&1)
+          code=$?
+          set -e
+          if [[ "$code" -eq 0 || "$output" != *"STOP: league has missing or multiple primary clubs"* ]]; then echo "$output"; exit 1; fi
+          [[ "$(psql -X -At -d qa_league_backend_orphan -c "SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='save_league_guarded'")" == 0 ]]
+          echo 'PASS: no DDL applied when membership catalogue diverged'
