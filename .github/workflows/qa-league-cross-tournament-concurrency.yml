@@ -38,6 +38,7 @@ jobs:
           set -euo pipefail
           [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]]
           node --test tests/league-elo-policy-concurrency-contract.test.mjs
+          node --test tests/league-real-auth-shared-elo-contract.test.mjs
           if ! command -v psql >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y postgresql-client; fi
           psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
           psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
