@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "docs/security/league-atomic-first-upload-2026-11-06.qa-only.sql"
+      - "docs/security/league-result-currency-cutover-2026-11-09.md"
       - "docs/security/league-standings-guarded-2026-11-05.qa-only.sql"
       - "docs/security/league-elo-publication-evidence-2026-11-06.qa-only.sql"
       - "tests/fixtures/sharkania-league-atomic-*.sql"
