@@ -32,4 +32,5 @@ entrypoint = "./functions/elo-fx-capture/index.ts"
 [functions.bcch-dollar-preview]
 enabled = false
 verify_jwt = false
+import_map = "./functions/bcch-dollar-preview/deno.json"
 entrypoint = "./functions/bcch-dollar-preview/index.ts"
