@@ -141,4 +141,54 @@ assertStatus(completion,[409],"direct independent completion blocked");
 
 assert.equal(sql("SELECT count(*) FROM sharkania_release.independent_elo_publication"),"2");
 assert.equal(sql("SELECT count(*) FROM public.elo_history WHERE tournament_id="+safeId(t1)),"2");
+
+// A player cannot PATCH profile_id directly; superadmin uses the guarded
+// RPC, atomically resolving the pending nickname claim as well.
+assertStatus(await rest("players?id=eq."+ownPlayer,"PATCH","player",
+ {profile_id:userIds.owner}),[401,403],"direct profile ownership reassignment denied");
+
+const freshId=sql("SELECT id::text FROM public.players WHERE nickname='"+fresh+"'");
+assert.match(freshId,UUID);
+const claimId=sql("INSERT INTO public.nickname_claims("+
+ "user_id,player_id,screenshot_url,status) VALUES("+
+ safeId(userIds.player)+","+safeId(freshId)+",'qa-verified-proof','pending') RETURNING id::text");
+assert.match(claimId,UUID);
+
+const claimBody={
+ p_player_id:freshId,p_profile_id:userIds.player,p_claim_id:claimId
+};
+assertStatus(await rest("rpc/admin_link_player_profile_guarded","POST",null,claimBody),
+ [401,403],"anonymous cannot link player profiles");
+assertStatus(await rest("rpc/admin_link_player_profile_guarded","POST","owner",claimBody),
+ [403],"club admin cannot link player profiles");
+assertStatus(await rest("rpc/admin_link_player_profile_guarded","POST","player",claimBody),
+ [403],"player cannot link their own profile by RPC");
+const approved=await rest("rpc/admin_link_player_profile_guarded","POST","superadmin",claimBody);
+assertStatus(approved,[200],"verified superadmin approves nickname claim atomically");
+assert.equal(approved.data.status,"linked");
+assert.equal(approved.data.atomic,true);
+assert.equal(sql("SELECT profile_id::text FROM public.players WHERE id="+safeId(freshId)),userIds.player);
+assert.equal(sql("SELECT status FROM public.nickname_claims WHERE id="+safeId(claimId)),"approved");
+assertStatus(await rest("rpc/admin_link_player_profile_guarded","POST","superadmin",claimBody),
+ [409],"already resolved claim cannot be approved twice");
+
+const unlinked=await rest("rpc/admin_link_player_profile_guarded","POST","superadmin",{
+ p_player_id:freshId,p_profile_id:null,p_claim_id:null
+});
+assertStatus(unlinked,[200],"verified superadmin can unlink nickname");
+assert.equal(unlinked.data.status,"unlinked");
+assert.equal(sql("SELECT (profile_id IS NULL)::text FROM public.players WHERE id="+safeId(freshId)),"true");
+
+const manual=await rest("rpc/admin_link_player_profile_guarded","POST","superadmin",{
+ p_player_id:freshId,p_profile_id:userIds.player,p_claim_id:null
+});
+assertStatus(manual,[200],"verified superadmin can manually link with audit evidence");
+assert.equal(sql("SELECT count(*) FROM public.nickname_claims WHERE player_id="+safeId(freshId)+
+ " AND screenshot_url='admin-claim' AND status='approved'"),"1");
+assertStatus(await rest("rpc/admin_link_player_profile_guarded","POST","superadmin",{
+ p_player_id:freshId,p_profile_id:userIds.owner,p_claim_id:null
+}),[409],"superadmin cannot silently reassign nickname owned by another profile");
+
+console.log("PASS: guarded superadmin linking, pending claims, manual links and anti-hijack over genuine local JWT");
+
 console.log("PASS FINAL: full PR #95 + PR #96 SQL over real LOCAL GoTrue/PostgREST; client Elo DML closed");
