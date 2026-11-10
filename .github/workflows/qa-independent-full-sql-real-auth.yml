@@ -1,0 +1,138 @@
+name: QA independent Elo security with real LOCAL GoTrue/PostgREST
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-elo-local-jwt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "25422"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      SUPABASE_API_PORT: "25421"
+      SUPABASE_DB_PORT: "25422"
+      QA_SUPABASE_URL: http://127.0.0.1:25421
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Guard loopback-only test environment and install pinned tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "25422" && "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" ]] || exit 1
+          npm ci
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Start unlinked ephemeral Supabase Auth and REST
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-a-entire-sql-auth-stack"
+          cd "$RUNNER_TEMP/release-a-entire-sql-auth-stack"
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" init
+          if ! "$GITHUB_WORKSPACE/node_modules/.bin/supabase" start \
+             --exclude realtime,storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor,postgres-meta \
+             >"$RUNNER_TEMP/qa-full-sql-local-start.log" 2>&1; then
+             grep -Ei 'error|fatal|failed|timeout|docker' "$RUNNER_TEMP/qa-full-sql-local-start.log" |
+               grep -Eiv 'secret|token|key|password|credential' | tail -25 || true
+             exit 1
+          fi
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" status -o env > "$RUNNER_TEMP/qa-full-sql-local-keys.env"
+          api=$(sed -n 's/^API_URL=//p' "$RUNNER_TEMP/qa-full-sql-local-keys.env" | tr -d '"')
+          [[ "$api" == "$QA_SUPABASE_URL" ]] || { echo "STOP: not loopback API"; exit 1; }
+          for k in ANON_KEY SERVICE_ROLE_KEY; do
+            v=$(sed -n "s/^$k=//p" "$RUNNER_TEMP/qa-full-sql-local-keys.env" | tr -d '"')
+            [[ -n "$v" ]] || exit 1
+            echo "::add-mask::$v"
+            echo "QA_SUPABASE_$k=$v" >> "$GITHUB_ENV"
+          done
+          chmod 600 "$RUNNER_TEMP/qa-full-sql-local-keys.env"
+          echo "PASS: fake local GoTrue and PostgREST running"
+      - name: Prepare synthetic baseline preserving actual local auth.uid function
+        shell: bash
+        run: |
+          set -euo pipefail
+          export QA_TEMP_ROOT="$RUNNER_TEMP/release-a-full-sql-fake-baseline"
+          mkdir -p "$QA_TEMP_ROOT/tests/fixtures"
+          cp tests/fixtures/sharkania-league-atomic-setup.sql "$QA_TEMP_ROOT/tests/fixtures/"
+          cp tests/fixtures/sharkania-league-membership-qa-setup.sql "$QA_TEMP_ROOT/tests/fixtures/"
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import assert from "node:assert/strict";
+          const src=fs.readFileSync("tests/fixtures/sharkania-elo-qa-setup.sql","utf8");
+          const sanitized=src
+            .replace(/^CREATE SCHEMA auth;\r?\n/m,"")
+            .replace(/^CREATE FUNCTION auth\.uid\(\) RETURNS uuid LANGUAGE sql STABLE AS \$\$\r?\n[\s\S]*?^\$\$;\r?\n/m,"");
+          assert.equal(sanitized.includes("CREATE SCHEMA auth;"),false);
+          assert.equal(sanitized.includes("CREATE FUNCTION auth.uid()"),false);
+          fs.writeFileSync(process.env.QA_TEMP_ROOT+"/tests/fixtures/sharkania-elo-qa-setup.sql",sanitized);
+          NODE
+          echo "PASS: synthetic business schema retains REAL local GoTrue auth schema"
+      - name: Install Release A plus the independently guarded RPC and ACL proposal (LOCAL only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "25422" ]] || exit 1
+          psql -X -v ON_ERROR_STOP=1 -d postgres -v QA_SKIP_CUTOVER=1 -f "$RUNNER_TEMP/release-a-full-sql-fake-baseline/tests/fixtures/sharkania-league-atomic-setup.sql"
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-release-a-player-baseline-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-production-legacy-rpc-source-2026-11-10.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;"
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-release-a-single-transaction-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/independent-results-atomic-v1-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/independent-elo-rest-lockdown-2026-11-10.CANDIDATE.sql
+          [[ "$(psql -X -At -v ON_ERROR_STOP=1 -d postgres -c "SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname IN ('publish_league_nickname_results_guarded_qa','publish_league_results_guarded_qa');")" == "0" ]] || { echo "STOP: QA forwarding alias unexpectedly installed"; exit 1; }
+          echo "PASS: one complete actual SQL candidate installed on ephemeral PG17"
+      - name: Load isolated HTTP authorization fixtures, no remote app credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -d postgres <<'SQL'
+          BEGIN;
+          INSERT INTO public.tournaments(id,club_id,buy_in,league_id,room_id,currency,start_datetime)
+          VALUES
+            ('00000000-0000-0000-0000-000000000097',
+             '00000000-0000-0000-0000-000000000021',3.30,NULL,
+             '00000000-0000-0000-0000-000000000031','USD','2026-11-26T20:00:00Z'),
+            ('00000000-0000-0000-0000-000000000102',
+             '00000000-0000-0000-0000-000000000022',3.30,NULL,
+             '00000000-0000-0000-0000-000000000031','USD','2026-12-02T20:00:00Z');
+          GRANT SELECT ON public.players,public.tournaments,public.tournament_results,
+            public.elo_history TO authenticated;
+          GRANT UPDATE ON public.tournaments TO authenticated;
+          CREATE POLICY qa_http_tournaments_read ON public.tournaments FOR SELECT
+            TO authenticated USING (true);
+          CREATE POLICY qa_http_tournaments_update ON public.tournaments FOR UPDATE
+            TO authenticated USING (true) WITH CHECK (true);
+          CREATE POLICY qa_http_players_read ON public.players FOR SELECT
+            TO authenticated USING (true);
+          CREATE POLICY qa_http_players_owner_update ON public.players FOR UPDATE
+            TO authenticated USING (profile_id=(SELECT auth.uid()))
+            WITH CHECK (profile_id=(SELECT auth.uid()));
+          COMMIT;
+          NOTIFY pgrst, 'reload schema';
+          SQL
+          sleep 2
+      - name: Verify actual local authenticated HTTP authorization, no client Elo DML
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$QA_SUPABASE_URL" == "http://127.0.0.1:25421" &&
+             "$PGHOST" == "127.0.0.1" && "$PGPORT" == "25422" ]] || exit 1
+          node tests/fixtures/sharkania-independent-real-auth-qa.mjs
+      - name: Stop ephemeral Supabase without backup
+        if: always()
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP/release-a-entire-sql-auth-stack" || exit 0
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" stop --no-backup >/dev/null 2>&1 || true
