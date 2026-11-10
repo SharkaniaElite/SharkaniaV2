@@ -25,3 +25,11 @@ enabled = false
 verify_jwt = false
 import_map = "./functions/elo-fx-capture/deno.json"
 entrypoint = "./functions/elo-fx-capture/index.ts"
+
+# Read-only Banco Central observed-dollar preview for Sharkania superadmin.
+# QA-only: neither the Edge Function nor admin UI is deployed yet.
+# Auth is verified with auth.getUser() + is_super_admin() before BCCh fetch.
+[functions.bcch-dollar-preview]
+enabled = false
+verify_jwt = false
+entrypoint = "./functions/bcch-dollar-preview/index.ts"
