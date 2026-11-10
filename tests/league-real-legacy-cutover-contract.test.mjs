@@ -51,5 +51,8 @@ test("cutover contract runs in disposable PG17 only",()=>{
  assert.match(ci,/sharkania-production-legacy-rpc-source-2026-11-10\.qa-only\.sql/);
  assert.match(ci,/league-legacy-rpc-guards-2026-11-10\.qa-only\.sql/);
  assert.match(ci,/sharkania-league-real-legacy-rpc-cutover-qa\.sql/);
+ assert.match(ci,/qa_legacy_drift/);
+ assert.match(ci,/Legacy RPC catalog drift/);
+ assert.match(ci,/before any DDL/);
  assert.doesNotMatch(ci,/(supabase db push|supabase functions deploy|--remote|\.supabase\.co|nhpjzywfzljtlqaigzed)/);
 });
