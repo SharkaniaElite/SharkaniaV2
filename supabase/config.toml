@@ -16,3 +16,11 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/admin-email-confirmations/deno.json"
 entrypoint = "./functions/admin-email-confirmations/index.ts"
+
+# Admin-only official Banco Central de Chile FX preview. Explicitly
+# authenticates JWT + trusted super-admin role; no writes to database.
+[functions.bcch-dollar-preview]
+enabled = true
+verify_jwt = false
+import_map = "./functions/bcch-dollar-preview/deno.json"
+entrypoint = "./functions/bcch-dollar-preview/index.ts"
