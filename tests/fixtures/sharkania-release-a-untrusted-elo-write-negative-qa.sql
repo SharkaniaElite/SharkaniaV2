@@ -14,7 +14,7 @@ BEGIN;
 -- keeps no other permanent changes. A SELECT policy is required for UPDATE.
 GRANT SELECT, UPDATE ON public.players TO authenticated;
 GRANT SELECT, INSERT ON public.elo_history TO authenticated;
-GRANT SELECT ON public.tournaments TO authenticated;
+GRANT SELECT, UPDATE ON public.tournaments TO authenticated;
 
 CREATE POLICY qa_legacy_players_read_all
   ON public.players FOR SELECT TO authenticated USING (true);
@@ -27,6 +27,11 @@ CREATE POLICY qa_legacy_elo_history_authenticated_insert
   WITH CHECK ((SELECT auth.uid()) IS NOT NULL);
 CREATE POLICY qa_legacy_tournaments_read_all
   ON public.tournaments FOR SELECT TO authenticated USING (true);
+-- FOR SHARE inside the Release A SECURITY INVOKER trigger requires UPDATE
+-- permission + row policy in the disposable baseline, as in production.
+CREATE POLICY qa_legacy_tournaments_update
+  ON public.tournaments FOR UPDATE TO authenticated
+  USING (true) WITH CHECK (true);
 
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000061';
