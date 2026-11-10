@@ -25,7 +25,7 @@ DECLARE blocked bool:=false;
 BEGIN
  BEGIN
   PERFORM public.sharkania_fx_ingest_official_v2(
-   'CLP','2026-11-09',950,
+   'CLP','2026-11-09',990,
    repeat('a',64),'BCCH:F073.TCO.PRE.Z.D:2026-11-09');
  EXCEPTION WHEN SQLSTATE '42501' THEN blocked:=true; END;
  IF NOT blocked THEN RAISE EXCEPTION 'FAIL: player forged official FX rate'; END IF;
@@ -40,11 +40,11 @@ DO $service$
 DECLARE
  c1 jsonb;c2 jsonb;bad bool:=false;old_seen timestamptz;new_seen timestamptz;
 BEGIN
- c1:=public.sharkania_fx_ingest_official_v2('CLP','2026-11-09',950,
+ c1:=public.sharkania_fx_ingest_official_v2('CLP','2026-11-09',990,
   repeat('a',64),'BCCH:F073.TCO.PRE.Z.D:2026-11-09');
  SELECT first_seen_at INTO old_seen FROM sharkania_release.fx_observation_v2
  WHERE currency='CLP' AND effective_date='2026-11-09';
- c2:=public.sharkania_fx_ingest_official_v2('CLP','2026-11-09',950,
+ c2:=public.sharkania_fx_ingest_official_v2('CLP','2026-11-09',990,
   repeat('a',64),'BCCH:F073.TCO.PRE.Z.D:2026-11-09');
  SELECT first_seen_at INTO new_seen FROM sharkania_release.fx_observation_v2
  WHERE currency='CLP' AND effective_date='2026-11-09';
@@ -52,7 +52,7 @@ BEGIN
  OR old_seen IS NULL OR old_seen IS DISTINCT FROM new_seen
  THEN RAISE EXCEPTION 'FAIL: idempotent official FX receipt not retained'; END IF;
  BEGIN
-  PERFORM public.sharkania_fx_ingest_official_v2('CLP','2026-11-09',951,
+  PERFORM public.sharkania_fx_ingest_official_v2('CLP','2026-11-09',991,
    repeat('b',64),'BCCH:F073.TCO.PRE.Z.D:2026-11-09');
  EXCEPTION WHEN SQLSTATE 'PT409' THEN bad:=true; END;
  IF NOT bad THEN RAISE EXCEPTION 'FAIL: silent exchange-rate revision allowed'; END IF;
@@ -82,7 +82,11 @@ INSERT INTO public.tournaments(
  ('00000000-0000-0000-0000-000000000133',
   '00000000-0000-0000-0000-000000000021',10,NULL,
   '00000000-0000-0000-0000-000000000031','USD',
-  '2026-11-07T21:00:00Z','UTC');
+  '2026-11-07T21:00:00Z','UTC'),
+ ('00000000-0000-0000-0000-000000000134',
+  '00000000-0000-0000-0000-000000000021',9.09,NULL,
+  '00000000-0000-0000-0000-000000000031','EUR',
+  '2026-11-04T19:00:00Z','Europe/Madrid');
 
 -- Populate fake, pre-event snapshots in PG17 ONLY. These are synthetic,
 -- never passed via service-role API and cannot be inserted in production by
@@ -106,7 +110,7 @@ DECLARE blocked bool:=false;
 BEGIN
  BEGIN
   PERFORM sharkania_release.reserve_usd_elo_v2(
-   '00000000-0000-0000-0000-000000000130');
+   '00000000-0000-0000-0000-000000000134');
  EXCEPTION WHEN SQLSTATE 'PT409' THEN blocked:=true; END;
  IF NOT blocked THEN RAISE EXCEPTION 'FAIL: late FX fetch retroactively used by Elo'; END IF;
 END;$bad$;
@@ -116,7 +120,13 @@ BEGIN;
 DO $rates$
 DECLARE a numeric;b numeric;c numeric;
 BEGIN
- a:=sharkania_release.reserve_usd_elo_v2(
+ -- A retroactively ingested 990 CLP/USD must be ignored: Nov 9's
+ -- previously observed 950 CLP/USD is the latest valid pre-event quote.
+ IF abs(sharkania_release.reserve_usd_elo_v2(
+  '00000000-0000-0000-0000-000000000130')-10)>0.00000001 THEN
+  RAISE EXCEPTION 'FAIL: late-observed quote selected for pre-event ELO';
+ END IF;
+  a:=sharkania_release.reserve_usd_elo_v2(
   '00000000-0000-0000-0000-000000000131');
  b:=sharkania_release.reserve_usd_elo_v2(
   '00000000-0000-0000-0000-000000000132');
@@ -126,9 +136,10 @@ BEGIN
  THEN RAISE EXCEPTION 'FAIL: 9500 CLP, EUR 9.09, USD 10 have different USD equiv % % %',a,b,c; END IF;
  IF (SELECT count(*) FROM sharkania_release.elo_v2_event_fx
   WHERE tournament_id IN(
+    '00000000-0000-0000-0000-000000000130',
     '00000000-0000-0000-0000-000000000131',
     '00000000-0000-0000-0000-000000000132',
-    '00000000-0000-0000-0000-000000000133'))<>3
+    '00000000-0000-0000-0000-000000000133'))<>4
  THEN RAISE EXCEPTION 'FAIL: USD snapshots not saved'; END IF;
  RAISE NOTICE 'PASS: same USD equivalent, official quote binding and frozen event snapshots';
 END;$rates$;
