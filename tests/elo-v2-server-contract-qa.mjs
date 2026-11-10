@@ -64,7 +64,7 @@ test("v2 writers apply USD only in Elo K; keep native-currency journals",()=>{
  assert.match(writers,/OR e\.value \? 'fx_rate'/);
 });
 test("official capture disabled in config, uses secret-only service access and pinned endpoints",()=>{
- assert.match(edge,/withSupabase\(\{auth:"secret"\}/);
+ assert.match(edge,/withSupabase\(\{auth:"secret:elo-fx-scheduler"\}/);
  assert.match(edge,/BCCH_BDE_API_TOKEN/);
  assert.match(edge,/si3\.bcentral\.cl/);
  assert.match(edge,/data-api\.ecb\.europa\.eu/);
