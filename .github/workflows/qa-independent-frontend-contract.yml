@@ -23,3 +23,4 @@ jobs:
           npx tsc -b
           node --test tests/independent-results-frontend-contract.test.mjs
           node --test tests/elo-browser-writers-ast-audit.mjs
+          node --experimental-strip-types --test tests/elo-v2-usd-normalization-qa.mjs
