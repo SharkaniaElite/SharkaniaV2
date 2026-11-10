@@ -7,7 +7,7 @@
 -- PREREQUISITES (each with explicit owner authorization):
 --   1. Transactional SQL release A/v2 installed, activation.enabled=false.
 --   2. Disabled ELO FX function deployed and confirmed authenticated using
---      a DEDICATED Supabase secret key, not a publishable/anon key.
+--      a DEDICATED Supabase secret key named elo-fx-scheduler, not a publishable/anon key.
 --   3. Two existing production cron jobs have been identified and preserved.
 --   4. Vault stores project URL and dedicated secret key named EXACTLY
 --      sharkania_elo_fx_url and sharkania_elo_fx_scheduler_key.
