@@ -76,6 +76,39 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;"
           psql -X -v ON_ERROR_STOP=1 -f docs/security/league-legacy-rpc-guards-2026-11-10.qa-only.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-real-legacy-rpc-cutover-qa.sql
+      - name: Reject drifted source function BEFORE any permissions or DDL change
+        shell: bash
+        env:
+          PGDATABASE: postgres
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]]
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE DATABASE qa_legacy_drift'
+          psql -X -v ON_ERROR_STOP=1 -d qa_legacy_drift -f tests/fixtures/sharkania-production-legacy-rpc-source-2026-11-10.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -d qa_legacy_drift -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;"
+          psql -X -v ON_ERROR_STOP=1 -d qa_legacy_drift <<'DRIFT'
+          CREATE OR REPLACE FUNCTION public.reset_tournament_impact(tournament_id_to_reset uuid)
+          RETURNS json LANGUAGE plpgsql SECURITY DEFINER
+          SET search_path TO 'public','extensions'
+          AS $f$
+          BEGIN RETURN json_build_object('success',true); END;
+          $f$;
+          DRIFT
+          set +e
+          psql -X -v ON_ERROR_STOP=1 -d qa_legacy_drift \
+            -f docs/security/league-legacy-rpc-guards-2026-11-10.qa-only.sql \
+            > "$RUNNER_TEMP/qa-legacy-catalog-drift.log" 2>&1
+          result=$?
+          set -e
+          if [[ "$result" -eq 0 ]]; then
+            echo 'FAIL: altered legacy function unexpectedly passed catalog preflight'; exit 1
+          fi
+          grep -q 'Legacy RPC catalog drift' "$RUNNER_TEMP/qa-legacy-catalog-drift.log"
+          [[ "$(psql -X -At -d qa_legacy_drift -c "SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname LIKE 'sharkania_guard_legacy_%_qa'")" == "0" ]] || {
+            echo 'FAIL: drift changed functions before the safety preflight'; exit 1;
+          }
+          echo 'PASS: source drift correctly aborted the transaction before any DDL'
+
       - name: Test proposed future ELO policy, native CLP/EUR and mixed-league rejection
         env:
           PGDATABASE: qa_release_final
