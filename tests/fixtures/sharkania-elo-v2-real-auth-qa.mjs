@@ -127,7 +127,7 @@ const left=sql("SELECT coalesce(min(elo_change),0) FROM public.tournament_result
 const right=sql("SELECT coalesce(min(elo_change),0) FROM public.tournament_results WHERE tournament_id='"+tUSD+"' AND position=1");
 assert.ok(Math.abs(Number(left)-Number(right))<=0.01,
  "currency normalized ELO differs CLP vs USD");
-assert.equal(sql("SELECT total_prize_won FROM public.players WHERE nickname='CLPFirst"+nonce+"'"),"0");
+assert.equal(Number(sql("SELECT total_prize_won FROM public.players WHERE nickname='CLPFirst"+nonce+"'")),0);
 assert.equal(sql("SELECT currency FROM sharkania_release.independent_currency_posting WHERE tournament_id='"+tCLP+"' LIMIT 1"),"CLP");
 assert.equal(sql("SELECT count(*) FROM public.tournament_results WHERE tournament_id='"+tNoFX+"'"),"0");
 assert.equal(sql("SELECT count(*) FROM public.tournament_results WHERE tournament_id='"+tV1+"'"),"0");
