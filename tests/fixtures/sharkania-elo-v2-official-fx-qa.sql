@@ -29,6 +29,11 @@ BEGIN
    repeat('a',64),'BCCH:F073.TCO.PRE.Z.D:2026-11-09');
  EXCEPTION WHEN SQLSTATE '42501' THEN blocked:=true; END;
  IF NOT blocked THEN RAISE EXCEPTION 'FAIL: player forged official FX rate'; END IF;
+ blocked:=false;
+ BEGIN
+  PERFORM public.sharkania_fx_record_feed_check_v2('CLP');
+ EXCEPTION WHEN SQLSTATE '42501' THEN blocked:=true; END;
+ IF NOT blocked THEN RAISE EXCEPTION 'FAIL: player forged official FX source freshness'; END IF;
 END;$deny$;
 RESET ROLE;
 ROLLBACK;
@@ -52,7 +57,8 @@ BEGIN
    repeat('b',64),'BCCH:F073.TCO.PRE.Z.D:2026-11-09');
  EXCEPTION WHEN SQLSTATE 'PT409' THEN bad:=true; END;
  IF NOT bad THEN RAISE EXCEPTION 'FAIL: silent exchange-rate revision allowed'; END IF;
- RAISE NOTICE 'PASS: service-role record once, duplicate idempotent, revised quote rejected';
+ PERFORM public.sharkania_fx_record_feed_check_v2('CLP');
+ RAISE NOTICE 'PASS: service-role record once, duplicate idempotent, revised quote rejected and feed poll accepted';
 END;$service$;
 RESET ROLE;
 COMMIT;
@@ -90,7 +96,11 @@ INSERT INTO public.tournaments(
  ('00000000-0000-0000-0000-000000000134',
   '00000000-0000-0000-0000-000000000021',9.09,NULL,
   '00000000-0000-0000-0000-000000000031','EUR',
-  '2026-11-04T19:00:00Z','Europe/Madrid');
+  '2026-11-04T19:00:00Z','Europe/Madrid'),
+ ('00000000-0000-0000-0000-000000000135',
+  '00000000-0000-0000-0000-000000000021',9500,NULL,
+  '00000000-0000-0000-0000-000000000031','CLP',
+  '2026-11-05T18:00:00Z','America/Santiago');
 
 -- Populate fake, pre-event snapshots in PG17 ONLY. These are synthetic,
 -- never passed via service-role API and cannot be inserted in production by
@@ -131,6 +141,21 @@ BEGIN
  EXCEPTION WHEN SQLSTATE 'PT409' THEN blocked:=true; END;
  IF NOT blocked THEN RAISE EXCEPTION 'FAIL: late FX fetch retroactively used by Elo'; END IF;
 END;$bad$;
+ROLLBACK;
+
+-- A perfectly valid older quote exists. Without a successful feed poll
+-- during the last two hours BEFORE the tournament, v2 MUST NOT publish.
+BEGIN;
+DO $stale_poll$
+DECLARE denied bool:=false;
+BEGIN
+ BEGIN
+  PERFORM sharkania_release.reserve_usd_elo_v2(
+   '00000000-0000-0000-0000-000000000135');
+ EXCEPTION WHEN SQLSTATE 'PT409' THEN denied:=true; END;
+ IF NOT denied THEN RAISE EXCEPTION 'FAIL: v2 accepted quote with no recent provider poll'; END IF;
+ RAISE NOTICE 'PASS: missing or stale provider poll fails CLOSED';
+END;$stale_poll$;
 ROLLBACK;
 
 BEGIN;
