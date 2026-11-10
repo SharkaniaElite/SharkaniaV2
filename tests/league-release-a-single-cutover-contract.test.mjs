@@ -1,0 +1,67 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const read=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
+const sql=read("docs/security/league-release-a-single-transaction-2026-11-10.CANDIDATE.sql");
+const qa=read("tests/fixtures/sharkania-release-a-single-cutover-assert-qa.sql");
+const workflow=read(".github/workflows/qa-league-release-a-single-cutover.yml");
+
+test("Release A is ONE atomic guarded transaction and never deploys QA-only helper",()=>{
+ assert.equal((sql.match(/^BEGIN;$/gm)||[]).length,1);
+ assert.equal((sql.match(/^COMMIT;$/gm)||[]).length,1);
+ assert.match(sql,/RELEASE A - CONSOLIDATED SQL CANDIDATE/);
+ assert.match(sql,/NEVER apply to production prior to restored-prod clone QA/);
+ assert.doesNotMatch(sql,/\\set|\\ir|\\echo|sharkania_release_qa|qa_players_normalized|_guarded_qa|_nonleague_qa/);
+ assert.doesNotMatch(sql,/currency-neutral-v2-PROPOSAL|publish_league_results_v2_qa/);
+ assert.match(sql,/CREATE SCHEMA IF NOT EXISTS sharkania_release/);
+ assert.match(sql,/REVOKE ALL ON SCHEMA sharkania_release FROM PUBLIC, anon, authenticated/);
+ assert.match(sql,/CREATE UNIQUE INDEX league_players_normalized_nickname_room_guarded/);
+ assert.match(sql,/CREATE OR REPLACE FUNCTION public\.publish_league_nickname_results_guarded\(/);
+ assert.match(sql,/CREATE OR REPLACE FUNCTION sharkania_release\.publish_results_initial\(/);
+ assert.match(sql,/CREATE OR REPLACE FUNCTION sharkania_release\.recalculate_standings_guarded\(/);
+ assert.doesNotMatch(sql,/GRANT EXECUTE ON FUNCTION sharkania_release\./);
+ assert.match(sql,/GRANT EXECUTE ON FUNCTION public\.publish_league_nickname_results_guarded\(uuid,jsonb\)/);
+ assert.match(sql,/v_currency IS DISTINCT FROM 'USD'/);
+ assert.match(sql,/p_operation IN \('edit','delete'\)/);
+});
+test("no update, insert or delete of linked league results via old clients",()=>{
+ assert.match(sql,/REVOKE INSERT,UPDATE,DELETE ON TABLE public\.league_standings/);
+ assert.match(sql,/CREATE TRIGGER release_a_direct_result_insert_update/);
+ assert.match(sql,/CREATE TRIGGER release_a_direct_elo_insert_update/);
+ assert.match(sql,/CREATE TRIGGER release_a_direct_tournament_status_update/);
+ assert.match(sql,/CREATE TRIGGER release_a_prevent_legacy_results_delete/);
+ assert.match(sql,/CREATE TRIGGER release_a_prevent_legacy_elo_delete/);
+ assert.match(sql,/CREATE TRIGGER release_a_prevent_legacy_tournament_delete/);
+ assert.match(sql,/CREATE TRIGGER release_a_prevent_legacy_standings_delete/);
+ assert.match(sql,/IF current_user NOT IN \('authenticated','anon'\) THEN RETURN NEW;/);
+ assert.match(sql,/Direct modification of league results\/Elo is prohibited/);
+ assert.match(sql,/Legacy mutation of linked league tournament forbidden/);
+ assert.match(sql,/Legacy bulk mutation of linked league tournaments forbidden/);
+ assert.match(sql,/REVOKE EXECUTE ON FUNCTION public\.recalculate_league_standings\(uuid\)/);
+});
+test("preflights reject unexpected live catalog and mismatched player identity",()=>{
+ const a=sql.indexOf("DO $source_preflight$");
+ const b=sql.indexOf("DO $release_a_extra_preflight$");
+ const c=sql.indexOf("DO $league_cutover_preflight$");
+ const first=sql.indexOf("CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded");
+ assert.ok(a>0 && b>a && c>b && first>c);
+ assert.match(sql,/Legacy RPC catalog drift/);
+ assert.match(sql,/P0 unique primary index has changed or is missing/);
+ assert.match(sql,/Existing player nickname normalized collisions/);
+ assert.match(sql,/league has missing or multiple primary clubs/);
+ assert.match(sql,/unreviewed league write policy exists/);
+ assert.match(sql,/Release A client surface is not locked down/);
+});
+test("PG17 SQL workflow uses only local service, checks error and single stable RPC",()=>{
+ assert.match(workflow,/image: postgres:17/);
+ assert.match(workflow,/PGHOST: 127\.0\.0\.1/);
+ assert.match(workflow,/qa_release_a/);
+ assert.match(workflow,/league-release-a-single-transaction-2026-11-10\.CANDIDATE\.sql/);
+ assert.match(workflow,/sharkania-release-a-single-cutover-assert-qa\.sql/);
+ assert.match(workflow,/node --test tests\/league-release-a-single-cutover-contract\.test\.mjs/);
+ assert.match(qa,/public\.publish_league_nickname_results_guarded\(/);
+ assert.match(qa,/sharkania_release\.currency_posting/);
+ assert.match(qa,/new_players/);
+ assert.match(qa,/duplicate publication accepted/);
+ assert.doesNotMatch(workflow,/(supabase db push|supabase functions deploy|--remote|\.supabase\.co|nhpjzywfzljtlqaigzed)/);
+});
