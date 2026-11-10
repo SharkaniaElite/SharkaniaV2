@@ -3,7 +3,7 @@
  * READ ONLY: never writes site_settings, tournaments, ELO or FX ledger.
  * Never sends BCCH_BDE_API_TOKEN to the browser, GitHub or logs.
  */
-import { withSupabase } from "npm:@supabase/server@1";
+import { createClient } from "npm:@supabase/supabase-js@2.99.1";
 import { parseBcchObservedUsd } from "../elo-fx-capture/official-parsers.mjs";
 
 const trustedOrigins = new Set([
@@ -25,17 +25,35 @@ const response = (status: number, payload: Record<string, unknown>, origin: stri
   Response.json(payload, { status, headers: cors(origin) });
 const isoDate = (date: Date) => date.toISOString().slice(0, 10);
 
-async function handler(req: Request, ctx: { supabase: { rpc: (name: string) => PromiseLike<{data: unknown;error: unknown}> } }): Promise<Response> {
+Deno.serve(async (req: Request): Promise<Response> => {
   const origin = req.headers.get("Origin");
   if (origin && !trustedOrigins.has(origin)) return response(403, {error:"origin_not_allowed"}, origin);
   if (req.method === "OPTIONS") return new Response(null,{status:204,headers:cors(origin)});
   if (req.method !== "POST") return response(405,{error:"method_not_allowed"},origin);
 
-  // A valid user JWT alone is never sufficient; use the production DB's
-  // trusted is_super_admin() RPC under that user's RLS-scoped session.
-  const { data, error } = await ctx.supabase.rpc("is_super_admin");
-  if (error || data !== true) return response(403,{error:"super_admin_required"},origin);
+  const jwt = req.headers.get("Authorization")?.match(/^Bearer\s+([^\s]+)$/i)?.[1];
+  if (!jwt) return response(401,{error:"authentication_required"},origin);
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const publishableKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !publishableKey) {
+    return response(503,{error:"service_unavailable"},origin);
+  }
+  try {
+    const userDb = createClient(supabaseUrl,publishableKey,{
+      global:{headers:{Authorization:"Bearer "+jwt}},
+      auth:{persistSession:false,autoRefreshToken:false},
+    });
+    const {data:identity,error:authError}=await userDb.auth.getUser(jwt);
+    if (authError || !identity.user?.id) {
+      return response(401,{error:"invalid_session"},origin);
+    }
+    const {data:allowed,error:roleError}=await userDb.rpc("is_super_admin");
+    if(roleError || allowed !== true) return response(403,{error:"super_admin_required"},origin);
+  } catch {
+    return response(503,{error:"authentication_unavailable"},origin);
+  }
 
+  // Pure read-only preview: never even constructs an admin/role-bypassing DB client.
   const token = Deno.env.get("BCCH_BDE_API_TOKEN");
   if (!token) return response(503,{error:"official_source_not_configured"},origin);
 
@@ -80,8 +98,4 @@ async function handler(req: Request, ctx: { supabase: { rpc: (name: string) => P
   } catch {
     return response(503,{error:"official_source_unavailable"},origin);
   }
-}
-
-export default {
-  fetch: withSupabase({auth:"user"},handler),
-};
+});
