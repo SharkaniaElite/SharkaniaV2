@@ -70,7 +70,7 @@ assert.equal(inserted.status,201,
   "authorized local organizer must create tournament via real PostgREST: "+(await inserted.text()).slice(0,300));
 
 async function invoke(role,results){
- const response=await fetch(base+"/rest/v1/rpc/publish_league_nickname_results_guarded_qa",{
+ const response=await fetch(base+"/rest/v1/rpc/publish_league_nickname_results_guarded",{
     method:"POST",
     headers:{"Content-Type":"application/json",apikey:anon,
       ...(role?{Authorization:"Bearer "+tokens[role]}:{})},
