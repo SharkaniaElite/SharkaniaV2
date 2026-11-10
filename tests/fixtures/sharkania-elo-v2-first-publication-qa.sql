@@ -11,6 +11,14 @@ INSERT INTO public.tournaments(
  '00000000-0000-0000-0000-000000000031','CLP',
  '2026-11-08T20:00:00Z','America/Santiago');
 
+-- A synthetic successful CLP poll shortly BEFORE the league's start,
+-- required even though the market was closed over the weekend.
+INSERT INTO sharkania_release.fx_feed_check_v2(
+ currency,newest_effective_date,newest_observation_id,checked_at)
+SELECT fx.currency,fx.effective_date,fx.id,'2026-11-08T19:30:00Z'
+FROM sharkania_release.fx_observation_v2 fx
+WHERE fx.currency='CLP' AND fx.effective_date='2026-11-04';
+
 BEGIN;
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
