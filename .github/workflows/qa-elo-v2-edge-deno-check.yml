@@ -17,7 +17,7 @@ jobs:
         run: |
           set -euo pipefail
           deno check --config supabase/functions/elo-fx-capture/deno.json supabase/functions/elo-fx-capture/index.ts
-          deno check supabase/functions/bcch-dollar-preview/index.ts
+          deno check --config supabase/functions/bcch-dollar-preview/deno.json supabase/functions/bcch-dollar-preview/index.ts
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
