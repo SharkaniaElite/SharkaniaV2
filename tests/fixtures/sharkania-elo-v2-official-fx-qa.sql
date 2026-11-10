@@ -104,6 +104,19 @@ INSERT INTO sharkania_release.fx_observation_v2(
  ('EUR','ECB','EXR/D.USD.EUR.SP00.A','2026-11-05',1.1,
   repeat('d',64),'ECB:EXR.D.USD.EUR.SP00.A:2026-11-05','2026-11-05T16:00:00Z');
 
+-- Synthetic snapshots of successful provider polls before each event.
+-- Never grant browser or service_role the right to select or insert these rows.
+INSERT INTO sharkania_release.fx_feed_check_v2(
+ currency,newest_effective_date,newest_observation_id,checked_at
+) SELECT f.currency,f.effective_date,f.id,t.checked
+FROM sharkania_release.fx_observation_v2 f
+JOIN (VALUES
+ ('CLP'::text,'2026-11-04'::date,'2026-11-05T20:30:00Z'::timestamptz),
+ ('CLP'::text,'2026-11-04'::date,'2026-11-09T20:30:00Z'::timestamptz),
+ ('EUR'::text,'2026-11-05'::date,'2026-11-06T20:30:00Z'::timestamptz)
+) AS t(currency,effective,checked)
+ ON f.currency=t.currency AND f.effective_date=t.effective;
+
 UPDATE sharkania_release.elo_v2_activation
 SET enabled=true,effective_at='2026-11-01T00:00:00Z' WHERE id=1;
 
