@@ -22,7 +22,7 @@ test("GoTrue/PostgREST uses real JWTs but STRICTLY loopback-only Supabase",()=>{
  assert.match(authTest,/admin\.auth\.admin\.createUser/);
  assert.match(authTest,/client\.auth\.signInWithPassword/);
  assert.match(authTest,/client\.auth\.getUser\(jwt\)/);
- assert.match(authTest,/\/rest\/v1\/rpc\/publish_league_nickname_results_guarded_qa/);
+ assert.match(authTest,/\/rest\/v1\/rpc\/publish_league_nickname_results_guarded/);
  assert.match(authTest,/base!=="http:\/\/127\.0\.0\.1:25421"/);
  assert.match(authTest,/role!==.*player/);
  assert.match(authTest,/spoofed CSV player ID rejected/);
