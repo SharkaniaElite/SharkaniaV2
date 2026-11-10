@@ -1,0 +1,27 @@
+name: QA ELO v2 Edge capture Deno static check (NO network to FX providers)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  edge-fx-deno:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Compile-check disabled official FX Edge Function
+        run: |
+          set -euo pipefail
+          deno check --config supabase/functions/elo-fx-capture/deno.json supabase/functions/elo-fx-capture/index.ts
+          deno check --config supabase/functions/bcch-dollar-preview/deno.json supabase/functions/bcch-dollar-preview/index.ts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Pure provider parser tests, with illustrative data only
+        run: node --test tests/elo-fx-official-parsers-qa.mjs
+      - name: Verify actual official ECB USD/EUR CSV (one request, no secrets)
+        run: node tests/elo-v2-ecb-live-qa.mjs

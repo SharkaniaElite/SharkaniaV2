@@ -1,0 +1,113 @@
+name: QA complete Release A plus ELO v2 all-in-one atomic (PG17 rollback)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa-v2-one-atomic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_standalone_disposable
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_standalone_disposable
+      PGDATABASE: qa_standalone_disposable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Reject remote execution; prepare synthetic role and DB
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]] || {
+            echo "STOP: synthetic PostgreSQL-only QA"; exit 1;
+          }
+          if ! command -v psql >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y postgresql-client; fi
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE service_role NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_standalone_disposable'
+      - name: Prepare exact prior synthetic Release A baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-player-baseline-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-production-legacy-rpc-source-2026-11-10.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;"
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+      - name: Install exact parent Release A SQL and standalone SQL candidates, no migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-admin-claims-schema-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -c "ALTER TABLE public.tournaments ADD COLUMN timezone text NOT NULL DEFAULT 'America/Santiago'"
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/release-a-v2-all-in-one-atomic-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-independent-results-atomic-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-independent-elo-acl-cutover-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-admin-player-link-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-independent-failure-rollback-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-legacy-historical-mutation-fence-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-elo-v2-official-fx-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-elo-v2-first-publication-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-elo-v2-fx-operational-health-readonly.sql
+          echo "PASS: verified official FX snapshot and server-source checks in PG17"
+      - name: Test exact BCCh/ECB response parsing with no secrets
+        run: node --test tests/elo-fx-official-parsers-qa.mjs
+      - name: Prove LAST component failure rolls back the ENTIRE seven-part install
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]] || exit 1
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_v2_late_conflict'
+          export PGDATABASE=qa_v2_late_conflict
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-player-baseline-qa.sql >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-production-legacy-rpc-source-2026-11-10.qa-only.sql >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;" >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE' >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -c "ALTER TABLE public.tournaments ADD COLUMN timezone text NOT NULL DEFAULT 'America/Santiago'" >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-admin-claims-schema-qa.sql >/dev/null
+          # Pre-existing fake name conflicts with CREATE FUNCTION near the
+          # very END of source part 7, not with earlier 6 source components.
+          psql -X -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE FUNCTION public.publish_independent_nickname_results_v2_guarded(uuid,jsonb)
+          RETURNS jsonb LANGUAGE sql AS $qa$ SELECT '{}'::jsonb $qa$;
+          SQL
+          logs=$(mktemp)
+          set +e
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/release-a-v2-all-in-one-atomic-2026-11-10.CANDIDATE.sql >"$logs" 2>&1
+          status=$?
+          set -e
+          if [[ "$status" -eq 0 ]] || ! grep -Eiq 'function .*publish_independent_nickname_results_v2_guarded.*already exists' "$logs"; then
+            tail -40 "$logs"
+            echo "FAIL: unexpected early failure or no injected late conflict"; exit 1
+          fi
+          state=$(psql -X -At -v ON_ERROR_STOP=1 -c "
+           SELECT to_regnamespace('sharkania_release') IS NULL
+            AND to_regprocedure('public.publish_league_nickname_results_guarded(uuid,jsonb)') IS NULL
+            AND to_regprocedure('public.publish_league_nickname_results_v2_guarded(uuid,jsonb)') IS NULL
+            AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_trigger
+              WHERE tgname='block_new_independent_v1_after_cutover')
+            AND to_regprocedure('public.publish_independent_nickname_results_v2_guarded(uuid,jsonb)') IS NOT NULL
+          ")
+          [[ "$state" == "t" ]] || { echo "FAIL: partial DDL persisted across 7 sections"; exit 1; }
+          echo "PASS: late v2 writer conflict reverted all seven components, preserved only pre-existing injected stub"
