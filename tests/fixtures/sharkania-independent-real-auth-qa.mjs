@@ -151,7 +151,7 @@ const freshId=sql("SELECT id::text FROM public.players WHERE nickname='"+fresh+"
 assert.match(freshId,UUID);
 const claimId=sql("INSERT INTO public.nickname_claims("+
  "user_id,player_id,screenshot_url,status) VALUES("+
- safeId(userIds.player)+","+safeId(freshId)+",'qa-verified-proof','pending') RETURNING id::text");
+ safeId(userIds.player)+","+safeId(freshId)+",'qa-verified-proof','pending') RETURNING id::text").split("\n")[0].trim();
 assert.match(claimId,UUID);
 
 const claimBody={
