@@ -16,3 +16,12 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/admin-email-confirmations/deno.json"
 entrypoint = "./functions/admin-email-confirmations/index.ts"
+
+# ELO v2 official FX collection: QA prototype only. NOT served/deployed.
+# When eventually approved, calls must use a Supabase SECRET API key
+# and handler withSupabase({auth:"secret"}), never client JWT or anon key.
+[functions.elo-fx-capture]
+enabled = false
+verify_jwt = false
+import_map = "./functions/elo-fx-capture/deno.json"
+entrypoint = "./functions/elo-fx-capture/index.ts"
