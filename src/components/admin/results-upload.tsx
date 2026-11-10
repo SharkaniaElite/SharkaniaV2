@@ -7,6 +7,7 @@ import { calculateElo } from "../../lib/api/elo-engine";
 import { applyLeaguePoints, prepareTournamentForReedit } from "../../lib/api/tournaments"; 
 import { forceRecalculateStandings } from "../../lib/api/leagues";
 import { GUARDED_LEAGUE_RPC_ENABLED } from "../../lib/api/guarded-leagues";
+import { publishInitialLeagueResultsGuarded } from "../../lib/api/guarded-league-results";
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/cn";
 import {
@@ -185,16 +186,6 @@ export function ResultsUpload({
   };
 
   const handleResolveAndUpload = async () => {
-    // Release A does not ship the authorized standings recalculation RPC yet.
-    // Fail BEFORE resolving/creating players or writing any results/ELO data.
-    if (GUARDED_LEAGUE_RPC_ENABLED && tournament.league_id) {
-      setMessage({
-        text: "La carga de resultados para torneos de liga está pausada hasta habilitar el recálculo seguro de clasificaciones. No se guardaron cambios.",
-        type: "error",
-      });
-      return;
-    }
-
     const validationErrors: string[] = [];
 
     const emptyNicknames = rows.filter((r) => !r.nickname.trim());
@@ -219,6 +210,51 @@ export function ResultsUpload({
     if (validationErrors.length > 0) {
       setMessage({ text: validationErrors.join("\n"), type: "error" });
       return;
+    }
+
+    if (GUARDED_LEAGUE_RPC_ENABLED && tournament.league_id) {
+      // The server owns player identity, results, standings, Elo and finance
+      // in ONE transaction. No browser-side creates, resets or recalculate.
+      if (tournament.results_uploaded) {
+        setMessage({
+          text: "Este torneo ya tiene resultados. Las correcciones históricas de ligas están bloqueadas hasta verificar el replay ELO; no se realizaron cambios.",
+          type: "error",
+        });
+        return;
+      }
+      if (tournament.currency !== "USD") {
+        setMessage({
+          text: "CLP/EUR siguen pendientes de aprobación de la política ELO y de los importes por moneda. No se realizaron cambios.",
+          type: "error",
+        });
+        return;
+      }
+      setUploading(true);
+      try {
+        const receipt = await publishInitialLeagueResultsGuarded(tournament.id, rows.map(r => ({
+          position: r.position,
+          nickname: r.nickname,
+          prizeWon: r.prizeWon,
+          leaguePoints: r.leaguePoints,
+          ccpClub: r.ccpClub,
+          buyInsCount: r.buyInsCount,
+        })));
+        setMessage({
+          text: "Resultados, ELO y ranking guardados en una transacción. " +
+            receipt.newPlayers + " jugadores creados. Moneda: " + receipt.currency + ".",
+          type: "success",
+        });
+        onComplete();
+        onClose();
+      } catch (err) {
+        setMessage({
+          text: err instanceof Error ? err.message : "No se pudieron publicar los resultados de liga.",
+          type: "error",
+        });
+      } finally {
+        setUploading(false);
+      }
+      return; // NEVER fall back to browser DML or legacy ELO.
     }
 
     setResolving(true);
