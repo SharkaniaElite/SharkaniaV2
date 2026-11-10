@@ -39,6 +39,11 @@ for(const [name,src] of [["CSV",csv],["editor",editor]]){
 test("FX functions are inaccessible to browser; rate receipt timestamp generated in DB",()=>{
  assert.match(sql,/first_seen_at timestamptz NOT NULL DEFAULT clock_timestamp\(\)/);
  assert.match(sql,/fx\.first_seen_at<=v_start/);
+ assert.match(sql,/CREATE TABLE sharkania_release\.fx_feed_check_v2/);
+ assert.match(sql,/ch\.checked_at<=v_start/);
+ assert.match(sql,/ch\.checked_at>=v_start-interval '2 hours'/);
+ assert.match(sql,/v_last_check\.newest_effective_date IS DISTINCT FROM/);
+ assert.match(sql,/CREATE FUNCTION public\.sharkania_fx_record_feed_check_v2/);
  assert.match(sql,/effective_date<=v_date/);
  assert.match(sql,/CREATE FUNCTION public\.sharkania_fx_ingest_official_v2/);
  assert.match(sql,/GRANT EXECUTE ON FUNCTION\s+public\.sharkania_fx_ingest_official_v2[\s\S]*?TO service_role/);
@@ -64,5 +69,6 @@ test("official capture disabled in config, uses secret-only service access and p
  assert.match(edge,/si3\.bcentral\.cl/);
  assert.match(edge,/data-api\.ecb\.europa\.eu/);
  assert.match(edge,/sharkania_fx_ingest_official_v2/);
+ assert.match(edge,/sharkania_fx_record_feed_check_v2/);
  assert.doesNotMatch(edge,/console\.log\(.*token/i);
 });
