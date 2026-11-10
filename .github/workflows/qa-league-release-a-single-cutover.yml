@@ -1,0 +1,88 @@
+name: QA consolidated Release A security cutover (PG17 unlinked)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  single-release-a-candidate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_release_a_disposable
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_release_a_disposable
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Gate local-only execution and static release SQL contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]]
+          node --test tests/league-release-a-single-cutover-contract.test.mjs
+          if ! command -v psql >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y postgresql-client; fi
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_release_a'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_release_a_missing_p0'
+      - name: Build synthetic baseline preserving old permissions and exact legacy function source
+        shell: bash
+        env:
+          PGDATABASE: qa_release_a
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-player-baseline-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-production-legacy-rpc-source-2026-11-10.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;"
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+      - name: Apply SINGLE candidate SQL in ONE transaction, then exercise production-named RPC
+        shell: bash
+        env:
+          PGDATABASE: qa_release_a
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-release-a-single-transaction-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-single-cutover-assert-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-direct-rest-fence-qa.sql
+          # This expected negative test is NOT a security PASS. It proves a
+          # remaining Release A NO GO using fake JWT and synthetic players.
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-untrusted-elo-write-negative-qa.sql
+      - name: Fail closed when existing P0 unique primary organizer index is absent
+        shell: bash
+        env:
+          PGDATABASE: qa_release_a_missing_p0
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-player-baseline-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-production-legacy-rpc-source-2026-11-10.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;"
+          set +e
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-release-a-single-transaction-2026-11-10.CANDIDATE.sql >"$RUNNER_TEMP/release-a-missing-p0.log" 2>&1
+          status=$?
+          set -e
+          [[ "$status" -ne 0 ]] || { echo 'FAIL: missing P0 did not prevent cutover'; exit 1; }
+          grep -q 'P0 unique primary index has changed or is missing' "$RUNNER_TEMP/release-a-missing-p0.log"
+          [[ "$(psql -X -At -c "SELECT count(*) FROM pg_catalog.pg_namespace WHERE nspname='sharkania_release'")" == 0 ]] || {
+            echo 'FAIL: candidate made committed changes after failed preflight'; exit 1;
+          }
+          echo 'PASS: missing P0 aborted before DDL and committed no release objects'
