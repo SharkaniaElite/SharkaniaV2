@@ -943,8 +943,7 @@ END;
 $guarded$;
 REVOKE ALL ON FUNCTION sharkania_release.recalculate_standings_guarded(uuid)
   FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION sharkania_release.recalculate_standings_guarded(uuid)
-  TO authenticated;
+-- Internal standings function: never GRANT EXECUTE to client roles.
 
 -- 6. Private USD-only initial writer; ledger and Elo checkpoints in same commit.
 CREATE OR REPLACE FUNCTION sharkania_release.publish_results_initial(
@@ -1850,6 +1849,55 @@ EXECUTE FUNCTION public.guard_release_a_linked_delete();
 -- 10. No direct DML on league standings: only SECURITY DEFINER
 -- publication recalculation may update them. SELECT stays public.
 REVOKE INSERT,UPDATE,DELETE ON TABLE public.league_standings FROM PUBLIC,anon,authenticated;
+
+-- Direct Data API inserts/updates of a league's results/Elo are forbidden.
+-- The only allowed writes to linked league rows must execute inside
+-- reviewed SECURITY DEFINER functions, while non-league REST flows survive.
+-- This SECURITY INVOKER trigger sees current_user='authenticated' for REST;
+-- the guarded server RPC runs as its privileged owner, outside that role.
+-- Other SECURITY DEFINER writer functions require separate review (NO GO).
+CREATE OR REPLACE FUNCTION public.guard_release_a_direct_league_mutation()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path TO ''
+AS $write$
+DECLARE v_league uuid; v_previous uuid;
+BEGIN
+ IF current_user NOT IN ('authenticated','anon') THEN RETURN NEW; END IF;
+ IF TG_TABLE_NAME IN ('tournament_results','elo_history') THEN
+   SELECT t.league_id INTO v_league
+   FROM public.tournaments t WHERE t.id=NEW.tournament_id FOR SHARE;
+   IF TG_OP='UPDATE' THEN
+     SELECT t.league_id INTO v_previous
+     FROM public.tournaments t WHERE t.id=OLD.tournament_id FOR SHARE;
+   END IF;
+   IF v_league IS NOT NULL OR v_previous IS NOT NULL THEN
+     RAISE EXCEPTION 'Direct modification of league results/Elo is prohibited'
+       USING ERRCODE='PT409';
+   END IF;
+ ELSIF TG_TABLE_NAME='tournaments' AND TG_OP='UPDATE' THEN
+   IF (NEW.league_id IS NOT NULL OR OLD.league_id IS NOT NULL)
+      AND (NEW.results_uploaded IS DISTINCT FROM OLD.results_uploaded
+           OR NEW.status IS DISTINCT FROM OLD.status) THEN
+     RAISE EXCEPTION 'Only guarded server writer may finalize a league tournament'
+       USING ERRCODE='PT409';
+   END IF;
+ ELSE
+   RAISE EXCEPTION 'Unexpected direct league mutation guard invocation'
+     USING ERRCODE='PT422';
+ END IF;
+ RETURN NEW;
+END;
+$write$;
+REVOKE ALL ON FUNCTION public.guard_release_a_direct_league_mutation()
+ FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER release_a_direct_result_insert_update
+BEFORE INSERT OR UPDATE ON public.tournament_results FOR EACH ROW
+EXECUTE FUNCTION public.guard_release_a_direct_league_mutation();
+CREATE TRIGGER release_a_direct_elo_insert_update
+BEFORE INSERT OR UPDATE ON public.elo_history FOR EACH ROW
+EXECUTE FUNCTION public.guard_release_a_direct_league_mutation();
+CREATE TRIGGER release_a_direct_tournament_status_update
+BEFORE UPDATE OF results_uploaded,status ON public.tournaments FOR EACH ROW
+EXECUTE FUNCTION public.guard_release_a_direct_league_mutation();
 
 -- 11. Final atomic security assertions, before single commit.
 DO $release_a_postcondition$
