@@ -615,7 +615,10 @@ BEGIN
 
   RETURN v_result || pg_catalog.jsonb_build_object(
     'new_players',v_new_players,'currency',v_currency,
-    'currency_postings',v_postings,'normalized_nicknames',true
+    'currency_postings',v_postings,'normalized_nicknames',true,
+    'algorithm_version','elo-v2-usd-normalized',
+    'buy_in_usd',(SELECT fx.buy_in_usd FROM sharkania_release.elo_v2_event_fx fx
+                  WHERE fx.tournament_id=p_tournament_id)
   );
 END;
 $guarded$;
@@ -708,6 +711,9 @@ BEGIN
    OR e.value ? 'elo_after'
    OR e.value ? 'actor_id'
    OR e.value ? 'currency'
+   OR e.value ? 'fx_rate'
+   OR e.value ? 'buy_in_usd'
+   OR e.value ? 'algorithm_version'
  ) THEN RAISE EXCEPTION 'Untrusted field or missing nickname' USING ERRCODE='PT422'; END IF;
  WITH input AS (
   SELECT * FROM pg_catalog.jsonb_to_recordset(p_results)
@@ -950,7 +956,8 @@ BEGIN
 
  RETURN pg_catalog.jsonb_build_object(
   'status','published','tournament_id',p_tournament_id,
-  'currency',v_currency,'buy_in_usd',v_buyin_usd,'players',v_n,'new_players',v_new,
+  'currency',v_currency,'buy_in_usd',v_buyin_usd,
+  'algorithm_version','elo-v2-usd-normalized','players',v_n,'new_players',v_new,
   'currency_postings',v_n,'atomic',true,'audit_recorded',true);
 END;
 $nonleague$;
