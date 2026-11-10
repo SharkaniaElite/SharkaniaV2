@@ -16,8 +16,11 @@
 | Grupos de historia duplicada para un par jugador/torneo | 0 |
 | Colisiones de nickname normalizado por sala | 0 |
 | Torneos marcados publicados pero sin resultados | 0 |
+| Torneos publicados con estado `scheduled` (inconsistencia histórica) | 3 — 2 ligas CLP y 1 liga EUR |
 | Torneos con resultados pero no marcados publicados | 0 |
 | Ligas sin club primario | 0 |
+
+Las 3 filas con `results_uploaded=true` y estado `scheduled` requieren revisión de datos histórica: el guard adicional no debe impedir una actualización sin cambio del estado; sí rechaza transiciones hacia cancelación/reapertura que harían perder evidencia.
 
 **Distribución por moneda y modalidad (total / publicados / no publicados):**
 
