@@ -8,6 +8,9 @@ const csv=read("src/components/admin/results-upload.tsx");
 const editor=read("src/components/admin/results-editor.tsx");
 const sql=read("docs/security/independent-results-atomic-v1-2026-11-10.CANDIDATE.sql");
 const acl=read("docs/security/independent-elo-rest-lockdown-2026-11-10.CANDIDATE.sql");
+const linkClient=read("src/lib/api/guarded-admin-player-link.ts");
+const adminPage=read("src/pages/super-admin.tsx");
+const linkSql=read("docs/security/admin-player-link-guarded-2026-11-10.CANDIDATE.sql");
 
 test("independent writer remains OFF unless both independent and Release A flags enabled",()=>{
  assert.match(client,/GUARDED_LEAGUE_RPC_ENABLED\s*&&\s*import\.meta\.env\.VITE_INDEPENDENT_RESULTS_GUARDED_RPC\s*===\s*"true"/);
@@ -64,4 +67,22 @@ test("ACL revocation keeps nickname while forbidding direct Elo and results",()=
  assert.match(acl,/REVOKE INSERT,UPDATE,DELETE ON TABLE public\.elo_history/);
  assert.match(acl,/REVOKE INSERT,UPDATE,DELETE ON TABLE public\.tournament_results/);
  assert.match(acl,/CREATE TRIGGER independent_guard_direct_completion/);
+});
+
+
+test("superadmin profile linking is atomically guarded when ACL flag is ON",()=>{
+ assert.match(linkClient,/GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED/);
+ assert.match(linkClient,/supabase\.rpc\("admin_link_player_profile_guarded"/);
+ assert.match(linkClient,/Never fall back to players\.update/);
+ assert.match(adminPage,/await adminLinkPlayerGuarded\(playerId, selectedUser\.id\)/);
+ assert.match(adminPage,/await adminLinkPlayerGuarded\(playerId, null\)/);
+ assert.match(adminPage,/await adminLinkPlayerGuarded\(claim\.player_id, claim\.user_id, claim\.id\)/);
+ assert.match(adminPage,/if \(GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED\)/);
+ assert.match(linkSql,/SECURITY DEFINER SET search_path TO ''/);
+ assert.match(linkSql,/NOT \(SELECT public\.is_super_admin\(\)\)/);
+ assert.match(linkSql,/SELECT p\.profile_id INTO v_before/);
+ assert.match(linkSql,/v_claim\.status<>'pending'/);
+ assert.match(linkSql,/UPDATE public\.nickname_claims/);
+ assert.match(linkSql,/REVOKE ALL ON FUNCTION public\.admin_link_player_profile_guarded/);
+ assert.match(linkSql,/GRANT EXECUTE ON FUNCTION public\.admin_link_player_profile_guarded/);
 });
