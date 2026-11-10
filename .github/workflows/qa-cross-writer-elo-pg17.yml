@@ -96,3 +96,43 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-cross-writer-assert-qa.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-cross-writer-out-of-order-qa.sql
           echo "PASS: observed lock and shared Elo continuity across original league and independent writers"
+      - name: Race opposite direction - independent then league
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -c "INSERT INTO public.tournaments(id,club_id,buy_in,league_id,room_id,currency,start_datetime) VALUES ('00000000-0000-0000-0000-000000000114','00000000-0000-0000-0000-000000000021',3.30,NULL,'00000000-0000-0000-0000-000000000031','USD','2026-11-29T20:00:00Z'),('00000000-0000-0000-0000-000000000115','00000000-0000-0000-0000-000000000021',3.30,'00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000031','USD','2026-11-30T20:00:00Z');"
+          ready=/tmp/sharkania-qa-cross-writer-independent-held
+          rm -f "$ready"
+          logs=$(mktemp -d)
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-cross-writer-independent-first-qa.sql >"$logs/independent.log" 2>&1 &
+          first_pid=$!
+          observed_ready=false
+          for attempt in $(seq 1 90); do
+            if [[ -f "$ready" ]]; then observed_ready=true; break; fi
+            if ! kill -0 "$first_pid" 2>/dev/null; then break; fi
+            sleep 0.1
+          done
+          if [[ "$observed_ready" != true ]]; then
+            cat "$logs/independent.log"
+            echo 'FAIL: independent writer did not start held transaction'; exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-cross-writer-league-second-qa.sql >"$logs/league.log" 2>&1 &
+          second_pid=$!
+          blocked=false
+          for attempt in $(seq 1 36); do
+            waiting=$(psql -X -At -c "SELECT count(*) FROM pg_catalog.pg_stat_activity WHERE datname='qa_cross_writer_only' AND wait_event_type='Lock' AND query ILIKE '%publish_league_nickname_results_guarded%'")
+            if [[ "$waiting" -gt 0 ]]; then blocked=true; break; fi
+            sleep 0.1
+          done
+          set +e
+          wait "$first_pid"; first_exit=$?
+          wait "$second_pid"; second_exit=$?
+          set -e
+          if [[ "$first_exit" -ne 0 || "$second_exit" -ne 0 || "$blocked" != true ]]; then
+            cat "$logs/independent.log" "$logs/league.log"
+            echo "FAIL: inverse cross-writer serialisation $first_exit/$second_exit observed=$blocked"
+            exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-cross-writer-reverse-assert-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-cross-writer-reverse-out-of-order-qa.sql
+          echo 'PASS: observed independent then league wait, Elo continuity and rejected backdated result'
