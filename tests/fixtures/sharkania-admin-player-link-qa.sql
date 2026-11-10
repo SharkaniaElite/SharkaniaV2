@@ -6,6 +6,10 @@
 GRANT SELECT ON public.players TO authenticated;
 CREATE POLICY qa_admin_claims_players_read ON public.players FOR SELECT
  TO authenticated USING(true);
+GRANT SELECT ON public.nickname_claims TO authenticated;
+CREATE POLICY qa_admin_claims_read ON public.nickname_claims FOR SELECT
+ TO authenticated
+ USING(user_id=(SELECT auth.uid()) OR (SELECT public.is_super_admin()));
 INSERT INTO public.nickname_claims(user_id,player_id,screenshot_url,status)
 SELECT '00000000-0000-0000-0000-000000000005',p.id,'qa-verified-proof','pending'
 FROM public.players p WHERE p.nickname='NewIndependentQA';
