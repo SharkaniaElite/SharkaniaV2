@@ -40,6 +40,21 @@ CREATE TABLE sharkania_release.fx_observation_v2 (
  UNIQUE(currency,effective_date)
 );
 
+-- Append-only PROOF OF RECENT SUCCESSFUL FEED CHECK. An old FX quote alone
+-- is NOT enough: a timely upstream request might have failed or missed a
+-- newer official observation.
+CREATE TABLE sharkania_release.fx_feed_check_v2 (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ currency text NOT NULL CHECK(currency IN ('CLP','EUR')),
+ newest_effective_date date NOT NULL,
+ newest_observation_id uuid NOT NULL
+   REFERENCES sharkania_release.fx_observation_v2(id),
+ checked_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+ CHECK(newest_effective_date>='2000-01-01')
+);
+CREATE INDEX fx_feed_check_currency_time_v2
+ ON sharkania_release.fx_feed_check_v2(currency,checked_at DESC);
+
 CREATE TABLE sharkania_release.elo_v2_activation (
  id smallint PRIMARY KEY CHECK(id=1),
  enabled boolean NOT NULL DEFAULT false,
@@ -68,9 +83,11 @@ CREATE TABLE sharkania_release.elo_v2_event_fx (
 );
 
 ALTER TABLE sharkania_release.fx_observation_v2 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sharkania_release.fx_feed_check_v2 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sharkania_release.elo_v2_activation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sharkania_release.elo_v2_event_fx ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON sharkania_release.fx_observation_v2,
+ sharkania_release.fx_feed_check_v2,
  sharkania_release.elo_v2_activation,
  sharkania_release.elo_v2_event_fx FROM PUBLIC,anon,authenticated;
 
@@ -78,6 +95,9 @@ REVOKE ALL ON sharkania_release.fx_observation_v2,
 -- store a new audit version under a reviewed schema migration, not an UPDATE.
 CREATE TRIGGER elo_v2_observation_immutable
  BEFORE UPDATE OR DELETE ON sharkania_release.fx_observation_v2
+ FOR EACH ROW EXECUTE FUNCTION sharkania_release.reject_publication_mutation();
+CREATE TRIGGER elo_v2_feed_check_immutable
+ BEFORE UPDATE OR DELETE ON sharkania_release.fx_feed_check_v2
  FOR EACH ROW EXECUTE FUNCTION sharkania_release.reject_publication_mutation();
 CREATE TRIGGER elo_v2_event_fx_immutable
  BEFORE UPDATE OR DELETE ON sharkania_release.elo_v2_event_fx
@@ -149,6 +169,43 @@ GRANT EXECUTE ON FUNCTION
  public.sharkania_fx_ingest_official_v2(text,date,numeric,text,text)
  TO service_role;
 
+-- Only internal trusted ingestion records a completed upstream feed poll.
+-- Observation MUST already be stored and genuinely minted before the check.
+-- DB picks newest, no client-provided day, rate, or timestamp.
+CREATE FUNCTION public.sharkania_fx_record_feed_check_v2(p_currency text)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
+AS $poll$
+DECLARE v_observation uuid;v_effective date;v_check uuid;
+BEGIN
+ IF current_setting('request.jwt.claim.role',true) IS DISTINCT FROM 'service_role'
+ THEN RAISE EXCEPTION 'Internal FX poll only' USING ERRCODE='42501'; END IF;
+ IF p_currency NOT IN ('CLP','EUR') OR p_currency IS NULL THEN
+  RAISE EXCEPTION 'Unsupported FX feed' USING ERRCODE='PT422'; END IF;
+ SELECT fx.id,fx.effective_date INTO v_observation,v_effective
+ FROM sharkania_release.fx_observation_v2 fx
+ WHERE fx.currency=p_currency
+   AND fx.effective_date<=((clock_timestamp() AT TIME ZONE 'UTC')::date)
+   AND fx.first_seen_at<=clock_timestamp()
+ ORDER BY fx.effective_date DESC,fx.first_seen_at DESC
+ LIMIT 1;
+ IF NOT FOUND OR v_effective <
+      ((clock_timestamp() AT TIME ZONE 'UTC')::date - 7) THEN
+  RAISE EXCEPTION 'Official FX feed has no recent accepted quote'
+   USING ERRCODE='PT409'; END IF;
+ INSERT INTO sharkania_release.fx_feed_check_v2(
+  currency,newest_effective_date,newest_observation_id
+ ) VALUES(p_currency,v_effective,v_observation) RETURNING id INTO v_check;
+ RETURN pg_catalog.jsonb_build_object(
+  'check_id',v_check,'currency',p_currency,
+  'newest_effective_date',v_effective,'status','checked');
+END;
+$poll$;
+REVOKE ALL ON FUNCTION public.sharkania_fx_record_feed_check_v2(text)
+ FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.sharkania_fx_record_feed_check_v2(text)
+ TO service_role;
+
 -- PRIVATE function called ONLY from authenticated, authorized v2 publication.
 -- No browser-supplied rate/amount and no lookup based on upload time.
 CREATE FUNCTION sharkania_release.reserve_usd_elo_v2(p_tournament_id uuid)
@@ -162,6 +219,7 @@ DECLARE
  v_currency text;
  v_buyin numeric;
  v_fx record;
+ v_last_check record;
  v_buyin_usd numeric;
  v_enabled boolean;
  v_effective timestamptz;
@@ -203,6 +261,22 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'No official FX rate captured before tournament start'
     USING ERRCODE='PT409'; END IF;
+  -- Require successful official provider poll just BEFORE the actual event.
+  -- Calendar age alone (7 days) cannot prove that we did not miss an update.
+  -- Proposed QA operational contract: successful poll within the last 2h.
+  SELECT ch.* INTO v_last_check
+  FROM sharkania_release.fx_feed_check_v2 ch
+  WHERE ch.currency=v_currency
+    AND ch.checked_at<=v_start
+    AND ch.checked_at>=v_start-interval '2 hours'
+  ORDER BY ch.checked_at DESC,ch.id DESC LIMIT 1;
+  IF NOT FOUND OR v_last_check.newest_effective_date IS DISTINCT FROM
+       v_fx.effective_date
+     OR v_last_check.newest_observation_id IS DISTINCT FROM v_fx.id
+  THEN
+    RAISE EXCEPTION 'No fresh official source verification before tournament start'
+      USING ERRCODE='PT409';
+  END IF;
   IF v_currency='CLP' THEN
    v_buyin_usd:=v_buyin/v_fx.quote;
   ELSE
@@ -260,6 +334,10 @@ BEGIN
  OR has_function_privilege('anon',
   'public.sharkania_fx_ingest_official_v2(text,date,numeric,text,text)',
   'EXECUTE')
+ OR has_function_privilege('authenticated',
+  'public.sharkania_fx_record_feed_check_v2(text)','EXECUTE')
+ OR has_function_privilege('anon',
+  'public.sharkania_fx_record_feed_check_v2(text)','EXECUTE')
  OR has_schema_privilege('authenticated','sharkania_release','USAGE')
  THEN RAISE EXCEPTION 'ELO v2 snapshot installation unsafe'
  USING ERRCODE='PT409'; END IF;
