@@ -29,6 +29,8 @@ import { MissionsAdminTab } from "../components/admin/missions-admin-tab";
 import { PostHogStatsCard } from "../components/admin/posthog-stats-card";
 import { IgnitionClaimsTab } from "../components/admin/ignition-claims-tab"; // 👈 NUEVO COMPONENTE
 import { syncAllUnifiedElos } from "../lib/api/elo-engine";
+import { GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED } from "../lib/api/guarded-independent-results";
+import { adminLinkPlayerGuarded } from "../lib/api/guarded-admin-player-link";
 import { AnalyticsTab } from "../components/admin/analytics-tab";
 import { BlogEditor } from "../components/admin/blog-editor"; // 🔥 Agregamos el CMS
 import { syncBlogViewsFromPostHog } from "../lib/api/blog"; // 🔥 Sincronización PostHog
@@ -1066,15 +1068,34 @@ export function SuperAdminPage() {
 
   const handleAdminClaim = async (playerId: string) => {
     if (!selectedUser) return;
-    await supabase.from("players").update({ profile_id: selectedUser.id }).eq("id", playerId);
-    await supabase.from("nickname_claims").insert({ user_id: selectedUser.id, player_id: playerId, screenshot_url: "admin-claim", status: "approved", resolved_at: new Date().toISOString() });
+    if (GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED) {
+      try {
+        await adminLinkPlayerGuarded(playerId, selectedUser.id);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "No se confirmó la vinculación.");
+        return; // NEVER fall back to direct players.profile_id UPDATE.
+      }
+    } else {
+      // Legacy workflow remains untouched while the cutover flag is OFF.
+      await supabase.from("players").update({ profile_id: selectedUser.id }).eq("id", playerId);
+      await supabase.from("nickname_claims").insert({ user_id: selectedUser.id, player_id: playerId, screenshot_url: "admin-claim", status: "approved", resolved_at: new Date().toISOString() });
+    }
     setClaimSearch(""); setClaimResults([]);
     refetchSelectedUserPlayers();
   };
 
   const handleUnlinkPlayer = async (playerId: string) => {
     if (!confirm("¿Desvincular este nickname del perfil?")) return;
-    await supabase.from("players").update({ profile_id: null }).eq("id", playerId);
+    if (GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED) {
+      try {
+        await adminLinkPlayerGuarded(playerId, null);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "No se confirmó la desvinculación.");
+        return; // NEVER fall back to direct players.profile_id UPDATE.
+      }
+    } else {
+      await supabase.from("players").update({ profile_id: null }).eq("id", playerId);
+    }
     refetchSelectedUserPlayers();
   };
 
@@ -1570,9 +1591,19 @@ export function SuperAdminPage() {
                             <p className="text-sk-sm text-sk-text-2"><span className="text-sk-text-3 font-mono text-[10px] uppercase">Email:</span> {claim.profiles?.email}</p>
                             <div className="flex gap-2 mt-4">
                               <Button variant="accent" size="sm" onClick={async () => {
-                                const { error: linkError } = await supabase.from("players").update({ profile_id: claim.user_id }).eq("id", claim.player_id);
-                                if (linkError) return alert("Error vinculando: " + linkError.message);
-                                await supabase.from("nickname_claims").update({ status: "approved", resolved_at: new Date().toISOString() }).eq("id", claim.id);
+                                if (GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED) {
+                                  try {
+                                    // Player association and approval are committed together.
+                                    await adminLinkPlayerGuarded(claim.player_id, claim.user_id, claim.id);
+                                  } catch (err) {
+                                    return alert(err instanceof Error ? err.message : "Error aprobando nickname.");
+                                  }
+                                } else {
+                                  // Preserve current behavior until the full security cutover.
+                                  const { error: linkError } = await supabase.from("players").update({ profile_id: claim.user_id }).eq("id", claim.player_id);
+                                  if (linkError) return alert("Error vinculando: " + linkError.message);
+                                  await supabase.from("nickname_claims").update({ status: "approved", resolved_at: new Date().toISOString() }).eq("id", claim.id);
+                                }
                                 refresh();
                               }}><Check size={14} /> Vincular</Button>
                               <Button variant="danger" size="sm" onClick={() => handleRejectRequest(claim.id, "nickname_claims")}><XIcon size={14} /> Rechazar</Button>

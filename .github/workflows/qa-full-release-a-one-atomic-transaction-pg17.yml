@@ -1,0 +1,107 @@
+name: QA entire Release A atomic security cutover (PG17 isolated)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full-atomic-release-a:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_standalone_disposable
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_standalone_disposable
+      PGDATABASE: qa_standalone_disposable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Reject remote execution; prepare synthetic role and DB
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]] || {
+            echo "STOP: synthetic PostgreSQL-only QA"; exit 1;
+          }
+          if ! command -v psql >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y postgresql-client; fi
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_standalone_disposable'
+      - name: Prepare exact prior synthetic Release A baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-player-baseline-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-production-legacy-rpc-source-2026-11-10.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;"
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+      - name: Install entire Release A and independent/identity/history security in ONE transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-admin-claims-schema-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/release-a-full-security-single-transaction-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-independent-results-atomic-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-independent-elo-acl-cutover-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-admin-player-link-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-independent-failure-rollback-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-legacy-historical-mutation-fence-qa.sql
+          echo "PASS: all five SQL pieces installed in a single transaction and passed QA"
+      - name: Prove a LATE install failure rolls back ALL new Release A structures
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "5432" ]] || exit 1
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c "CREATE DATABASE qa_rollback_late_conflict"
+          export PGDATABASE=qa_rollback_late_conflict
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-player-baseline-qa.sql >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-production-legacy-rpc-source-2026-11-10.qa-only.sql >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;" >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE' >/dev/null
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-admin-claims-schema-qa.sql >/dev/null
+          # This function is pre-existing ONLY in the mock rollback database;
+          # the bundle tries to CREATE the same function late in source 5/5.
+          psql -X -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE FUNCTION public.guard_published_elo_history_legacy()
+          RETURNS trigger LANGUAGE plpgsql SET search_path TO ''
+          AS $qa$ BEGIN RETURN NEW; END; $qa$;
+          SQL
+          logs=$(mktemp)
+          set +e
+          psql -X -v ON_ERROR_STOP=1 \
+            -f docs/security/release-a-full-security-single-transaction-2026-11-10.CANDIDATE.sql >"$logs" 2>&1
+          status=$?
+          set -e
+          if [[ "$status" -eq 0 ]] || ! grep -Eiq 'function .*guard_published_elo_history_legacy.*already exists' "$logs"; then
+            tail -35 "$logs"
+            echo "FAIL: expected a late conflict AFTER prior SQL execution"; exit 1
+          fi
+          checks=$(psql -X -At -v ON_ERROR_STOP=1 -c "
+          SELECT
+            to_regnamespace('sharkania_release') IS NULL AND
+            to_regprocedure('public.publish_league_nickname_results_guarded(uuid,jsonb)') IS NULL AND
+            to_regprocedure('public.publish_independent_nickname_results_guarded(uuid,jsonb)') IS NULL AND
+            to_regprocedure('public.admin_link_player_profile_guarded(uuid,uuid,uuid)') IS NULL AND
+            NOT EXISTS(SELECT 1 FROM pg_catalog.pg_trigger WHERE tgname='guard_any_published_tournament_deletion')
+          ")
+          [[ "$checks" == "t" ]] || { echo "FAIL: atomic bundle persisted partial objects"; exit 1; }
+          echo "PASS: fifth-section failure rolled back all earlier SQL without erasing the pre-existing conflict"

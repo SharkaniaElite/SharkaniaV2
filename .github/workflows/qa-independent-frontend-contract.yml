@@ -1,0 +1,26 @@
+name: QA independent guarded frontend and SQL contracts
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci
+      - name: TypeScript strict and static no-fallback contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc -b
+          node --test tests/independent-results-frontend-contract.test.mjs
+          node --test tests/elo-browser-writers-ast-audit.mjs
+          node --experimental-strip-types --test tests/elo-v2-usd-normalization-qa.mjs

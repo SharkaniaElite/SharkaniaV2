@@ -15,6 +15,7 @@ import { parseCSVSmart } from "../../lib/csv-parser";
 import { forceRecalculateStandings } from "../../lib/api/leagues";
 import { GUARDED_LEAGUE_RPC_ENABLED } from "../../lib/api/guarded-leagues";
 import { publishInitialLeagueResultsGuarded } from "../../lib/api/guarded-league-results";
+import { GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED, publishInitialIndependentResultsGuarded } from "../../lib/api/guarded-independent-results";
 
 interface EditableRow {
   id: string;
@@ -305,6 +306,50 @@ export function ResultsEditor({
         setSaving(false);
       }
       return; // Never enter legacy delete/reinsert/Elo for guarded leagues.
+    }
+
+
+    if (GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED && !tournament.league_id) {
+      if (tournament.results_uploaded) {
+        setMessage({
+          text: "Este torneo ya tiene resultados. Las correcciones históricas están bloqueadas hasta verificar el replay ELO.",
+          type: "error",
+        });
+        return;
+      }
+      if (tournament.currency !== "USD") {
+        setMessage({
+          text: "La primera publicación protegida en CLP/EUR todavía no está autorizada.",
+          type: "error",
+        });
+        return;
+      }
+      setSaving(true);
+      try {
+        const receipt = await publishInitialIndependentResultsGuarded(
+          tournament.id,
+          rows.map(row => ({
+            position: row.position,
+            nickname: row.nickname,
+            prizeWon: row.prizeWon,
+            buyInsCount: row.buyInsCount,
+          })),
+        );
+        setMessage({
+          text: `Resultados de torneo independiente guardados atómicamente. ${receipt.newPlayers} jugadores creados.`,
+          type: "success",
+        });
+        setHasChanges(false);
+        onComplete();
+      } catch (err) {
+        setMessage({
+          text: err instanceof Error ? err.message : "No se pudo confirmar la publicación.",
+          type: "error",
+        });
+      } finally {
+        setSaving(false);
+      }
+      return; // Never attempt legacy delete/reinsert/Elo on an RPC failure.
     }
 
     setSaving(true);

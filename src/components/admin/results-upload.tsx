@@ -8,6 +8,7 @@ import { applyLeaguePoints, prepareTournamentForReedit } from "../../lib/api/tou
 import { forceRecalculateStandings } from "../../lib/api/leagues";
 import { GUARDED_LEAGUE_RPC_ENABLED } from "../../lib/api/guarded-leagues";
 import { publishInitialLeagueResultsGuarded } from "../../lib/api/guarded-league-results";
+import { GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED, publishInitialIndependentResultsGuarded } from "../../lib/api/guarded-independent-results";
 import { supabase } from "../../lib/supabase";
 import { cn } from "../../lib/cn";
 import {
@@ -255,6 +256,51 @@ export function ResultsUpload({
         setUploading(false);
       }
       return; // NEVER fall back to browser DML or legacy ELO.
+    }
+
+
+    if (GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED && !tournament.league_id) {
+      // No client writes, player creation, CSV resets or partial Elo updates.
+      if (tournament.results_uploaded) {
+        setMessage({
+          text: "Los resultados de este torneo ya fueron publicados. La edición histórica requiere un replay ELO comprobado.",
+          type: "error",
+        });
+        return;
+      }
+      if (tournament.currency !== "USD") {
+        setMessage({
+          text: "La publicación protegida de torneos independientes en CLP/EUR aún no está autorizada.",
+          type: "error",
+        });
+        return;
+      }
+      setUploading(true);
+      try {
+        const receipt = await publishInitialIndependentResultsGuarded(
+          tournament.id,
+          rows.map(row => ({
+            position: row.position,
+            nickname: row.nickname,
+            prizeWon: row.prizeWon,
+            buyInsCount: row.buyInsCount,
+          })),
+        );
+        setMessage({
+          text: `Resultados y ELO guardados de forma atómica. ${receipt.newPlayers} jugadores creados.`,
+          type: "success",
+        });
+        onComplete();
+        onClose();
+      } catch (err) {
+        setMessage({
+          text: err instanceof Error ? err.message : "No se pudo confirmar la publicación.",
+          type: "error",
+        });
+      } finally {
+        setUploading(false);
+      }
+      return; // No fallback to browser REST writes or legacy Elo.
     }
 
     setResolving(true);
