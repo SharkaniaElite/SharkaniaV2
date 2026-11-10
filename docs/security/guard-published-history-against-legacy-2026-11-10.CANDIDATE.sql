@@ -127,8 +127,13 @@ RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
 AS $immutable$
 BEGIN
+ -- Live read-only catalog has three historical uploaded tournaments with
+ -- status=scheduled (all CLP/EUR leagues). Preserve no-op status updates.
+ -- Do not allow transitions to cancellation or reopening; correcting those
+ -- legacy rows requires separately reviewed permission and data lineage.
  IF OLD.results_uploaded IS TRUE AND
-   (NEW.results_uploaded IS NOT TRUE OR NEW.status::text IS DISTINCT FROM 'completed')
+   (NEW.results_uploaded IS NOT TRUE OR
+    (NEW.status IS DISTINCT FROM OLD.status AND NEW.status::text <> 'completed'))
  THEN
   RAISE EXCEPTION 'Published tournament cannot revert status without chronological replay'
    USING ERRCODE='PT409';
