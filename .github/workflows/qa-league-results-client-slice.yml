@@ -1,0 +1,27 @@
+name: QA league results frontend cutover — atomic client, no legacy fallback
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  client-slice:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install pinned frontend dependencies
+        run: npm ci
+      - name: Validate strict TypeScript for both admin result modals
+        run: ./node_modules/.bin/tsc -b --pretty false
+      - name: Verify first-upload atomic route, old nonleague path and blocked history edits
+        run: |
+          set -euo pipefail
+          node --test tests/league-results-frontend-atomic.test.mjs
+          node --test tests/league-release-a-client-slice.test.mjs
+          node tests/league-legacy-source-inventory.mjs > "$RUNNER_TEMP/legacy-source-inventory.txt"
+          grep -q 'RELEASE A INVENTORY:' "$RUNNER_TEMP/legacy-source-inventory.txt"
+          grep -q 'TARGETED REFERENCES:' "$RUNNER_TEMP/legacy-source-inventory.txt"
