@@ -69,6 +69,9 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-independent-failure-rollback-qa.sql
           psql -X -v ON_ERROR_STOP=1 -f docs/security/guard-published-history-against-legacy-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-legacy-historical-mutation-fence-qa.sql
+          # The original PG17 fake fixture predates timezone, whereas the verified
+          # real public.tournaments has timezone TEXT NOT NULL America/Santiago.
+          psql -X -v ON_ERROR_STOP=1 -c "ALTER TABLE public.tournaments ADD COLUMN timezone text NOT NULL DEFAULT 'America/Santiago'"
           psql -X -v ON_ERROR_STOP=1 -f docs/security/elo-v2-usd-fx-observations-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -f docs/security/elo-v2-usd-results-writers-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-elo-v2-official-fx-qa.sql
