@@ -1,0 +1,98 @@
+name: QA shared Elo league and standalone writer concurrent (PG17 isolated)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cross-writer-shared-elo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: qa_cross_writer_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_cross_writer_only
+      PGDATABASE: qa_cross_writer_only
+    steps:
+      - uses: actions/checkout@v4
+      - name: Block remote DBs and install PostgreSQL client
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == true && "$PGHOST" == "127.0.0.1" && "$PGPORT" == 5432 && "$PGDATABASE" == qa_cross_writer_only ]] || exit 1
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE anon NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE ROLE authenticated NOLOGIN'
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE qa_cross_writer_only'
+      - name: Install complete Release A then independent guarded SQL using fake schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -v QA_SKIP_CUTOVER=1 -f tests/fixtures/sharkania-league-atomic-setup.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-player-baseline-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-production-legacy-rpc-source-2026-11-10.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;"
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded ON public.league_clubs(league_id) WHERE is_primary IS TRUE'
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-release-a-single-transaction-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/independent-results-atomic-v1-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/independent-elo-rest-lockdown-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -c "INSERT INTO public.tournaments(id,club_id,buy_in,league_id,room_id,currency,start_datetime) VALUES ('00000000-0000-0000-0000-000000000111','00000000-0000-0000-0000-000000000021',3.30,'00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000031','USD','2026-11-26T20:00:00Z'),('00000000-0000-0000-0000-000000000112','00000000-0000-0000-0000-000000000021',3.30,NULL,'00000000-0000-0000-0000-000000000031','USD','2026-11-27T20:00:00Z');"
+          echo "PASS: real SQL candidate names installed on standalone PG17"
+      - name: Race first league transaction against later independent transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=/tmp/sharkania-qa-cross-writer-league-held
+          rm -f "$ready"
+          logs=$(mktemp -d)
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-cross-writer-league-first-qa.sql >"$logs/league.log" 2>&1 &
+          first_pid=$!
+          observed_ready=false
+          for attempt in $(seq 1 90); do
+            if [[ -f "$ready" ]]; then observed_ready=true; break; fi
+            if ! kill -0 "$first_pid" 2>/dev/null; then break; fi
+            sleep 0.1
+          done
+          if [[ "$observed_ready" != true ]]; then
+            cat "$logs/league.log"
+            echo "FAIL: league writer never reached held transaction"
+            exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-cross-writer-independent-second-qa.sql >"$logs/independent.log" 2>&1 &
+          second_pid=$!
+          blocked=false
+          for attempt in $(seq 1 36); do
+            waiting=$(psql -X -At -c "SELECT count(*) FROM pg_catalog.pg_stat_activity WHERE datname='qa_cross_writer_only' AND wait_event_type='Lock' AND query ILIKE '%publish_independent_nickname_results_guarded%'")
+            if [[ "$waiting" -gt 0 ]]; then blocked=true; break; fi
+            sleep 0.1
+          done
+          set +e
+          wait "$first_pid"; first_exit=$?
+          wait "$second_pid"; second_exit=$?
+          set -e
+          if [[ "$first_exit" -ne 0 || "$second_exit" -ne 0 || "$blocked" != true ]]; then
+            cat "$logs/league.log" "$logs/independent.log"
+            echo "FAIL: cross-writer concurrent commit/lock mismatch $first_exit/$second_exit observed=$blocked"
+            exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-cross-writer-assert-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-cross-writer-out-of-order-qa.sql
+          echo "PASS: observed lock and shared Elo continuity across original league and independent writers"
