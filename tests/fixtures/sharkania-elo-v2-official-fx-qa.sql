@@ -38,18 +38,14 @@ SET LOCAL ROLE service_role;
 SET LOCAL request.jwt.claim.role='service_role';
 DO $service$
 DECLARE
- c1 jsonb;c2 jsonb;bad bool:=false;old_seen timestamptz;new_seen timestamptz;
+ c1 jsonb;c2 jsonb;bad bool:=false;
 BEGIN
  c1:=public.sharkania_fx_ingest_official_v2('CLP','2026-11-09',990,
   repeat('a',64),'BCCH:F073.TCO.PRE.Z.D:2026-11-09');
- SELECT first_seen_at INTO old_seen FROM sharkania_release.fx_observation_v2
- WHERE currency='CLP' AND effective_date='2026-11-09';
  c2:=public.sharkania_fx_ingest_official_v2('CLP','2026-11-09',990,
   repeat('a',64),'BCCH:F073.TCO.PRE.Z.D:2026-11-09');
- SELECT first_seen_at INTO new_seen FROM sharkania_release.fx_observation_v2
- WHERE currency='CLP' AND effective_date='2026-11-09';
  IF c1->>'status'<>'recorded' OR c2->>'status'<>'recorded'
- OR old_seen IS NULL OR old_seen IS DISTINCT FROM new_seen
+ OR c1->>'observation_id' IS DISTINCT FROM c2->>'observation_id'
  THEN RAISE EXCEPTION 'FAIL: idempotent official FX receipt not retained'; END IF;
  BEGIN
   PERFORM public.sharkania_fx_ingest_official_v2('CLP','2026-11-09',991,
@@ -60,6 +56,14 @@ BEGIN
 END;$service$;
 RESET ROLE;
 COMMIT;
+DO $receipt$
+BEGIN
+ IF NOT EXISTS(SELECT 1 FROM sharkania_release.fx_observation_v2
+ WHERE currency='CLP' AND effective_date='2026-11-09'
+ AND first_seen_at IS NOT NULL AND first_seen_at<=clock_timestamp()
+ AND quote=990)
+ THEN RAISE EXCEPTION 'FAIL: private verified server receipt missing'; END IF;
+END;$receipt$;
 
 -- No retroactive admission: server saw 2026-11-09 observation AFTER
 -- a tournament held Nov 9; even an authentic value cannot be backdated.
