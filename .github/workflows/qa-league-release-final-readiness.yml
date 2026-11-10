@@ -41,6 +41,7 @@ jobs:
           node --test tests/elo-replay-preflight.test.mjs
           node --test tests/elo-replay-simulator.test.mjs
           node --test tests/league-final-cutover-readiness-contract.test.mjs
+          node --test tests/league-real-legacy-cutover-contract.test.mjs
           if ! command -v psql >/dev/null 2>&1 || ! command -v pg_dump >/dev/null 2>&1 || ! command -v pg_restore >/dev/null 2>&1; then
             sudo apt-get update -qq
             sudo apt-get install -y postgresql-client
@@ -65,6 +66,16 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f docs/security/league-elo-policy-versions-2026-11-09.qa-only.sql
           psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-results-currency-neutral-v2-2026-11-09.qa-only.sql
           psql -X -v ON_ERROR_STOP=1 -f docs/security/league-atomic-nickname-currency-neutral-v2-2026-11-09.qa-only.sql
+      - name: Test actual production legacy RPC bodies safely fenced in isolated PostgreSQL
+        env:
+          PGDATABASE: qa_release_final
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-production-legacy-rpc-source-2026-11-10.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -c "REVOKE EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.bulk_delete_scheduled_tournaments(uuid[]),public.delete_tournament_god_mode(uuid),public.reset_tournament_impact(uuid) TO authenticated;"
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/league-legacy-rpc-guards-2026-11-10.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-real-legacy-rpc-cutover-qa.sql
       - name: Test proposed future ELO policy, native CLP/EUR and mixed-league rejection
         env:
           PGDATABASE: qa_release_final
