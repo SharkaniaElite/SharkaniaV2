@@ -60,4 +60,6 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f docs/security/league-release-a-single-transaction-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -f docs/security/independent-results-atomic-v1-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-independent-results-atomic-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/independent-elo-rest-lockdown-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-independent-elo-acl-cutover-qa.sql
           echo "PASS: isolated nonleague initial writer and regression QA"
