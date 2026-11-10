@@ -30,7 +30,7 @@ entrypoint = "./functions/elo-fx-capture/index.ts"
 # QA-only: neither the Edge Function nor admin UI is deployed yet.
 # Auth is verified with auth.getUser() + is_super_admin() before BCCh fetch.
 [functions.bcch-dollar-preview]
-enabled = false
+enabled = true
 verify_jwt = false
 import_map = "./functions/bcch-dollar-preview/deno.json"
 entrypoint = "./functions/bcch-dollar-preview/index.ts"
