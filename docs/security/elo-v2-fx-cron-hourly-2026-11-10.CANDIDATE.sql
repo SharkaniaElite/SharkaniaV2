@@ -13,9 +13,11 @@
 --      sharkania_elo_fx_url and sharkania_elo_fx_scheduler_key.
 --   5. Poll verified at both BCCh and ECB (no quoted value invented).
 --
--- Authorization gate: operator must execute in SAME CONNECTION:
---   SET sharkania.fx_schedule_authorized = 'yes';
--- before psql -f this file, after documented owner approval.
+-- Authorization gate: operator must execute in ONE psql SESSION, after GO:
+--   psql -X -v ON_ERROR_STOP=1 -d postgres
+--   postgres=> SET sharkania.fx_schedule_authorized = 'yes';
+--   postgres=> \i docs/security/elo-v2-fx-cron-hourly-2026-11-10.CANDIDATE.sql
+-- SET in a different process/connection is NOT sufficient.
 -- The file deliberately fails closed in all other environments.
 BEGIN;
 SET LOCAL lock_timeout='10s';
