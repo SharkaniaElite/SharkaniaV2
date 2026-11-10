@@ -105,6 +105,41 @@ BEGIN
 END;
 $direct$;
 
+-- Three legacy production tournaments are marked uploaded while status is
+-- still scheduled. No-op status writes must not be blocked by the guard:
+-- only actual transitions away from completed or toward cancelled are denied.
+INSERT INTO public.tournaments(
+ id,club_id,buy_in,league_id,room_id,currency,start_datetime,
+ results_uploaded,status
+) VALUES (
+ '00000000-0000-0000-0000-000000000121',
+ '00000000-0000-0000-0000-000000000021',3.30,NULL,
+ '00000000-0000-0000-0000-000000000031','USD',
+ '2026-12-19T20:00:00Z',true,'scheduled'
+);
+DO $legacy_status$
+DECLARE blocked bool:=false;
+BEGIN
+ UPDATE public.tournaments SET status='scheduled'
+ WHERE id='00000000-0000-0000-0000-000000000121';
+ IF NOT FOUND THEN RAISE EXCEPTION 'FAIL: unchanged legacy status blocked'; END IF;
+ BEGIN
+  UPDATE public.tournaments SET status='cancelled'
+  WHERE id='00000000-0000-0000-0000-000000000121';
+ EXCEPTION WHEN SQLSTATE 'PT409' THEN blocked:=true; END;
+ IF NOT blocked THEN RAISE EXCEPTION 'FAIL: uploaded legacy tournament cancelled'; END IF;
+ UPDATE public.tournaments SET status='completed'
+ WHERE id='00000000-0000-0000-0000-000000000121';
+ blocked:=false;
+ BEGIN
+  UPDATE public.tournaments SET status='scheduled'
+  WHERE id='00000000-0000-0000-0000-000000000121';
+ EXCEPTION WHEN SQLSTATE 'PT409' THEN blocked:=true; END;
+ IF NOT blocked THEN RAISE EXCEPTION 'FAIL: completed uploaded tournament reopened'; END IF;
+ RAISE NOTICE 'PASS: legacy scheduled/uploaded inconsistency preserved, but transitions back to unsafe state refused';
+END;
+$legacy_status$;
+
 -- Allow normal cleanup of a truly empty scheduled tournament.
 INSERT INTO public.tournaments(id,club_id,buy_in,league_id,room_id,currency,start_datetime)
 VALUES('00000000-0000-0000-0000-000000000120',
