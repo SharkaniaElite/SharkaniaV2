@@ -17,8 +17,8 @@ Archivo SQL único: `docs/security/league-release-a-single-transaction-2026-11-1
 | Paso | Criterio GO antes de activar | Estado |
 |---|---|---|
 | 1. Inventario de producción | P0 válido, políticas originales exactas, cero ligas sin principal, cero nicknames duplicados por sala y snapshot MD5 de cinco RPC heredadas | Comprobado por SELECT el 10/nov, **volver a comparar antes del corte** |
-| 2. SQL consolidado | Una transacción con preflight antes de DDL, RLS y revocaciones, RPC pública estable, auditoría privada, protecciones directas, sin SQL de moneda v2 | Archivo candidato preparado; **CI y revisión independiente pendientes** |
-| 3. Paridad en PostgreSQL 17 | Instalar SQL único y publicar USD como organizador; negar club ajeno, duplicado, suplantación y acceso directo; denegar si falta P0 o si cambian firmas | Suite nueva creada; pendiente de resultado |
+| 2. SQL consolidado | Una transacción con preflight antes de DDL, RLS y revocaciones, RPC pública estable, auditoría privada, protecciones directas, sin SQL de moneda v2 | **6/6 CI PASS** en `c95b06244dbfb3967cc4ad82f50a5130c452bfa2`; revisión independiente pendiente |
+| 3. Paridad en PostgreSQL 17 | Instalar SQL único y publicar USD como organizador; negar club ajeno, duplicado, suplantación y acceso directo; denegar si falta P0 o si cambian firmas | **PASS** en PG17 aislado: instalación íntegra del SQL candidato, DML liga/no-liga y P0 negativo; falta clon real |
 | 4. GoTrue/PostgREST sobre SQL único | JWT de propietario/club secundario/jugador/anon y superadmin, creación/duplicado, primer resultado y permisos, usando el **SQL consolidado**, no alias QA | **Pendiente**. Suites anteriores probaron piezas, no este archivo integral |
 | 5. Escritores heredados completos | Auditar DML sobre `tournaments`, `tournament_results`, `elo_history`, `players`, `profiles`, `league_standings`, incl. superadmin, importadores y cualquier `SECURITY DEFINER` adicional. Cerrar escrituras arbitrarias de ELO desde clientes sin romper torneos independientes | **NO GO**, falta paridad completa |
 | 6. Respaldo real | Restaurar **una copia productiva** en proyecto independiente y cotejar índices, RLS, funciones, permisos, Auth, relaciones, ELO, rankings, jugadores y fechas. Probar una reversión sin reabrir RLS | **NO GO**; copia ficticia ya probada, restauración productiva no |
@@ -33,6 +33,19 @@ Archivo SQL único: `docs/security/league-release-a-single-transaction-2026-11-1
 3. **Datos históricos:** se registraron **3.576 discontinuidades ELO** en consulta de diagnóstico. No prometer replay de 1200 ni borrar historial. Edición/borrado permanece prohibido, con proceso manual posterior si faltan checkpoints.
 4. **Fechas:** solo tres torneos de liga USD estaban pendientes al corte de lectura; 34 CLP/EUR pendientes quedan fuera de Release A. Los valores pueden variar; volver a contar antes de migrar.
 5. **Uso real de directos:** al revocar DML en `league_standings` podría romper otras pantallas/funciones no inventariadas; auditoría de dependencias y pruebas de negocio obligatorias antes de permitir GO.
+
+## Hallazgo nuevo — controles de escritura ELO (catálogo productivo, 10 noviembre 2026)
+
+**Verificación exclusivamente de solo lectura:** consultas `SELECT` a `pg_policies`, `pg_proc`, `pg_trigger`, `pg_attribute` y `has_column_privilege` en el proyecto `nhpjzywfzljtlqaigzed`; sin DML, sin llamadas RPC, sin modificar datos, permisos o producción.
+
+- **P0, `public.players`:** RLS habilitado, 7 políticas de escritura; cuatro de UPDATE (dos para administradores vinculados a torneos, una para el perfil propietario `profile_id=auth.uid()`, y una de superadmin). El rol `authenticated` conserva UPDATE efectivo de `elo_rating`, `elo_peak`, `total_prize_won`, `total_buy_ins_spent` y el resto de columnas. Sus 3 triggers existentes (`on_player_linked_sync_country`, `trg_players_auto_slug`, `update_players_timestamp`) no validan mutaciones de ELO. **Existe un camino de autorización de fila y columna potencialmente inseguro**; no se hizo un ataque ni una escritura de prueba en producción.
+- **P0, `public.elo_history`:** RLS habilitado y una política INSERT `auth.uid() IS NOT NULL` sin comprobación de club/torneo; `authenticated` dispone de INSERT y no hay triggers de usuario en la tabla productiva. El candidato Release A protege DML de ligas con triggers, pero no resuelve todos los caminos no-liga ni la modificación directa de `players`.
+- **Control comprobado que NO es un hallazgo:** aunque `public.profiles.role` tiene privilegio nominal de UPDATE, el trigger real `guard_profile_privileged_mutations` impide a usuarios normales cambiar `role`, XP, saldo y `unified_elo`. No proponer una escalada de rol a partir del GRANT aislado.
+- **Rutas privilegiadas:** `delete_tournament_god_mode` y `reset_tournament_impact` escriben jugadores/ELO/resultados y `create_tournament_from_template` crea torneos; es imprescindible probar también las operaciones independientes de liga antes de retirar privilegios genéricos.
+
+**GO exigido:** inventariar todos los escritores de ELO (cliente, funciones y triggers), proteger también las columnas compartidas de `players` mediante un escritor transaccional validado, verificar `elo_history` y ejecutar QA negativa con roles distintos, sin romper torneos no-liga. No hacer un REVOKE indiscriminado en producción. La revisión estática no sustituye pruebas funcionales sobre un clon fiel. Referencia: [Supabase Column Level Security](https://supabase.com/docs/guides/database/postgres/column-level-security).
+
+**Resultado:** Release A continúa **NO GO** y el flag `VITE_LEAGUE_GUARDED_RPC` debe permanecer apagado.
 
 ## Estrategia de migración y rollback
 
