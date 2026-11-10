@@ -35,16 +35,30 @@ BEGIN
  EXCEPTION WHEN SQLSTATE 'PT409' THEN denied:=true; END;
  IF NOT denied THEN RAISE EXCEPTION 'FAIL: privileged GOD MODE deleted published independent Elo'; END IF;
 
- denied:=false;
+ RAISE NOTICE 'PASS: both privileged history rewrite and delete RPCs denied for published independent tournament';
+END;
+$legacy$;
+RESET ROLE;
+ROLLBACK;
+
+-- The legacy synthetic tournament ...012 belongs to OTHER club 022.
+-- Role 005 (not 002) is the real admin of that club, so verify this
+-- historical independent reset under an authorized organizer, not an
+-- unrelated actor who is already denied by the old RPC's ownership check.
+BEGIN;
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
+DO $legacy_other_club$
+DECLARE denied bool:=false;
+BEGIN
  BEGIN
   PERFORM public.reset_tournament_impact(
    '00000000-0000-0000-0000-000000000012');
  EXCEPTION WHEN SQLSTATE 'PT409' THEN denied:=true; END;
- IF NOT denied THEN RAISE EXCEPTION 'FAIL: privileged reset removed legacy independent results'; END IF;
-
- RAISE NOTICE 'PASS: both privileged historical deletion/reset RPCs denied for published and legacy independent tournaments';
+ IF NOT denied THEN RAISE EXCEPTION 'FAIL: authorized club admin reset historical independent results'; END IF;
+ RAISE NOTICE 'PASS: legitimate other club admin still cannot silently rewrite legacy historical ELO';
 END;
-$legacy$;
+$legacy_other_club$;
 RESET ROLE;
 ROLLBACK;
 
