@@ -23,7 +23,7 @@ Los servicios oficiales proporcionan fecha de observación; consultar una observ
 
 - Banco Central de Chile, API BDE, serie F073.TCO.PRE.Z.D, pesos por USD. Requiere credencial API BDE del propietario administrada solo como secreto de servidor. https://si3.bcentral.cl/estadisticas/Principal1/Web_Services/documentacion.html
 - Banco Central Europeo, serie EXR/D.USD.EUR.SP00.A, dólares por euro; API pública. https://data-api.ecb.europa.eu/service/data/EXR/D.USD.EUR.SP00.A?format=csvdata
-- El módulo supabase/functions/elo-fx-capture está en el repositorio, pero la configuración supabase/config.toml lo declara deshabilitado. No se programó ni desplegó, y el secreto BCCH_BDE_API_TOKEN no está configurado.
+- **Verificado:** el propietario configuró `BCCH_BDE_API_TOKEN` en Supabase y el endpoint protegido ya publicado `bcch-dollar-preview` obtuvo la tasa oficial, con resultado confirmado en el panel y en `site_settings`. El módulo **separado** `elo-fx-capture` sigue deshabilitado, sin despliegue ni cron. Se requiere una **clave interna adicional** de Supabase con nombre `elo-fx-scheduler` para invocar exclusivamente el capturador programado, guardada en Vault como `sharkania_elo_fx_scheduler_key`.
 
 ## Entregables de QA
 
@@ -35,8 +35,8 @@ Los servicios oficiales proporcionan fecha de observación; consultar una observ
 
 ## No resuelto antes de GO
 
-1. Probar que la Edge Function compile y funcione con los verdaderos contratos/formatos de las APIs oficiales, sin publicar credenciales ni consultar en producción.
-2. Definir cron de captura, alarmas por observación más reciente ausente, cuotas y operación ante revisión o caída de BCCh/ECB. Obtener credencial BDE por vía protegida, sin enviarla por chat.
+1. **Completado parcialmente:** Edge Function compila en Deno; el dólar BCCh fue verificado en producción mediante el endpoint admin protegido. **Completado:** CI consultó la API pública del BCE el 10/11/2026, comprobó CSV real y obtuvo 1 EUR = 1,1214 USD. **Pendiente:** comprobar el capturador integrado en su endpoint de producción con backend autorizado y sin habilitar ELO, tras instalar la migración y autorizar el despliegue.
+2. **Preparada sin activar** la programación horaria `docs/security/elo-v2-fx-cron-hourly-2026-11-10.CANDIDATE.sql` con secretos nombrados en Vault, comprobación de prerequisitos y guardia de aprobación explícita. Banco Central documenta **máximo cinco series por segundo por cuenta, sin límite diario**; la programación de una serie/hora está muy por debajo. Pendientes: autorización para crear clave de servicio dedicada, Vault, cron y alertas de fallos o tasas desactualizadas.
 3. Aprobar fecha/evento v2. Los torneos anteriores sin cotización capturada antes de su comienzo permanecen bloqueados; hace falta política separada para torneos CLP/EUR históricos aún sin resultados.
 4. Ejecutar ambas RPC y su corte de ACL sobre clon real restaurado, con costo y creación previamente autorizados; auditar RLS, dependencias y pruebas de carga/concurrencia.
 5. Ensayar una sola migración final coherente con #95, #96 y #97; backend, despliegue de Edge, cron, frontend y flags requieren aprobaciones separadas. No se ha modificado Supabase ni Cloudflare productivos.
