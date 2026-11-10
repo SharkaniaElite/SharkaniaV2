@@ -127,3 +127,81 @@ expect(await invoke("organizer",results),409,"repeat results publication denied,
 assert.equal(sql("SELECT count(*) FROM sharkania_release_qa.elo_publication WHERE tournament_id="+safeUuid(tour)),"1");
 assert.equal(sql("SELECT count(*) FROM public.players WHERE nickname='"+newName+"'"),"1");
 console.log("PASS FINAL: actual isolated JWT, PostgREST grants, nickname identity and atomic financial ledger");
+
+
+// Proposed VERSION v2 is tested only in isolated local GoTrue + PostgREST.
+// No live code selects this function: sports policy/date remain unapproved.
+const future=[
+ {league:"00000000-0000-0000-0000-000000000046",
+  tournament:"00000000-0000-0000-0000-000000000112",club:clubA,
+  role:"organizer",currency:"CLP",buyIn:3300,prize:7000,entries:2},
+ {league:"00000000-0000-0000-0000-000000000047",
+  tournament:"00000000-0000-0000-0000-000000000113",club:clubB,
+  role:"secondary",currency:"EUR",buyIn:12,prize:30,entries:3}
+];
+for(const x of future){
+ sql("INSERT INTO public.leagues(id,name,slug) VALUES("+
+    safeUuid(x.league)+",'QA v2 "+x.currency+"',"+
+    "'qa-v2-real-auth-"+x.currency.toLowerCase()+"-"+nonce+"')");
+ sql("INSERT INTO public.league_clubs(league_id,club_id,is_primary) VALUES("+
+    safeUuid(x.league)+","+safeUuid(x.club)+",true)");
+ sql("INSERT INTO public.league_rooms(league_id,room_id) VALUES("+
+    safeUuid(x.league)+","+safeUuid(roomA)+")");
+ const tRes=await fetch(base+"/rest/v1/tournaments",{
+  method:"POST",
+  headers:{"Content-Type":"application/json",apikey:anon,
+    Authorization:"Bearer "+tokens[x.role]},
+  body:JSON.stringify({id:x.tournament,club_id:x.club,league_id:x.league,
+    room_id:roomA,buy_in:x.buyIn,currency:x.currency,
+    start_datetime:"2026-11-24T20:00:00Z"}),
+  signal:AbortSignal.timeout(15000)
+ });
+ assert.equal(tRes.status,201,
+  "v2 synthetic "+x.currency+" tournament should be created by own club JWT: "+
+  (await tRes.text()).slice(0,300));
+ const n1="QA_v2_"+x.currency+"_A_"+nonce,n2="QA_v2_"+x.currency+"_B_"+nonce;
+ const body=[
+  {nickname:n1,position:1,prize_won:x.prize,bounties_won:0,
+   league_points_earned:20,buy_ins_count:x.entries},
+  {nickname:n2,position:2,prize_won:0,bounties_won:0,
+   league_points_earned:10,buy_ins_count:1}
+ ];
+ const callV2=async role=>{
+  const res=await fetch(base+"/rest/v1/rpc/publish_league_nickname_results_v2_qa",{
+   method:"POST",headers:{"Content-Type":"application/json",apikey:anon,
+    ...(role?{Authorization:"Bearer "+tokens[role]}:{})},
+   body:JSON.stringify({p_tournament_id:x.tournament,p_results:body}),
+   signal:AbortSignal.timeout(15000)
+  });
+  const raw=await res.text();let data;
+  try{data=JSON.parse(raw)}catch{data=raw}
+  return {status:res.status,data};
+ };
+ expect(await callV2(null),401,"v2 candidate anonymous blocked for "+x.currency);
+ const other=x.role==="organizer"?"secondary":"organizer";
+ expect(await callV2(other),403,"v2 other primary organizer blocked for "+x.currency);
+ const ok=await callV2(x.role);
+ expect(ok,200,"v2 "+x.currency+" candidate published over actual JWT");
+ assert.equal(ok.data.status,"published");
+ assert.equal(ok.data.new_players,2);
+ assert.equal(ok.data.currency,x.currency);
+ assert.equal(ok.data.currency_postings,2);
+ assert.equal(sql("SELECT count(*) FROM sharkania_release_qa.elo_publication "+
+  "WHERE tournament_id="+safeUuid(x.tournament)+
+  " AND algorithm_version='currency-neutral-v2-PROPOSAL'"),"1");
+ assert.equal(sql("SELECT count(*) FROM public.elo_history "+
+  "WHERE tournament_id="+safeUuid(x.tournament)),"2");
+ assert.equal(sql("SELECT count(*) FROM sharkania_release_qa.currency_posting "+
+  "WHERE tournament_id="+safeUuid(x.tournament)),"2");
+ const expectedSpend=x.buyIn*x.entries;
+ assert.equal(sql("SELECT count(*) FROM sharkania_release_qa.currency_posting cp "+
+  "JOIN public.players p ON cp.player_id=p.id WHERE cp.tournament_id="+
+  safeUuid(x.tournament)+" AND p.nickname='"+n1+"' AND cp.currency='"+
+  x.currency+"' AND cp.entry_spend="+expectedSpend+
+  " AND cp.buy_ins_count="+x.entries), "1");
+ assert.equal(sql("SELECT count(*) FROM public.players WHERE nickname='"+n1+
+  "' AND elo_rating=1220.90 AND total_prize_won=0 "+
+  "AND total_buy_ins_spent=0"),"1");
+ expect(await callV2(x.role),409,"v2 candidate duplicate prevented for "+x.currency);
+}
+console.log("PASS FINAL: QA v2 prospective CLP EUR authenticated, no FX aggregation or ELO duplicates");
