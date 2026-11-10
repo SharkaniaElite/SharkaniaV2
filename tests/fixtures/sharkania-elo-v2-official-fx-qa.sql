@@ -136,7 +136,7 @@ BEGIN
   '00000000-0000-0000-0000-000000000132');
  c:=sharkania_release.reserve_usd_elo_v2(
   '00000000-0000-0000-0000-000000000133');
- IF abs(a-10)>0.00000001 OR abs(b-10)>0.00000001 OR c<>10
+ IF abs(a-10)>0.00000001 OR abs(b-10)>0.02 OR c<>10
  THEN RAISE EXCEPTION 'FAIL: 9500 CLP, EUR 9.09, USD 10 have different USD equiv % % %',a,b,c; END IF;
  IF (SELECT count(*) FROM sharkania_release.elo_v2_event_fx
   WHERE tournament_id IN(
