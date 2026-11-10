@@ -65,4 +65,5 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-admin-claims-schema-qa.sql
           psql -X -v ON_ERROR_STOP=1 -f docs/security/admin-player-link-guarded-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-admin-player-link-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-independent-failure-rollback-qa.sql
           echo "PASS: isolated nonleague initial writer and regression QA"
