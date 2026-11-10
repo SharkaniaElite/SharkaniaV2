@@ -132,7 +132,11 @@ jobs:
            ('00000000-0000-0000-0000-000000000155',
             '00000000-0000-0000-0000-000000000021',10,NULL,
             '00000000-0000-0000-0000-000000000031','USD',
-            '2026-11-09T21:00:00Z','UTC');
+            '2026-11-09T21:00:00Z','UTC'),
+           ('00000000-0000-0000-0000-000000000156',
+            '00000000-0000-0000-0000-000000000021',9500,NULL,
+            '00000000-0000-0000-0000-000000000031','CLP',
+            '2026-11-05T18:00:00Z','America/Santiago');
           -- In a LOCAL MOCK ONLY, admin may fabricate the fixture timestamp
           -- to model observations seen before a date in the past.
           INSERT INTO sharkania_release.fx_observation_v2(
