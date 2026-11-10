@@ -1,42 +1,50 @@
-# Decisión pendiente: ELO multimoneda y edición de resultados — Sharkania
+# Sharkania — decisión ELO v2 normalizado a USD (10 noviembre 2026)
 
-**Estado: propuesta, NO aprobado. No se modifica algoritmo, calendario ni historial en producción.**
+**Decisión de producto acordada con el propietario:** conservar intacto el historial ELO v1 e introducir un ELO v2 que convierta los buy-ins USD, CLP y EUR a un único equivalente en USD antes del cálculo. Esta decisión sustituye la propuesta anterior de no ponderar el buy-in. **NO implica autorización de desplegar, migrar, activar flags ni fusionar PR #95/#96.**
 
-## Contexto verificado
+## Contrato de fórmula v2
 
-El motor `legacy-js-v1` actual en `src/lib/api/elo-engine.ts` calcula:
+El motor legacy-js-v1 aplica el factor:
 
-`K = (total_tournaments < 30 ? 40 : 20) * (1 + log10(buy_in + 1)*0.1) * (1 + log10(número_jugadores)*0.15)`.
+K = (total_tournaments < 30 ? 40 : 20) × (1 + log10(buy_in + 1) × 0.1) × (1 + log10(número_jugadores) × 0.15).
 
-El `buy_in` se toma directamente de `tournaments.buy_in` sin normalización de moneda. Por tanto, usar el mismo número económico expresado en CLP, EUR o USD produce factores K diferentes. Las SQL candidatas de Release A preservan la fórmula existente para no reescribir la historia y **solo permiten primera publicación USD**.
+**ELO v2 (elo-v2-usd-normalized)** conserva la estructura matemática y reemplaza solamente el buy-in nominal por su equivalente USD, siempre verificado y congelado por torneo:
 
-A 10-11-2026, en producción hay 3 ligas USD pendientes, 27 ligas CLP, 7 ligas EUR y 1.009 torneos independientes CLP sin resultados; estos últimos son anteriores a esa fecha según su `start_datetime`. La continuidad ELO sigue siendo compartida por sala/jugador entre ligas e independientes.
+- USD: buy_in_usd = buy_in; sin tasa externa.
+- CLP: buy_in_usd = buy_in_clp / (CLP por 1 USD).
+- EUR: buy_in_usd = buy_in_eur × (USD por 1 EUR).
 
-**No activar globalmente la revocación de `players`/`elo_history`/`tournament_results` hasta ofrecer una ruta protegida para todas las monedas que se deseen admitir.** No se admiten conversiones implícitas ni asignación de una moneda falsa.
+Ejemplo **hipotético, NO cotización del día**: 1 USD = 950 CLP y 1 EUR = 1,10 USD. USD 10, CLP 9.500 y EUR 9,090909… tendrán el mismo componente de buy-in para el ELO. Con rivales, posiciones y otros factores idénticos, la variación será idéntica.
 
-## Opciones de producto para el nuevo algoritmo a futuro
+**Fuentes oficiales preferidas:**
+- Banco Central de Chile: Dólar Observado en CLP por USD. Documentación: https://www.bcentral.cl/areas/estadisticas/preguntas-frecuentes-estadisticas ; API oficial: https://si3.bcentral.cl/estadisticas/Principal1/Web_Services/documentacion.html
+- Banco Central Europeo: referencia EUR/USD en USD por EUR (usualmente diaria hábil): https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html
 
-| Opción | Cómo funciona | Ventaja | Coste / riesgo |
-|---|---|---|---|
-| **A — ELO v2 neutral por moneda** (recomendada para evaluación) | Elimina del factor K la influencia del valor monetario nominal del buy-in, manteniendo rivales, puntuación y antigüedad del jugador. | Comparabilidad deportiva entre USD, CLP y EUR sin FX ni mezclar premios. | Cambia el peso del buy-in respecto de v1. Definir fecha exacta de vigencia y probar paridad/calibración. |
-| **B — ELO v2 con buy-in convertido a unidad común** | Usa tasa fijada por fecha/regla oficial aprobada, registrada en ledger por evento. | Conserva la intención deportiva de premiar buy-ins mayores en una misma escala. | Depende de fuente/tasa, redondeo, fin de semana, histórica/retroactiva, registros de auditoría; mayor complejidad. |
-| **C — continuar v1 con buy-in nominal sin conversión** | Conserva `log10(buy_in+1)` por moneda de origen. | Misma fórmula JS sin adaptación. | Diferencias matemáticas no comparables entre monedas y cambios de poder adquisitivo; no recomendado para una tabla global compartida. |
+## Tipo de cambio del momento apropiado
 
-**Recomendación técnica pendiente de aprobación:** conservar **intactos** eventos y ELO `legacy-js-v1`, introducir `elo-v2` con reglas explícitas solo para publicaciones futuras, y guardar `algorithm_version`, divisa, buy-in original y entrada(s) real(es) por jugador. En la tabla de dinero, **solo agrupar por moneda** o por conversiones verificadas; nunca sumar CLP + USD + EUR en columnas genéricas. La opción A es una base deportiva más transparente cuando la plataforma busca comparabilidad internacional, pero la decisión es del propietario.
+El acuerdo de equivalencia por moneda requiere otra protección: **se usará la última cotización oficial que estuviera publicada y disponible al comenzar el torneo, NO la cotización del día en que el administrador carga resultados**. Un cambio publicado después del comienzo, aunque se carguen resultados semanas después, no debe afectar al ELO.
 
-## Edición o borrado históricos
+La fecha efectiva de la cotización nunca será futura respecto de la fecha local del torneo. En fines de semana/feriados se utiliza la última observación oficial disponible antes del inicio y se bloquean cotizaciones demasiado antiguas (umbral QA inicial: 7 días, sujeto a validación de feriados largos). Falta implementar el adaptador que consulta los proveedores desde el servidor y comprueba el timestamp de publicación. Si no hay tasa oficial verificable, **se bloquea publicación; nunca se inventa un valor ni se pide al navegador que lo envíe**.
 
-No hay replay aprobado. Las funciones heredadas `reset_tournament_impact` y `delete_tournament_god_mode` reconstruyen desde 1200 y podrían alterar jugadores compartidos de ligas posteriores. Hasta implementar corrección versionada y secuencial, el candidato `guard-published-history-against-legacy-2026-11-10.CANDIDATE.sql` impide ediciones/borrados de resultados ya registrados. Debe preservarse la posibilidad de borrar torneos **programados sin resultados**.
+## Evidencia permanente de cada torneo
 
-Diseño futuro sugerido, sujeto a decisión separada: registrar una propuesta de corrección, calcular el impacto sobre todos los torneos posteriores del jugador, simular valores antes/después, solicitar aprobación explícita, y confirmar un evento de compensación versionado/atómico conservando un rastro auditable, no editar la evidencia original.
+Registrar con protección de escritura: ID torneo, algorithm_version, fecha-hora real + zona horaria, buy-in original y moneda, equivalente USD preciso, tasa y dirección, origen oficial, fecha efectiva, momento de publicación, ID de observación, fecha de captura y fingerprint verificable. El cálculo de K debe operar con precisión NUMERIC y redondear solo en el punto definido por la política ELO, no redondear a centavos antes del logaritmo.
 
-## Decisiones explícitas necesarias para una futura autorización
+**El equivalente USD alimenta solamente la ponderación del ELO.** Premios, reentradas, bounties y balances financieros conservan su moneda original y sus registros por moneda. Los acumulados legacy que mezclaban distintas divisas no deben presentarse como sumas en USD.
 
-1. ¿La tabla ELO común ponderará buy-ins o no? Si los pondera, ¿con qué tipo de cambio/origen/regla histórica?
-2. ¿Desde qué fecha o evento comienza v2? El pasado v1 no se reescribe.
-3. ¿Qué monedas estarán habilitadas para primera publicación y cuál es el tratamiento de las 34 ligas CLP/EUR pendientes y torneos CLP antiguos?
-4. ¿Cuál es la política de edición histórica, quién la aprueba y cómo se registran correcciones sin destruir evidencias?
+## V1 → V2: sin borrar ni reiniciar ELO
 
-Hasta que haya decisión, la cobertura USD probada en QA **no es GO productivo**.
+- **v1 histórica:** los eventos ya publicados conservan su puntuación y nunca se recalculan usando FX. El ELO acumulado previo continúa siendo el punto de partida del jugador.
+- **v2 futura:** se aplica solo a torneos que comiencen desde una **fecha/evento de activación aún no aprobada**. A partir de esa competencia se usa buy-in convertido a USD. No se reinicia a 1200 ni se exige cuentas nuevas.
+- **Competiciones antiguas sin resultados y correcciones:** seguirán bloqueadas hasta una política de replay cronológico auditado; no elegir algoritmo en función del día de carga.
+- Nuevas monedas requerirán sus tasas oficiales y contratos de par antes de admitirlas.
 
-[PR #95 — Release A](https://github.com/SharkaniaElite/SharkaniaV2/pull/95) · [PR #96 — ELO protegido](https://github.com/SharkaniaElite/SharkaniaV2/pull/96).
+## Preparación técnica realizada (NO producción)
+
+- Módulo puro sin conexión a base de datos ni web: src/lib/elo/elo-v2-usd-policy.ts.
+- Prueba QA determinista: tests/elo-v2-usd-normalization-qa.mjs: equivalencia de monedas, USD compatible con v1, fin de semana, cotizaciones posteriores/inválidas, fuente equivocada y preservación de v1.
+- No hay proveedor de tipo de cambio conectado, no hay tablas de snapshots FX creadas y las RPC actuales de PR #95/#96 **siguen USD-only**. No sugerir que CLP/EUR funcionan ya.
+- Antes de producción: implementar adaptador servidor y tablas de cotización; extender ambas RPC SQL de modo atómico, probar con JWT/REST y PG17; luego verificar en copia real restaurada con costos expresamente autorizados.
+- Sigue pendiente decidir tratamiento de 34 ligas CLP/EUR no publicadas y torneos independientes CLP pasados, así como la fecha exacta de vigencia de v2. El historial antiguo no se reescribe.
+
+**Estado Release A: DRAFT / NO GO.** Esta decisión es de diseño deportivo, no aprobación del cambio productivo.
