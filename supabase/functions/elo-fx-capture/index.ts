@@ -44,7 +44,7 @@ async function readProvider(url:string,format:"json"|"csv"):Promise<unknown> {
 }
 
 export default {
- fetch:withSupabase({auth:"secret"},async(req,ctx)=>{
+ fetch:withSupabase({auth:"secret:elo-fx-scheduler"},async(req,ctx)=>{
   if(req.method!=="POST")
    return Response.json({error:"Method not allowed"},{status:405});
   const token=Deno.env.get("BCCH_BDE_API_TOKEN");
