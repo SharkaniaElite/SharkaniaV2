@@ -4,7 +4,7 @@
  * Never sends BCCH_BDE_API_TOKEN to the browser, GitHub or logs.
  */
 import { createClient } from "npm:@supabase/supabase-js@2.99.1";
-import { parseBcchObservedUsd } from "../elo-fx-capture/official-parsers.mjs";
+import { parseBcchObservedUsd } from "./official-parsers.mjs";
 
 const trustedOrigins = new Set([
   "https://sharkania.com",
