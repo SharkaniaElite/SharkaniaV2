@@ -91,6 +91,19 @@ export default {
     }
     count[q.currency as "CLP"|"EUR"]++;
   }
+  // The source-health receipt is created ONLY after an entire feed response
+  // has been retrieved, parsed and every returned observation ingested.
+  // Old rates without a fresh successful poll cannot be used for new Elo.
+  for(const currency of ["CLP","EUR"] as const){
+    const {data,error}=await ctx.supabaseAdmin.rpc(
+      "sharkania_fx_record_feed_check_v2",{p_currency:currency}
+    );
+    if(error||data?.status!=="checked"){
+      return Response.json({
+        error:"Official FX health receipt not confirmed; publication will remain blocked"
+      },{status:409});
+    }
+  }
   return Response.json({
     status:"captured",date:iso(now),observations:count,
     // Intentionally no provider API token or financial user information.
