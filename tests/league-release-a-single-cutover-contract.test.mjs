@@ -43,7 +43,7 @@ test("preflights reject unexpected live catalog and mismatched player identity",
  const a=sql.indexOf("DO $source_preflight$");
  const b=sql.indexOf("DO $release_a_extra_preflight$");
  const c=sql.indexOf("DO $league_cutover_preflight$");
- const first=sql.indexOf("CREATE UNIQUE INDEX league_clubs_one_primary_per_league_guarded");
+ const first=sql.indexOf("CREATE UNIQUE INDEX IF NOT EXISTS league_clubs_one_primary_per_league_guarded");
  assert.ok(a>0 && b>a && c>b && first>c);
  assert.match(sql,/Legacy RPC catalog drift/);
  assert.match(sql,/P0 unique primary index has changed or is missing/);
