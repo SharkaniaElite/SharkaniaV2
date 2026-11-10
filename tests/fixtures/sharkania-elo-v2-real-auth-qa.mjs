@@ -24,6 +24,7 @@ const tUSD="00000000-0000-0000-0000-000000000152";
 const tLeague="00000000-0000-0000-0000-000000000153";
 const tNoFX="00000000-0000-0000-0000-000000000154";
 const tV1="00000000-0000-0000-0000-000000000155";
+const tNoPoll="00000000-0000-0000-0000-000000000156";
 const nonce=randomBytes(7).toString("hex");
 const admin=createClient(base,service,{auth:{persistSession:false,autoRefreshToken:false}});
 const tokens={};const ids={};
@@ -92,6 +93,8 @@ expect(await pub(tCLP,"ind","owner",[{...clp[0],currency:"USD"},clp[1]]),
  [422],"browser-forged currency rejected");
 expect(await pub(tNoFX,"ind","owner",payload("NoFX",9)),[409],
  "official rate not captured before historical tournament, fail closed");
+expect(await pub(tNoPoll,"ind","owner",payload("NoPoll",9)),[409],
+ "valid historical CLP quote without a successful recent source poll fails closed");
 const clpResponse=await pub(tCLP,"ind","owner",clp);
 expect(clpResponse,[200],"CLP first publication through genuine local JWT");
 assert.equal(clpResponse.data.algorithm_version,"elo-v2-usd-normalized");
@@ -109,6 +112,10 @@ expect(leagueResponse,[200],"league CLP first publication through genuine local 
 assert.equal(leagueResponse.data.algorithm_version,"elo-v2-usd-normalized");
 assert.equal(leagueResponse.data.currency,"CLP");
 expect(await pub(tCLP,"ind","owner",clp),[409],"repeated publication blocked");
+
+expect(await request("rpc/sharkania_fx_record_feed_check_v2","player",{
+ p_currency:"CLP"
+}),[401,403,404],"ordinary user cannot forge fresh successful provider check");
 
 expect(await request("rpc/sharkania_fx_ingest_official_v2","player",{
  p_currency:"CLP",p_effective_date:"2026-11-09",p_quote:1,
@@ -130,5 +137,6 @@ assert.ok(Math.abs(Number(left)-Number(right))<=0.01,
 assert.equal(Number(sql("SELECT total_prize_won FROM public.players WHERE nickname='CLPFirst"+nonce+"'")),0);
 assert.equal(sql("SELECT currency FROM sharkania_release.independent_currency_posting WHERE tournament_id='"+tCLP+"' LIMIT 1"),"CLP");
 assert.equal(sql("SELECT count(*) FROM public.tournament_results WHERE tournament_id='"+tNoFX+"'"),"0");
+assert.equal(sql("SELECT count(*) FROM public.tournament_results WHERE tournament_id='"+tNoPoll+"'"),"0");
 assert.equal(sql("SELECT count(*) FROM public.tournament_results WHERE tournament_id='"+tV1+"'"),"0");
 console.log("PASS FINAL: genuine GoTrue/PostgREST HTTP v2 league and independent USD/CLP/EUR, source immutability, ACL, cutover and equal Elo");
