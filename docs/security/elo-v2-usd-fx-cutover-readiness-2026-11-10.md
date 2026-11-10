@@ -15,7 +15,9 @@ El propietario aprobó mantener ELO v1 histórico sin reescrituras y calcular nu
 
 Los servicios oficiales proporcionan fecha de observación; consultar una observación histórica hoy NO prueba que ya estuviera publicada al empezar un torneo antiguo. El prototipo captura first_seen_at mediante PostgreSQL en el momento real de primera ingestión. Solo permite seleccionar tasas capturadas antes de comenzar el evento, y con fecha efectiva dentro de los siete días anteriores (ventana provisional de QA). Si falta, se rechaza el torneo; nunca se inventa una tasa ni se acepta del frontend.
 
-**Limitación relevante para GO:** tener una tasa registrada dentro de siete días no demuestra que sea la *última observación oficial disponible*: el feed podría haberse caído y haberse omitido una cotización más reciente. Antes de activar se requiere programar captura, medir frescura por calendario oficial/feriados, monitorear fallos y demostrar la selección de la observación efectivamente más reciente.
+**Mitigación QA añadida:** ya no basta con tener una cotización de menos de siete días. Se requiere un registro inmutable `fx_feed_check_v2` de **consulta exitosa al proveedor durante las dos horas anteriores al inicio**, cuya última observación aceptada coincida con la tasa seleccionada. La Edge Function registra la consulta solo después de validar la respuesta y almacenar todos los valores oficiales de ese proveedor. Una cotización antigua sin una consulta reciente impide publicar.
+
+**Límite restante antes de GO:** la regla de dos horas **reduce el riesgo**, pero no certifica que no hubo otra publicación durante ese intervalo. La propuesta operativa es consultar al menos una vez por hora y alertar por fallo/ausencia de registros, pendiente de verificar cuotas BCCh y calendario TARGET/BCE, disponibilidades de días no hábiles, costos y compatibilidad real. No se creó ningún cron ni alarma. Si no podemos demostrar frescura suficiente en una fecha, la publicación se bloquea.
 
 ## Fuentes y acceso
 
@@ -25,7 +27,7 @@ Los servicios oficiales proporcionan fecha de observación; consultar una observ
 
 ## Entregables de QA
 
-- docs/security/elo-v2-usd-fx-observations-2026-11-10.CANDIDATE.sql: recibos privados de tasa y equivalente por torneo, registro inmutable, rol de servicio y corte de activación apagado.
+- docs/security/elo-v2-usd-fx-observations-2026-11-10.CANDIDATE.sql: recibos privados de tasa y equivalente por torneo, registro inmutable, rol de servicio y corte de activación apagado. Registra también `fx_feed_check_v2` con hora `checked_at`, última observación y controles de dos horas; un usuario autenticado no puede falsificar estas comprobaciones.
 - docs/security/elo-v2-usd-results-writers-2026-11-10.CANDIDATE.sql: dos escritores iniciales atómicos, liga e independiente, para CLP/EUR/USD; no autorizan carga histórica ni resultado duplicado.
 - supabase/functions/elo-fx-capture/official-parsers.mjs: validación estructural de BCCh y ECB.
 - src/lib/api/guarded-v2-results.ts y los dos componentes admin: ruta detrás de tres flags coordinados apagados por defecto; no tiene fallback a REST cliente.
