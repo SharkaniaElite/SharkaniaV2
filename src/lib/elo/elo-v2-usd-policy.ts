@@ -42,7 +42,9 @@ const MAX_QUOTE_AGE_DAYS = 7; // Closed-market weekends; fail closed if stale.
 
 function civilDayNumber(day: string): number {
   if (!DAY.test(day)) throw new Error("Invalid YYYY-MM-DD date.");
-  const [year, month, dayOfMonth] = day.split("-").map(Number);
+  const year = Number(day.slice(0, 4));
+  const month = Number(day.slice(5, 7));
+  const dayOfMonth = Number(day.slice(8, 10));
   const utc = Date.UTC(year, month - 1, dayOfMonth);
   if (new Date(utc).toISOString().slice(0, 10) !== day) {
     throw new Error("Nonexistent calendar date.");
