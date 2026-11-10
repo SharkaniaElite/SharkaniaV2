@@ -14,6 +14,7 @@ import type { TournamentWithDetails } from "../../types";
 import { parseCSVSmart } from "../../lib/csv-parser";
 import { forceRecalculateStandings } from "../../lib/api/leagues";
 import { GUARDED_LEAGUE_RPC_ENABLED } from "../../lib/api/guarded-leagues";
+import { publishInitialLeagueResultsGuarded } from "../../lib/api/guarded-league-results";
 
 interface EditableRow {
   id: string;
@@ -238,16 +239,6 @@ export function ResultsEditor({
 
   // 🔥 EL CEREBRO DE LA OPERACIÓN (BORRÓN Y CUENTA NUEVA)
   const handleSave = async () => {
-    // Release A has no guarded standings recalculation RPC. Block this flow
-    // BEFORE reset/delete, player creation, ELO or league points can change.
-    if (GUARDED_LEAGUE_RPC_ENABLED && tournament.league_id) {
-      setMessage({
-        text: "La edición de resultados de torneos de liga está pausada hasta habilitar el recálculo seguro de clasificaciones. No se guardaron cambios.",
-        type: "error",
-      });
-      return;
-    }
-
     const errors: string[] = [];
 
     // Validaciones básicas
@@ -268,6 +259,52 @@ export function ResultsEditor({
     if (errors.length > 0) {
       setMessage({ text: errors.join("\n"), type: "error" });
       return;
+    }
+
+    if (GUARDED_LEAGUE_RPC_ENABLED && tournament.league_id) {
+      // The editor cannot replay historical Elo. If this tournament has
+      // never been published, its first results can use the SAME atomic
+      // server writer as CSV; no client creation, DELETE or reset occurs.
+      if (tournament.results_uploaded) {
+        setMessage({
+          text: "La corrección de resultados publicados de liga está bloqueada hasta disponer de un replay ELO comprobado. No se guardaron cambios.",
+          type: "error",
+        });
+        return;
+      }
+      if (tournament.currency !== "USD") {
+        setMessage({
+          text: "La publicación de resultados CLP/EUR requiere una política ELO autorizada. No se guardaron cambios.",
+          type: "error",
+        });
+        return;
+      }
+      setSaving(true);
+      try {
+        const receipt = await publishInitialLeagueResultsGuarded(tournament.id, rows.map(row => ({
+          position: row.position,
+          nickname: row.nickname,
+          prizeWon: row.prizeWon,
+          leaguePoints: row.leaguePoints ?? 0,
+          ccpClub: row.ccpClub,
+          buyInsCount: row.buyInsCount,
+        })));
+        setMessage({
+          text: "Primera publicación confirmada en una transacción. " +
+            receipt.newPlayers + " jugadores creados.",
+          type: "success",
+        });
+        setHasChanges(false);
+        onComplete();
+      } catch (err) {
+        setMessage({
+          text: err instanceof Error ? err.message : "No fue posible publicar el resultado de liga.",
+          type: "error",
+        });
+      } finally {
+        setSaving(false);
+      }
+      return; // Never enter legacy delete/reinsert/Elo for guarded leagues.
     }
 
     setSaving(true);
