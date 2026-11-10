@@ -72,12 +72,20 @@ export function parseEcbEurUsdCsv(csv) {
   const time=columns.indexOf("TIME_PERIOD");
   const value=columns.indexOf("OBS_VALUE");
   const key=columns.indexOf("KEY");
-  if(time<0||value<0)throw Error("ECB CSV missing expected columns");
+  const dimensions=["FREQ","CURRENCY","CURRENCY_DENOM","EXR_TYPE","EXR_SUFFIX"];
+  const indices=dimensions.map(name=>columns.indexOf(name));
+  if(time<0||value<0||(key<0&&indices.some(i=>i<0)))
+    throw Error("ECB CSV missing pair identification columns");
   const out=[];
   for(const row of rows.slice(1)){
     if(row.length!==columns.length)throw Error("Malformed ECB CSV row");
-    if(key>=0&&row[key]!=="EXR.D.USD.EUR.SP00.A"&&row[key]!=="D.USD.EUR.SP00.A"){
-      throw Error("ECB returned different currency pair or frequency");
+    if(key>=0){
+      if(row[key]!=="EXR.D.USD.EUR.SP00.A"&&row[key]!=="D.USD.EUR.SP00.A")
+        throw Error("ECB returned different currency pair or frequency");
+    }else{
+      const expected=["D","USD","EUR","SP00","A"];
+      if(indices.some((i,k)=>row[i]!==expected[k]))
+        throw Error("ECB returned different currency pair or frequency");
     }
     if(!row[time]||!row[value])continue;
     const date=dateOnly(row[time]);
