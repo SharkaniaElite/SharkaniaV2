@@ -9,6 +9,7 @@ import { EmptyState } from "../components/ui/empty-state";
 import { EntityForm, deleteEntity } from "../components/admin/entity-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
+import { fetchBcchDollarQuote, type BcchDollarQuote } from "../lib/api/bcch-dollar-quote";
 import { cn } from "../lib/cn";
 import { formatNumber } from "../lib/format";
 import { FlagIcon } from "../components/ui/flag-icon";
@@ -503,9 +504,14 @@ export function SuperAdminPage() {
   const [latinClubStats, setLatinClubStats] = useState({
     usdToClp: 916,
     bbjClp: 8594561,
-    lastUpdate: "26 de agosto de 2026 a las 09:00"
+    lastUpdate: "26 de agosto de 2026 a las 09:00",
+    usdRateSource: "manual",
+    usdRateDate: "",
   });
   const [savingLatinStats, setSavingLatinStats] = useState(false);
+  const [checkingBcchRate, setCheckingBcchRate] = useState(false);
+  const [bcchPreview, setBcchPreview] = useState<BcchDollarQuote | null>(null);
+  const [bcchPreviewError, setBcchPreviewError] = useState("");
 
   useEffect(() => {
     if (tab === "overview") {
@@ -516,7 +522,37 @@ export function SuperAdminPage() {
     }
   }, [tab]);
 
+  // A verified official quote never saves automatically or changes ELO.
+  // The administrator must choose it and then explicitly save the jackpot.
+  const handlePreviewBcchRate = async () => {
+    setCheckingBcchRate(true);
+    setBcchPreview(null);
+    setBcchPreviewError("");
+    try {
+      setBcchPreview(await fetchBcchDollarQuote());
+    } catch (error) {
+      setBcchPreviewError(error instanceof Error ? error.message : "No se pudo consultar la tasa oficial.");
+    } finally {
+      setCheckingBcchRate(false);
+    }
+  };
+
+  const handleApplyBcchRate = () => {
+    if (!bcchPreview) return;
+    setLatinClubStats(prev => ({
+      ...prev,
+      usdToClp: bcchPreview.rateClpPerUsd,
+      usdRateSource: "BCCH",
+      usdRateDate: bcchPreview.effectiveDate,
+    }));
+  };
+
   const handleSaveLatinStats = async () => {
+    if (!Number.isFinite(latinClubStats.usdToClp) || latinClubStats.usdToClp <= 0 ||
+        !Number.isFinite(latinClubStats.bbjClp) || latinClubStats.bbjClp < 0) {
+      alert("❌ El monto del jackpot y el valor del dólar deben ser válidos.");
+      return;
+    }
     setSavingLatinStats(true);
     try {
       const { error } = await supabase.from("site_settings").upsert({
@@ -1229,7 +1265,31 @@ export function SuperAdminPage() {
                   </div>
                   <div>
                     <label className="text-[10px] uppercase text-sk-text-3 font-mono mb-1 block">Dólar Actual (CLP) - Para calcular USD</label>
-                    <input type="number" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-sk-accent focus:outline-none" value={latinClubStats.usdToClp} onChange={e => setLatinClubStats({...latinClubStats, usdToClp: Number(e.target.value)})} />
+                    <input type="number" step="0.01" min="0.01" className="w-full bg-sk-bg-0 border border-sk-border-2 rounded p-2 text-sk-sm text-sk-text-1 focus:border-sk-accent focus:outline-none" value={latinClubStats.usdToClp} onChange={e => setLatinClubStats(prev => ({...prev, usdToClp: Number(e.target.value), usdRateSource: "manual", usdRateDate: ""}))} />
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <Button type="button" variant="secondary" size="sm" onClick={handlePreviewBcchRate} disabled={checkingBcchRate}>
+                        <RefreshCw size={13} className={checkingBcchRate ? "mr-1 animate-spin" : "mr-1"} />
+                        {checkingBcchRate ? "Consultando..." : "Consultar dólar observado"}
+                      </Button>
+                      {bcchPreview && (
+                        <Button type="button" variant="secondary" size="sm" onClick={handleApplyBcchRate}>
+                          Usar cotización oficial
+                        </Button>
+                      )}
+                    </div>
+                    {bcchPreview && (
+                      <p role="status" className="text-[11px] text-emerald-400 mt-2">
+                        Banco Central de Chile: ${bcchPreview.rateClpPerUsd.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} CLP/USD
+                        {" · "}Fecha de observación: {bcchPreview.effectiveDate}.
+                        {" "}Pulsa «Usar cotización oficial» y luego «Actualizar Jackpot en Vivo» para publicarla.
+                      </p>
+                    )}
+                    {bcchPreviewError && <p role="alert" className="text-[11px] text-sk-red mt-2">{bcchPreviewError}</p>}
+                    <p className="text-[10px] text-sk-text-4 mt-1">
+                      Fuente utilizada: {latinClubStats.usdRateSource === "BCCH"
+                        ? `Banco Central de Chile (${latinClubStats.usdRateDate})`
+                        : "Manual"}. La fecha de actualización del jackpot se administra por separado.
+                    </p>
                     <span className="text-[10px] text-sk-text-4 mt-1 block">
                       En la web pública saldrá como: <strong className="text-emerald-400 font-mono">${Math.round(latinClubStats.bbjClp / (latinClubStats.usdToClp || 1)).toLocaleString("en-US")} USD</strong>
                     </span>
