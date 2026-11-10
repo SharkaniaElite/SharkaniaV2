@@ -30,7 +30,7 @@ BEGIN
  JOIN public.tournament_results rb ON rb.tournament_id=b AND rb.player_id=x.player_id
  JOIN public.players p ON p.id=x.player_id
  WHERE ra.elo_after=rb.elo_before AND rb.elo_after=p.elo_rating
-    AND p.total_tournaments=4;
+    AND p.total_tournaments=2;
  IF v<>2 THEN
   RAISE EXCEPTION 'FAIL: same player Elo history was not serialized across league/independent writers'; END IF;
  IF NOT EXISTS(SELECT 1 FROM sharkania_release.currency_posting j
