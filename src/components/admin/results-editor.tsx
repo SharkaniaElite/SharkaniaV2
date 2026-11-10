@@ -16,6 +16,7 @@ import { forceRecalculateStandings } from "../../lib/api/leagues";
 import { GUARDED_LEAGUE_RPC_ENABLED } from "../../lib/api/guarded-leagues";
 import { publishInitialLeagueResultsGuarded } from "../../lib/api/guarded-league-results";
 import { GUARDED_INDEPENDENT_RESULTS_RPC_ENABLED, publishInitialIndependentResultsGuarded } from "../../lib/api/guarded-independent-results";
+import { GUARDED_ELO_V2_RPC_ENABLED, publishInitialResultsV2 } from "../../lib/api/guarded-v2-results";
 
 interface EditableRow {
   id: string;
@@ -260,6 +261,47 @@ export function ResultsEditor({
     if (errors.length > 0) {
       setMessage({ text: errors.join("\n"), type: "error" });
       return;
+    }
+
+    if (GUARDED_ELO_V2_RPC_ENABLED) {
+      // Release A + independent + v2 have an approved coordinated cutover.
+      // All currencies use an OFFICIAL snapshot from the SERVER, never CSV.
+      if (tournament.results_uploaded) {
+        setMessage({
+          text: "Este torneo ya fue publicado. Las correcciones históricas requieren un replay auditado.",
+          type: "error",
+        });
+        return;
+      }
+      setSaving(true);
+      try {
+        const receipt = await publishInitialResultsV2(
+          tournament.id,
+          !!tournament.league_id,
+          rows.map((row) => ({
+            position: row.position,
+            nickname: row.nickname,
+            prizeWon: row.prizeWon,
+            leaguePoints: row.leaguePoints,
+            ccpClub: row.ccpClub,
+            buyInsCount: row.buyInsCount,
+          })),
+        );
+        setMessage({
+          text: `ELO v2 publicado atómicamente. Buy-in equivalente: US$ ${receipt.buyInUsd.toFixed(2)}. Moneda original: ${receipt.currency}.`,
+          type: "success",
+        });
+        setHasChanges(false);
+        onComplete();
+      } catch (err) {
+        setMessage({
+          text: err instanceof Error ? err.message : "No se confirmó la publicación ELO v2.",
+          type: "error",
+        });
+      } finally {
+        setSaving(false);
+      }
+      return; // NO fall back to USD-only RPC or browser Elo after failure.
     }
 
     if (GUARDED_LEAGUE_RPC_ENABLED && tournament.league_id) {
