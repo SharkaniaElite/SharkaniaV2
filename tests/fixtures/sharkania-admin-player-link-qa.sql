@@ -1,6 +1,11 @@
 \set ON_ERROR_STOP on
 -- Depends on the synthetic independent first-upload fixture, which generated
 -- player NewIndependentQA. All IDs and profiles below are fake.
+-- Production exposes public player lookup; the old synthetic QA baseline did
+-- not include this SELECT grant/policy. Restore it only in the fake test.
+GRANT SELECT ON public.players TO authenticated;
+CREATE POLICY qa_admin_claims_players_read ON public.players FOR SELECT
+ TO authenticated USING(true);
 INSERT INTO public.nickname_claims(user_id,player_id,screenshot_url,status)
 SELECT '00000000-0000-0000-0000-000000000005',p.id,'qa-verified-proof','pending'
 FROM public.players p WHERE p.nickname='NewIndependentQA';
