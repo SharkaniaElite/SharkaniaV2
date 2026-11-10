@@ -23,3 +23,5 @@ jobs:
           node-version: "22"
       - name: Pure provider parser tests, with illustrative data only
         run: node --test tests/elo-fx-official-parsers-qa.mjs
+      - name: Verify actual official ECB USD/EUR CSV (one request, no secrets)
+        run: node tests/elo-v2-ecb-live-qa.mjs
