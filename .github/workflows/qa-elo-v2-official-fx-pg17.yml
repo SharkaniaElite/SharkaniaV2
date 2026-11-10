@@ -70,7 +70,9 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f docs/security/guard-published-history-against-legacy-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-legacy-historical-mutation-fence-qa.sql
           psql -X -v ON_ERROR_STOP=1 -f docs/security/elo-v2-usd-fx-observations-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/elo-v2-usd-results-writers-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-elo-v2-official-fx-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-elo-v2-first-publication-qa.sql
           echo "PASS: verified official FX snapshot and server-source checks in PG17"
       - name: Test exact BCCh/ECB response parsing with no secrets
         run: node --test tests/elo-fx-official-parsers-qa.mjs
