@@ -91,6 +91,8 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/league-release-a-single-transaction-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/independent-results-atomic-v1-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/independent-elo-rest-lockdown-2026-11-10.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f tests/fixtures/sharkania-admin-claims-schema-qa.sql
+          psql -X -v ON_ERROR_STOP=1 -d postgres -f docs/security/admin-player-link-guarded-2026-11-10.CANDIDATE.sql
           [[ "$(psql -X -At -v ON_ERROR_STOP=1 -d postgres -c "SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname IN ('publish_league_nickname_results_guarded_qa','publish_league_results_guarded_qa');")" == "0" ]] || { echo "STOP: QA forwarding alias unexpectedly installed"; exit 1; }
           echo "PASS: one complete actual SQL candidate installed on ephemeral PG17"
       - name: Load isolated HTTP authorization fixtures, no remote app credentials
