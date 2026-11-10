@@ -48,8 +48,8 @@ test("manual quote is retained until administrator explicitly applies and saves"
 test("does not silently reuse manually edited jackpot CLP/USD as an ELO v2 official observation",()=>{
  assert.doesNotMatch(client,/reserve_usd_elo_v2|fx_observation_v2|sharkania_fx_ingest_official_v2/);
  assert.doesNotMatch(edge,/reserve_usd_elo_v2|fx_observation_v2|sharkania_fx_ingest_official_v2/);
- assert.match(config,/\[functions\.bcch-dollar-preview\]\s+enabled = false/);
- assert.match(config,/\[functions\.elo-fx-capture\]\s+enabled = false/);
+ assert.match(config,/\[functions\.bcch-dollar-preview\]\s+enabled = true/);
+ assert.doesNotMatch(config,/\[functions\.elo-fx-capture\]/);
 });
 
 test("preview checks the latest official dated observation, never API rate from client",()=>{
