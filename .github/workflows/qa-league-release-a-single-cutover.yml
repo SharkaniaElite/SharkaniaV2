@@ -63,6 +63,9 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f docs/security/league-release-a-single-transaction-2026-11-10.CANDIDATE.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-single-cutover-assert-qa.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-direct-rest-fence-qa.sql
+          # This expected negative test is NOT a security PASS. It proves a
+          # remaining Release A NO GO using fake JWT and synthetic players.
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-release-a-untrusted-elo-write-negative-qa.sql
       - name: Fail closed when existing P0 unique primary organizer index is absent
         shell: bash
         env:
