@@ -25,6 +25,13 @@
 - La función Edge `elo-fx-capture` **no está desplegada**. El bloque de configuración mantiene `enabled = false`.
 - Estas condiciones son una fotografía temporal: repetir preflight con solo SELECT antes de cualquier GO.
 
+## Bloqueo adicional: historial de migraciones desalineado (13-11-2026)
+- Supabase producción registra **54 versiones** en `supabase_migrations.schema_migrations`, mientras que esta rama contiene **27 archivos SQL**, incluida la migración propuesta.
+- **32 versiones** registradas en producción no tienen un archivo con idéntico prefijo de versión en la carpeta del repositorio; existen también **4 archivos preexistentes** cuya versión de nombre no coincide con las versiones productivas (más la nueva migración todavía no aplicada).
+- Este contraste es **solo de versiones/nombres**, no prueba que los SQL sean distintos ni que falten cambios de esquema. Podrían existir archivos trasladados o renombrados y migraciones ejecutadas fuera del repositorio.
+- **No ejecutar `supabase db push` ni `supabase migration repair`** antes de obtener un inventario completo y reconciliar el historial bajo un procedimiento revisado. Especialmente, no inventar archivos históricos ni marcar versiones como aplicadas sin verificar que el esquema contiene su efecto.
+- Preparar una **reconciliación de metadatos solo lectura** y una estrategia de entrega que no aplique migraciones antiguas por error, con aprobación separada antes de cualquier cambio en el historial productivo.
+
 ## Riesgos y puertas GO
 1. **Migración SQL + ACL/RLS:** la migración realiza `CREATE OR REPLACE FUNCTION`, `REVOKE`, `GRANT`, `DROP POLICY` y nuevos triggers. No es solo crear tablas: puede interrumpir escritorios/rutas antiguas. Requiere ventana de mantenimiento, respaldo íntegro verificable, plan de reversión, versión final comprobada y autorización específica. Su transacción interna revierte ante fallos **durante** la aplicación, pero no constituye un down-migration seguro tras COMMIT.
 2. **Captura FX:** diseñar y autorizar por separado despliegue `elo-fx-capture`, clave **dedicada** `elo-fx-scheduler`, secretos Vault nombrados `sharkania_elo_fx_url` y `sharkania_elo_fx_scheduler_key`, comprobación de los feeds BCCh y BCE reales y alertas de frescura. No exponer tokens en el chat, SQL, GitHub ni logs. Proteger la cola de `pg_net`.
