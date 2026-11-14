@@ -218,7 +218,7 @@ export function DecisionTreePage() {
   const facingLabel = position === "oop" ? "Hice check y el rival apostó" : "El rival apostó antes de mí";
   const unbetLabel = position === "oop" ? "Soy primero en actuar" : "El rival pasó";
   const streetIndex = STREET_ITEMS.findIndex((item) => item.key === street);
-  const nextStreet = STREET_ITEMS[Math.min(streetIndex + 1, 2)].key;
+  const nextStreet = STREET_ITEMS[Math.min(streetIndex + 1, 2)]?.key ?? "river";
 
   return (
     <PageShell variant="arena" showMarketing={false}>
@@ -238,7 +238,7 @@ export function DecisionTreePage() {
 
           <header className="relative isolate overflow-hidden rounded-3xl border border-cyan-400/20 bg-[#0b171c] px-5 py-8 sm:px-9 sm:py-11">
             <div className="pointer-events-none absolute -right-12 top-0 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" aria-hidden="true" />
-            <div className="relative z-10 max-w-3xl">
+            <div className="relative z-10 max-w-3xl sm:pr-40 lg:max-w-[75%] lg:pr-0">
               <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-bold tracking-wide text-cyan-200">
                 <GitBranch size={14} /> SHARKANIA · ENTRENAMIENTO POSTFLOP
               </p>
