@@ -48,6 +48,7 @@ const BlogPage = lazy(() => import("./pages/blog"));
 const BlogPostPage = lazy(() => import("./pages/blog-post"));
 const TournamentDetailPage = lazy(() => import("./pages/tournament-detail").then(m => ({ default: m.TournamentDetailPage })));
 const ToolsPage = lazy(() => import("./pages/tools").then(m => ({ default: m.ToolsPage })));
+const DecisionTreePage = lazy(() => import("./pages/decision-tree").then(m => ({ default: m.DecisionTreePage })));
 const PokerQuizPage = lazy(() => import("./pages/poker-quiz").then(m => ({ default: m.PokerQuizPage })));
 const ICMCalculatorPage = lazy(() => import("./pages/icm-calculator").then(m => ({ default: m.ICMCalculatorPage })));
 const EloSimulatorPage = lazy(() => import("./pages/elo-simulator").then(m => ({ default: m.EloSimulatorPage })));
@@ -106,6 +107,7 @@ const READ_ONLY_ARENA_PATHS = [
  /^\/glosario(?:\/[^/]+)?$/, /^\/sistema-elo$/,
  /^\/academia$/, /^\/terms$/, /^\/privacy$/,
  /^\/promociones$/, /^\/shop$/, /^\/tools$/,
+ /^\/tools\/arbol-de-decisiones$/,
  /^\/promociones\/(coinpoker-bono-bienvenida-150-2026|wpt-global-paquete-bienvenida-2026|coinpoker-pgt-kickoff-noviembre-2026)$/
 ];
 function PreviewReadOnlyGate({children}: {children:React.ReactNode}) {
@@ -168,6 +170,7 @@ export function App() {
               <Route path="/sistema-elo" element={<EloSystemPage />} />
               <Route path="/tutorial-csv" element={<TutorialCsvPage />} />
               <Route path="/tools/perfilador-salas" element={<RoomProfilerPage />} />
+              <Route path="/tools/arbol-de-decisiones" element={<DecisionTreePage />} />
               <Route path="/academia" element={<AcademyPage />} />
               <Route path="/academia/:moduleSlug" element={<AcademyModulePage />} />
               <Route path="/academia/:moduleSlug/:lessonSlug" element={<AcademyLessonPage />} />
