@@ -110,3 +110,31 @@ Una eliminación automática preliminar de comentarios de línea y espacios deja
 ### Estado de autorización
 
 Esta rama es preparación documental e histórica exclusivamente en GitHub. Ningún SQL de la rama ha sido ejecutado; ningún PR fusionado; sin cambios en Supabase producción, Cloudflare, Edge, cron o flags. No abrir PR de merge ni ejecutar replay de migraciones antes de resolver los bloqueos indicados.
+
+## Análisis de las siete discrepancias restantes — 14-11-2026
+
+Revisión comparativa de SQL histórico de Supabase frente a archivos de esta rama, incluyendo consulta **solo lectura** al catálogo de funciones y políticas productivas. **No constituye un ensayo de migraciones ni aprobación para merge**.
+
+| Versión | Diferencia confirmada | Evaluación y acción |
+|---|---|---|
+| `20261031143409` | GitHub agrega cuatro `DROP POLICY IF EXISTS` inmediatamente antes de volver a crear las mismas cuatro políticas de `club_admins`; el SQL guardado en Supabase usa `BEGIN/COMMIT` que no están en el archivo. Las cuatro políticas finales están presentes hoy en el catálogo productivo. | Idempotencia añadida probable. Revisar límites transaccionales en test aislado; no sustituir. |
+| `20261031145349` | Supabase modifica el texto de `claim_auto_mission(uuid)` con un bloque `DO`, mientras GitHub contiene la definición completa `CREATE OR REPLACE FUNCTION`. | La definición completa de GitHub coincide token por token con la definición **actual** de PostgreSQL, salvo punto y coma final. Conservar hasta probar la reconstrucción. |
+| `20261031145511` | Cambia el orden de condiciones `AND`, el delimitador de la función y el tratamiento explícito/implícito de `SECURITY INVOKER`. | Guardas similares, no idénticas textualmente. `guard_player_mission_client_updates()` es `SECURITY INVOKER` hoy. Validar políticas en clon aislado. |
+| `20261031145750` | Supabase cambia dinámicamente definiciones existentes; GitHub almacena las definiciones completas de tres funciones. | `academy_complete_lesson` y `approve_mission` coinciden con las funciones productivas actuales, salvo terminador. `academy_unlock_module` **cambió posteriormente** mediante la migración `20261031160943`, cuyo cuerpo final coincide con el de producción. Nunca reemplazar esa corrección. |
+| `20261031145859` | GitHub añade cinco `DROP POLICY IF EXISTS` antes de sus `CREATE POLICY`, cambia el delimitador de un cuerpo de función y omite `SECURITY INVOKER` explícito. | `guard_academy_lesson_rewards()` es `SECURITY INVOKER` en producción. Probar secuencia en ambiente aislado; no sobrescribir migración. |
+| `20261031151248` | GitHub ya utiliza `ON CONFLICT ON CONSTRAINT hand_view_cooldowns_pkey`; la versión histórica de Supabase tenía `ON CONFLICT (hand_id, viewer_id)`. | La migración productiva posterior `20261031151446` corrige esa expresión. La definición actual de `increment_hand_views(text)` coincide con el archivo GitHub de `20261031151248`, salvo terminador; queda por probar la secuencia completa. |
+| `20261031151446` | Diferencias de comentarios y formato. | Secuencia de tokens SQL equivalente al SQL registrado; la corrección se mantiene. |
+
+Se verificó además que `20261031160943` sigue intacta, y que la definición completa de `academy_unlock_module` allí coincide token por token con la versión productiva actual, salvo terminador.
+
+**Otros cuatro archivos** (`20261031151554`, `20261031153006`, `20261031154647` y `20261031155504`) mostraron igualdad tras omitir comentarios y espacio en una comparación preliminar. No se reemplazaron.
+
+### Archivo histórico con identificador de ocho dígitos
+
+El archivo original `20261031_secure_batch_blog_views.sql` era una copia documental de estado final, no una migración válida de 14 dígitos; incluía `public.sync_blog_unique_views` y privilegios. Su cuerpo de función coincide token por token con el catálogo productivo actual (el archivo contiene además comandos de permisos). El historial efectivo quedó recuperado por separado con las versiones `20261031135830` y `20261031135902`. Los permisos actuales de ejecución de la función son para `authenticated`, `postgres` y `service_role` (consulta al catálogo).
+
+Para impedir que una copia sin versión histórica correcta se confunda con otra migración, se trasladó **su mismo blob Git, sin editarlo**, desde `supabase/migrations/20261031_secure_batch_blog_views.sql` a `docs/security/reference-only/20261031_secure_batch_blog_views.LEGACY_MIRROR.sql`. Es **referencia histórica y no debe ejecutarse**. No se alteró el contenido, los dos archivos de migración recuperados ni la función en producción.
+
+**Control de calidad pendiente**: ningún conjunto de 54 archivos demuestra por sí solo que una base vacía pueda reconstruir todo Sharkania. Existen dependencias y estado anterior al primer registro de marzo; hay que validar con una base de referencia **aislada** antes de habilitar la rama para merge. Evitar pruebas de autenticación/ELO duplicadas ya aprobadas; evaluar únicamente compatibilidad de la reconstrucción y los cambios concretos.
+
+**Reglas NO GO:** sin merge, sin SQL de migraciones sobre Supabase real, sin Edge, cron ni flags; PR #95/#96/#97 no afectados.
