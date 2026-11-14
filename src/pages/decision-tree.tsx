@@ -25,12 +25,12 @@ type Guide = {
 const GUIDES: Record<Street, Record<Position, Guide>> = {
   flop: {
     ip: {
-      context: "Ejemplo de referencia: BTN abrió preflop, BB pagó. BB pasa en un flop heads-up, 100bb efectivos.",
+      context: "Ejemplo de referencia: BTN abrió preflop y BB pagó, pozo heads-up con 100bb efectivos. La acción concreta depende de tu selección.",
       objective: "No apuestes por reflejo: compara cuánto gana tu mano apostando frente a cuánto gana pasando.",
       questions: [
         { title: "¿Qué rangos llegaron a este board?", detail: "Identifica a quién favorece la textura. Una ventaja de rango puede permitir apostar más a menudo; no obliga a apostar cada combinación." },
         { title: "¿Qué función cumple MI mano?", detail: "Distingue valor, showdown, proyecto o farol. Una mano como A-high puede tener equity y showdown sin querer construir un pozo." },
-        { title: "¿Qué responde BB a mi tamaño?", detail: "Piensa en calls peores, folds que niegan equity y posibles check-raises. Después compara esa apuesta con el EV del check." },
+        { title: "¿Qué logra mi acción frente a BB?", detail: "Si tienes oportunidad de apostar, evalúa calls, folds y raises posibles. Si BB apostó primero, evalúa su rango y el precio antes de responder." },
       ],
       openOptions: [
         { title: "BET por valor", when: "Manos peores continúan con suficiente frecuencia y el tamaño consigue pagarles.", caution: "Apostar demasiado grande puede expulsar justo a las manos que querías cobrar." },
@@ -192,6 +192,49 @@ const GUIDES: Record<Street, Record<Position, Guide>> = {
   },
 };
 
+const EXAMPLE_MODE_OVERRIDES: Record<Street, Record<Position, {
+  when: ActionMode;
+  story: string;
+  analysis: string;
+}>> = {
+  flop: {
+    ip: {
+      when: "enfrento_apuesta",
+      story: "BB lidera apostando antes de ti en este flop. Debes elegir call, raise o fold con A-high.",
+      analysis: "Ahora no evalúas una c-bet, sino una donk bet de BB. Con A-high, primero estima qué manos apuestan, tamaño y posibilidades de mejora. Sin datos no corresponde un call o raise automático.",
+    },
+    oop: {
+      when: "sin_apuesta",
+      story: "Defendiste BB frente a BTN. Es tu primer turno de acción en el flop.",
+      analysis: "Check es una opción base útil para defender tu rango. Tu pareja de ochos puede continuar frente a algunas c-bets, pero no necesitas liderar solo por haber conectado.",
+    },
+  },
+  turn: {
+    ip: {
+      when: "enfrento_apuesta",
+      story: "Después de apostar flop y recibir call, BB toma la iniciativa y apuesta en el turn 4♥.",
+      analysis: "Ante una apuesta de BB, compara el rango que representa con A-high y tus oportunidades reales de mejora. El call de flop de BB y su donk turn importan mucho: no continúes por inercia.",
+    },
+    oop: {
+      when: "sin_apuesta",
+      story: "Defendiste BB y pagaste la c-bet del flop. Llega 4♥ y eres primero en actuar.",
+      analysis: "Puedes comenzar por check y evaluar un segundo barrel. Liderar turn requiere una razón ligada a la carta y los rangos; no es obligatorio por tener segunda pareja.",
+    },
+  },
+  river: {
+    ip: {
+      when: "enfrento_apuesta",
+      story: "BB apuesta en river con K♥ Q♦ en tu mano. Debes comparar call, raise y fold.",
+      analysis: "Top pair no obliga a subir ni a pagar cualquier tamaño. Reconstruye el rango de apuesta de BB y busca valor o faroles creíbles; el precio importa para el call.",
+    },
+    oop: {
+      when: "sin_apuesta",
+      story: "Después de check-call flop y turn, actúas primero en river con segunda pareja.",
+      analysis: "Evalúa si alguna mano peor pagaría una apuesta. Un check permite bluff-catchear si BTN apuesta suficientes faroles; puedes foldear frente a un rango demasiado fuerte.",
+    },
+  },
+};
+
 const STREET_ITEMS: { key: Street; label: string }[] = [
   { key: "flop", label: "1 · FLOP" },
   { key: "turn", label: "2 · TURN" },
@@ -213,6 +256,9 @@ export function DecisionTreePage() {
   const [actionMode, setActionMode] = useState<ActionMode>("sin_apuesta");
   const [betSize, setBetSize] = useState(0.75);
   const guide = GUIDES[street][position];
+  const exampleOverride = EXAMPLE_MODE_OVERRIDES[street][position];
+  const exampleStory = actionMode === exampleOverride.when ? exampleOverride.story : guide.example.story;
+  const exampleAnalysis = actionMode === exampleOverride.when ? exampleOverride.analysis : guide.example.analysis;
   const facing = actionMode === "enfrento_apuesta";
   const options = facing ? guide.faceOptions : guide.openOptions;
   const facingLabel = position === "oop" ? "Hice check y el rival apostó" : "El rival apostó antes de mí";
@@ -394,10 +440,10 @@ export function DecisionTreePage() {
               </div>
               <div>
                 <h3 className="text-lg font-extrabold text-white">¿Qué harías antes de ver el resultado?</h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-200">{guide.example.story}</p>
+                <p className="mt-3 text-sm leading-relaxed text-slate-200">{exampleStory}</p>
                 <details className="group mt-4 rounded-xl border border-cyan-400/25 bg-cyan-400/[0.055] p-4">
                   <summary className="cursor-pointer font-bold text-cyan-200 marker:text-cyan-300">Ver razonamiento de la mascota</summary>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-200">{guide.example.analysis}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-200">{exampleAnalysis}</p>
                 </details>
                 <p className="mt-3 text-xs text-slate-400">Ejemplo conceptual, no una frecuencia extraída de solver ni una recomendación universal.</p>
               </div>
