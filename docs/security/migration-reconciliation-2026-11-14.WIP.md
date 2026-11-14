@@ -72,3 +72,41 @@ Fecha de preparación: 2026-11-14. Fuente histórica: tabla `supabase_migrations
 4. Revisar y aprobar por separado el PR de reconciliación antes de cualquier merge.
 
 **Estado de lanzamiento ELO v2: NO GO.** Issue #98 y PR #95, #96, #97 no cambian.
+
+
+## Verificación detallada adicional del 14-11-2026
+
+Tras el commit se comprobó por lectura del catálogo de Supabase y la rama de GitHub que existen exactamente **54 archivos con identificador válido de 14 dígitos**, una versión por cada una de las **54 versiones productivas**, sin versiones sobrantes ni faltantes. Existe un archivo adicional con versión anómala de 8 dígitos.
+
+Los 22 archivos que ya compartían identificador con producción se cotejaron: **11 SQL idénticos** y **11 distintos**. No se modificó ninguno de estos 22.
+
+### Cuatro diferencias compatibles con comentarios o formato, NO certificadas como equivalentes
+
+Una eliminación automática preliminar de comentarios de línea y espacios deja coincidencia textual en las siguientes cuatro versiones. No equivale a comparar AST ni a ejecutar QA; **no se deben sustituir todavía**.
+
+- `20261031151554` — RLS interna de contador de manos.
+- `20261031153006` — Propiedad y privilegios de manos compartidas.
+- `20261031154647` — Identificadores fuertes de manos compartidas.
+- `20261031155504` — Restricción de lectura a propietarios.
+
+### Siete discrepancias con diferencias restantes de SQL
+
+| Versión | Caracteres en SQL guardado en Supabase | Caracteres en archivo GitHub | Área |
+|---|---:|---:|---|
+| `20261031143409` | 2.455 | 3.079 | Políticas y función de protección de clubes |
+| `20261031145349` | 1.727 | 2.711 | Reclamación de misiones automáticas |
+| `20261031145511` | 2.500 | 2.502 | Políticas y actualizaciones de misiones |
+| `20261031145750` | 3.634 | 9.764 | Academia: completar lección, desbloquear módulo y aprobar misión |
+| `20261031145859` | 2.897 | 3.216 | Recompensas y protecciones de academia |
+| `20261031151248` | 2.004 | 2.151 | Contador de visitas de manos compartidas |
+| `20261031151446` | 550 | 630 | Corrección de función del contador |
+
+**No inferir equivalencia o incompatibilidad por el tamaño.** Algunos archivos GitHub presentan definiciones de estado final frente a un script histórico que lo ajustaba dinámicamente; requieren lectura y validación aislada. El mayor diferencial corresponde a `20261031145750`.
+
+### Archivo de ocho dígitos
+
+`supabase/migrations/20261031_secure_batch_blog_views.sql` crea o reemplaza `public.sync_blog_unique_views`. Está relacionado con la migración histórica `20261031135830`, pero **no contiene texto idéntico**; tampoco equivale a `20261031135902`. Conservarlo para revisión independiente, sin renombrar ni ejecutar por inercia.
+
+### Estado de autorización
+
+Esta rama es preparación documental e histórica exclusivamente en GitHub. Ningún SQL de la rama ha sido ejecutado; ningún PR fusionado; sin cambios en Supabase producción, Cloudflare, Edge, cron o flags. No abrir PR de merge ni ejecutar replay de migraciones antes de resolver los bloqueos indicados.
