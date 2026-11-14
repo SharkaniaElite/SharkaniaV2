@@ -41,6 +41,19 @@ interface ToolCard {
 
 const TOOLS: ToolCard[] = [
   {
+    slug: "/tools/arbol-de-decisiones",
+    title: "Árbol de Decisiones Postflop",
+    description: "Aprende a decidir en flop, turn y river, con o sin posición. Preguntas, rutas y ejemplos para usar en tus sesiones de cash 6-max.",
+    image: "/mascot/shark-5.webp",
+    icon: Brain,
+    color: "#22d3ee",
+    badge: "Nuevo · Interactivo",
+    available: true,
+    requiresAuth: false,
+    priceLabel: "Gratis",
+    freeTierLabel: "Acceso Libre",
+  },
+  {
     slug: "/tools/perfilador-salas",
     title: "Matchmaker de Salas",
     description:
