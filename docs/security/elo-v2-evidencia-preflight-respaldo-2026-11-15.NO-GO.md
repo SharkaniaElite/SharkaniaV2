@@ -92,7 +92,7 @@ Referencia oficial: [Supabase CLI v3](https://supabase.com/docs/guides/local-dev
 | ELO v2 OFF, FX Edge ausente, cron existentes intactos | HECHO |
 | Paridad de 54 versiones y candidato SQL original | HECHO |
 | CI focalizado de integración en GitHub | PASS |
-| Identificar backup real más reciente y PITR vigente | **PENDIENTE / BLOQUEANTE** |
+| Identificar backup real más reciente y PITR vigente | **RESPALDO FÍSICO VISIBLE CONFIRMADO, PITR SIN COMPROBAR** |
 | Comprobar estrategia de recuperación compatible con Storage, cron y permisos | **PENDIENTE / BLOQUEANTE** |
 | Acordar RPO/RTO y mantenimiento fuera de torneos | PENDIENTE / propietario |
 | Preflight de SQL remoto de solo lectura + `--dry-run` inequívoco | PENDIENTE / fase pre-GO |
@@ -103,3 +103,35 @@ Referencia oficial: [Supabase CLI v3](https://supabase.com/docs/guides/local-dev
 **El preflight técnico limitado ha pasado; el plan de recuperación no.** No realizar merge, push SQL, activar frontend, desplegar Edge, crear secretos ni cron. La siguiente acción concreta para cerrar la puerta de respaldo es aportar únicamente **evidencia de la pantalla de Backups** y acordar el alcance de recuperación; no se piden contraseñas, tokens ni datos personales.
 
 **NO MERGE. NO DEPLOY. NO RESTORE. NO GO.**
+
+## Evidencia adicional de Backups aportada por el propietario — 15/11/2026
+
+**Fuente:** captura de Supabase Database > Backups > Scheduled backups aportada por el propietario en ChatGPT. Evidencia visual, no consulta de API ni ensayo de restauración. La imagen no se añadió a GitHub.
+
+- Proyecto visible: SharkaniaV2, plan PRO; base sharkania; rama main de producción.
+- Ocho respaldos PHYSICAL listados entre el 08/11 y el 15/11/2026 (inclusive), con botón Restore visible.
+- Respaldo físico más reciente: **15/11/2026 06:33:17 (+00:00)**, equivalente a **15/11/2026 03:33:17 en Chile continental UTC-3**.
+- Respaldo físico previo: **14/11/2026 06:33:29 (+00:00)**.
+- Advertencia en el Dashboard: el backup de base de datos no incluye los archivos físicos de Storage API.
+- La pestaña Point in time aparece, pero **no fue abierta**. Su presencia no demuestra que PITR esté habilitado.
+- El botón Restore y la fecha indican un punto disponible en la interfaz, **no** una restauración comprobada, un RPO/RTO garantizado ni que la copia proteja las escrituras posteriores.
+
+### Actualización de la puerta de recuperación
+
+| Condición | Estado |
+|---|---|
+| Existencia y fecha del último respaldo visible | **CONFIRMADO por captura** |
+| Ocho puntos físicos diarios 08–15 noviembre | **CONFIRMADO por captura** |
+| PITR habilitado / rango disponible | **PENDIENTE de revisar Point in time** |
+| Copia realmente restaurable e integridad | **NO PROBADA** |
+| Copia física de los objetos Storage (7 buckets, 350 metadatos en baseline) | **NO CUBIERTA por backup de DB** |
+| RPO/RTO, pérdidas posteriores al punto de restauración | **SIN DECIDIR** |
+| Nueva migración / merge / Edge / cron / flags ELO v2 | **NO AUTORIZADOS** |
+
+### Próximo control sin modificar producción
+
+En Supabase, abrir únicamente la pestaña Point in time y registrar lo que muestra, sin pulsar Restore, Enable, Upgrade, crear un proyecto nuevo o contratar PITR. Mantener el GO bloqueado hasta definir y validar la recuperación segura, las condiciones de aislamiento de cron/pg_net, la protección de objetos Storage y el RPO/RTO.
+
+Una restauración al backup diario más reciente perdería, por sí sola, los cambios posteriores a las 06:33:17 UTC del 15/11/2026; no prometer pérdida cero sin otro mecanismo efectivo.
+
+**Estado: respaldos diarios confirmados visualmente; recuperación aún NO certificada; ELO v2 NO GO.**
