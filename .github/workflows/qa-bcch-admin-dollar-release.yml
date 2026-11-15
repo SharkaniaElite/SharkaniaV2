@@ -1,0 +1,30 @@
+name: QA isolated BCCh superadmin dollar release
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bcch-admin-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Build production frontend and verify only BCCh change
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build
+          node --test tests/bcch-admin-quote-contract-qa.mjs
+          node --test tests/bcch-official-response-parser-qa.mjs
+          ! grep -q 'elo-fx-capture' supabase/config.toml
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Typecheck protected BCCh Edge Function
+        run: deno check --config supabase/functions/bcch-dollar-preview/deno.json supabase/functions/bcch-dollar-preview/index.ts

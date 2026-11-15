@@ -24,6 +24,7 @@ function mockFetch(input) {
 test("publishes all eligible public sections with valid canonical routes", async () => {
   const xml = await buildSitemap("test-key", mockFetch);
   assert.match(xml, /<loc>https:\/\/sharkania\.com\/academia<\/loc>/);
+  assert.match(xml, /<loc>https:\/\/sharkania\.com\/tools\/arbol-de-decisiones<\/loc>/);
   assert.match(xml, /<loc>https:\/\/sharkania\.com\/tv<\/loc>/);
   assert.match(xml, /\/blog\/poker-y-estrategia<\/loc>/);
   assert.match(xml, /\/noticias\/fecha-1<\/loc>/);

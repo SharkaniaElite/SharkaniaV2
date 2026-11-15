@@ -1,0 +1,1 @@
+REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLE public.acc_backing_deals FROM authenticated;

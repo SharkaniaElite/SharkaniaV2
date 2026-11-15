@@ -42,6 +42,7 @@ const PAGE_META: Record<string, { title: string, desc: string }> = {
   '/promociones/ignition-bonus': { title: 'Bono de Ignition Poker | Sharkania', desc: 'Información y condiciones de la promoción de Ignition Poker.' },
   '/promociones/coinpoker': { title: 'Promoción CoinPoker | Sharkania', desc: 'Información de las promociones de CoinPoker en Sharkania.' },
   '/tools': { title: 'Herramientas de Poker | Sharkania', desc: 'Calculadora ICM, simulador ELO, calculadora de bankroll y más.' },
+  '/tools/arbol-de-decisiones': { title: 'Árbol de Decisiones de Póker: Flop, Turn y River | Sharkania', desc: 'Guía interactiva gratuita para decidir entre bet, check, call, raise o fold. Estrategia postflop IP y OOP en Texas Holdem cash 6-max.' },
   '/sistema-elo': { title: 'Sistema ELO para Poker | Sharkania', desc: 'Cómo funciona el sistema de rating ELO adaptado al poker.' },
 };
 
