@@ -75,3 +75,33 @@ Estos valores no incluyen necesariamente los bytes de archivos físicos guardado
 **Resultado actual:** diseño de ensayo aislado preparado en GitHub; **cero restauraciones ejecutadas**. ELO v2 NO GO.
 
 Referencias oficiales: https://supabase.com/docs/reference/cli/supabase-db-dump ; https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore ; https://supabase.com/docs/guides/platform/clone-project ; https://supabase.com/docs/guides/platform/backups.
+
+
+## Rectificación de continuidad — restauraciones ya aprobadas (15/11/2026)
+
+**Esta sección prevalece sobre la interpretación de que nunca se ha ensayado una restauración aislada.** Revisadas las conversaciones originales del archivo exportado, el registro maestro y el PR #65, **ya existen dos ensayos reales exitosos**. No repetir sus preparaciones, la instalación de Docker, PostgreSQL 17 ni QA05–09.
+
+### Evidencia primaria 1: Release A / Etapa 6C, 04/11/2026
+
+- Conversación exportada: \`2026-11-04_Continuar_pruebas_ELO_6aebc5ef-1.md\`, mensaje del usuario 375, con salida completa \`PASS FINAL ETAPA 6C\`.
+- Corroboración en GitHub: [PR #65](https://github.com/SharkaniaElite/SharkaniaV2/pull/65) y archivo [\`league-release-a-local-e2e-evidence-2026-11-04.md\`](https://github.com/SharkaniaElite/SharkaniaV2/blob/security/league-guarded-release-a-2026-11-04/docs/security/league-release-a-local-e2e-evidence-2026-11-04.md).
+- Se restauró un dump local de QA de **1.650 objetos** en **tercer clúster PostgreSQL 17.11**; \`network none\`, cero puertos publicados, cero bind mounts. Se recuperaron **64 tablas**, cuentas ficticias, RLS, torneos, ligas y funciones Realtime. Se eliminó el clúster temporal. 
+- **Límite exacto:** se usó \`--no-owner/--no-acl\`; no se validaron permisos/propietarios equivalentes a producción ni los 24 \`ALTER DEFAULT PRIVILEGES\` discrepantes. **NO** demuestra restauración de un backup de producción.
+
+### Evidencia primaria 2: ELO v2 / QA05 y posteriores, 10/11/2026
+
+- Conversación exportada: \`2026-11-10_Continuar_revision_de_seguridad_6af31d0d-c.md\`, salida de la restauración QA alrededor del mensaje 129 y confirmaciones en mensajes 130–131. 
+- El usuario informó \`RESULTADO: QA DE DATOS ELO RESTAURADO EN CONTENEDOR SIN RED\` con conteos **1.826 jugadores, 1.329 torneos, 21.377 resultados y 21.377 filas ELO** y huella histórica \`b1f510063c695d107301e722b86991a4\`.
+- **Límite exacto:** sustituye referencias \`auth.users\` mediante identidades simuladas, no prueba la restauración completa de Auth/Storage/Vault, ACL de todos los esquemas ni de los dos cron reales. El motor/FX/concurrencia continuó con QA06–09 aprobados; **NO repetir**.
+- Comparación con corte solo lectura del **15/11/2026**: **1.842 jugadores, 1.329 torneos, 21.764 resultados y 21.764 filas ELO**. El conjunto QA histórico ya no es un respaldo actual; hay **16 jugadores** y **387 resultados/ELO** más en los conteos recientes. No se infiere qué operaciones individuales ocurrieron ni su causa.
+
+### Qué falta de verdad para la recuperación previa al lanzamiento
+
+1. **NO repetir** ninguno de los dos ensayos, ni la descarga/instalación de Docker/PG17, ni el circuito QA de ELO. Los archivos temporales de ambas restauraciones fueron borrados; la evidencia se conserva en el chat exportado y GitHub.
+2. Se debe demostrar que existe un **punto recuperable actualizado** cerca de la futura congelación de escrituras, no volver a restaurar la fotografía del 10/11. Los backups físicos 08–15/11 están visibles, con PITR apagado. Nunca tratar la captura de backup como prueba de restauración.
+3. Precisar la **brecha de recuperación** de ese punto actualizado: firmas de roles y ACL, componentes Auth, objetos físicos Storage y mecanismos con efectos externos (cron, pg_net, correos), sin reproducir la batería ELO.
+4. Para el objetivo de cero pérdida de operaciones críticas confirmadas **dentro de una ventana de corte**, congelar/drenar escrituras, garantizar que el punto actual y el punto restaurable se corresponden y obtener aprobación explícita para tratamiento cifrado de datos reales si resulta indispensable. No prometer RPO=0 a partir de un backup diario antiguo.
+5. El siguiente trabajo local **no es reinstalar herramientas**. Solo si se decide usar un respaldo privado actual, utilizar el procedimiento de aislamiento previamente aprobado y verificar sus parámetros como parte del ensayo específico; antes se requiere aprobación para extracción/custodia de datos, sin mostrar contraseñas, tokens ni dumps en ChatGPT o GitHub.
+
+**Estado:** aislamiento y restauraciones QA históricas **HECHAS**; ensayo de recuperabilidad de un punto **actualizado y completo** **PENDIENTE**. Plan documental; cero exportaciones/restauraciones nuevas autorizadas; ELO v2 NO GO.
+
