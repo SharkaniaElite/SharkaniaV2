@@ -1,0 +1,54 @@
+# ELO v2 integrated-branch CI; deliberately no Supabase, Cloudflare or production credentials.
+# A single safe push triggers this workflow; no PR or deployment hooks required.
+name: CI ELO v2 integration (NO DEPLOY)
+on:
+  push:
+    branches:
+      - release/elo-v2-integrated-review-2026-11-15
+    paths:
+      - .github/workflows/qa-elo-v2-integration-no-deploy-20261115.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sharkania-elo-v2-integration-no-deploy
+  cancel-in-progress: true
+
+jobs:
+  contract-and-build:
+    if: github.repository == 'SharkaniaElite/SharkaniaV2' && github.ref == 'refs/heads/release/elo-v2-integrated-review-2026-11-15'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VITE_LEAGUE_GUARDED_RPC: 'false'
+      VITE_INDEPENDENT_RESULTS_GUARDED_RPC: 'false'
+      VITE_ELO_USD_V2_RPC: 'false'
+    steps:
+      - name: Checkout the exact integration commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned dependencies from lockfile
+        run: npm ci
+      - name: Run changed-path, security and release contract tests (no network or database)
+        run: >
+          node --test
+          tests/security-seo.test.mjs
+          tests/ignition-admin-secure-email.test.mjs
+          tests/ignition-autowelcome-activation-guard.test.mjs
+          tests/ignition-existing-account-link-flow.test.mjs
+          tests/bcch-admin-quote-contract-qa.mjs
+          tests/league-final-cutover-readiness-contract.test.mjs
+      - name: Ensure historic SQL remains versioned and the approved candidate is byte-identical
+        run: |
+          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' -type f | wc -l | tr -d ' ')" = "55"
+          test "$(git hash-object supabase/migrations/20261113182000_release_a_elo_v2_usd_official_fx.sql)" = "45241f142dba4894fa349215fa938ea220d4c1ba"
+          ! find supabase/migrations -maxdepth 1 -name '20261031_secure_batch_blog_views.sql' | grep -q .
+      - name: Compile TypeScript and build frontend without publishing
+        run: npm run build
