@@ -92,7 +92,7 @@ Referencia oficial: [Supabase CLI v3](https://supabase.com/docs/guides/local-dev
 | ELO v2 OFF, FX Edge ausente, cron existentes intactos | HECHO |
 | Paridad de 54 versiones y candidato SQL original | HECHO |
 | CI focalizado de integración en GitHub | PASS |
-| Identificar backup real más reciente y PITR vigente | **RESPALDO FÍSICO VISIBLE CONFIRMADO, PITR SIN COMPROBAR** |
+| Identificar backup real más reciente y PITR vigente | **BACKUP FÍSICO VISIBLE CONFIRMADO; PITR DESACTIVADO** |
 | Comprobar estrategia de recuperación compatible con Storage, cron y permisos | **PENDIENTE / BLOQUEANTE** |
 | Acordar RPO/RTO y mantenimiento fuera de torneos | PENDIENTE / propietario |
 | Preflight de SQL remoto de solo lectura + `--dry-run` inequívoco | PENDIENTE / fase pre-GO |
@@ -122,7 +122,7 @@ Referencia oficial: [Supabase CLI v3](https://supabase.com/docs/guides/local-dev
 |---|---|
 | Existencia y fecha del último respaldo visible | **CONFIRMADO por captura** |
 | Ocho puntos físicos diarios 08–15 noviembre | **CONFIRMADO por captura** |
-| PITR habilitado / rango disponible | **PENDIENTE de revisar Point in time** |
+| PITR habilitado / rango disponible | **DESACTIVADO según segunda captura** |
 | Copia realmente restaurable e integridad | **NO PROBADA** |
 | Copia física de los objetos Storage (7 buckets, 350 metadatos en baseline) | **NO CUBIERTA por backup de DB** |
 | RPO/RTO, pérdidas posteriores al punto de restauración | **SIN DECIDIR** |
@@ -135,3 +135,27 @@ En Supabase, abrir únicamente la pestaña Point in time y registrar lo que mues
 Una restauración al backup diario más reciente perdería, por sí sola, los cambios posteriores a las 06:33:17 UTC del 15/11/2026; no prometer pérdida cero sin otro mecanismo efectivo.
 
 **Estado: respaldos diarios confirmados visualmente; recuperación aún NO certificada; ELO v2 NO GO.**
+
+## Comprobación PITR — captura de la pestaña Point in time (15/11/2026)
+
+**Fuente:** segunda captura del mismo Dashboard Supabase, pestaña **Database Backups > Point in time**, aportada por el propietario en el chat. No se adjuntó imagen a GitHub ni se compartieron credenciales.
+
+- La página muestra literalmente: **“Point in Time Recovery is available as an add-on”** y **“Enable the add-on to add point-in-time recovery to your project.”**
+- Está visible el botón **Enable add-on**. Interpretación: **PITR no está habilitado** en el proyecto al momento de la captura.
+- Se mantienen visibles los ocho puntos **Scheduled backups** ya documentados, con el más reciente del **15/11/2026 06:33:17 UTC**; la segunda captura no demuestra una prueba de restauración.
+- No se presionó ningún botón de activación ni se habilitó o contrató PITR. No hay tarifa aprobada.
+
+### Implicaciones para el GO
+
+| Control | Evidencia |
+|---|---|
+| Backups diarios físicos | **CONFIRMADOS VISUALMENTE** |
+| PITR / recuperación entre respaldos | **NO DISPONIBLE, ADD-ON NO ACTIVADO** |
+| Copia de Storage físico | **NO CUBIERTA por backups DB** |
+| Restauración íntegra y aislamiento de cron/pg_net | **NO PROBADOS** |
+| RPO/RTO y posible pérdida de actividad reciente | **SIN ACUERDO** |
+| GO para instalación ELO v2 | **DENEGADO por puerta de recuperación aún abierta** |
+
+**Decisión recomendada:** No habilitar PITR automáticamente. Primero acordar RPO/RTO, comprobar recuperación segura del esquema y datos con efectos externos aislados y cubrir archivos Storage por separado. Si el RPO acordado requiere PITR, obtener cotización específica y consentimiento de costo antes de activarlo. No se debe confundir tener backups con haber verificado una restauración.
+
+**NO MERGE, NO RESTORE, NO PITR ENABLE, ELO v2 NO GO.**
