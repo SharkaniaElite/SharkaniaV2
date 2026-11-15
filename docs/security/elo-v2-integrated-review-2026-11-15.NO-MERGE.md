@@ -55,3 +55,25 @@ Fecha: 2026-11-15. **Preparación bajo autorización limitada del propietario.**
 3. Con GO específico: incorporar backend con ELO apagado; autorizar captura FX oficial CLP/EUR (función, clave dedicada Vault y cron por fases), verificar salud; luego aprobar flags web y torneos futuros elegibles.
 
 **ESTADO: GitHub preparado para revisión; NO MERGE / NO GO productivo.**
+
+## Control de integración incremental — 15/11/2026
+
+### Defecto detectado y corregido en GitHub
+- Commit `fc83ec54cdd5adeefbd800aec3a814908a4a0eb0`: corrige **5 referencias obsoletas en 4 archivos de pruebas**. Cambian solo nombres de rutas; ningún SQL ni lógica del sitio.
+- Referencias históricas correctas: `20261105143347` (email Ignition), `20261105151342` (bienvenida), `20261105180002` (solicitud de vinculación) y `20261031135830` (PostHog).
+- `tests/security-seo.test.mjs` comprueba la migración histórica real de PostHog; ya no apunta a la copia espejo archivada fuera de `supabase/migrations`.
+- Se revisaron 47 pruebas `*.test.mjs`, 8 scripts `tests/*.mjs` complementarios y 29 workflows por referencias a los nombres antiguos. No se observaron otras coincidencias. Las rutas nuevas se verificaron en el árbol Git.
+
+### Paridad de versiones y activación (solo lectura)
+- Lista de Supabase: **54 versiones registradas**. Rama integrada: **55 SQL con versión única**, exactamente las 54 históricas más el candidato ELO v2 `20261113182000` **no aplicado**. No faltan versiones productivas.
+- Blob candidato ELO v2 `45241f142dba4894fa349215fa938ea220d4c1ba` intacto.
+- `supabase/config.toml`: `elo-fx-capture.enabled = false`.
+- Banderas del frontend `VITE_LEAGUE_GUARDED_RPC`, `VITE_INDEPENDENT_RESULTS_GUARDED_RPC`, `VITE_ELO_USD_V2_RPC`: Cloudflare Pages informó **ausentes** de las variables de producción y preview, por tanto no están activadas allí.
+- Las **11 divergencias históricas de contenido SQL** siguen siendo un problema de trazabilidad/documentación y no se subsanaron artificialmente. No usar `db push`/ `migration repair` como atajo.
+
+### Evidencia aún faltante
+- **CI sobre la rama integrada: 0 checks y 0 workflow runs** al realizar esta revisión. La corrección de rutas es comprobación estática, **no equivale a ejecutar** `node --test`, TypeScript, Vite ni el paquete de QA.
+- Para ejecutar CI de la rama sin desplegar, definir primero una vía autorizada de ejecución GitHub Actions que no pueda activar Cloudflare. Abrir un draft PR puede disparar vista previa de Pages incluso cuando no fusiona nada; no hacerlo por inercia.
+- Cloudflare registró dos entradas de vista previa para commits de esta rama, ambas en `queued/idle` sin etapa `build/deploy` iniciada al consultar. Los commits utilizan `[CF-Pages-Skip]`, pero el registro `idle` no certifica todavía un estado final `skipped`.
+- Siguen pendientes la estrategia de instalación segura y reversión, la compatibilidad de migraciones bajo preflight supervisado y las autorizaciones específicas del Issue #98. ELO v2 **NO GO**.
+
