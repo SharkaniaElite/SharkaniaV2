@@ -159,3 +159,25 @@ Una restauración al backup diario más reciente perdería, por sí sola, los ca
 **Decisión recomendada:** No habilitar PITR automáticamente. Primero acordar RPO/RTO, comprobar recuperación segura del esquema y datos con efectos externos aislados y cubrir archivos Storage por separado. Si el RPO acordado requiere PITR, obtener cotización específica y consentimiento de costo antes de activarlo. No se debe confundir tener backups con haber verificado una restauración.
 
 **NO MERGE, NO RESTORE, NO PITR ENABLE, ELO v2 NO GO.**
+
+## Criterio de recuperación propuesto por el asistente — 15/11/2026
+
+**Naturaleza:** decisión técnica de planificación delegada por el propietario, **no** autorización contractual ni GO productivo. Ningún costo, restauración, clon, migración ni activación se aprueba mediante esta propuesta.
+
+### Prioridades y objetivos
+
+1. **RPO objetivo en la ventana de lanzamiento: CERO pérdida de operaciones críticas confirmadas** (altas de jugadores, resultados de torneos, registros ELO, premios, movimientos económicos y cambios de cuenta). Como no hay PITR y los respaldos diarios son antiguos respecto del tráfico continuo, este objetivo **NO está garantizado** con el estado actual. Para que sea demostrable en un corte planificado, detener y drenar **todas** las escrituras críticas, no solo el módulo de ligas; capturar un estado recuperable y verificarlo antes del COMMIT, sin permitir nuevas confirmaciones hasta pasar las pruebas y confirmar una vía fiable de recuperación. No afirmar RPO=0 si queda alguna escritura crítica en vuelo o si la copia/replay no está comprobada.
+2. **RTO objetivo operativo: hasta 4 horas** para decidir continuar o abortar un corte planificado. No es SLA demostrado ni tiempo de restauración prometido. Si el corte no puede completarse con garantías dentro de la ventana, mantener mantenimiento y aplicar plan de contingencia autorizado; jamás recuperar una base perdiendo datos automáticamente por intentar cumplir el plazo.
+3. **Fuera de la ventana**, no prometer RPO=0. Los backups diarios y PITR desactivado pueden perder muchas horas de datos ante una recuperación destructiva. Si se pretende una pérdida máxima baja de forma permanente, analizar PITR (u otro mecanismo continuo y probado), costos, registros de transacciones y los 7 buckets de Storage con sus objetos reales.
+4. **Estrategia de fallos preferida:** transacción SQL atómica + bloqueo de escrituras críticas y verificación del punto de partida; si falla antes del COMMIT, ROLLBACK. Si falla después, conservar snapshots, datos nuevos y journals, evaluar corrección hacia delante; NO revertir solo flags ni hacer restore a respaldo diario sin cuantificar pérdidas y autorización independiente.
+5. **PITR: no contratar por defecto.** Es una mejora posible para recuperar a instantes más cercanos; **no garantiza pérdida de datos cero** ni repone los objetos físicos de Storage. Cotización concreta y aprobación del costo antes de activarlo.
+
+### Bloqueos antes de autorizar producción
+
+- Evidencia de un punto de recuperación **fresco y restaurable**, con integridad y acceso comprobados; evaluación de alcance de roles, Auth y Storage físico. La captura de los 8 backups confirma existencia visible, **no restaura probada**.
+- Procedimiento de aislamiento de correo, cron (`sharkania_ignition_auto_welcome_2026_11`, `update_dolar_diario`), `pg_net` y Vault, validado antes de cualquier ensayo con datos reales. No usar clon físico automático con trabajos activándose.
+- Inventario de flujos críticos que deben pausarse de manera verificable (login/registro, pagos/recompensas, torneos/resultados, identidad/vinculación), responsable de mantenimiento y mecanismo para drenar transacciones. Una ventana con torneo activo = STOP.
+- Prueba limitada de restauración/compatibilidad **en entorno autorizado y aislado**, sin repetir QA05–09 y sin extraer identidades/secretos al chat o CI público.
+- Confirmación del propietario para gastos y acciones productivas **por separado**. Si no se puede sostener el objetivo cero para operaciones confirmadas, mantener **NO GO** y no reinterpretar el silencio como tolerancia a pérdidas.
+
+**DECISIÓN DE SEGURIDAD: conservar respaldos diarios activos, mantener PITR desactivado y ELO v2 NO GO mientras no exista una vía validada para un corte sin pérdida de operaciones críticas confirmadas.**
