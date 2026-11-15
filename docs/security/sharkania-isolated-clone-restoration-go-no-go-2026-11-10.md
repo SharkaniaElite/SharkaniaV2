@@ -31,3 +31,47 @@ Supabase advierte explícitamente que **Restore to a New Project** (copia físic
 **A)** permiso de copiar datos reales, con estrategia segura de exportación/cifrado/aislamiento y retención; **B)** presupuesto exacto si se decide pagar un nuevo entorno; **C)** autorización independiente para aplicar SQL al clon; **D)** posterior revisión GO, con fecha ELO v2 aprobada, cierre de rutas legacy, tasa BCCh/ECB operativa y vigilancia. **Nada de esto autoriza producción.**
 
 **Estado: NO GO para restauración física automática; copia lógica aislada solamente después de autorización explícita.**
+
+## Actualización operativa — 15 de noviembre de 2026
+
+**Tipo de trabajo:** solo planificación documental y SELECT de inventario. No autoriza copia de datos, creación de clon, infraestructura, exportación, SQL en clones, tráfico externo ni cambios productivos. Issue de referencia: #98. RPO propuesto para el corte: cero pérdida de operaciones críticas confirmadas, **aún no demostrado**. RTO de planificación: cuatro horas, sin promesa de cumplirlo.
+
+### Datos de dimensionamiento observados (consulta SQL agregada)
+
+| Indicador | Observado |
+|---|---:|
+| Tamaño de PostgreSQL | 49 MB (51.432.595 bytes) |
+| Triggers no internos entre public/auth/storage | 34 |
+| Cron activos | 2 |
+| Buckets Storage | 7 |
+| Metadatos de objetos Storage | 350 |
+
+Estos valores no incluyen necesariamente los bytes de archivos físicos guardados en Storage; 49 MB no es una estimación del tamaño total del servicio, ni determina precio o tiempo reales de backup/restore.
+
+### Evidencia de respaldo
+
+- La captura del propietario confirma ocho puntos de **backups físicos diarios** entre el 08 y el 15/11/2026, último **15/11/2026 06:33:17 UTC**.
+- La pestaña **Point in time** muestra 'available as an add-on' y 'Enable add-on': **PITR no habilitado**.
+- La existencia de esas entradas **no prueba la restaurabilidad** ni cubre los bytes físicos de Storage. No usar el botón de Restore ni activar PITR como parte de esta preparación.
+
+### Selección técnica para un ensayo futuro, sujeto a autorización
+
+1. **NO** usar 'Restore to a New Project' físico: la propia documentación de Supabase advierte riesgo de reactivar cron y conexiones externas inmediatamente. En producción hay dos cron; no comprobar ni mover sus comandos o secretos.
+2. Preparar primero PostgreSQL 17 local **descartable y con egreso de red denegado por un control externo al contenedor**, probado antes de cargar SQL. No montar volúmenes de secretos ni configurar SMTP, OAuth, keys live, Edge externa, Vault real ni URL de producción. Un contenedor simplemente 'no expuesto' no equivale a red aislada: probar bloqueo de tráfico saliente.
+3. **Definir y aprobar antes de descargar** qué objetos se extraerán, por quién, medio cifrado, retención y eliminación. No extraer `auth.users`/identidades reales sin justificación y consentimiento específico; preferir identidades ficticias para el ensayo ELO. Nunca publicar un volcado ni un archivo con usuarios en GitHub o CI.
+4. **Advertencia verificable de la CLI:** `supabase db dump` ejecuta pg_dump con filtros: **excluye por defecto los esquemas gestionados `auth`, `storage` y extensiones**, y el dump predeterminado no incluye registros ni roles personalizados. El modo `--data-only`/`--role-only` cubre partes distintas y **no convierte automáticamente el dump en una copia completa de Auth, Storage físico o Vault**. Para prueba de esquema y ACL, registrar explícitamente qué quedó fuera; no afirmar recuperación total.
+5. En el sandbox, cargar únicamente el esquema/datos sintéticos o los datos expresamente autorizados, sin conexiones salientes y con trabajos de cron desactivados **antes** de permitir ejecución. Verificar existencia de extensiones necesarias y acciones no deseadas de triggers. Si no es posible garantizar ausencia de efectos externos, **ABORTAR**.
+6. **No reaplicar las 54 migraciones históricas sobre un volcado del esquema actual.** Se preserva su registro por versión, incluidos los once SQL cuyo texto difiere; un `db reset` no es un sustituto de reconstrucción fiel. La prueba dirigida parte del esquema restaurado y ensaya **solo** la candidata ELO v2 versionada `20261113182000` con blob `45241f142dba4894fa349215fa938ea220d4c1ba`, únicamente después de autorizar SQL en el clon.
+7. Antes/después del ensayo, ejecutar el fichero **ya existente** `tests/fixtures/sharkania-restored-clone-readonly-parity-2026-11-10.sql` en la base aislada y cotejar metadatos (funciones, RLS, privilegios, triggers, recuentos); validar que no altera ELO v1. No duplicar QA05–09 que ya fue aprobada. Una comprobación de esquema tampoco valida Auth/Storage/Vault reales si fueron omitidos.
+8. Si la restauración aislada falla o no cubre un componente crítico, registrar el vacío en Issue #98 como **NO GO**. No corregirlo improvisadamente en producción y no atribuirle un SLA de cuatro horas.
+
+### Puertas separadas antes de cualquier ejecución
+
+- **Aprobación de datos:** extracción y tratamiento protegido de información real, si se juzga imprescindible; responsable de exportación, lugar, plazo de retención y borrado.
+- **Aprobación de entorno:** dónde se ejecutará, cómo se probará aislamiento de salida y quién custodiará el volumen cifrado; cualquier recurso de pago requiere cotización y aceptación previa.
+- **Aprobación de SQL en clon:** solo candidato de ELO v2 y pruebas puntuales, después de comprobar aislamiento. Nunca producción.
+- **Aprobación de lanzamiento:** sigue separada del ensayo y exige respaldos verificables, compatibilidad SQL/frontend, FX, cron, flags y GO del propietario.
+
+**Resultado actual:** diseño de ensayo aislado preparado en GitHub; **cero restauraciones ejecutadas**. ELO v2 NO GO.
+
+Referencias oficiales: https://supabase.com/docs/reference/cli/supabase-db-dump ; https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore ; https://supabase.com/docs/guides/platform/clone-project ; https://supabase.com/docs/guides/platform/backups.
