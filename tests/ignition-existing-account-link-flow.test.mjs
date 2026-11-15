@@ -8,7 +8,7 @@ const landing = read("src/pages/ignition-championship.tsx");
 const dashboard = read("src/pages/player-dashboard.tsx");
 const dialog = read("src/components/players/ignition-link-notice.tsx");
 const statuses = read("src/lib/ignition-link-status.ts");
-const migration = read("supabase/migrations/20261105195500_request_my_ignition_link_secure.sql");
+const migration = read("supabase/migrations/20261105180002_request_my_ignition_link_secure.sql");
 
 const transformed = await transform(statuses,{loader:"ts",format:"esm",target:"es2022"});
 const {ignitionFlowStatus,ignitionNotices} = await import("data:text/javascript;base64,"+

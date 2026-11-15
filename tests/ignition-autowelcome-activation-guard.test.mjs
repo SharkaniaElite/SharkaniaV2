@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {test} from "node:test";
 const read=path=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
-const migration=read("supabase/migrations/20261105190000_ignition_autowelcome_opt_in_verified.sql");
+const migration=read("supabase/migrations/20261105151342_ignition_autowelcome_opt_in_verified.sql");
 const admin=read("src/components/admin/ignition-claims-tab.tsx");
 const registration=read("src/pages/ignition-championship.tsx");
 

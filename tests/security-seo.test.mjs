@@ -81,7 +81,7 @@ test("club signup never inserts arbitrary email messages from the browser", () =
 
 test("PostHog sync performs a single atomic authorized RPC without per-post PATCH calls", () => {
   const fn = readFileSync("functions/api/sync-blog-views.ts", "utf8");
-  const db = readFileSync("supabase/migrations/20261031_secure_batch_blog_views.sql", "utf8");
+  const db = readFileSync("supabase/migrations/20261031135830_secure_batch_posthog_unique_views_20261031.sql", "utf8");
   const api = readFileSync("src/lib/api/blog.ts", "utf8");
   assert.match(fn, /rpc\/sync_blog_unique_views/);
   assert.match(fn, /Object\.fromEntries\(views\)/);
@@ -263,7 +263,7 @@ test("Ignition onboarding preserves verified logins and only creates pending lin
   const panel = readFileSync("src/pages/player-dashboard.tsx", "utf8");
   const auth = readFileSync("src/lib/api/auth.ts", "utf8");
   const signup = readFileSync("supabase/migrations/20261031181112_record_ignition_signup_as_pending_20261031.sql", "utf8");
-  const linking = readFileSync("supabase/migrations/20261105195500_request_my_ignition_link_secure.sql", "utf8");
+  const linking = readFileSync("supabase/migrations/20261105180002_request_my_ignition_link_secure.sql", "utf8");
   assert.match(page, /signInWithPassword/);
   assert.match(page, /getProfile\(data.session.user.id\)/);
   assert.match(page, /navigate\("\/dashboard\?highlight=ignition"/);

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 const read = name => readFileSync(new URL("../" + name, import.meta.url), "utf8");
 const tab = read("src/components/admin/ignition-claims-tab.tsx");
-const migration = read("supabase/migrations/20261105165000_secure_ignition_admin_email_campaigns.sql");
+const migration = read("supabase/migrations/20261105143347_secure_ignition_admin_email_campaigns.sql");
 const worker = read("workers/email-worker.mjs");
 const admin = read("src/pages/super-admin.tsx");
 
