@@ -72,6 +72,16 @@ function formatDate(value:string|null,withTime=false):string {
     ...(withTime ? {hour:"2-digit",minute:"2-digit"} : {})}).format(d);
 }
 
+// Supabase PostgREST errors are plain objects, not necessarily instances of Error.
+function ignitionVerificationError(err:unknown):string {
+  const detail = err && typeof err==="object" && "message" in err &&
+    typeof err.message==="string" ? err.message.trim() : "";
+  if (detail==="El jugador debe confirmar su email antes de validar") {
+    return "El jugador todavía no confirmó su correo. En Super Admin → Usuarios, abre su ficha y usa «Reenviar confirmación». Después de que confirme el enlace recibido, vuelve a validar su vinculación.";
+  }
+  return detail || "No se recibió el detalle del error. Comprueba la conexión y vuelve a intentarlo.";
+}
+
 export function IgnitionClaimsTab(){
   const [campaignKey,setCampaignKey]=useState("ignition-2026-11-welcome");
   const [subject,setSubject]=useState(defaultSubject("ignition-2026-11-welcome"));
@@ -222,7 +232,7 @@ export function IgnitionClaimsTab(){
       setMessage("✅ Vinculación validada. La bienvenida se preparará automáticamente solo si el correo está confirmado y la configuración está activa.");
       await refresh(campaignKey);
     }catch(err){
-      setMessage("❌ No se pudo validar: "+(err instanceof Error?err.message:"Error desconocido"));
+      setMessage("❌ No se pudo validar: "+ignitionVerificationError(err));
     }finally{setValidatingId(null)}
   }
   function changeCampaign(key:string){
