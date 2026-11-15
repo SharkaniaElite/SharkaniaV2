@@ -57,3 +57,14 @@ test("Newsletter keeps existing admin RPC and does not send from this change", (
   assert.match(admin, /p_test_email: isTestMode \? testEmail : null/);
   assert.match(admin, /if \(!isTestMode\)/);
 });
+
+test("Ignition validation shows PostgREST plain-object errors and explains unconfirmed invitation", () => {
+  assert.match(tab, /function ignitionVerificationError\(err:unknown\):string/);
+  assert.match(tab, /"message" in err/);
+  assert.match(tab, /typeof err\.message==="string"/);
+  assert.match(tab, /El jugador debe confirmar su email antes de validar/);
+  assert.match(tab, /En Super Admin → Usuarios/);
+  assert.match(tab, /Reenviar confirmación/);
+  assert.match(tab, /ignitionVerificationError\(err\)/);
+  assert.match(tab, /rpc\("verify_ignition_pending_player"/);
+});
