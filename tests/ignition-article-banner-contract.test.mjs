@@ -44,6 +44,7 @@ test("Editorial ads use 970×250 desktop and 640×200 mobile without distorting 
   assert.match(banner, /banner.width === 640 && banner.height === 200/);
   assert.match(banner, /shark-article-ad-breakout/);
   assert.match(defaults, /width: 970, height: 250, label: "Ignition Poker · Liga SHARKANIA · PC"/);
+  assert.match(defaults, /final: \{\s*enabled: true,\s*desktop: \{ src: "", href: "", width: 970, height: 250, label: "ClubGG · Latin Allin Póker · PC"/);
   assert.match(defaults, /width: 640, height: 200, label: "Ignition Poker · Liga SHARKANIA · móvil"/);
   assert.match(defaults, /ignition_article_mid: BannerSlotConfig/);
   assert.match(defaults, /ignition_article_final: BannerSlotConfig/);
@@ -56,6 +57,23 @@ test("Editorial ads use 970×250 desktop and 640×200 mobile without distorting 
   assert.match(admin, /expectedWidth = side === "desktop" \? 970 : 640/);
   assert.match(admin, /expectedHeight = side === "desktop" \? 250 : 200/);
   assert.match(admin, /validateRemoteBanner/);
+});
+
+test("Independent admin toggles retain media configurations and preserve editorial exceptions", () => {
+  const defaults = read("src/lib/api/site-settings.ts");
+  const banner = read("src/components/blog/wpt-banner.tsx");
+  const admin = read("src/pages/super-admin.tsx");
+  const article = read("src/pages/blog-post.tsx");
+  assert.match(defaults, /enabled\?: boolean/);
+  assert.match(defaults, /enabled: data\.value\.slots\[key\]\.enabled/);
+  assert.match(banner, /if \(slotCfg\.enabled === false\) return null/);
+  assert.match(admin, /aria-checked=\{value\.enabled !== false\}/);
+  assert.match(admin, /onChange\(\{ \.\.\.value, enabled: value\.enabled === false \}\)/);
+  assert.match(admin, /Banner editorial intermedio · Liga SHARKANIA \/ Ignition/);
+  assert.match(admin, /Banner editorial final · ClubGG \/ Latin Allin Póker/);
+  assert.match(article, /post\.category === "Promociones" \? <PartnerPromotionPanel/);
+  assert.match(article, /post\.custom_banner_mid_src \? <ArticleImageBanner/);
+  assert.match(article, /post\.custom_banner_final_src \? <ArticleImageBanner/);
 });
 
 test("Editorial reading improvements remain isolated from forms, leagues, and ELO", () => {
