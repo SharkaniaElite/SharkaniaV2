@@ -43,8 +43,8 @@ test("Editorial ads use 970×250 desktop and 640×200 mobile without distorting 
   assert.match(banner, /banner.width === 970 && banner.height === 250/);
   assert.match(banner, /banner.width === 640 && banner.height === 200/);
   assert.match(banner, /shark-article-ad-breakout/);
-  assert.match(defaults, /width: 970, height: 250, label: "Banner artículo final"/);
-  assert.match(defaults, /width: 640, height: 200, label: "Banner artículo final móvil"/);
+  assert.match(defaults, /width: 970, height: 250, label: "Ignition Poker · Liga SHARKANIA · PC"/);
+  assert.match(defaults, /width: 640, height: 200, label: "Ignition Poker · Liga SHARKANIA · móvil"/);
   assert.match(defaults, /ignition_article_mid: BannerSlotConfig/);
   assert.match(defaults, /ignition_article_final: BannerSlotConfig/);
   assert.match(admin, /Exclusivo Ignition: banner intermedio del artículo/);
