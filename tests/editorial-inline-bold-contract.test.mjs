@@ -12,7 +12,7 @@ test("Editorial paragraphs convert **bold** into React strong without injecting 
   assert.match(source, /<strong key=\{/);
   assert.match(source, /applyInlineStrong\(part, \(chunk\) =>\s*applyGlossaryLinks\(chunk/);
   assert.match(source, /processMarkdownLinksToArray\(text\)/);
-  assert.match(source, /renderText\(match\[1\]\)/);
+  assert.ok(source.includes('renderText(match[1] ?? "")'));
   assert.doesNotMatch(source, /dangerouslySetInnerHTML/);
   assert.match(article, /renderWithLinksAndGlossary\(text, glossaryTerms, alreadyLinked\)/);
   assert.match(article, /renderWithLinks\(text\)/);
