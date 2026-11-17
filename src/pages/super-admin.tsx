@@ -87,14 +87,14 @@ const SLOT_INFO = {
     mobile:  { size: "350×200 px", label: "Mobile Promocional", hint: "Formato para grilla 2x2 en celular." },
   },
   mid: {
-    title: "Banner editorial intermedio · ClubGG (predeterminado)",
-    description: "Aparece dentro de noticias y artículos después del 3er H2. Por defecto usaremos ClubGG · Latin Allin; requiere pieza separada para cada pantalla.",
+    title: "Banner editorial intermedio · Liga SHARKANIA / Ignition",
+    description: "Se inserta después del tercer subtítulo H2. Predeterminado: Liga SHARKANIA en Ignition Poker. Puedes ocultarlo sin borrar las imágenes.",
     desktop: { size: "970×250 px", label: "Billboard editorial PC", hint: "Exporta exactamente 970×250 px; no reutilices imágenes 16:9." },
     mobile:  { size: "640×200 px", label: "Billboard editorial móvil", hint: "Exporta exactamente 640×200 px, distinto al diseño PC." },
   },
   final: {
-    title: "Banner editorial final · Ignition (predeterminado)",
-    description: "Aparece al terminar noticias y artículos. Por defecto usaremos Ignition · Liga SHARKANIA; requiere pieza separada para cada pantalla.",
+    title: "Banner editorial final · ClubGG / Latin Allin Póker",
+    description: "Se inserta al final del artículo. Predeterminado: ClubGG · Latin Allin Póker. Puedes ocultarlo sin borrar las imágenes.",
     desktop: { size: "970×250 px", label: "Billboard editorial PC", hint: "Exporta exactamente 970×250 px; no reutilices imágenes 16:9." },
     mobile:  { size: "640×200 px", label: "Billboard editorial móvil", hint: "Exporta exactamente 640×200 px, distinto al diseño PC." },
   },
@@ -232,6 +232,26 @@ function BannerSlotEditor({
           <h3 className="text-sk-md font-bold text-sk-text-1">{info.title}</h3>
         </div>
         <p className="text-sk-xs text-sk-text-3">{info.description}</p>
+        {(slotKey === "mid" || slotKey === "final") && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sk-border-2 bg-sk-bg-1 px-3 py-3">
+            <div>
+              <p className="text-xs font-bold text-sk-text-1">Mostrar este banner en los artículos</p>
+              <p className="text-[11px] text-sk-text-3">Apagarlo no elimina imágenes, destinos ni fechas de revisión. Guarda los cambios para aplicar.</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-label={`Mostrar ${info.title}`}
+              aria-checked={value.enabled !== false}
+              onClick={() => onChange({ ...value, enabled: value.enabled === false })}
+              className={cn("flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors",
+                value.enabled !== false ? "bg-sk-accent text-sk-bg-0" : "bg-sk-bg-3 text-sk-text-3 border border-sk-border-3")}
+            >
+              <span className={cn("inline-block h-2 w-2 rounded-full", value.enabled !== false ? "bg-sk-bg-0" : "bg-sk-text-3")} />
+              {value.enabled !== false ? "Activado" : "Desactivado"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className={`grid gap-0 ${sides.length > 1 ? "md:grid-cols-2" : "grid-cols-1"}`}>
