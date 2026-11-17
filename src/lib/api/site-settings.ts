@@ -81,12 +81,12 @@ export const DEFAULT_BANNERS: BannersConfig = {
     grid_3: { desktop: null, mobile: null },
     grid_4: { desktop: null, mobile: null },
     mid: {
-      desktop: { src: "", href: "", width: 970, height: 250, label: "Banner artículo intermedio" },
-      mobile: { src: "", href: "", width: 640, height: 200, label: "Banner artículo intermedio móvil" },
+      desktop: { src: "", href: "", width: 970, height: 250, label: "ClubGG · Latin Allin Póker · PC", partner_id: "latinallin" },
+      mobile: { src: "", href: "", width: 640, height: 200, label: "ClubGG · Latin Allin Póker · móvil", partner_id: "latinallin" },
     },
     final: {
-      desktop: { src: "", href: "", width: 970, height: 250, label: "Banner artículo final" },
-      mobile: { src: "", href: "", width: 640, height: 200, label: "Banner artículo final móvil" },
+      desktop: { src: "", href: "", width: 970, height: 250, label: "Ignition Poker · Liga SHARKANIA · PC", partner_id: "ignition" },
+      mobile: { src: "", href: "", width: 640, height: 200, label: "Ignition Poker · Liga SHARKANIA · móvil", partner_id: "ignition" },
     },
     ignition_article_mid: {
       desktop: { src: "", href: "", width: 970, height: 250, label: "Ignition artículo medio PC", partner_id: "ignition" },
