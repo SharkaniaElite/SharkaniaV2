@@ -8,7 +8,7 @@ test("Editorial paragraphs convert **bold** into React strong without injecting 
   const source = read("src/lib/render-inline-links.tsx");
   const article = read("src/pages/blog-post.tsx");
   assert.match(source, /function applyInlineStrong\(/);
-  assert.match(source, /strongPattern = \/\\\*\\\*\(\[\^\*\]\+\)\\\*\\\*\/g/);
+  assert.ok(source.includes(String.raw`const strongPattern = /\*\*([^*]+)\*\*/g;`));
   assert.match(source, /<strong key=\{/);
   assert.match(source, /applyInlineStrong\(part, \(chunk\) =>\s*applyGlossaryLinks\(chunk/);
   assert.match(source, /processMarkdownLinksToArray\(text\)/);
