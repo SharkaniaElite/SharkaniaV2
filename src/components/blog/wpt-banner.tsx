@@ -18,6 +18,8 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
   const isUS = countryCode === "US"; // 🇺🇸 Condición mágica
 
   const slotCfg  = banners.slots[slot];
+  // Las creatividades permanecen guardadas al desactivar cada espacio desde Super Admin.
+  if (slotCfg.enabled === false) return null;
   const defaultBonusCode = banners.bonusCode;
   // Creatividades históricas 'us_src/us_href' no tienen verificación propia.
   // No anunciar a usuarios de EE. UU. hasta validar oferta y elegibilidad.
