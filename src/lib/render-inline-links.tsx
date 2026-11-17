@@ -89,7 +89,7 @@ function applyInlineStrong(
     }
     output.push(
       <strong key={`${keyPrefix}-strong-${match.index}`} className="font-semibold text-sk-text-1">
-        {renderText(match[1])}
+        {renderText(match[1] ?? "")}
       </strong>
     );
     cursor = match.index + match[0].length;
