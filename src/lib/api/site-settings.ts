@@ -22,6 +22,8 @@ export interface BannerConfig {
 }
 
 export interface BannerSlotConfig {
+  // Permite activar/desactivar banners sin perder creatividades ni enlaces.
+  enabled?: boolean;
   desktop: BannerConfig | null;
   mobile: BannerConfig | null;
 }
@@ -81,12 +83,14 @@ export const DEFAULT_BANNERS: BannersConfig = {
     grid_3: { desktop: null, mobile: null },
     grid_4: { desktop: null, mobile: null },
     mid: {
-      desktop: { src: "", href: "", width: 970, height: 250, label: "ClubGG · Latin Allin Póker · PC", partner_id: "latinallin" },
-      mobile: { src: "", href: "", width: 640, height: 200, label: "ClubGG · Latin Allin Póker · móvil", partner_id: "latinallin" },
-    },
-    final: {
+      enabled: true,
       desktop: { src: "", href: "", width: 970, height: 250, label: "Ignition Poker · Liga SHARKANIA · PC", partner_id: "ignition" },
       mobile: { src: "", href: "", width: 640, height: 200, label: "Ignition Poker · Liga SHARKANIA · móvil", partner_id: "ignition" },
+    },
+    final: {
+      enabled: true,
+      desktop: { src: "", href: "", width: 970, height: 250, label: "ClubGG · Latin Allin Póker · PC", partner_id: "latinallin" },
+      mobile: { src: "", href: "", width: 640, height: 200, label: "ClubGG · Latin Allin Póker · móvil", partner_id: "latinallin" },
     },
     ignition_article_mid: {
       desktop: { src: "", href: "", width: 970, height: 250, label: "Ignition artículo medio PC", partner_id: "ignition" },
@@ -120,6 +124,7 @@ export async function getBannersConfig(): Promise<BannersConfig> {
       const key = k as keyof BannersConfig["slots"];
       if (data.value?.slots?.[key]) {
         mergedSlots[key] = {
+          enabled: data.value.slots[key].enabled ?? DEFAULT_BANNERS.slots[key].enabled ?? true,
           desktop: data.value.slots[key].desktop ?? DEFAULT_BANNERS.slots[key].desktop,
           mobile: data.value.slots[key].mobile ?? DEFAULT_BANNERS.slots[key].mobile,
         };
