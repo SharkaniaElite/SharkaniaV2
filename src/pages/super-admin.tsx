@@ -87,28 +87,28 @@ const SLOT_INFO = {
     mobile:  { size: "350×200 px", label: "Mobile Promocional", hint: "Formato para grilla 2x2 en celular." },
   },
   mid: {
-    title: "Banner Blog: Medio",
-    description: "Aparece dentro del artículo después del 3er título H2. Exportar imagen independiente para cada dispositivo.",
-    desktop: { size: "728×90 px", label: "Banner horizontal", hint: "Exporta una creatividad nativa de 728×90 px." },
-    mobile:  { size: "320×100 px", label: "Banner móvil", hint: "Exporta otra creatividad nativa de 320×100 px." },
+    title: "Banner editorial intermedio · ClubGG (predeterminado)",
+    description: "Aparece dentro de noticias y artículos después del 3er H2. Por defecto usaremos ClubGG · Latin Allin; requiere pieza separada para cada pantalla.",
+    desktop: { size: "970×250 px", label: "Billboard editorial PC", hint: "Exporta exactamente 970×250 px; no reutilices imágenes 16:9." },
+    mobile:  { size: "640×200 px", label: "Billboard editorial móvil", hint: "Exporta exactamente 640×200 px, distinto al diseño PC." },
   },
   final: {
-    title: "Banner Blog: Final",
-    description: "Aparece al terminar el contenido del artículo. Exportar imagen independiente para cada dispositivo.",
-    desktop: { size: "728×90 px", label: "Banner horizontal", hint: "Exporta una creatividad nativa de 728×90 px." },
-    mobile:  { size: "320×100 px", label: "Banner móvil", hint: "Exporta otra creatividad nativa de 320×100 px." },
+    title: "Banner editorial final · Ignition (predeterminado)",
+    description: "Aparece al terminar noticias y artículos. Por defecto usaremos Ignition · Liga SHARKANIA; requiere pieza separada para cada pantalla.",
+    desktop: { size: "970×250 px", label: "Billboard editorial PC", hint: "Exporta exactamente 970×250 px; no reutilices imágenes 16:9." },
+    mobile:  { size: "640×200 px", label: "Billboard editorial móvil", hint: "Exporta exactamente 640×200 px, distinto al diseño PC." },
   },
   ignition_article_mid: {
     title: "Exclusivo Ignition: banner intermedio del artículo",
     description: "Solo en la noticia de Liga SHARKANIA / Ignition. Si faltan creatividades revisadas en ambos tamaños, aparece el diseño de marca integrado.",
-    desktop: { size: "728×90 px", label: "Ignition PC", hint: "Creatividad original 728×90 px; marca Ignition, condiciones verificadas." },
-    mobile: { size: "320×100 px", label: "Ignition móvil", hint: "Creatividad original 320×100 px; no estirar la versión PC." },
+    desktop: { size: "970×250 px", label: "Ignition PC", hint: "Creatividad original 970×250 px; marca Ignition, condiciones verificadas." },
+    mobile: { size: "640×200 px", label: "Ignition móvil", hint: "Creatividad original 640×200 px; no estirar la versión PC." },
   },
   ignition_article_final: {
     title: "Exclusivo Ignition: banner final del artículo",
     description: "Solo en la noticia de Liga SHARKANIA / Ignition. No sustituye los banners globales de otros artículos.",
-    desktop: { size: "728×90 px", label: "Ignition PC", hint: "Creatividad original 728×90 px; marca Ignition, condiciones verificadas." },
-    mobile: { size: "320×100 px", label: "Ignition móvil", hint: "Creatividad original 320×100 px; no estirar la versión PC." },
+    desktop: { size: "970×250 px", label: "Ignition PC", hint: "Creatividad original 970×250 px; marca Ignition, condiciones verificadas." },
+    mobile: { size: "640×200 px", label: "Ignition móvil", hint: "Creatividad original 640×200 px; no estirar la versión PC." },
   },
   sidebar: {
     title: "Banner Sidebar",
@@ -133,6 +133,7 @@ function BannerSlotEditor({
 }) {
   const info = SLOT_INFO[slotKey];
   const [uploading, setUploading] = useState<string | null>(null);
+  const isArticleSlot = ["mid", "final", "ignition_article_mid", "ignition_article_final"].includes(slotKey);
 
   const updateSide = (side: "desktop" | "mobile", field: keyof import("../lib/api/site-settings").BannerConfig, val: string | number) => {
     const current = value[side] ?? {
@@ -149,9 +150,9 @@ function BannerSlotEditor({
     setUploading(`${side}-${field}`);
     try {
       // Solo para banners de artículos: validar tamaño real antes de Storage.
-      if (["mid", "final", "ignition_article_mid", "ignition_article_final"].includes(slotKey) && (field === "src" || field === "us_src")) {
-        const expectedWidth = side === "desktop" ? 728 : 320;
-        const expectedHeight = side === "desktop" ? 90 : 100;
+      if (isArticleSlot && (field === "src" || field === "us_src")) {
+        const expectedWidth = side === "desktop" ? 970 : 640;
+        const expectedHeight = side === "desktop" ? 250 : 200;
         const bitmap = await createImageBitmap(file);
         const actualWidth = bitmap.width;
         const actualHeight = bitmap.height;
@@ -174,7 +175,17 @@ function BannerSlotEditor({
       const { data } = supabase.storage.from('blog_images').getPublicUrl(`banners/${fileName}`);
       
       // Actualizar el valor del input automáticamente
-      updateSide(side, field, data.publicUrl);
+      if (isArticleSlot && field === "src") {
+        // Guardar en la misma operación imagen + dimensiones reales verificadas.
+        const current = value[side] ?? { src: "", href: "", width: 0, height: 0, label: "" };
+        onChange({ ...value, [side]: {
+          ...current, src: data.publicUrl,
+          width: side === "desktop" ? 970 : 640,
+          height: side === "desktop" ? 250 : 200,
+        } });
+      } else {
+        updateSide(side, field, data.publicUrl);
+      }
     } catch (err: any) {
       alert("Error subiendo la imagen: " + err.message);
     } finally {
@@ -267,6 +278,12 @@ function BannerSlotEditor({
                 </div>
               )}
 
+              {isArticleSlot && banner?.src && (banner.width !== (side === "desktop" ? 970 : 640) || banner.height !== (side === "desktop" ? 250 : 200)) && (
+                <p role="status" className="mb-3 rounded border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-200">
+                  Creatividad antigua o de formato incorrecto ({banner.width}×{banner.height}). Se muestra sin deformar mientras subes una nueva imagen nativa de {side === "desktop" ? "970×250" : "640×200"} px.
+                </p>
+              )}
+
               <div className="space-y-3">
                 <div>
                   <label className="font-mono text-[10px] uppercase tracking-wide text-sk-text-3 mb-1.5 flex items-center gap-1.5">
@@ -287,7 +304,7 @@ function BannerSlotEditor({
                     <div className="relative shrink-0 w-10">
                       <input
                         type="file"
-                        accept="image/*"
+                        accept={isArticleSlot ? "image/png,image/jpeg,image/webp" : "image/*"}
                         onChange={(e) => handleImageUpload(e, side, "src")}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
                         disabled={uploading === `${side}-src`}
@@ -314,10 +331,24 @@ function BannerSlotEditor({
                   />
                 </div>
 
-                {(slotKey === "ignition_article_mid" || slotKey === "ignition_article_final") && (
+                {isArticleSlot && (
                   <div className="mt-3 p-3 rounded-lg border border-orange-500/25 bg-orange-500/5 space-y-3">
-                    <h4 className="text-[11px] font-bold text-orange-200">Revisión editorial del anuncio · Ignition</h4>
-                    <p className="text-[11px] text-sk-text-3">Para activar ambos tamaños se requiere enlace a condiciones oficiales, revisión vigente y creatividades de Ignition. Si falta alguno, se muestra el diseño informativo de respaldo.</p>
+                    <h4 className="text-[11px] font-bold text-orange-200">Revisión editorial del banner</h4>
+                    {(slotKey === "mid" || slotKey === "final") && (
+                      <label className="block text-[10px] text-sk-text-3">
+                        Aliado promocionado
+                        <select value={banner?.partner_id ?? ""}
+                          onChange={e => updateSide(side, "partner_id", e.target.value)}
+                          className="mt-1 w-full rounded border border-sk-border-2 bg-sk-bg-0 p-2 text-sk-xs text-sk-text-1">
+                          <option value="">Selecciona el aliado</option>
+                          <option value="latinallin">ClubGG · Latin Allin Póker</option>
+                          <option value="ignition">Ignition Poker · Liga SHARKANIA</option>
+                          <option value="coinpoker">CoinPoker</option>
+                          <option value="wptglobal">WPT Global</option>
+                        </select>
+                      </label>
+                    )}
+                    <p className="text-[11px] text-sk-text-3">Para publicar se requiere información revisada, enlace a condiciones y dos creatividades nativas: 970×250 en PC y 640×200 en móvil. Se conservan los formatos anteriores hasta reemplazarlos.</p>
                     <div className="grid grid-cols-2 gap-3">
                       <label className="text-[10px] text-sk-text-3">Revisado el (Chile)
                         <input type="date" value={banner?.verified_on ?? ""}
