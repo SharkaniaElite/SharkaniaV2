@@ -31,19 +31,21 @@ test("Article exclusivity also suppresses global top strips and floating ads", (
   assert.match(floating, /location\.pathname === "\/noticias\/liga-sharkania-noviembre-2026-fechas-puntos-premios-ignition"/);
 });
 
-test("Desktop and mobile article creatives use native non-deforming frames", () => {
+test("Editorial ads use 970×250 desktop and 640×200 mobile without distorting legacy images", () => {
   const ads = read("src/components/blog/article-ads.css");
   const defaults = read("src/lib/api/site-settings.ts");
   const banner = read("src/components/blog/wpt-banner.tsx");
   const admin = read("src/pages/super-admin.tsx");
-  assert.match(ads, /aspect-ratio:728\/90/);
-  assert.match(ads, /aspect-ratio:320\/100/);
-  assert.match(ads, /object-fit:contain/);
-  assert.match(banner, /aspect-ratio:728\/90/);
-  assert.match(banner, /aspect-ratio:320\/100/);
-  assert.match(banner, /objectFit: "contain"/);
-  assert.match(defaults, /width: 728, height: 90, label: "Banner artículo final"/);
-  assert.match(defaults, /width: 320, height: 100, label: "Banner artículo final móvil"/);
+  assert.match(ads, /aspect-ratio:970\s*\/\s*250/);
+  assert.match(ads, /aspect-ratio:640\/200/);
+  assert.match(ads, /object-fit:cover/);
+  assert.match(ads, /shark-article-ad-legacy/);
+  assert.match(banner, /banner.width === 970 && banner.height === 250/);
+  assert.match(banner, /banner.width === 640 && banner.height === 200/);
+  assert.match(banner, /shark-article-ad-breakout/);
+  assert.match(defaults, /width: 970, height: 250, label: "Ignition Poker · Liga SHARKANIA · PC"/);
+  assert.match(defaults, /final: \{\s*enabled: true,\s*desktop: \{ src: "", href: "", width: 970, height: 250, label: "ClubGG · Latin Allin Póker · PC"/);
+  assert.match(defaults, /width: 640, height: 200, label: "Ignition Poker · Liga SHARKANIA · móvil"/);
   assert.match(defaults, /ignition_article_mid: BannerSlotConfig/);
   assert.match(defaults, /ignition_article_final: BannerSlotConfig/);
   assert.match(admin, /Exclusivo Ignition: banner intermedio del artículo/);
@@ -52,8 +54,26 @@ test("Desktop and mobile article creatives use native non-deforming frames", () 
   assert.match(admin, /value=\{banner\?\.review_by \?\? ""\}/);
   assert.match(admin, /value=\{banner\?\.source_url \?\? ""\}/);
   assert.match(admin, /createImageBitmap\(file\)/);
-  assert.match(admin, /expectedWidth = side === "desktop" \? 728 : 320/);
-  assert.match(admin, /expectedHeight = side === "desktop" \? 90 : 100/);
+  assert.match(admin, /expectedWidth = side === "desktop" \? 970 : 640/);
+  assert.match(admin, /expectedHeight = side === "desktop" \? 250 : 200/);
+  assert.match(admin, /validateRemoteBanner/);
+});
+
+test("Independent admin toggles retain media configurations and preserve editorial exceptions", () => {
+  const defaults = read("src/lib/api/site-settings.ts");
+  const banner = read("src/components/blog/wpt-banner.tsx");
+  const admin = read("src/pages/super-admin.tsx");
+  const article = read("src/pages/blog-post.tsx");
+  assert.match(defaults, /enabled\?: boolean/);
+  assert.match(defaults, /enabled: data\.value\.slots\[key\]\.enabled/);
+  assert.match(banner, /if \(slotCfg\.enabled === false\) return null/);
+  assert.match(admin, /aria-checked=\{value\.enabled !== false\}/);
+  assert.match(admin, /onChange\(\{ \.\.\.value, enabled: value\.enabled === false \}\)/);
+  assert.match(admin, /Banner editorial intermedio · Liga SHARKANIA \/ Ignition/);
+  assert.match(admin, /Banner editorial final · ClubGG \/ Latin Allin Póker/);
+  assert.match(article, /post\.category === "Promociones" \? <PartnerPromotionPanel/);
+  assert.match(article, /post\.custom_banner_mid_src \? <ArticleImageBanner/);
+  assert.match(article, /post\.custom_banner_final_src \? <ArticleImageBanner/);
 });
 
 test("Editorial reading improvements remain isolated from forms, leagues, and ELO", () => {
