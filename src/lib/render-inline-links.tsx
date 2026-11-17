@@ -42,9 +42,10 @@ export function renderWithLinksAndGlossary(
       continue;
     }
 
-    // For plain text, search for glossary terms
-    const withGlossary = applyGlossaryLinks(part, glossaryTerms, alreadyLinked, i);
-    finalParts.push(...withGlossary);
+    // Inline Markdown strong (**texto**) is parsed on text-only segments,
+    // preserving any explicit link and automatic glossary tooltip.
+    finalParts.push(...applyInlineStrong(part, (chunk) =>
+      applyGlossaryLinks(chunk, glossaryTerms, alreadyLinked, i), `blog-${i}`));
   }
 
   if (finalParts.length === 0) return text;
@@ -57,9 +58,45 @@ export function renderWithLinksAndGlossary(
 
 function processMarkdownLinks(text: string): ReactNode {
   const parts = processMarkdownLinksToArray(text);
-  if (parts.length === 0) return text;
-  if (parts.length === 1 && typeof parts[0] === "string") return text;
-  return <>{parts}</>;
+  const formatted = parts.flatMap((part, index) =>
+    typeof part === "string"
+      ? applyInlineStrong(part, (chunk) => [chunk], `text-${index}`)
+      : [part]
+  );
+  if (formatted.length === 0) return text;
+  if (formatted.length === 1 && typeof formatted[0] === "string") return text;
+  return <>{formatted}</>;
+}
+
+/**
+ * Minimal, safe inline Markdown formatting for editorial text.
+ * Parses **bold** into React <strong> elements; no HTML interpretation.
+ * Called after link parsing so bold is never inserted into link attributes.
+ */
+function applyInlineStrong(
+  text: string,
+  renderText: (chunk: string) => ReactNode[],
+  keyPrefix: string
+): ReactNode[] {
+  const strongPattern = /\*\*([^*]+)\*\*/g;
+  const output: ReactNode[] = [];
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = strongPattern.exec(text)) !== null) {
+    if (match.index > cursor) {
+      output.push(...renderText(text.slice(cursor, match.index)));
+    }
+    output.push(
+      <strong key={`${keyPrefix}-strong-${match.index}`} className="font-semibold text-sk-text-1">
+        {renderText(match[1])}
+      </strong>
+    );
+    cursor = match.index + match[0].length;
+  }
+
+  if (cursor < text.length) output.push(...renderText(text.slice(cursor)));
+  return output.length ? output : renderText(text);
 }
 
 function processMarkdownLinksToArray(text: string): (string | ReactNode)[] {
