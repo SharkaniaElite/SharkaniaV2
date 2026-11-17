@@ -194,6 +194,26 @@ function BannerSlotEditor({
     }
   };
 
+  // Al pegar una URL (en vez de subir un archivo) comprobar las dimensiones
+  // reales antes de marcar la creatividad como nativa.
+  const validateRemoteBanner = (side: "desktop" | "mobile", src: string) => {
+    if (!isArticleSlot || !src || value[side]?.src !== src) return;
+    const expectedWidth = side === "desktop" ? 970 : 640;
+    const expectedHeight = side === "desktop" ? 250 : 200;
+    const image = new window.Image();
+    image.onload = () => {
+      if (image.naturalWidth !== expectedWidth || image.naturalHeight !== expectedHeight) {
+        alert(`La URL de ${side} contiene una imagen de ${image.naturalWidth}×${image.naturalHeight} px. Usa ${expectedWidth}×${expectedHeight} px; la imagen antigua se seguirá mostrando sin deformación.`);
+        return;
+      }
+      const current = value[side];
+      if (!current || current.src !== src) return;
+      onChange({ ...value, [side]: { ...current, width: expectedWidth, height: expectedHeight } });
+    };
+    image.onerror = () => alert("No se pudo comprobar la imagen remota. Verifica que la URL sea pública y accesible por HTTPS.");
+    image.src = src;
+  };
+
   const resetSide = (side: "desktop" | "mobile") => {
     const def = DEFAULT_BANNERS.slots[slotKey][side];
     onChange({ ...value, [side]: def });
@@ -298,6 +318,7 @@ function BannerSlotEditor({
                       type="url"
                       value={banner?.src ?? ""}
                       onChange={(e) => updateSide(side, "src", e.target.value)}
+                      onBlur={(e) => validateRemoteBanner(side, e.currentTarget.value)}
                       placeholder={`https://wptpartners.ck-cdn.com/tn/serve/?cid=XXXXXX`}
                       className="w-full bg-sk-bg-0 border border-sk-border-2 rounded-md py-2 px-3 text-sk-xs text-sk-text-1 font-mono focus:outline-none focus:border-sk-accent placeholder:text-sk-text-4"
                     />
