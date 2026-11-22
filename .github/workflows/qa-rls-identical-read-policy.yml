@@ -1,0 +1,35 @@
+name: QA identical read policy cleanup (NO DEPLOY)
+on:
+  push:
+    branches: [qa/rls-identical-read-policy-cleanup-2026-11-22]
+permissions:
+  contents: read
+jobs:
+  policy-equivalence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: qa_disposable_only
+          POSTGRES_DB: qa_rls
+        ports: ["25432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d qa_rls"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "25432"
+      PGDATABASE: qa_rls
+      PGUSER: postgres
+      PGPASSWORD: qa_disposable_only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Test exact candidate and rollback with synthetic tables only
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == true && "$PGHOST" == 127.0.0.1 && "$PGPORT" == 25432 && "$PGDATABASE" == qa_rls ]]
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/rls-identical-read-policy.qa-only.sql
