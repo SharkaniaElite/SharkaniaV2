@@ -114,21 +114,21 @@ export function NoticiasPage() {
               {featuredPost && (
                 <Link 
                   to={getEditorialPath(featuredPost.category, featuredPost.slug)} 
-                  className="arena-content-card arena-news-featured group md:col-span-3 flex flex-col md:flex-row transition-all duration-300"
+                  className="arena-content-card arena-news-featured group md:col-span-3 transition-all duration-300"
                 >
-                  <div className="md:w-2/3 h-64 md:h-[450px] relative overflow-hidden bg-sk-bg-3">
+                  <div className="arena-news-featured-media relative overflow-hidden bg-sk-bg-3">
                     {featuredPost.image_thumbnail && (
                       <img 
                         src={featuredPost.image_thumbnail} 
                         alt={featuredPost.title} 
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        className="absolute inset-0 block w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-sk-bg-2 via-transparent to-transparent opacity-90" />
                   </div>
                   
-                  <div className="md:w-1/3 p-8 md:p-12 flex flex-col justify-center relative z-10 bg-sk-bg-2">
-                    <div className="flex items-center gap-3 mb-4">
+                  <div className="arena-news-featured-copy flex flex-col justify-center relative z-10 bg-sk-bg-2">
+                    <div className="flex flex-wrap items-center gap-3 mb-4">
                       <span className={cn(
                         "px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded flex items-center gap-1.5",
                         featuredPost.category.toLowerCase() === 'promociones' ? "bg-orange-500 text-white" : 
@@ -143,7 +143,7 @@ export function NoticiasPage() {
                       </span>
                     </div>
                     
-                    <h2 className="text-2xl md:text-4xl font-black text-white leading-tight mb-4 group-hover:text-sk-accent transition-colors">
+                    <h2 className="arena-news-featured-title font-black text-white leading-tight mb-4 group-hover:text-sk-accent transition-colors">
                       {featuredPost.title}
                     </h2>
                     
