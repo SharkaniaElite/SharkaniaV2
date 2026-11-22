@@ -1,0 +1,66 @@
+name: QA credits with real LOCAL Auth (NO DEPLOY)
+on:
+  push:
+    branches: [qa/credits-free-tool-concurrency-2026-11-22]
+    paths: [".github/workflows/qa-credits-real-auth.yml","docs/security/shark-coins-concurrency-2026-11-22.*.sql","tests/fixtures/sharkania-credits-real-auth*"]
+permissions:
+  contents: read
+jobs:
+  local-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "54322"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      QA_SUPABASE_URL: http://127.0.0.1:54321
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Local tooling
+        run: |
+          set -euo pipefail
+          npm ci
+          if ! command -v psql >/dev/null; then sudo apt-get update -qq && sudo apt-get install -y postgresql-client; fi
+      - name: Start unlinked disposable local stack
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/credits-local"
+          cd "$RUNNER_TEMP/credits-local"
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" init
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" start --exclude realtime,storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor,postgres-meta >"$RUNNER_TEMP/credits-start.log" 2>&1
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" status -o env > "$RUNNER_TEMP/credits-local.env"
+          chmod 600 "$RUNNER_TEMP/credits-local.env"
+          api=$(sed -n 's/^API_URL=//p' "$RUNNER_TEMP/credits-local.env" | tr -d '"')
+          [[ "$api" == "$QA_SUPABASE_URL" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "54322" ]]
+          for k in ANON_KEY SERVICE_ROLE_KEY; do
+            v=$(sed -n "s/^$k=//p" "$RUNNER_TEMP/credits-local.env" | tr -d '"')
+            [[ -n "$v" ]]
+            echo "::add-mask::$v"
+            echo "QA_SUPABASE_$k=$v" >> "$GITHUB_ENV"
+          done
+      - name: Exact SQL candidate, rollback and reapply (local only)
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGPORT" == "54322" && "$QA_SUPABASE_URL" == "http://127.0.0.1:54321" ]]
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-credits-real-auth-setup.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/shark-coins-concurrency-2026-11-22.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/shark-coins-concurrency-2026-11-22.ROLLBACK.sql
+          psql -X -v ON_ERROR_STOP=1 -f docs/security/shark-coins-concurrency-2026-11-22.CANDIDATE.sql
+          psql -X -v ON_ERROR_STOP=1 -c "NOTIFY pgrst, 'reload schema';"
+          sleep 2
+      - name: Exercise real local JWT and PostgREST
+        run: node tests/fixtures/sharkania-credits-real-auth-qa.mjs
+      - name: Clean up without backup
+        if: always()
+        run: |
+          cd "$RUNNER_TEMP/credits-local" || exit 0
+          "$GITHUB_WORKSPACE/node_modules/.bin/supabase" stop --no-backup >/dev/null 2>&1 || true
+          rm -f "$RUNNER_TEMP/credits-local.env"
