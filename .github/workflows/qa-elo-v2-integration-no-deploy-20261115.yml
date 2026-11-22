@@ -47,6 +47,7 @@ jobs:
           tests/league-final-cutover-readiness-contract.test.mjs
           tests/ignition-article-banner-contract.test.mjs
           tests/editorial-inline-bold-contract.test.mjs
+          tests/news-featured-layout-contract.test.mjs
       - name: Ensure historic SQL remains versioned and the approved candidate is byte-identical
         run: |
           test "$(find supabase/migrations -maxdepth 1 -name '*.sql' -type f | wc -l | tr -d ' ')" = "55"
