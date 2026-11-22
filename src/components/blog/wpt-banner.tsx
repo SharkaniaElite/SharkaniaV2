@@ -3,6 +3,7 @@ import { useBanners } from "../../hooks/use-banners";
 import { useUserCountry } from "../../hooks/use-geo"; 
 import type { BannerConfig } from "../../lib/api/site-settings";
 import { bannerIsReviewed } from "../../lib/marketing-banner-policy";
+import "./article-ads.css";
 
 type BannerSlot = "mid" | "final" | "sidebar";
 
@@ -17,6 +18,8 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
   const isUS = countryCode === "US"; // 🇺🇸 Condición mágica
 
   const slotCfg  = banners.slots[slot];
+  // Las creatividades permanecen guardadas al desactivar cada espacio desde Super Admin.
+  if (slotCfg.enabled === false) return null;
   const defaultBonusCode = banners.bonusCode;
   // Creatividades históricas 'us_src/us_href' no tienen verificación propia.
   // No anunciar a usuarios de EE. UU. hasta validar oferta y elegibilidad.
@@ -89,57 +92,42 @@ export function WptBanner({ slot, className = "" }: WptBannerProps) {
     );
   }
 
-  // ── Inline (mid / final) ──────────────────────────────────
+  // ── Dos espacios editoriales responsivos: 970×250 / 640×200 ──
   const desktopBanner = !isUS && bannerIsReviewed(slotCfg.desktop) ? slotCfg.desktop : null;
-  const mobileBanner  = !isUS && bannerIsReviewed(slotCfg.mobile) ? slotCfg.mobile : null;
+  const mobileBanner = !isUS && bannerIsReviewed(slotCfg.mobile) ? slotCfg.mobile : null;
   if (!desktopBanner && !mobileBanner) return null;
 
-  const s = slot;
-  const activeBanner = desktopBanner || mobileBanner; // Leemos la config del activo
+  const activeBanner = desktopBanner || mobileBanner;
   const promoContent = renderPromoText(activeBanner);
+  const isNative = (banner: BannerConfig, side: "desktop" | "mobile") =>
+    side === "desktop"
+      ? banner.width === 970 && banner.height === 250
+      : banner.width === 640 && banner.height === 200;
+
+  const renderImage = (banner: BannerConfig, side: "desktop" | "mobile") => (
+    <a key={side} href={getHref(banner)} target="_blank" rel="sponsored noopener noreferrer"
+      aria-label={banner.editorial_title || banner.label || "Publicidad"}
+      className={`shark-article-image-ad shark-article-ad-${side} ${isNative(banner, side) ? "" : "shark-article-ad-legacy"}`}>
+      <img src={getSrc(banner)} alt={banner.editorial_title || banner.label || "Publicidad"}
+        width={banner.width} height={banner.height} loading="lazy" decoding="async" />
+    </a>
+  );
 
   return (
-    <div className={className} style={{ width: "100%", margin: "2.5rem 0" }}>
-      <style>{`
-        .wpt-${s}-label{display:block;font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(113,113,122,0.55);text-align:right;margin-bottom:4px;letter-spacing:0.08em;text-transform:uppercase;line-height:1}
-        .wpt-${s}-a{display:block;width:100%;line-height:0;border-radius:10px;overflow:hidden;outline:1px solid rgba(34,211,238,0.10);transition:outline-color .25s ease,box-shadow .25s ease;background:#0b1520}
-        .wpt-${s}-a:hover{outline-color:rgba(34,211,238,0.30);box-shadow:0 0 28px rgba(34,211,238,0.10)}
-        .wpt-${s}-d{display:block;max-width:728px;aspect-ratio:728/90;margin:0 auto}.wpt-${s}-m{display:none;max-width:320px;aspect-ratio:320/100;margin:0 auto}
-        @media(max-width:767px){.wpt-${s}-d{display:none}.wpt-${s}-m{display:block}}
-        .wpt-${s}-code{display:flex;align-items:center;justify-content:center;margin-top:8px;font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(161,161,170,0.60);line-height:1}
-      `}</style>
-
-      <small className={`wpt-${s}-label`}>Publicidad {isUS && "🇺🇸"}</small>
-
-      {desktopBanner && (
-        <a href={getHref(desktopBanner)} target="_blank" rel="noopener noreferrer sponsored"
-          aria-label={desktopBanner.editorial_title || "Publicidad"} className={`wpt-${s}-a wpt-${s}-d`}>
-          <img src={getSrc(desktopBanner)} alt="Promo"
-            width={728} height={90}
-            style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
-            loading="lazy" />
-        </a>
-      )}
-
-      {mobileBanner && (
-        <a href={getHref(mobileBanner)} target="_blank" rel="noopener noreferrer sponsored"
-          aria-label={mobileBanner.editorial_title || "Publicidad"} className={`wpt-${s}-a wpt-${s}-m`}>
-          <img src={getSrc(mobileBanner)} alt="Promo"
-            width={320} height={100}
-            style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
-            loading="lazy" />
-        </a>
-      )}
-
-      {activeBanner?.source_url && <p className="text-center mt-2 text-[11px] text-sk-text-3">
-        Publicidad revisada · <a href={activeBanner.source_url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-sk-accent">Condiciones oficiales</a>
-      </p>}
-
-      {promoContent && (
-        <p className={`wpt-${s}-code`}>
-          {promoContent}
+    <aside className={`shark-article-ad shark-article-ad-breakout ${className}`}
+      aria-label={slot === "mid" ? "Anuncio intermedio" : "Anuncio al final del artículo"}>
+      <span className="shark-article-ad-label">Publicidad</span>
+      {desktopBanner && renderImage(desktopBanner, "desktop")}
+      {mobileBanner && renderImage(mobileBanner, "mobile")}
+      {activeBanner?.source_url && (
+        <p className="text-center mt-2 text-[11px] text-sk-text-3">
+          Publicidad revisada · <a href={activeBanner.source_url} target="_blank"
+            rel="noopener noreferrer" className="underline underline-offset-2 hover:text-sk-accent">
+            Condiciones oficiales
+          </a>
         </p>
       )}
-    </div>
+      {promoContent && <p className="shark-article-ad-code">{promoContent}</p>}
+    </aside>
   );
 }

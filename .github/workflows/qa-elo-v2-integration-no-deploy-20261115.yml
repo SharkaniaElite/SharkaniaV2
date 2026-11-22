@@ -45,6 +45,8 @@ jobs:
           tests/ignition-existing-account-link-flow.test.mjs
           tests/bcch-admin-quote-contract-qa.mjs
           tests/league-final-cutover-readiness-contract.test.mjs
+          tests/ignition-article-banner-contract.test.mjs
+          tests/editorial-inline-bold-contract.test.mjs
       - name: Ensure historic SQL remains versioned and the approved candidate is byte-identical
         run: |
           test "$(find supabase/migrations -maxdepth 1 -name '*.sql' -type f | wc -l | tr -d ' ')" = "55"
@@ -52,3 +54,5 @@ jobs:
           ! find supabase/migrations -maxdepth 1 -name '20261031_secure_batch_blog_views.sql' | grep -q .
       - name: Compile TypeScript and build frontend without publishing
         run: npm run build
+
+# 2026-11-22: rerun exact candidate after incorporating production editorial changes; no deploy.

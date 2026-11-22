@@ -21,7 +21,7 @@ export function IgnitionBasesBanner({ slot }: { slot: "mid" | "final" }) {
   const desktop = `${path}${slot}-desktop-728x90.svg`;
   const mobile = `${path}${slot}-mobile-320x100.svg`;
   return (
-    <aside className="shark-article-ad" aria-label="Publicidad informativa de Ignition Poker y SHARKANIA">
+    <aside className="shark-article-ad shark-article-ad-breakout" aria-label="Publicidad informativa de Ignition Poker y SHARKANIA">
       <span className="shark-article-ad-label">Publicidad · Ignition Poker</span>
       <a className="shark-article-bases-banner" href="/ignition" rel="sponsored" aria-label="Consultar inscripción y condiciones de Ignition Poker">
         <picture>
@@ -46,28 +46,28 @@ export function IgnitionArticleBanner({ slot }: { slot: "mid" | "final" }) {
   const desktop = config.desktop;
   const mobile = config.mobile;
   const approvedPair = desktop?.partner_id === "ignition" && mobile?.partner_id === "ignition"
-    && desktop.width === 728 && desktop.height === 90
-    && mobile.width === 320 && mobile.height === 100
+    && desktop.width === 970 && desktop.height === 250
+    && mobile.width === 640 && mobile.height === 200
     && bannerIsReviewed(desktop) && bannerIsReviewed(mobile);
 
   if (approvedPair && desktop && mobile) {
     return (
-      <aside className="shark-article-ad" aria-label="Publicidad de Ignition Poker">
+      <aside className="shark-article-ad shark-article-ad-breakout" aria-label="Publicidad de Ignition Poker">
         <span className="shark-article-ad-label">Publicidad · Ignition Poker</span>
         <a className="shark-article-ignition-upload-desktop" href={desktop.href}
           target="_blank" rel="sponsored noopener noreferrer" aria-label={desktop.editorial_title || "Información de Ignition Poker"}>
-          <img src={desktop.src} alt={desktop.editorial_title || "Publicidad de Ignition Poker"} width={728} height={90} loading="lazy" decoding="async" />
+          <img src={desktop.src} alt={desktop.editorial_title || "Publicidad de Ignition Poker"} width={970} height={250} loading="lazy" decoding="async" />
         </a>
         <a className="shark-article-ignition-upload-mobile" href={mobile.href}
           target="_blank" rel="sponsored noopener noreferrer" aria-label={mobile.editorial_title || "Información de Ignition Poker"}>
-          <img src={mobile.src} alt={mobile.editorial_title || "Publicidad de Ignition Poker"} width={320} height={100} loading="lazy" decoding="async" />
+          <img src={mobile.src} alt={mobile.editorial_title || "Publicidad de Ignition Poker"} width={640} height={200} loading="lazy" decoding="async" />
         </a>
       </aside>
     );
   }
 
   return (
-    <aside className="shark-article-ad" aria-label={`Espacio patrocinado por Ignition Poker, ${slot === "mid" ? "intermedio" : "final"}`}>
+    <aside className="shark-article-ad shark-article-ad-breakout" aria-label={`Espacio patrocinado por Ignition Poker, ${slot === "mid" ? "intermedio" : "final"}`}>
       <span className="shark-article-ad-label">Publicidad · Ignition Poker</span>
       <a className="shark-ignition-ad shark-ignition-ad-desktop"
         href="/ignition" rel="sponsored" aria-label="Ignition Poker: información de la Liga SHARKANIA y requisitos para participar">
@@ -107,10 +107,10 @@ export function ArticleImageBanner({ src, href, label }: { src: string; href: st
   } catch { return null; }
   if (!["https:", "http:"].includes(target.protocol) || imageUrl.protocol !== "https:") return null;
   return (
-    <aside className="shark-article-ad">
+    <aside className="shark-article-ad shark-article-ad-breakout">
       <span className="shark-article-ad-label">Publicidad</span>
-      <a className="shark-article-image-ad" href={target.toString()} target="_blank" rel="sponsored noopener noreferrer" aria-label={label}>
-        <img src={imageUrl.toString()} alt={label} loading="lazy" decoding="async" width={728} height={90} />
+      <a className="shark-article-image-ad shark-article-ad-legacy" href={target.toString()} target="_blank" rel="sponsored noopener noreferrer" aria-label={label}>
+        <img src={imageUrl.toString()} alt={label} loading="lazy" decoding="async" />
       </a>
     </aside>
   );

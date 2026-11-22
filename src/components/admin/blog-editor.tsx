@@ -260,13 +260,19 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
       custom_banner_final_href: customBannerFinalHref || null,
     };
 
-    if (postId) {
-      await supabase.from('blog_posts').update(postData).eq('id', postId);
-    } else {
-      await supabase.from('blog_posts').insert([postData]);
+    if ((!!customBannerMidSrc.trim() !== !!customBannerMidHref.trim()) || (!!customBannerFinalSrc.trim() !== !!customBannerFinalHref.trim())) {
+      setLoading(false);
+      alert('Completa la imagen y el destino de cada banner personalizado, o deja ambos campos vacíos.');
+      return;
     }
-    
+    const result = postId
+      ? await supabase.from('blog_posts').update(postData).eq('id', postId).select('id').single()
+      : await supabase.from('blog_posts').insert([postData]).select('id').single();
     setLoading(false);
+    if (result.error || !result.data) {
+      alert('No se pudo guardar el artículo. Revisa los campos e inténtalo nuevamente.');
+      return;
+    }
     if (onSaved) onSaved();
     alert('¡Artículo guardado con éxito!');
   };
@@ -836,6 +842,29 @@ export function BlogEditor({ postId, onSaved }: { postId?: string; onSaved?: () 
           <div>
             <label className="text-xs text-text-3">Etiquetas (separadas por coma)</label>
             <Input className="mt-1 bg-bg-2 border-border" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="GTO, Torneos" />
+            {category === "Promociones" && (
+              <div className="mt-3 space-y-2 rounded-lg border border-border p-3">
+                <p className="text-xs font-semibold text-text-1">Visibilidad editorial en portada</p>
+                <p className="text-[11px] text-text-3">Completa la revisión únicamente tras consultar la fuente oficial. Las promociones sin revisión vigente no aparecen en portada.</p>
+                {([
+                  ["verified-on:", "Fecha de verificación"],
+                  ["review-by:", "Próxima revisión"],
+                  ["starts-on:", "Inicio oficial (opcional)"],
+                  ["official-end:", "Fin oficial (opcional)"],
+                ] as const).map(([prefix, label]) => (
+                  <label key={prefix} className="block text-xs text-text-3">
+                    {label}
+                    <Input type="date" className="mt-1 bg-bg-2 border-border"
+                      value={tags.split(",").map(t => t.trim()).find(t => t.startsWith(prefix))?.slice(prefix.length) || ""}
+                      onChange={e => {
+                        const value = e.target.value;
+                        setTags(previous => [...previous.split(",").map(t => t.trim()).filter(t => t && !t.startsWith(prefix)), ...(value ? [prefix + value] : [])].join(", "));
+                      }} />
+                  </label>
+                ))}
+                <p className="text-[11px] text-text-3">La revisión no se asigna automáticamente y no sustituye la elegibilidad ni las condiciones oficiales.</p>
+              </div>
+            )}
           </div>
 
           <Button 
