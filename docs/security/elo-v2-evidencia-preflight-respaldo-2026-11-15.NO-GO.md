@@ -181,3 +181,37 @@ Una restauración al backup diario más reciente perdería, por sí sola, los ca
 - Confirmación del propietario para gastos y acciones productivas **por separado**. Si no se puede sostener el objetivo cero para operaciones confirmadas, mantener **NO GO** y no reinterpretar el silencio como tolerancia a pérdidas.
 
 **DECISIÓN DE SEGURIDAD: conservar respaldos diarios activos, mantener PITR desactivado y ELO v2 NO GO mientras no exista una vía validada para un corte sin pérdida de operaciones críticas confirmadas.**
+
+
+## 22/11/2026 — Primer respaldo lógico public real cifrado y lectura validada
+
+**Fuente:** salida de PowerShell aportada por el propietario. No se recibió el archivo de datos, la contraseña de PostgreSQL ni la frase secreta de GPG. No se inspeccionaron datos de jugadores. La autorización fue limitada a copia local cifrada para validar recuperación.
+
+| Control | Resultado |
+|---|---|
+| Origen | Sharkania producción mediante Session pooler, servidor PG17.6 |
+| Conexión de diagnóstico previa | TLSv1.3 / TLS_AES_256_GCM_SHA384, sslmode=verify-full, BEGIN READ ONLY y transaction_read_only=on |
+| Cliente | pg_dump 17.11 en imagen existente, PowerShell 5.1, GnuPG 2.5.24 |
+| Nombre | sharkania-public-20261122-103135-415f0884.dump.gpg |
+| Fecha aproximada de inicio (UTC, por nombre del script) | 22/11/2026 10:31:35 UTC |
+| Tamaño | 4.075.302 bytes |
+| SHA-256 del archivo cifrado | BBB0292E18D89B084AAE0739605B8DCEC2FEE5D248C103F757F0444BAD694611 |
+| Códigos informados | pg_dump=0; GPG cifrado=0; GPG descifrado=0; pg_restore lectura=0 |
+| Alcance | Esquema public con datos y definiciones, formato custom, sin --no-owner/--no-acl en exportación |
+| Validación | PASS de creación/cifrado/descifrado y lectura del archivo; NO se restauró una base |
+
+La fuente del script entregado al operador usa pg_dump --format=custom --schema=public --lock-wait-timeout=5s; la salida se transfiere mediante BaseStream hacia GPG, sin archivo SQL intermedio; usa contraseña ingresada localmente con SecureString y enviada al proceso de extracción por stdin. La validación descifra en memoria y ejecuta pg_restore --exit-on-error --file=/dev/null en contenedor sin red. El archivo final se conserva únicamente tras códigos de salida satisfactorios de extracción, cifrado, descifrado y lectura. Esto no garantiza ausencia de restos en la memoria virtual o cachés del sistema sin cifrado de disco.
+
+**Cuidado:** el respaldo es solo public. No incluye datos de auth, metadatos/archivos de storage fuera de public, Vault, esquemas de extensiones ni roles globales como objetos de recuperación integral. Contiene datos reales; mantener custodia local, frase de cifrado separada, nunca publicar en GitHub/chat/CI. Los 4 códigos cero no acreditan restauración, paridad de roles efectiva ni RPO=0. La hora del nombre identifica el inicio aproximado de la operación, no el timestamp exacto del snapshot PostgreSQL ni un punto de corte futuro.
+
+### Próximas comprobaciones, sin duplicar QA05–09
+- Preparar y autorizar ensayo de recuperación de ESTE archivo en entorno local desechable y sin red, usando la imagen PostgreSQL ya descargada. Antes de importar, resolver dependencias de esquemas gestionados y roles con sustitutos locales ficticios o definiciones autorizadas; no usar --no-owner/--no-acl como prueba de paridad plena. No guardar volcado descifrado en disco sin cifrado. No iniciar procesos con claves reales, cron activos, pg_net externo ni SMTP.
+- El procesamiento de datos reales requiere almacenamiento local protegido también durante la restauración (por ejemplo tmpfs, sujeto a memoria/swap y controles efectivos; no dar garantía absoluta de ausencia de rastros en un host sin cifrado). No ejecutar recuperación productiva ni la migración candidata.
+- Comparar el alcance del catálogo recuperado y registros sin PII con una referencia del mismo snapshot cuando esté disponible; los conteos del 15/11 no son una base exacta para el dump del 22/11.
+- Continúan pendientes la recuperación de Auth/Storage/Vault/roles, la preparación de un punto fresco con escrituras congeladas y la validación del objetivo de cero pérdida durante el corte.
+
+### Actualización GitHub: main avanzó desde el último preflight
+Lectura realizada el 22/11: main ahora es 6757c9df6b69ef04981d3a54b0548962214bab9e (dos commits adicionales respecto de 026d02fc29661a8d2d531f1d6e319cf6c35d7ad9). Diff: ocho archivos de banners/editorial/configuración y tests, incluyendo src/pages/super-admin.tsx. Antes de una integración final debe revisarse **solo el delta nuevo**, preservar esos cambios y verificar CI sobre el código exacto candidato; no repetir todas las auditorías. No se modifica main ni se fusiona nada con este registro.
+
+**Decisión:** PASS de respaldo public cifrado y legible; recuperación integral y compatibilidad de corte aún NO certificadas. ELO v2 NO GO.
+
