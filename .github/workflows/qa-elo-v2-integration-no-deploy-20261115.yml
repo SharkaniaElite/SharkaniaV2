@@ -7,6 +7,8 @@ on:
       - release/elo-v2-integrated-review-2026-11-15
     paths:
       - .github/workflows/qa-elo-v2-integration-no-deploy-20261115.yml
+      - package-lock.json
+      - package.json
 
 permissions:
   contents: read
@@ -56,4 +58,4 @@ jobs:
       - name: Compile TypeScript and build frontend without publishing
         run: npm run build
 
-# 2026-11-22: rerun exact candidate after incorporating production editorial changes; no deploy.
+# 2026-11-22: include dependency-only synchronizations in integration CI; no deploy.
