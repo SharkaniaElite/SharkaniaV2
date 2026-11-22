@@ -979,7 +979,29 @@
 .arena-editorial .arena-editorial-controls button[aria-pressed="true"] {
   color:#081b26;background:#5fe2ef;border-color:#5fe2ef
 }
-.arena-editorial .arena-news-featured {min-height:315px}
+/* News featured card: image stretches to the copy without a fixed desktop height.
+   On smaller screens reserve a standalone 16:9 image, then stack the text below. */
+.arena-editorial .arena-news-featured {
+  display:grid;grid-template-columns:minmax(0,1fr);min-height:0;
+  align-items:stretch;
+}
+.arena-editorial .arena-news-featured-media {
+  min-width:0;aspect-ratio:16/9;
+}
+.arena-editorial .arena-news-featured-copy {
+  min-width:0;padding:clamp(20px,3vw,32px);
+}
+.arena-editorial .arena-news-featured-title {
+  font-size:clamp(24px,3vw,30px);overflow-wrap:anywhere;
+}
+@media(min-width:1024px){
+  .arena-editorial .arena-news-featured {
+    grid-template-columns:minmax(0,58fr) minmax(0,42fr);
+  }
+  .arena-editorial .arena-news-featured-media {
+    aspect-ratio:auto;min-height:clamp(320px,34vw,440px);
+  }
+}
 .arena-editorial .arena-tools-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-bottom:45px}
 .arena-editorial .arena-tools-grid > a {min-width:0}
 .arena-editorial .arena-tools-grid > a > .arena-content-card {min-height:315px}
