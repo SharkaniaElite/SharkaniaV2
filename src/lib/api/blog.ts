@@ -43,12 +43,14 @@ export function formatBlogDate(iso: string | null): string {
   });
 }
 
-export async function getBlogPosts(): Promise<BlogPost[]> {
-  const { data, error } = await supabase
+export async function getBlogPosts({ category, limit }: { category?: string; limit?: number } = {}): Promise<BlogPost[]> {
+  let query = supabase
     .from("blog_posts")
     .select("id, slug, title, excerpt, category, read_time, image_thumbnail, image_hero, image_og, tags, published_at, created_at")
-    .eq("published", true)
-    .order("published_at", { ascending: false });
+    .eq("published", true);
+  if (category) query = query.eq("category", category);
+  if (limit !== undefined) query = query.limit(limit);
+  const { data, error } = await query.order("published_at", { ascending: false, nullsFirst: category ? false : undefined });
 
   if (error) throw error;
   return (data ?? []) as BlogPost[];
