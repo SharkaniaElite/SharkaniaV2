@@ -38,6 +38,24 @@ export async function getLeagues(): Promise<LeagueWithClubs[]> {
   })) as LeagueWithClubs[];
 }
 
+// The public directory does not need scoring rules or full administrative rows.
+export type LeagueDirectoryEntry = Pick<League, "id" | "slug" | "name" | "start_date" | "end_date" | "description"> & {
+  league_clubs: Array<{
+    is_primary: boolean;
+    clubs: { name: string; country_code: string | null; banner_url: string | null } | null;
+  }>;
+  league_rooms: Array<{ poker_rooms: { name: string } | null }>;
+};
+
+export async function getLeagueDirectory(): Promise<LeagueDirectoryEntry[]> {
+  const { data, error } = await supabase
+    .from("leagues")
+    .select("id, slug, name, start_date, end_date, description, league_clubs(is_primary, clubs(name, country_code, banner_url)), league_rooms(poker_rooms(name))")
+    .order("start_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as LeagueDirectoryEntry[];
+}
+
 export async function getLeagueById(
   id: string
 ): Promise<LeagueWithClubs | null> {

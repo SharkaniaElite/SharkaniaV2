@@ -7,7 +7,7 @@ import { ArenaPageHero } from "../components/arena/arena-page-hero";
 import { ArenaWalletStrip } from "../components/arena/arena-wallet-strip";
 import { Chip } from "../components/ui/chip";
 import { Spinner } from "../components/ui/spinner";
-import { useLeagues } from "../hooks/use-leagues";
+import { useLeaguesDirectory } from "../hooks/use-leagues";
 import { FlagIcon } from "../components/ui/flag-icon";
 import { SEOHead } from "../components/seo/seo-head";
 import { ShieldAlert, Shield } from "lucide-react";
@@ -32,7 +32,7 @@ const getLeagueStatus = (startDate: string | null | undefined, endDate: string |
 };
 
 export function LeaguesPage() {
-  const { data: leagues, isLoading } = useLeagues();
+  const { data: leagues, isLoading } = useLeaguesDirectory();
   
   // 👇 1. Estado para controlar la pestaña activa
   const [tab, setTab] = useState<"active" | "archived">("active");

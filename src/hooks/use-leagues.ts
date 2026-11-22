@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   getLeagues,
+  getLeagueDirectory,
   getLeagueById,
   getLeagueBySlug,
   searchLeagues,
@@ -12,6 +13,14 @@ export function useLeagues() {
   return useQuery({
     queryKey: ["leagues"],
     queryFn: getLeagues,
+  });
+}
+
+// A distinct cache entry preserves complete league records for other consumers.
+export function useLeaguesDirectory() {
+  return useQuery({
+    queryKey: ["leagues", "public-directory"],
+    queryFn: getLeagueDirectory,
   });
 }
 
