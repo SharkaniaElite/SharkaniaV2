@@ -1,6 +1,6 @@
 // src/pages/blog-post.tsx
 import { useArticleSchema, useBreadcrumbSchema } from "../components/seo/structured-data";
-import { useEffect, useState, useRef } from "react";
+import { Fragment, useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Share2, ChevronRight, Lock, Check } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
@@ -112,8 +112,8 @@ function BlockRenderer({ block, inlineImage, h2Index, postTitle, glossaryTerms, 
         {h2Index === 3 && (
           isIgnitionBasesArticle(post) ? <IgnitionBasesBanner slot="mid" />
           : isIgnitionLeagueArticle(post) ? <IgnitionArticleBanner slot="mid" />
-          : post.category === "Promociones" ? <PartnerPromotionPanel post={post} />
           : post.custom_banner_mid_src ? <ArticleImageBanner src={post.custom_banner_mid_src} href={post.custom_banner_mid_href} label="Publicidad editorial intermedia" />
+          : post.category === "Promociones" ? <PartnerPromotionPanel post={post} />
           : <WptBanner slot="mid" />
         )}
       </>
@@ -434,13 +434,13 @@ export default function BlogPostPage() {
 
           {(post.image_hero || post.category === "Promociones") && (
             <div className="max-w-[1120px] mx-auto px-4 sm:px-6 pt-8">
-              {post.category === "Promociones"
-                ? <PromotionArtwork post={post} variant="hero" priority className="rounded-2xl border border-sk-accent/15 shadow-sm" />
-                : <div className="overflow-hidden rounded-2xl border border-sk-border-2 bg-sk-bg-3">
-                  <img src={post.image_hero!} alt={`Portada del artículo: ${post.title}`}
+              {post.image_hero
+                ? <div className="overflow-hidden rounded-2xl border border-sk-border-2 bg-sk-bg-3">
+                  <img src={post.image_hero} alt={`Portada del artículo: ${post.title}`}
                     fetchPriority="high" loading="eager" decoding="async" width={1200} height={600}
-                    className="w-full max-h-[480px] object-cover" />
-                </div>}
+                    className={`block w-full h-auto max-h-[480px] ${post.category === "Promociones" ? "object-contain" : "object-cover"}`} />
+                </div>
+                : <PromotionArtwork post={post} variant="hero" priority className="rounded-2xl border border-sk-accent/15 shadow-sm" />}
             </div>
           )}
 
@@ -520,14 +520,20 @@ export default function BlogPostPage() {
                 <div>
                   {post.body.map((block, i) => {
                     const h2Index = post.body.slice(0, i + 1).filter((b) => b.type === "h2").length;
-                    return <BlockRenderer key={i} block={block} inlineImage={post.image_inline} h2Index={h2Index} postTitle={post.title} glossaryTerms={glossaryTerms ?? []} alreadyLinked={alreadyLinked.current} post={post} />;
+                    const shortArticleMid = post.body.filter(b => b.type === "h2").length < 3
+                      && i === Math.floor((post.body.length - 1) / 2)
+                      && !isIgnitionSponsoredArticle(post) && !!post.custom_banner_mid_src;
+                    return <Fragment key={i}>
+                      <BlockRenderer block={block} inlineImage={post.image_inline} h2Index={h2Index} postTitle={post.title} glossaryTerms={glossaryTerms ?? []} alreadyLinked={alreadyLinked.current} post={post} />
+                      {shortArticleMid && post.custom_banner_mid_src && <ArticleImageBanner src={post.custom_banner_mid_src} href={post.custom_banner_mid_href} label="Publicidad editorial intermedia" />}
+                    </Fragment>;
                   })}
                 </div>
 
                 {isIgnitionBasesArticle(post) ? <IgnitionBasesBanner slot="final" />
                  : isIgnitionLeagueArticle(post) ? <IgnitionArticleBanner slot="final" />
-                 : post.category === "Promociones" ? null
                  : post.custom_banner_final_src ? <ArticleImageBanner src={post.custom_banner_final_src} href={post.custom_banner_final_href} label="Publicidad editorial final" />
+                 : post.category === "Promociones" ? null
                  : <WptBanner slot="final" className="mt-10" />}
 
                 {/* 🎯 MÓDULO DE MINERÍA SHARK COINS */}
