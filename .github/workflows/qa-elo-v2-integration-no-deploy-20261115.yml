@@ -9,6 +9,7 @@ on:
       - .github/workflows/qa-elo-v2-integration-no-deploy-20261115.yml
       - package-lock.json
       - package.json
+      - src/App.tsx
 
 permissions:
   contents: read
