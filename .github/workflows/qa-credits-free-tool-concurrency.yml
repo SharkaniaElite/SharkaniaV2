@@ -1,0 +1,39 @@
+name: QA credits and free-tool concurrency (NO DEPLOY)
+on:
+  push:
+    branches: [qa/credits-free-tool-concurrency-2026-11-22]
+    paths: [".github/workflows/qa-credits-free-tool-concurrency.yml", "tests/fixtures/sharkania-credits-free-tool-race.qa-only.sql"]
+permissions:
+  contents: read
+jobs:
+  isolated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: qa_disposable_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: qa_disposable_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run synthetic dual-session regression only
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGDATABASE" == "postgres" && "$PGPASSWORD" == "qa_disposable_only" ]]
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-credits-free-tool-race.qa-only.sql
