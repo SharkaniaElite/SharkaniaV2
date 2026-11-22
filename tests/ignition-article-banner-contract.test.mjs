@@ -107,3 +107,28 @@ test("Official November bases have two responsive Ignition banners without compe
     assert.match(mobile,/Ignition/);
   }
 });
+
+test("Custom editorial banners precede promotion defaults, including short posts", () => {
+  const article = read("src/pages/blog-post.tsx");
+  const mid = article.indexOf("post.custom_banner_mid_src ? <ArticleImageBanner");
+  const midDefault = article.indexOf('post.category === "Promociones" ? <PartnerPromotionPanel');
+  const final = article.indexOf("post.custom_banner_final_src ? <ArticleImageBanner");
+  const finalDefault = article.indexOf('post.category === "Promociones" ? null');
+  assert.ok(mid >= 0 && mid < midDefault);
+  assert.ok(final >= 0 && final < finalDefault);
+  assert.match(article, /shortArticleMid/);
+  assert.match(article, /post\.body\.filter\(b => b\.type === "h2"\)\.length < 3/);
+});
+test("Uploaded hero takes precedence over promotional artwork", () => {
+  const article = read("src/pages/blog-post.tsx");
+  assert.match(article, /\{post\.image_hero\s*\? <div/);
+  assert.match(article, /<img src=\{post\.image_hero\}/);
+  assert.match(article, /max-h-\[480px\]/);
+  assert.match(article, /"object-contain" : "object-cover"/);
+});
+test("CMS exposes promotion review dates and checks the save result", () => {
+  const editor = read("src/components/admin/blog-editor.tsx");
+  for (const tag of ["verified-on:", "review-by:", "starts-on:", "official-end:"]) assert.ok(editor.includes(tag));
+  assert.match(editor, /result\.error \|\| !result\.data/);
+  assert.match(editor, /Completa la imagen y el destino/);
+});
