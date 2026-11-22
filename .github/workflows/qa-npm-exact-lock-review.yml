@@ -1,0 +1,40 @@
+name: QA exact tested npm lockfile handoff (NO DEPLOY)
+on:
+  push:
+    branches: [qa/npm-security-compatible-updates-2026-11-22]
+    paths: [".github/workflows/qa-npm-exact-lock-review.yml"]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  exact-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: compatible-npm-candidate
+          run-id: 45022545703
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/exact-npm-candidate
+      - name: Verify exact original and candidate Git blobs and export public package metadata
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/exact-npm-candidate"
+          [[ "$(git hash-object lock.before.json)" == "38f36afd70e39c28a6256e39d5c7bb8241a90054" ]]
+          [[ "$(git hash-object package-lock.json)" == "8425e5027889592d4401e8d1236ddeb8bd454d1b" ]]
+          [[ "$(sha256sum package-lock.json | cut -d' ' -f1)" == "0b86113a2bdf13d5c2aba3c0d5f90aa0ead0d29df3cb58afb038b9cbca314deb" ]]
+          cmp "$GITHUB_WORKSPACE/package.json" package.before.json
+          cmp "$GITHUB_WORKSPACE/package-lock.json" lock.before.json
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+          b=base64.b64encode(Path("package-lock.json").read_bytes()).decode()
+          parts=[b[i:i+3000] for i in range(0,len(b),3000)]
+          print("LOCKPART_COUNT",len(parts))
+          for i,p in enumerate(parts):
+              print("LOCKPART",i,p)
+          PY
