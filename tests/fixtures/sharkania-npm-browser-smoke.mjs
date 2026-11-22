@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
 import { createRequire } from "node:module";
 const {chromium}=createRequire(process.env.QA_PLAYWRIGHT_ROOT+"/package.json")("playwright");
 assert.equal(process.env.GITHUB_ACTIONS,"true");
@@ -53,6 +54,31 @@ try{
     await page.waitForURL("**/login?redirect=*",{timeout:20000});
     await page.getByText("Inicia sesión en tu cuenta",{exact:true}).waitFor();
     assert.ok(analytics.some(x=>x.endsWith("posthog.com")),"PostHog made no intercepted synthetic request");
+    // Each newly lazy public route must load its precise compiled module on direct visit.
+    const manifest=JSON.parse(readFileSync("dist/.vite/manifest.json","utf8"));
+    const routes=[
+      ["/sistema-elo","elo-system"],["/tutorial-csv","tutorial-csv"],
+      ["/tools/perfilador-salas","room-profiler"],["/como-jugar-en-clubgg","tutorial-clubgg"],
+      ["/promociones","promotions"],["/tv","shark-tv"],
+      ["/tv/11111111-1111-4111-8111-111111111111","hand-review"],
+      ["/ignition","ignition-championship"],["/tutorial-ignition","tutorial-ignition"],
+      ["/noticias","noticias"],["/mindev","promo-mindev"],["/fullnuts","promo-fullnuts"]
+    ];
+    for(const [url,module] of routes){
+      const file=manifest["src/pages/"+module+".tsx"]?.file;
+      if(!file)throw Error("Missing dynamic module "+module);
+      const loaded=page.waitForResponse(r=>new URL(r.url()).pathname==="/"+file&&r.ok(),{timeout:20000});
+      await page.goto("http://"+host+url,{waitUntil:"domcontentloaded"});
+      await loaded;
+      await page.waitForFunction(()=>document.querySelector("#root")?.innerText.trim().length>20,null,{timeout:20000});
+      assert.equal(new URL(page.url()).pathname,url);
+      assert.deepEqual(errors,[],"uncaught page errors on "+url);
+      console.log("PASS lazy route module: "+url);
+    }
+    await page.goto("http://"+host+"/admin/broadcast");
+    await page.waitForURL("**/login?redirect=*",{timeout:20000});
+    assert.equal(new URL(page.url()).searchParams.get("redirect"),"/admin/broadcast");
+    console.log("PASS protected lazy broadcast route rejects anonymous users");
   }else{
     await page.goto("http://"+host+"/login");
     await page.getByRole("heading",{name:"Vista previa de diseño"}).waitFor();
