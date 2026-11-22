@@ -23,9 +23,13 @@ const TYPE_ROUTES: Record<SearchResult["type"], string> = {
 
 interface GlobalSearchProps {
   variant?: "full" | "compact";
+  placeholder?: string;
 }
 
-export function GlobalSearch({ variant = "full" }: GlobalSearchProps) {
+export function GlobalSearch({
+  variant = "full",
+  placeholder = "Buscar jugador, club, liga o torneo...",
+}: GlobalSearchProps) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const { data: results, isLoading } = useGlobalSearch(query);
@@ -105,7 +109,8 @@ export function GlobalSearch({ variant = "full" }: GlobalSearchProps) {
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
-          placeholder="Buscar jugador, club, liga o torneo..."
+          aria-label="Buscar jugador, club, liga o torneo"
+          placeholder={placeholder}
           className={cn(
             "w-full bg-sk-bg-4 border border-sk-border-3 rounded-lg",
             "py-[11px] pl-[42px] pr-20 text-sk-sm text-sk-text-1",

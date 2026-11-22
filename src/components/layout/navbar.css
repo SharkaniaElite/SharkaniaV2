@@ -1,0 +1,39 @@
+.sharkania-navbar :is(a, button):focus-visible {
+  outline: 2px solid var(--sk-accent);
+  outline-offset: -2px;
+}
+
+.sharkania-mobile-panel {
+  position: absolute;
+  inset: 100% 0 auto;
+  height: calc(100vh - 56px);
+  height: calc(100dvh - 56px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 0.75rem 1rem max(1rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--sk-border-2);
+  background: rgb(12, 13, 16);
+}
+
+.sharkania-mobile-panel.arena-mobile-menu {
+  background: rgb(6, 17, 27);
+  border-color: rgba(76, 206, 227, 0.26);
+}
+
+@media (width < 1280px) {
+  /* The age verification dialog owns the body lock. */
+  html:has(.sharkania-mobile-panel:not([hidden])) {
+    overflow: hidden;
+  }
+}
+
+body:has(#age-verification-title) .sharkania-navbar {
+  interactivity: inert;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sharkania-navbar * {
+    animation: none;
+    transition: none;
+  }
+}
