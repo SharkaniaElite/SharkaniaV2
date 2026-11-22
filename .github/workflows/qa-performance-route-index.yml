@@ -1,0 +1,80 @@
+name: QA performance entry budget and league index plans (NO DEPLOY)
+on:
+  push:
+    branches: [qa/performance-route-index-2026-11-22]
+permissions:
+  contents: read
+jobs:
+  entry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      VITE_SUPABASE_URL: https://qa-fake.supabase.co
+      VITE_SUPABASE_ANON_KEY: qa-fake-anon-only
+      VITE_GA_MEASUREMENT_ID: G-QAONLY
+      QA_LOCAL_URL: http://127.0.0.1:4173
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Compare static entry bytes with identical lockfile
+        run: |
+          set -euo pipefail
+          npm ci
+          cp src/App.tsx "$RUNNER_TEMP/App.candidate.tsx"
+          git show 6011fb5deff8fc4fd2e41b0997c25d859ca4c71a:src/App.tsx > src/App.tsx
+          npx vite build --manifest --outDir "$RUNNER_TEMP/base-dist"
+          node tests/fixtures/sharkania-entry-budget.qa.mjs "$RUNNER_TEMP/base-dist" > "$RUNNER_TEMP/base.json"
+          cp "$RUNNER_TEMP/App.candidate.tsx" src/App.tsx
+          npm run build -- --manifest
+          # npm build forwards arguments to vite; ensure the manifest exists.
+          test -f dist/.vite/manifest.json
+          node tests/fixtures/sharkania-entry-budget.qa.mjs dist > "$RUNNER_TEMP/candidate.json"
+          node -e 'const a=require(process.argv[1]),b=require(process.argv[2]);console.log(JSON.stringify({baseline:a,candidate:b,reductionPercent:100*(a.gzip-b.gzip)/a.gzip}));if(b.gzip>=a.gzip)process.exit(1)' "$RUNNER_TEMP/base.json" "$RUNNER_TEMP/candidate.json"
+          node --test tests/*.test.mjs
+      - name: Browser smoke on exact candidate with intercepted connections
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pw"
+          printf '{"private":true}' > "$RUNNER_TEMP/pw/package.json"
+          npm install --prefix "$RUNNER_TEMP/pw" --ignore-scripts --no-package-lock playwright@1.58.2
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+          export QA_PLAYWRIGHT_ROOT="$RUNNER_TEMP/pw"
+          npm exec -- vite preview --host 127.0.0.1 --port 4173 --strictPort > "$RUNNER_TEMP/vite.log" 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do curl -fsS "$QA_LOCAL_URL" >/dev/null && break; sleep 1; done
+          curl -fsS "$QA_LOCAL_URL" >/dev/null
+          node tests/fixtures/sharkania-npm-browser-smoke.mjs
+  index:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: qa_disposable_only
+          POSTGRES_DB: qa_leagues
+        ports: ["25432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d qa_leagues"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "25432"
+      PGDATABASE: qa_leagues
+      PGUSER: postgres
+      PGPASSWORD: qa_disposable_only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compare custom and generic prepared query plans
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_ACTIONS" == true && "$PGHOST" == 127.0.0.1 && "$PGPORT" == 25432 && "$PGDATABASE" == qa_leagues ]]
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-index-plans.qa-only.sql
