@@ -1,0 +1,36 @@
+name: QA npm advisory inventory (NO DEPLOY)
+on:
+  push:
+    branches: [qa/credits-free-tool-concurrency-2026-11-22]
+    paths: [".github/workflows/qa-npm-advisory-inventory.yml"]
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Read-only advisory inventory (no install or fix)
+        run: |
+          set -euo pipefail
+          for mode in all production; do
+            args=()
+            if [[ "$mode" == "production" ]]; then args+=(--omit=dev); fi
+            rc=0
+            npm audit --package-lock-only --json "${args[@]}" > "$RUNNER_TEMP/audit-$mode.json" || rc=$?
+            node --input-type=module - "$RUNNER_TEMP/audit-$mode.json" "$mode" "$rc" <<'NODE'
+          import fs from 'node:fs';
+          const r=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          if(!r.metadata?.vulnerabilities || !r.vulnerabilities) throw Error("Advisory inventory unavailable");
+          console.log(JSON.stringify({scope:process.argv[3],counts:r.metadata.vulnerabilities,exit:process.argv[4]}));
+          for(const [name,v] of Object.entries(r.vulnerabilities)){
+            console.log(JSON.stringify({name,severity:v.severity,direct:v.isDirect,range:v.range,via:v.via.map(x=>typeof x==='string'?x:{title:x.title,url:x.url,severity:x.severity}),fixAvailable:v.fixAvailable}));
+          }
+          NODE
+          done

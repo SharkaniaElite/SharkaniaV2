@@ -3,7 +3,7 @@ import {randomBytes} from "node:crypto";
 import {execFileSync} from "node:child_process";
 import {createClient} from "@supabase/supabase-js";
 const base=process.env.QA_SUPABASE_URL, anon=process.env.QA_SUPABASE_ANON_KEY, service=process.env.QA_SUPABASE_SERVICE_ROLE_KEY;
-assert.equal(process.env.GITHUB_ACTIONS,"true");assert.equal(base,"http://127.0.0.1:54321");assert.equal(process.env.PGHOST,"127.0.0.1");assert.equal(process.env.PGPORT,"54322");assert.ok(anon&&service);
+assert.equal(process.env.GITHUB_ACTIONS,"true");assert.equal(base,"http://127.0.0.1:25421");assert.equal(process.env.PGHOST,"127.0.0.1");assert.equal(process.env.PGPORT,"25422");assert.ok(anon&&service);
 const sql=q=>execFileSync("psql",["-X","-At","-v","ON_ERROR_STOP=1","-c",q],{encoding:"utf8"}).trim();
 const admin=createClient(base,service,{auth:{persistSession:false,autoRefreshToken:false}});
 const users=[];
