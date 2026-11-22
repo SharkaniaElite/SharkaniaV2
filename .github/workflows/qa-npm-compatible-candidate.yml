@@ -1,0 +1,70 @@
+name: QA compatible npm security update (NO DEPLOY)
+on:
+  push:
+    branches: [qa/npm-security-compatible-updates-2026-11-22]
+    paths: [".github/workflows/qa-npm-compatible-candidate.yml"]
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Generate compatible lockfile candidate without executing install scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/npm-candidate"
+          cp package.json "$RUNNER_TEMP/npm-candidate/package.before.json"
+          cp package-lock.json "$RUNNER_TEMP/npm-candidate/lock.before.json"
+          rc=0
+          npm audit fix --package-lock-only --ignore-scripts --no-fund --json > "$RUNNER_TEMP/npm-candidate/fix-report.json" || rc=$?
+          echo "npm audit fix exit status=$rc (residual advisories may remain)"
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import assert from "node:assert/strict";
+          const base=process.env.RUNNER_TEMP+"/npm-candidate/";
+          const manifest=JSON.parse(fs.readFileSync("package.json","utf8"));
+          const original=JSON.parse(fs.readFileSync(base+"package.before.json","utf8"));
+          assert.deepEqual(manifest,original,"Unexpected manifest change, review separately");
+          const old=JSON.parse(fs.readFileSync(base+"lock.before.json","utf8")).packages;
+          const next=JSON.parse(fs.readFileSync("package-lock.json","utf8")).packages;
+          for(const [name,v] of Object.entries(next)){
+            if(name && v.resolved && !v.resolved.startsWith("https://registry.npmjs.org/")) throw Error("Unexpected registry: "+name);
+            if(name && v.resolved && !v.integrity) throw Error("Missing integrity: "+name);
+            if(old[name]?.version!==v.version) console.log(JSON.stringify({path:name,old:old[name]?.version,new:v.version,dev:v.dev??false}));
+          }
+          for(const name of Object.keys(old)) if(!next[name]) console.log(JSON.stringify({removed:name,version:old[name].version}));
+          NODE
+          git diff --stat -- package-lock.json
+          git diff --binary -- package-lock.json > "$RUNNER_TEMP/npm-candidate/package-lock.patch"
+          cp package-lock.json "$RUNNER_TEMP/npm-candidate/package-lock.json"
+      - name: Compare remaining advisories
+        run: |
+          set -euo pipefail
+          for scope in all production; do
+            args=()
+            if [[ "$scope" == "production" ]]; then args+=(--omit=dev); fi
+            npm audit --package-lock-only --json "${args[@]}" > "$RUNNER_TEMP/npm-candidate/audit-$scope.json" || true
+            node -e 'const x=require(process.argv[1]);if(!x.metadata?.vulnerabilities)process.exit(1);console.log(JSON.stringify({scope:process.argv[2],counts:x.metadata.vulnerabilities,remaining:Object.entries(x.vulnerabilities).map(([name,v])=>({name,severity:v.severity,fix:v.fixAvailable}))}))' "$RUNNER_TEMP/npm-candidate/audit-$scope.json" "$scope"
+          done
+      - name: Install and validate candidate
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node --test tests/*.test.mjs
+          npm run build
+          npx --yes wrangler@4 pages functions build --outdir=.tmp-cloudflare-functions
+      - name: Export review artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compatible-npm-candidate
+          path: ${{ runner.temp }}/npm-candidate/
+          retention-days: 7
