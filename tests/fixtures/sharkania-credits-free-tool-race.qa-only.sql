@@ -399,3 +399,37 @@ DO $$BEGIN
  BEGIN PERFORM public.spend_credits('22222222-2222-4222-8222-222222222222','qa-month'); RAISE EXCEPTION 'identity check failed'; EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
 END$$;
 \echo PASS: legacy races reproduced; local candidates serialized; synthetic test only.
+
+-- Additional role tests with synthetic JWT claim; not a real Auth token.
+CREATE ROLE anon NOLOGIN;
+CREATE ROLE authenticated NOLOGIN;
+GRANT USAGE ON SCHEMA public,auth TO anon,authenticated;
+GRANT EXECUTE ON FUNCTION auth.uid() TO anon,authenticated;
+REVOKE EXECUTE ON FUNCTION public.spend_credits(uuid,text),public.use_free_tool(uuid,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.spend_credits(uuid,text),public.use_free_tool(uuid,text) TO authenticated;
+ALTER TABLE public.credit_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.free_tool_usages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_purchases ENABLE ROW LEVEL SECURITY;
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.credit_transactions,public.free_tool_usages,public.user_purchases TO authenticated;
+CREATE POLICY own_credit_read ON public.credit_transactions FOR SELECT USING (auth.uid()=user_id);
+CREATE POLICY own_usage_read ON public.free_tool_usages FOR SELECT USING (auth.uid()=user_id);
+CREATE POLICY own_purchase_read ON public.user_purchases FOR SELECT USING (auth.uid()=user_id);
+CREATE POLICY deny_purchase_insert ON public.user_purchases FOR INSERT WITH CHECK(false);
+SET ROLE anon;
+DO $$BEGIN
+ BEGIN PERFORM public.use_free_tool('11111111-1111-4111-8111-111111111111','qa_anon'); RAISE EXCEPTION 'anon allowed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ BEGIN PERFORM public.spend_credits('11111111-1111-4111-8111-111111111111','qa-month'); RAISE EXCEPTION 'anon allowed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END$$;
+RESET ROLE;
+SET ROLE authenticated;
+DO $$DECLARE changed integer; BEGIN
+ BEGIN INSERT INTO public.free_tool_usages VALUES ('11111111-1111-4111-8111-111111111111','qa_direct',CURRENT_DATE); RAISE EXCEPTION 'direct write allowed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ UPDATE public.free_tool_usages SET last_used_date=CURRENT_DATE-1; GET DIAGNOSTICS changed=ROW_COUNT;
+ IF changed<>0 THEN RAISE EXCEPTION 'direct update allowed'; END IF;
+ IF NOT public.use_free_tool('11111111-1111-4111-8111-111111111111','qa_role') THEN RAISE EXCEPTION 'legitimate RPC denied'; END IF;
+ IF public.use_free_tool('11111111-1111-4111-8111-111111111111','qa_role') THEN RAISE EXCEPTION 'duplicate role use allowed'; END IF;
+ BEGIN PERFORM public.spend_credits('22222222-2222-4222-8222-222222222222','qa-month'); RAISE EXCEPTION 'other account allowed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ IF (public.spend_credits('11111111-1111-4111-8111-111111111111','qa-month')->>'error') IS DISTINCT FROM 'already_active' THEN RAISE EXCEPTION 'repeat charge under authenticated'; END IF;
+END$$;
+RESET ROLE;
+\echo PASS: anonymous and authenticated role boundaries in reduced synthetic schema.

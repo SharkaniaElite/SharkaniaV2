@@ -2,7 +2,7 @@ name: QA credits and free-tool concurrency (NO DEPLOY)
 on:
   push:
     branches: [qa/credits-free-tool-concurrency-2026-11-22]
-    paths: [".github/workflows/qa-credits-free-tool-concurrency.yml", "tests/fixtures/sharkania-credits-free-tool-race.qa-only.sql"]
+    paths: [".github/workflows/qa-credits-free-tool-concurrency.yml", "tests/fixtures/sharkania-credits-free-tool-race.qa-only.sql", "tests/fixtures/sharkania-league-rank-index.qa-only.sql"]
 permissions:
   contents: read
 jobs:
@@ -37,3 +37,4 @@ jobs:
           set -euo pipefail
           [[ "$GITHUB_ACTIONS" == "true" && "$PGHOST" == "127.0.0.1" && "$PGDATABASE" == "postgres" && "$PGPASSWORD" == "qa_disposable_only" ]]
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-credits-free-tool-race.qa-only.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/sharkania-league-rank-index.qa-only.sql
