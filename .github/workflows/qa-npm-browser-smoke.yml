@@ -1,0 +1,47 @@
+name: QA exact npm candidate browser smoke (NO DEPLOY)
+on:
+  push:
+    branches: [qa/npm-browser-smoke-2026-11-22]
+    paths: [".github/workflows/qa-npm-browser-smoke.yml","tests/fixtures/sharkania-npm-browser-smoke.mjs"]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_SUPABASE_URL: https://qa-fake.supabase.co
+      VITE_SUPABASE_ANON_KEY: qa-fake-anon-only
+      VITE_GA_MEASUREMENT_ID: G-QAONLY
+      QA_LOCAL_URL: http://127.0.0.1:4173
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install exact candidate and verify audit
+        run: |
+          set -euo pipefail
+          [[ "$(git hash-object package-lock.json)" == "8425e5027889592d4401e8d1236ddeb8bd454d1b" ]]
+          npm ci
+          npm audit --omit=dev --audit-level=low
+          npm run build
+      - name: Disposable browser harness (not added to application dependencies)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pw"
+          printf '{"private":true}' > "$RUNNER_TEMP/pw/package.json"
+          npm install --prefix "$RUNNER_TEMP/pw" --ignore-scripts --no-package-lock playwright@1.58.2
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+          echo "QA_PLAYWRIGHT_ROOT=$RUNNER_TEMP/pw" >> "$GITHUB_ENV"
+      - name: Browser smoke with all external requests intercepted (no live credentials)
+        run: |
+          set -euo pipefail
+          npm exec -- vite preview --host 127.0.0.1 --port 4173 --strictPort > "$RUNNER_TEMP/vite.log" 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do curl -fsS "$QA_LOCAL_URL" >/dev/null && break; sleep 1; done
+          curl -fsS "$QA_LOCAL_URL" >/dev/null
+          node tests/fixtures/sharkania-npm-browser-smoke.mjs
