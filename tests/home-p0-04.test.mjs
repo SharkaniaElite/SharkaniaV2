@@ -15,10 +15,10 @@ const compiled = ts.transpileModule(readFileSync("src/pages/arena-home.tsx", "ut
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
 }).outputText;
 
-function renderHome(responses = {}, now = "2026-11-22T12:00:00Z") {
+function renderHome(responses = {}, now = "2026-11-22T12:00:00Z", postsByCategory = {}) {
   const exports = {};
   const queries = new Map();
-  let newsOptions;
+  const newsOptions = [];
   function stubImport(name) {
     switch (name) {
       case "@tanstack/react-query":
@@ -38,7 +38,7 @@ function renderHome(responses = {}, now = "2026-11-22T12:00:00Z") {
       case "../lib/api/tournaments":
         return { getUpcomingTournaments: async () => [] };
       case "../lib/api/blog":
-        return { getBlogPosts: async (options) => { newsOptions = options; return []; } };
+        return { getBlogPosts: async (options) => { newsOptions.push(options); return postsByCategory[options.category] ?? []; } };
       case "../lib/home-content": return homeContent;
       case "../lib/editorial-routing": return editorial;
       case "../lib/arena-preview": return { isArenaPreviewHost: () => false };
@@ -73,7 +73,7 @@ test("home renders the approved order, destinations and editorial status", () =>
   assert.ok(html.includes(homeContent.HOME_DESCRIPTION));
 });
 
-test("home defers all three data queries and requests only three published news items", async () => {
+test("home defers queries and requests recent news plus promotions separately", async () => {
   const { queries, newsOptions } = renderHome();
   assert.equal(queries.size, 3);
   for (const query of queries.values()) {
@@ -81,7 +81,29 @@ test("home defers all three data queries and requests only three published news 
     assert.ok(query.staleTime >= 180_000);
   }
   await queries.get("news").queryFn();
-  assert.deepEqual(newsOptions(), { category: "Noticias", limit: 3 });
+  assert.deepEqual(newsOptions(), [{ category: "Noticias", limit: 3 }, { category: "Promociones", limit: 20 }]);
+});
+
+test("home includes verified WPT promo first but excludes unverified and expired promos", async () => {
+  const posts = {
+    Noticias: [
+      { id: "news-1", slug: "recent-news", category: "Noticias", title: "Noticia reciente", published_at: "2026-11-22T12:00:00Z" },
+      { id: "news-2", slug: "older-news", category: "Noticias", title: "Noticia anterior", published_at: "2026-11-21T12:00:00Z" },
+    ],
+    Promociones: [
+      { id: "promo-unverified", slug: "unverified", category: "Promociones", title: "Sin revisión", published_at: "2026-11-23T13:00:00Z", tags: [] },
+      { id: "promo-wpt", slug: "wpt-global-winter-wonderland-2026", category: "Promociones", title: "WPT Winter Wonderland", published_at: "2026-11-23T08:44:00Z",
+        tags: ["verified-on:2026-11-23", "review-by:2026-11-29", "starts-on:2026-11-24", "official-end:2027-01-09"] },
+      { id: "promo-expired", slug: "expired", category: "Promociones", title: "Caducada", published_at: "2026-11-23T07:00:00Z",
+        tags: ["verified-on:2026-11-01", "review-by:2026-11-22", "official-end:2026-11-22"] },
+    ],
+  };
+  const current = renderHome({}, "2026-11-23T12:00:00Z", posts);
+  const featured = await current.queries.get("news").queryFn();
+  assert.deepEqual(JSON.parse(JSON.stringify(featured.map((p) => p.slug))), ["wpt-global-winter-wonderland-2026", "recent-news", "older-news"]);
+  const afterReview = renderHome({}, "2026-11-30T12:00:00Z", posts);
+  const expired = await afterReview.queries.get("news").queryFn();
+  assert.deepEqual(JSON.parse(JSON.stringify(expired.map((p) => p.slug))), ["recent-news", "older-news"]);
 });
 
 test("home preserves DEMO and detail links with data and useful fallback links on error", () => {
