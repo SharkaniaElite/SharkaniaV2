@@ -1,3 +1,4 @@
+import { HOME_DESCRIPTION, HOME_HEADING, HOME_INTRO, HOME_TITLE } from "../src/lib/home-content";
 import { getTournamentLifecyclePhase } from "../src/lib/tournament-lifecycle";
 
 // 🛡️ Declaraciones nativas de Cloudflare para satisfacer a TypeScript y ESLint
@@ -101,6 +102,16 @@ function articleBodyAsHtml(raw: unknown): string {
 }
 
 async function buildVisibleSeoHtml(path: string, key: string): Promise<string> {
+  if (path === "/") {
+    return `<main class="pt-24 pb-16 max-w-4xl mx-auto px-6 leading-relaxed text-sk-text-1">
+      <h1 class="text-3xl font-bold mb-6">${escapeSeoText(HOME_HEADING.join(" "))}</h1>
+      <p>${escapeSeoText(HOME_INTRO)}</p>
+      <h2 class="text-xl font-semibold mt-8 mb-4">Explora Sharkania</h2>
+      <ul><li><a href="/academia">Academia</a></li><li><a href="/tv">SharkTV</a></li>
+        <li><a href="/tools">Herramientas</a></li><li><a href="/ranking">Arena</a></li>
+        <li><a href="/noticias">Últimas noticias de póker</a></li></ul>
+    </main>`;
+  }
   if (!key) return "";
   let content = "";
   if (path === "/blog" || path === "/noticias" || path === "/promociones") {
@@ -306,7 +317,10 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   let ogType = "website";
 
   // 2. Lógica de ruteo para buscar los datos exactos en Supabase
-  if (PAGE_META[canonicalPath]) {
+  if (canonicalPath === "/") {
+    title = `${HOME_TITLE} | Sharkania`;
+    description = HOME_DESCRIPTION;
+  } else if (PAGE_META[canonicalPath]) {
     title = PAGE_META[canonicalPath].title;
     description = PAGE_META[canonicalPath].desc;
     // Las páginas estáticas anidadas no tienen un asset /og/page/{seccion}/{slug}.
@@ -435,11 +449,13 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
     }
   }
 
+  const homePreview = canonicalPath === "/" && url.hostname.endsWith(".pages.dev");
+
   // 3. INYECTAR METADATOS AL VUELO: Reemplazamos las etiquetas del index.html
   const rewritten = new HTMLRewriter()
     .on('title', { element(e: Element) { e.setInnerContent(title) } })
     .on('meta[name="description"]', { element(e: Element) { e.setAttribute("content", description) } })
-    .on('meta[name="robots"]', { element(e: Element) { e.setAttribute('content', isPrivate || (publicTournamentRecord && !publicTournamentRecord.results_uploaded) ? 'noindex, nofollow' : 'index, follow') } })
+    .on('meta[name="robots"]', { element(e: Element) { e.setAttribute('content', homePreview || isPrivate || (publicTournamentRecord && !publicTournamentRecord.results_uploaded) ? 'noindex, nofollow' : 'index, follow') } })
     .on('meta[property="og:title"]', { element(e: Element) { e.setAttribute("content", title) } })
     .on('meta[property="og:description"]', { element(e: Element) { e.setAttribute("content", description) } })
     .on('meta[property="og:image"]', { element(e: Element) { e.setAttribute("content", image) } })

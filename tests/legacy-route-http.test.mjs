@@ -1,3 +1,4 @@
+import * as homeContent from "../src/lib/home-content.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -22,24 +23,32 @@ function loadMiddleware(fetchMock) {
   const exports = {};
   class MockHTMLRewriter {
     on(selector, handlers) {
-      if (selector === 'meta[property="og:image"]') this.onOgImage = handlers.element;
+      (this.handlers ??= new Map()).set(selector, handlers.element);
       return this;
     }
     transform(response) {
-      if (this.onOgImage) {
-        this.onOgImage({
-          setAttribute(name, value) {
-            if (name === "content") response.headers.set("x-test-og-image", value);
-          },
-        });
-      }
-      return response;
+      const headers = new Headers(response.headers);
+      const invoke = (selector, adapter) => this.handlers.get(selector)?.(adapter);
+      invoke('meta[property="og:image"]', { setAttribute: (_, value) => headers.set("x-test-og-image", value) });
+      invoke('link[rel="canonical"]', { setAttribute: (_, value) => headers.set("x-test-canonical", value) });
+      invoke('meta[name="robots"]', { setAttribute: (_, value) => headers.set("x-test-robots", value) });
+      const body = response.text().then((html) => {
+        invoke('title', { setInnerContent: (title) => { html = html.replace("<head>", `<head><title>${title}</title>`); } });
+        invoke('meta[name="description"]', { setAttribute: (_, value) => { html = html.replace("</head>", `<meta name="description" content="${value}"></head>`); } });
+        invoke('#root', { prepend: (content) => { html = html.replace("<div id='root'>", `<div id='root'>${content}`); } });
+        return html;
+      });
+      const stream = new ReadableStream({
+        async start(controller) { controller.enqueue(new TextEncoder().encode(await body)); controller.close(); },
+      });
+      return new Response(stream, { status: response.status, headers });
     }
   }
   runInNewContext(compiled, {
     exports, Response, URL, Headers, fetch: fetchMock, HTMLRewriter: MockHTMLRewriter,
     require: (specifier) => {
       if (specifier === "../src/lib/tournament-lifecycle") return lifecycle;
+      if (specifier === "../src/lib/home-content") return homeContent;
       throw new Error("Unexpected import: " + specifier);
     },
   });
@@ -48,7 +57,7 @@ function loadMiddleware(fetchMock) {
 
 function makeContext(path, options = {}) {
   return {
-    request: new Request("https://sharkania.com" + path, { method: options.method || "GET" }),
+    request: new Request((options.origin || "https://sharkania.com") + path, { method: options.method || "GET" }),
     env: { SUPABASE_ANON_KEY: options.key === undefined ? "test-public-key" : options.key },
     next: async () => new Response("<!doctype html><html><head></head><body><div id='root'></div></body></html>", {
       headers: { "content-type": "text/html; charset=utf-8" },
@@ -180,4 +189,23 @@ test("unknown tournaments 404, legacy UUID archived 404 and database outages 503
   const unavailable=await offline(makeContext("/tournament/old-with-results"));
   assert.equal(unavailable.status,503);
   assert.equal(unavailable.headers.get("retry-after"),"300");
+});
+
+test("home HTML is indexable without JavaScript or Supabase and previews stay noindex", async () => {
+  const middleware = loadMiddleware(() => assert.fail("Home SEO must not fetch Supabase"));
+  const response = await middleware(makeContext("/", { key: "" }));
+  assert.equal(response.headers.get("x-test-canonical"), "https://sharkania.com/");
+  assert.equal(response.headers.get("x-test-og-image"), "https://sharkania.com/og-default.png?v=2");
+  const html = await response.text();
+  assert.match(html, /<title>Aprende y analiza el póker \| Sharkania<\/title>/);
+  assert.ok(html.includes(homeContent.HOME_DESCRIPTION));
+  assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
+  assert.ok(html.includes(homeContent.HOME_HEADING.join(" ")));
+  for (const route of ["/academia", "/tv", "/tools", "/ranking", "/noticias"]) {
+    assert.ok(html.includes(`href="${route}"`), route);
+  }
+
+  const preview = await middleware(makeContext("/", { key: "", origin: "https://qa.sharkaniav2.pages.dev" }));
+  assert.equal(preview.headers.get("x-robots-tag"), "noindex");
+  assert.equal(preview.headers.get("x-test-robots"), "noindex, nofollow");
 });
