@@ -159,6 +159,14 @@ function TournamentRow({ tournament }: {tournament: TournamentWithDetails}) {
   </Link>;
 }
 
+function promotionIsReviewed(post: BlogPost, today: string) {
+  const tag = (prefix: string) => post.tags?.find((value) => value.startsWith(prefix))?.slice(prefix.length);
+  const verified = tag("verified-on:");
+  const reviewBy = tag("review-by:");
+  const officialEnd = tag("official-end:");
+  return !!verified && !!reviewBy && reviewBy >= today && (!officialEnd || officialEnd >= today);
+}
+
 function EditorialCard({ post }: {post:BlogPost}) {
   return <Link className="arena-story" to={getEditorialPath(post.category,post.slug)}>
     <div className="arena-story-media">
@@ -170,7 +178,7 @@ function EditorialCard({ post }: {post:BlogPost}) {
     <div className="arena-story-body">
       <small>{post.published_at ? new Date(post.published_at).toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"}) : "Actualidad"}</small>
       <h3>{post.title}</h3>
-      <span>Leer noticia <ArrowUpRight size={15}/></span>
+      <span>{post.category === "Promociones" ? "Ver promoción" : "Leer noticia"} <ArrowUpRight size={15}/></span>
     </div>
   </Link>;
 }
@@ -199,7 +207,22 @@ export function ArenaHomePage() {
   });
   const stories = useQuery({
     queryKey:["arena-home","news"],
-    queryFn:()=>getBlogPosts({ category: "Noticias", limit: 3 }),
+    queryFn:async()=> {
+      // La portada incluye noticias y promociones revisadas; las ofertas
+      // historicas o pendientes de revision permanecen en /noticias.
+      const [news, promotions] = await Promise.all([
+        getBlogPosts({ category: "Noticias", limit: 3 }),
+        getBlogPosts({ category: "Promociones", limit: 20 }),
+      ]);
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit",
+      }).formatToParts(new Date(Date.now()));
+      const part = (type: string) => parts.find((value) => value.type === type)?.value || "";
+      const today = `${part("year")}-${part("month")}-${part("day")}`;
+      return [...news, ...promotions.filter((post) => promotionIsReviewed(post, today))]
+        .sort((a, b) => new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime())
+        .slice(0, 3);
+    },
     enabled:editorialVisible,
     staleTime:1000*60*5,
     retry:1
@@ -312,7 +335,7 @@ export function ArenaHomePage() {
         <img className="arena-scene-photo" src="/images/arena/home-editorial.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
         <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
-          <SectionHeading id="home-news-title" title="Últimas noticias de póker" href="/noticias" linkText="Explorar noticias" />
+          <SectionHeading id="home-news-title" title="Noticias y promociones de póker" href="/noticias" linkText="Explorar noticias" />
           <div className="arena-story-grid" aria-live="polite">
             {stories.isPending ? <>
               <span className="sr-only">Cargando noticias.</span>
