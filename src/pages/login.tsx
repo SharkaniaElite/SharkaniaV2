@@ -68,6 +68,7 @@ export function LoginPage() {
         title="Iniciar Sesión"
         description="Accede a tu cuenta de Sharkania."
         path="/login"
+        noIndex
       />
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
