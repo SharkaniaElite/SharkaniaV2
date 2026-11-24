@@ -15,6 +15,10 @@ CREATE POLICY read_own_records ON public.restore_records
     FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
 REVOKE ALL ON public.restore_records FROM PUBLIC;
 GRANT SELECT ON public.restore_records TO authenticated;
+CREATE VIEW public.restore_visible WITH (security_invoker = true)
+    AS SELECT id, score FROM public.restore_records;
+ALTER VIEW public.restore_visible OWNER TO recovery_owner;
+GRANT SELECT ON public.restore_visible TO authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE recovery_owner IN SCHEMA public
     GRANT SELECT ON TABLES TO authenticated;
 

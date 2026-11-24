@@ -4,7 +4,10 @@ set -Eeuo pipefail
 umask 077
 ulimit -c 0
 
-readonly image='docker.io/library/postgres:17.11-bookworm@sha256:665dc7b37ac52a17e298511414c21d23ffa4e6a6ef6225b3e5d59c7afb35e994'
+readonly stock_image='docker.io/library/postgres:17.11-bookworm@sha256:665dc7b37ac52a17e298511414c21d23ffa4e6a6ef6225b3e5d59c7afb35e994'
+image=$stock_image
+supabase_id=
+profile=
 socket="/run/user/$(id -u)/docker.sock"
 [[ -S $socket ]] || socket=/var/run/docker.sock
 readonly daemon="unix://$socket"
@@ -27,6 +30,7 @@ fail() {
             restore-*) in_container tail -n 12 "$ram/restore.log" >&2 || true ;;
             synthetic-source|profile-*|restored-checks)
                 in_container tail -n 12 "$ram/sql.log" >&2 || true ;;
+            synthetic-catalog) tail -n 12 "$scratch/catalog.log" >&2 || true ;;
             postgres-start) in_container tail -n 12 "$ram/postgres.log" >&2 || true ;;
         esac
     fi
@@ -74,7 +78,7 @@ cleanup() {
 }
 
 check_offline_host() {
-    local upper docker_root
+    local upper docker_root archive_device
     stage=offline-terminal
     [[ -z ${CI:-} && -t 0 && -t 2 ]] || fail
     stage=offline-live-boot
@@ -93,6 +97,9 @@ check_offline_host() {
     '
     if [[ $mode == offline ]]; then
         findmnt -n -o OPTIONS --target "$archive" | grep -Eq '(^|,)ro(,|$)' || fail
+        archive_device=$(findmnt -n -o SOURCE --target "$archive")
+        archive_device=${archive_device%%\[*}
+        [[ -b $archive_device && $(lsblk -dnro RO "$archive_device") == 1 ]] || fail
     fi
     stage=offline-docker-storage
     docker_root=$(dkr info --format '{{.DockerRootDir}}')
@@ -102,7 +109,8 @@ check_offline_host() {
 }
 
 in_container() {
-    dkr exec -i "$container" env -i PATH=/usr/lib/postgresql/17/bin:/usr/bin:/bin LC_ALL=C \
+    dkr exec -i "$container" env -i \
+        PATH=/nix/var/nix/profiles/default/bin:/usr/lib/postgresql/bin:/usr/lib/postgresql/17/bin:/usr/local/bin:/usr/bin:/bin LC_ALL=C \
         PGHOST="$ram/socket" PGUSER=postgres PGDATABASE=postgres "$@"
 }
 
@@ -136,7 +144,7 @@ ram=$1
 cd "$ram"
 initdb --no-sync --encoding=UTF8 --locale=C --auth-local=trust --auth-host=reject -D db > postgres.log 2>&1
 pg_ctl -D db -l postgres.log -w -t 30 start \
-    -o "-c listen_addresses='' -c unix_socket_directories=$ram/socket -c shared_preload_libraries='' -c log_statement=none" \
+    -o "-c listen_addresses='' -c unix_socket_directories=$ram/socket -c shared_preload_libraries='' -c max_worker_processes=0 -c max_parallel_workers=0 -c max_logical_replication_workers=0 -c log_statement=none" \
     >> postgres-start.log 2>&1
 SH
     assert_local_postgres
@@ -146,14 +154,36 @@ assert_local_postgres() {
     stage=postgres-local-socket
     local actual
     actual=$(in_container psql -XAtw -v ON_ERROR_STOP=1 -c "
-        SELECT current_setting('server_version_num')::int / 10000 = 17
+        SELECT current_setting('server_version_num')::int = 170011
            AND inet_server_addr() IS NULL AND inet_client_addr() IS NULL
            AND current_setting('listen_addresses') = ''
            AND current_setting('shared_preload_libraries') = ''
+           AND current_setting('max_worker_processes') = '0'
            AND NOT EXISTS (SELECT FROM pg_extension WHERE extname IN ('pg_cron', 'pg_net'));
     " 2>"$scratch/client.log")
     [[ $actual == t ]] || fail
-    printf 'PASS postgres-local-socket PostgreSQL 17, TCP and cron/net inactive\n'
+    printf 'PASS postgres-local-socket PostgreSQL 17.11, TCP, workers and cron/net inactive\n'
+}
+
+verify_extension_versions() {
+    local required=$profile/extensions.tsv line extension
+    stage=extension-versions
+    in_container psql -XAtw -v ON_ERROR_STOP=1 -F $'\t' \
+        -c 'SELECT name, version FROM pg_available_extension_versions' \
+        >"$scratch/extensions.tsv" 2>"$scratch/client.log"
+    if [[ -n $supabase_id ]]; then
+        for extension in pg_cron pg_net supabase_vault vector; do
+            grep -q "^$extension"$'\t' "$scratch/extensions.tsv" || fail
+        done
+        printf 'PASS Supabase packages pg_cron, pg_net, supabase_vault and vector available\n'
+    fi
+    [[ -n $profile ]] || return 0
+    [[ -s $required ]] || fail
+    while IFS= read -r line || [[ -n $line ]]; do
+        [[ $line =~ ^[a-zA-Z0-9_-]+$'\t'[a-zA-Z0-9_.+-]+$ ]] || fail
+        grep -Fxq -- "$line" "$scratch/extensions.tsv" || fail
+    done <"$required"
+    printf 'PASS extension-versions requested versions available\n'
 }
 
 apply_sql() {
@@ -178,15 +208,27 @@ restore_section() {
     printf 'PASS %s\n' "$stage"
 }
 
+if [[ ${1:-} == --supabase-image-id ]]; then
+    [[ ${2:-} =~ ^sha256:[0-9a-f]{64}$ ]] || fail
+    supabase_id=$2
+    shift 2
+fi
 mode=${1:-}
 case "$mode" in
     image)
-        [[ $# -eq 1 ]] || fail
-        printf '%s\n' "$image"
+        [[ $# -eq 1 && -z $supabase_id ]] || fail
+        printf '%s\n' "$stock_image"
         exit 0
         ;;
+    load-supabase)
+        [[ $# -eq 4 && -z $supabase_id && $3 =~ ^[0-9A-Fa-f]{64}$ && $4 =~ ^sha256:[0-9a-f]{64}$ && -f $2 && -r $2 ]] || fail
+        archive=$2
+        expected=${3,,}
+        supabase_id=$4
+        ;;
     preflight)
-        [[ $# -eq 1 ]] || fail
+        [[ $# -le 2 ]] || fail
+        profile=${2:-}
         ;;
     synthetic)
         [[ $# -eq 1 || ( $# -eq 2 && $2 == --wrong-key ) ]] || fail
@@ -199,14 +241,14 @@ case "$mode" in
         profile=$4
         ;;
     *)
-        printf 'Usage: %s image | preflight | synthetic [--wrong-key] | offline ARCHIVE EXPECTED_SHA256 REVIEWED_PROFILE\n' "${0##*/}" >&2
+        printf 'Usage: %s [--supabase-image-id ID] {image|load-supabase TAR TAR_SHA256 ID|preflight [PROFILE]|synthetic [--wrong-key]|offline ARCHIVE SHA256 PROFILE}\n' "${0##*/}" >&2
         fail
         ;;
 esac
 
 stage=host-preflight
 [[ $(stat -f -c %T /dev/shm) == tmpfs && -z $(tail -n +2 /proc/swaps) ]] || fail
-if [[ $mode != preflight ]]; then
+if [[ $mode == synthetic || $mode == offline ]]; then
     stage=profile
     for sql in pre-data after-data verify; do
         [[ -f $profile/$sql.sql && -r $profile/$sql.sql ]] || fail
@@ -221,13 +263,40 @@ scratch=$(mktemp -d /dev/shm/sharkania-recovery.XXXXXXXX)
 label=${scratch##*/}
 mkdir -m 700 "$scratch/gpg" "$scratch/docker"
 
-if [[ $mode != synthetic ]]; then
+if [[ $mode == preflight || $mode == offline ]]; then
     check_offline_host
+    stage=supabase-image-required
+    [[ -n $supabase_id ]] || fail
 fi
-stage=local-image
-dkr image inspect "$image" >/dev/null 2>&1
+if [[ $mode == load-supabase ]]; then
+    stage=image-archive-integrity
+    actual=$(sha256sum <"$archive")
+    [[ ${actual%% *} == "$expected" ]] || fail
+    stage=image-load
+    dkr image load --input "$archive" >"$scratch/docker-load.log" 2>&1
+    stage=image-load-identity
+    matched=0
+    while IFS= read -r loaded; do
+        if [[ $(dkr image inspect --format '{{.Id}}' "$loaded" 2>/dev/null) == "$supabase_id" ]]; then
+            matched=1
+        fi
+    done < <(sed -n -e 's/^Loaded image: //p' -e 's/^Loaded image ID: //p' "$scratch/docker-load.log")
+    (( matched )) || fail
+fi
+stage=local-image-identity
+if [[ -n $supabase_id ]]; then
+    [[ $(dkr image inspect --format '{{.Id}}|{{.Os}}' "$supabase_id" 2>"$scratch/client.log") == "$supabase_id|linux" ]] || fail
+    image=$supabase_id
+else
+    dkr image inspect "$image" >/dev/null 2>&1
+fi
+if [[ $mode == load-supabase ]]; then
+    printf 'PASS image-load archive SHA-256 and local Linux image ID verified\n'
+    exit 0
+fi
 if [[ $mode == preflight ]]; then
     start_container
+    verify_extension_versions
     printf 'PASS preflight offline runner ready for a reviewed profile\n'
     exit 0
 fi
@@ -253,6 +322,7 @@ actual=$(sha256sum <"$archive")
 [[ ${actual%% *} == "$expected" ]] || fail
 printf 'PASS archive-integrity SHA-256\n'
 start_container
+verify_extension_versions
 if [[ $mode == offline ]]; then
     stage=offline-passphrase
     read -rs -p 'GPG passphrase: ' key
@@ -282,6 +352,7 @@ awk '
 SH
 stage=profile-pre-data
 apply_sql "$profile/pre-data.sql"
+assert_local_postgres
 stage=restore-public-schema
 in_container sh -eu -s -- "$ram" <<'SH'
 cd "$1"
@@ -301,3 +372,26 @@ assert_local_postgres
 stage=restored-checks
 apply_sql "$profile/verify.sql"
 printf 'PASS restored-checks mode=%s\n' "$mode"
+if [[ $mode == synthetic ]]; then
+    stage=synthetic-catalog
+    in_container psql -XqAtw -v ON_ERROR_STOP=1 --file=- <"$root/scripts/recovery/catalog.sql" \
+        >"$scratch/catalog.json" 2>"$scratch/catalog.log"
+    python3 - "$scratch/catalog.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as report:
+    catalog = json.load(report)
+
+assert catalog["totals"] == {
+    "tables": 1, "views": 1, "indexes": 3, "routines": 1, "constraints": 4,
+    "foreign_keys_to_auth": 1, "extensions": 2,
+}
+fk, = catalog["foreign_keys_to_auth"]
+assert fk["source_table"] == "restore_records" and fk["auth_table"] == "users"
+assert fk["columns"] == [{"source": "user_id", "target": "id", "type": "uuid"}]
+assert any(item["extension"] == "pgcrypto" for item in catalog["dependencies_outside_public"])
+assert any(item["grantee"] == "authenticated" for item in catalog["default_acl"])
+PY
+    printf 'PASS synthetic-catalog inventory and Auth FK mapping\n'
+fi

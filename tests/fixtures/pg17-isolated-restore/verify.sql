@@ -67,6 +67,7 @@ SET LOCAL request.jwt.claim.sub = '00000000-0000-4000-8000-000000000001';
 DO $check$
 BEGIN
     IF (SELECT array_agg(id) FROM public.restore_records) IS DISTINCT FROM ARRAY[1::bigint]
+        OR (SELECT array_agg(score) FROM public.restore_visible) IS DISTINCT FROM ARRAY[29]
         OR public.restore_digest('abc') <> 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
     THEN
         RAISE EXCEPTION 'RLS or extension-backed function differs';
