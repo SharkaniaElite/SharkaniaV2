@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ArrowUpRight, CalendarDays, ChevronRight, Compass, Radar, ShieldCheck, Swords, Trophy, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BookOpen, Calculator, CalendarDays, ChevronRight, GraduationCap, Library, MonitorPlay, Radar, Swords, Trophy, Users } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { VerifiedSecondaryBannerStrip } from "../components/marketing/verified-banner-strip";
 import { SEOHead } from "../components/seo/seo-head";
 import { getPlayers } from "../lib/api/players";
 import { getUpcomingTournaments } from "../lib/api/tournaments";
 import { getBlogPosts } from "../lib/api/blog";
+import { HOME_DESCRIPTION, HOME_HEADING, HOME_INTRO, HOME_TITLE } from "../lib/home-content";
+import { isArenaPreviewHost } from "../lib/arena-preview";
 import { getEditorialPath } from "../lib/editorial-routing";
 import type { BlogPost } from "../lib/api/blog";
 import type { PlayerWithRoom, TournamentWithDetails } from "../types";
@@ -15,11 +17,10 @@ import "./arena-home.css";
 
 function useNearViewport() {
   const ref = useRef<HTMLElement | null>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(() => typeof IntersectionObserver === "undefined");
   useEffect(() => {
     const node = ref.current;
-    if (!node) return;
-    if (!("IntersectionObserver" in window)) { setVisible(true); return; }
+    if (!node || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) {
         setVisible(true);
@@ -45,32 +46,63 @@ function isDemoPlayer(player: PlayerWithRoom) {
   return Boolean((player as PlayerWithRoom & { is_demo?: boolean }).is_demo) || /^\[DEMO\]/i.test(player.nickname || "");
 }
 
-function isCurrentEditorial(post: BlogPost) {
-  if (post.category !== "Promociones") return true;
-  const tags = post.tags || [];
-  const find = (prefix: string) => tags.find((tag) => tag.startsWith(prefix))?.slice(prefix.length);
-  const parts = new Intl.DateTimeFormat("en-GB", {timeZone:"America/Santiago",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
-  const get = (part: string) => parts.find((x)=>x.type===part)?.value || "";
-  const today = get("year")+"-"+get("month")+"-"+get("day");
-  const reviewed = find("verified-on:");
-  const nextReview = find("review-by:");
-  const officialEnd = find("official-end:");
-  return Boolean(reviewed && nextReview && reviewed <= today && nextReview >= today && (!officialEnd || officialEnd >= today));
-}
-
 const pillars = [
-  { title: "Ranking ELO de póker", overline: "01 / CLASIFICACIÓN", description: "Consulta el ELO de los jugadores a partir de resultados de torneos registrados.", to: "/ranking", icon: Trophy, cta: "Explorar posiciones" },
-  { title: "Torneos de póker", overline: "02 / COMPETICIÓN", description: "Descubre próximos torneos de póker online, horarios y resultados.", to: "/calendar", icon: CalendarDays, cta: "Ver calendario" },
-  { title: "Clubes y ligas de póker", overline: "03 / COMUNIDAD", description: "Conoce clubes, ligas y temporadas registradas en Sharkania.", to: "/clubs", icon: Users, cta: "Descubrir clubes" },
+  { name: "Academia", title: "Aprende a pensar.", description: "Explora conceptos y módulos de formación para comprender mejor las decisiones del juego.", to: "/academia", icon: GraduationCap },
+  { name: "SharkTV", title: "Analiza decisiones.", description: "Descubre análisis de manos y contenidos audiovisuales de póker.", to: "/tv", icon: MonitorPlay },
+  { name: "Herramientas", title: "Estudia tu juego.", description: "Explora recursos interactivos para comprender situaciones, conceptos y decisiones.", to: "/tools", icon: Calculator },
+  { name: "Arena", title: "Explora la competición.", description: "Consulta rankings ELO, torneos, clubes, ligas y resultados registrados.", to: "/ranking", icon: Trophy },
 ] as const;
 
-function SectionHeading({ eyebrow, title, supporting, href, linkText }: {
-  eyebrow: string; title: string; supporting?: string; href?: string; linkText?: string;
+const studyLinks = [
+  { label: "Academia de póker", to: "/academia", icon: GraduationCap },
+  { label: "Estrategia", to: "/blog", icon: BookOpen },
+  { label: "Herramientas", to: "/tools", icon: Calculator },
+  { label: "Glosario", to: "/glosario", icon: Library },
+] as const;
+
+const leagueDeadline = Date.parse("2026-11-27T03:00:00Z");
+
+function FeaturedLeague() {
+  const [current, setCurrent] = useState(() => Date.now() < leagueDeadline);
+  useEffect(() => {
+    if (!current) return;
+    let timer: number;
+    function scheduleExpiry() {
+      const remaining = leagueDeadline - Date.now();
+      timer = window.setTimeout(
+        remaining <= 2_147_483_647 ? () => setCurrent(false) : scheduleExpiry,
+        Math.min(remaining, 2_147_483_647),
+      );
+    }
+    scheduleExpiry();
+    return () => window.clearTimeout(timer);
+  }, [current]);
+
+  if (!current) return null;
+  return (
+    <aside className="arena-featured-league" aria-labelledby="home-featured-league-title">
+      <div className="arena-featured-league-inner">
+        <div className="arena-featured-league-copy">
+          <span className="arena-featured-league-eyebrow"><CalendarDays size={15} aria-hidden="true" /> NOVIEMBRE 2026 · CIRCUITO SHARKANIA</span>
+          <h3 id="home-featured-league-title">La Liga SHARKANIA ya tiene calendario.</h3>
+          <p>Cuatro jueves, desde el 5 de noviembre a las 21:00 h de Chile. Consulta las fechas y sigue la clasificación en Sharkania.</p>
+        </div>
+        <div className="arena-featured-league-actions">
+          <Link to="/leagues/liga-sharkania-noviembre-2026" className="arena-featured-league-main">Fechas y ranking <ArrowUpRight size={16} aria-hidden="true" /></Link>
+          <Link to="/ignition" className="arena-featured-league-secondary">Información de acceso <ArrowRight size={16} aria-hidden="true" /></Link>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function SectionHeading({ id, eyebrow, title, supporting, href, linkText }: {
+  id: string; eyebrow?: string; title: string; supporting?: string; href?: string; linkText?: string;
 }) {
   return <div className="arena-heading">
     <div>
-      <div className="arena-eyebrow"><span className="arena-cross" aria-hidden="true">✳</span>{eyebrow}</div>
-      <h2>{title}</h2>
+      {eyebrow && <div className="arena-eyebrow">{eyebrow}</div>}
+      <h2 id={id}>{title}</h2>
       {supporting && <p>{supporting}</p>}
     </div>
     {href && <Link className="arena-heading-link" to={href}>{linkText || "Ver todo"} <ArrowUpRight size={16} /></Link>}
@@ -86,13 +118,16 @@ function Leaderboard({ players, loading, count, failed }: { players: PlayerWithR
     <div className="arena-board-intro">
       <div>
         <span className="arena-board-kicker">CLASIFICACIÓN</span>
-        <h2>El ranking del póker.</h2>
+        <h3>El ranking del póker.</h3>
       </div>
       <span className="arena-board-cycle">RANKING GLOBAL</span>
     </div>
     <div className="arena-board-columns" aria-hidden="true"><span>POS / JUGADOR</span><span>PUNTOS ELO</span></div>
     <div className="arena-board-list" aria-live="polite">
-      {loading ? [1,2,3].map((n)=><div className="arena-board-skeleton" key={n}><span/><span/></div>) :
+      {loading ? <>
+        <span className="sr-only">Cargando la clasificación.</span>
+        {[1, 2, 3].map(n => <div className="arena-board-skeleton" key={n} aria-hidden="true"><span /><span /></div>)}
+      </> :
         players.length ? players.slice(0,3).map((player, index)=>
           <Link to={"/ranking/"+player.slug} className="arena-board-player" key={player.id || player.slug}>
             <span className={"arena-player-position"+(index===0?" is-first":"")}>{String(index+1).padStart(2,"0")}</span>
@@ -124,6 +159,14 @@ function TournamentRow({ tournament }: {tournament: TournamentWithDetails}) {
   </Link>;
 }
 
+function promotionIsReviewed(post: BlogPost, today: string) {
+  const tag = (prefix: string) => post.tags?.find((value) => value.startsWith(prefix))?.slice(prefix.length);
+  const verified = tag("verified-on:");
+  const reviewBy = tag("review-by:");
+  const officialEnd = tag("official-end:");
+  return !!verified && !!reviewBy && reviewBy >= today && (!officialEnd || officialEnd >= today);
+}
+
 function EditorialCard({ post }: {post:BlogPost}) {
   return <Link className="arena-story" to={getEditorialPath(post.category,post.slug)}>
     <div className="arena-story-media">
@@ -135,18 +178,19 @@ function EditorialCard({ post }: {post:BlogPost}) {
     <div className="arena-story-body">
       <small>{post.published_at ? new Date(post.published_at).toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"}) : "Actualidad"}</small>
       <h3>{post.title}</h3>
-      <span>{post.category==="Promociones"?"Leer condiciones":"Leer historia"} <ArrowUpRight size={15}/></span>
+      <span>{post.category === "Promociones" ? "Ver promoción" : "Leer noticia"} <ArrowUpRight size={15}/></span>
     </div>
   </Link>;
 }
 
 export function ArenaHomePage() {
-  const circuit = useNearViewport();
-  const editorial = useNearViewport();
+  const { ref: circuitRef, visible: circuitVisible } = useNearViewport();
+  const { ref: editorialRef, visible: editorialVisible } = useNearViewport();
 
   const ranking = useQuery({
     queryKey:["arena-home","elo-top-3"],
     queryFn:()=>getPlayers({page:1,pageSize:3,orderBy:"elo_rating",orderDir:"desc"}),
+    enabled:circuitVisible,
     staleTime:1000*60*5,
     retry:1
   });
@@ -157,127 +201,164 @@ export function ArenaHomePage() {
       const tournaments = await getUpcomingTournaments();
       return tournaments.filter(t=>t.status==="live"||t.status==="late_registration"||new Date(t.start_datetime).getTime()>now).slice(0,4);
     },
-    enabled:circuit.visible,
+    enabled:circuitVisible,
     staleTime:1000*60*3,
     retry:1
   });
   const stories = useQuery({
-    queryKey:["arena-home","editorial"],
-    queryFn:async()=>{
-      const posts = await getBlogPosts();
-      return posts.filter(isCurrentEditorial).slice(0,3);
+    queryKey:["arena-home","news"],
+    queryFn:async()=> {
+      // La portada incluye noticias y promociones revisadas; las ofertas
+      // historicas o pendientes de revision permanecen en /noticias.
+      const [news, promotions] = await Promise.all([
+        getBlogPosts({ category: "Noticias", limit: 3 }),
+        getBlogPosts({ category: "Promociones", limit: 20 }),
+      ]);
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit",
+      }).formatToParts(new Date(Date.now()));
+      const part = (type: string) => parts.find((value) => value.type === type)?.value || "";
+      const today = `${part("year")}-${part("month")}-${part("day")}`;
+      return [...news, ...promotions.filter((post) => promotionIsReviewed(post, today))]
+        .sort((a, b) => new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime())
+        .slice(0, 3);
     },
-    enabled:editorial.visible,
+    enabled:editorialVisible,
     staleTime:1000*60*5,
     retry:1
   });
 
   return <PageShell variant="arena">
-    <SEOHead title="Ranking ELO y torneos de póker online" description="Sigue torneos de póker online, consulta el ranking ELO de jugadores y descubre clubes, ligas y resultados registrados en Sharkania." path="/" />
+    <SEOHead title={HOME_TITLE} description={HOME_DESCRIPTION} path="/" noIndex={isArenaPreviewHost()} />
     <div className="arena">
       <section className="arena-hero arena-scene" aria-labelledby="arena-hero-title">
         <img className="arena-scene-photo" src="/images/arena/home-hero.webp" alt="" aria-hidden="true" width={720} height={240} loading="eager" decoding="async" fetchPriority="high" />
         <span className="arena-scene-shade" aria-hidden="true" />
-        <div className="arena-hero-aura" aria-hidden="true" />
         <div className="arena-hero-grid">
           <div className="arena-hero-copy">
-            <div className="arena-hero-label"><span className="arena-label-line"/><span>SHARKANIA <b>ARENA</b></span><span className="arena-hero-label-index">/ CIRCUITO DE PÓKER COMPETITIVO</span></div>
-            <h1 id="arena-hero-title">EL PÓKER TIENE<br/>SU <em>ARENA.</em></h1>
-            <p className="arena-hero-sub">Ranking ELO, torneos de póker online y jugadores. <strong>Todo en un solo lugar.</strong></p>
-            <p className="arena-hero-lead">Consulta resultados de torneos, explora clasificaciones ELO y conoce los clubes y ligas que forman parte del circuito de póker competitivo.</p>
+            <div className="arena-hero-label"><span className="arena-label-line" aria-hidden="true" /> TU PLATAFORMA DE PÓKER EN LATINOAMÉRICA</div>
+            <h1 id="arena-hero-title">{HOME_HEADING[0]} <em>{HOME_HEADING[1]}</em></h1>
+            <p className="arena-hero-lead">{HOME_INTRO}</p>
             <div className="arena-hero-actions">
-              <Link to="/ranking" className="arena-action-main">Ver ranking ELO <ArrowUpRight size={19}/></Link>
-              <Link to="/calendar" className="arena-action-secondary">Ver torneos de póker <ArrowRight size={17}/></Link>
+              <Link to="/academia" className="arena-action-main">Comenzar a aprender <ArrowUpRight size={19} aria-hidden="true" /></Link>
+              <Link to="/tv" className="arena-action-secondary">Ver SharkTV <ArrowRight size={17} aria-hidden="true" /></Link>
             </div>
-            <div className="arena-hero-proof"><ShieldCheck size={16} /><span>Clasificaciones basadas en resultados registrados</span></div>
-          </div>
-          <div className="arena-hero-widget">
-            <div className="arena-orbit" aria-hidden="true"><div className="arena-orbit-a"/><div className="arena-orbit-b"/></div>
-            <Leaderboard players={ranking.data?.data || []} loading={ranking.isPending} count={ranking.data?.count||0} failed={ranking.isError}/>
           </div>
         </div>
-        <div className="arena-hero-footer"><span>EST. 2026 &nbsp;/&nbsp; LATINOAMÉRICA</span><span>COMPETIR · MEDIR · EVOLUCIONAR</span><span className="arena-hero-scroll">DESCUBRE SHARKANIA ↓</span></div>
       </section>
 
-      {/* Aviso editorial temporal: se retira automáticamente tras noviembre. */}
-      {Date.now() < Date.parse("2026-11-27T03:00:00Z") && (
-        <aside className="arena-featured-league" aria-label="Liga SHARKANIA de noviembre">
-          <div className="arena-featured-league-inner">
-            <div className="arena-featured-league-copy">
-              <span className="arena-featured-league-eyebrow"><CalendarDays size={15} aria-hidden="true" /> NOVIEMBRE 2026 · CIRCUITO SHARKANIA</span>
-              <h2>La Liga SHARKANIA ya tiene calendario.</h2>
-              <p>Cuatro jueves, desde el 5 de noviembre a las 21:00 h de Chile. Consulta las fechas y sigue la clasificación en Sharkania.</p>
-            </div>
-            <div className="arena-featured-league-actions">
-              <Link to="/leagues/liga-sharkania-noviembre-2026" className="arena-featured-league-main">Fechas y ranking <ArrowUpRight size={16} aria-hidden="true" /></Link>
-              <Link to="/ignition" className="arena-featured-league-secondary">Información de acceso <ArrowRight size={16} aria-hidden="true" /></Link>
-            </div>
-          </div>
-        </aside>
-      )}
-
-      <section className="arena-hub arena-scene" aria-label="Explorar las funciones de Sharkania">
-        <img className="arena-scene-photo" src="/images/arena/home-ranking.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
-        <span className="arena-scene-shade" aria-hidden="true" />
+      <section className="arena-hub" aria-labelledby="home-pillars-title">
         <div className="arena-section-wrap">
-          <SectionHeading eyebrow="TU PUNTO DE PARTIDA" title="Explora el póker competitivo." supporting="Clasificaciones ELO, torneos y clubes: encuentra el recorrido que te interesa." />
+          <SectionHeading id="home-pillars-title" title="Explora Sharkania" />
           <div className="arena-pillar-grid">
-            {pillars.map((item)=>{
-              const Icon=item.icon;
-              return <Link key={item.to} to={item.to} className="arena-pillar">
-                <div className="arena-pillar-head"><span>{item.overline}</span><ArrowUpRight size={20}/></div>
-                <div className="arena-pillar-symbol"><Icon size={32} strokeWidth={1.5}/></div>
-                <div className="arena-pillar-content"><h3>{item.title}</h3><p>{item.description}</p><span>{item.cta} <ArrowRight size={16}/></span></div>
-              </Link>;
-            })}
+            {pillars.map(({ name, title, description, to, icon: Icon }) => (
+              <Link key={to} to={to} className="arena-pillar">
+                <div className="arena-pillar-head"><Icon size={25} strokeWidth={1.6} aria-hidden="true" /><ArrowUpRight size={17} aria-hidden="true" /></div>
+                <div className="arena-pillar-content">
+                  <span>{name}</span>
+                  <h3>{title}</h3>
+                  <p>{description}</p>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="arena-circuit arena-scene" ref={circuit.ref}>
+      <section className="arena-originals" aria-labelledby="home-originals-title">
+        <div className="arena-section-wrap">
+          <div className="arena-originals-card">
+            <div className="arena-originals-copy">
+              <SectionHeading id="home-originals-title" eyebrow="Sharkania Originals" title="Clérigo Analiza" />
+              <p className="arena-originals-tagline">Cada decisión tiene una razón.</p>
+              <p className="arena-originals-description">Clérigo Póker prepara una serie educativa para revisar manos de su propio historial y explicar el razonamiento detrás de cada jugada.</p>
+              <div className="arena-originals-actions">
+                <Link className="arena-action-secondary" to="/tv">Explorar SharkTV <ArrowUpRight size={17} aria-hidden="true" /></Link>
+                <span>Serie en preparación</span>
+              </div>
+            </div>
+            <div className="arena-originals-art" aria-hidden="true">
+              <img src="/images/arena/home-ranking.webp" alt="" width={720} height={240} loading="lazy" decoding="async" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="arena-study" aria-labelledby="home-study-title">
+        <div className="arena-section-wrap">
+          <SectionHeading id="home-study-title" title="Aprende, estudia y comprende el póker." />
+          <ul className="arena-study-grid">
+            {studyLinks.map(({ label, to, icon: Icon }) => (
+              <li key={to}>
+                <Link to={to}><Icon size={20} aria-hidden="true" />{label}<ArrowRight size={16} aria-hidden="true" /></Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="arena-circuit arena-scene" ref={circuitRef} aria-labelledby="home-arena-title">
         <img className="arena-scene-photo" src="/images/arena/home-tournaments.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
         <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
-          <SectionHeading eyebrow="AGENDA DE PÓKER" title="Próximos torneos de póker." supporting="Horarios y eventos publicados por los clubes registrados." href="/calendar" linkText="Calendario completo"/>
+          <SectionHeading id="home-arena-title" eyebrow="Sharkania Arena" title="El póker tiene su Arena." supporting="Consulta clasificaciones ELO, resultados registrados, clubes, ligas y el calendario de torneos." />
           <div className="arena-circuit-grid">
-            <div className="arena-events">
-              {!circuit.visible || events.isPending ? [1,2,3].map(n=><div className="arena-event-skeleton" key={n}/>) :
-                events.isError ? <div className="arena-empty">No pudimos consultar la agenda. <Link to="/calendar">Abrir el calendario</Link></div> :
-                events.data?.length ? events.data.map(t=><TournamentRow key={t.id} tournament={t}/>) :
-                <div className="arena-empty">No hay próximos eventos publicados en este momento. <Link to="/calendar">Explorar el calendario</Link></div>}
+            <Leaderboard players={ranking.data?.data || []} loading={ranking.isPending} count={ranking.data?.count || 0} failed={ranking.isError} />
+            <div className="arena-agenda">
+              <div className="arena-agenda-heading">
+                <h3>Próximos torneos de póker.</h3>
+                <Link className="arena-heading-link" to="/calendar">Calendario completo <ArrowUpRight size={16} aria-hidden="true" /></Link>
+              </div>
+              <div className="arena-events" aria-live="polite">
+                {events.isPending ? <>
+                  <span className="sr-only">Cargando próximos torneos.</span>
+                  {[1, 2, 3].map(n => <div className="arena-event-skeleton" key={n} aria-hidden="true" />)}
+                </> :
+                  events.isError ? <div className="arena-empty">No pudimos consultar la agenda. <Link to="/calendar">Abrir el calendario</Link></div> :
+                  events.data?.length ? events.data.map(t => <TournamentRow key={t.id} tournament={t} />) :
+                  <div className="arena-empty">No hay próximos eventos publicados en este momento. <Link to="/calendar">Explorar el calendario</Link></div>}
+              </div>
+              <div className="arena-competition-links">
+                <Link className="arena-action-secondary" to="/clubs"><Users size={17} aria-hidden="true" /> Clubes <ArrowUpRight size={16} aria-hidden="true" /></Link>
+                <Link className="arena-action-secondary" to="/leagues"><Trophy size={17} aria-hidden="true" /> Ligas <ArrowUpRight size={16} aria-hidden="true" /></Link>
+              </div>
             </div>
-            <Link to="/leagues" className="arena-circuit-feature">
-              <div className="arena-feature-top"><span><Compass size={16}/> CIRCUITO / LIGAS</span><ArrowUpRight size={19}/></div>
-              <div className="arena-feature-art" aria-hidden="true"><span>01</span><div/></div>
-              <div><h3>La competición continúa.</h3><p>Sigue las ligas de póker y sus clasificaciones en Sharkania.</p><strong>Explorar ligas <ArrowRight size={15}/></strong></div>
-            </Link>
           </div>
+          <FeaturedLeague />
         </div>
       </section>
 
       {/* Publicidad secundaria tras ranking y torneos; nunca por encima de la competición. */}
       <VerifiedSecondaryBannerStrip />
 
-      <section className="arena-editorial arena-scene" ref={editorial.ref}>
+      <section className="arena-editorial arena-scene" ref={editorialRef} aria-labelledby="home-news-title">
         <img className="arena-scene-photo" src="/images/arena/home-editorial.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
         <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
-          <SectionHeading eyebrow="ACTUALIDAD DEL PÓKER" title="Noticias y estrategia de póker." supporting="Publicaciones, guías y promociones identificadas, separadas de los resultados deportivos." href="/noticias" linkText="Explorar noticias"/>
-          <div className="arena-story-grid">
-            {!editorial.visible || stories.isPending ? [1,2,3].map(n=><div className="arena-story-skeleton" key={n}/>) :
+          <SectionHeading id="home-news-title" title="Noticias y promociones de póker" href="/noticias" linkText="Explorar noticias" />
+          <div className="arena-story-grid" aria-live="polite">
+            {stories.isPending ? <>
+              <span className="sr-only">Cargando noticias.</span>
+              {[1, 2, 3].map(n => <div className="arena-story-skeleton" key={n} aria-hidden="true" />)}
+            </> :
               stories.isError ? <div className="arena-empty">No fue posible cargar las publicaciones. <Link to="/noticias">Ir a Noticias</Link></div> :
               stories.data?.length ? stories.data.map(post=><EditorialCard post={post} key={post.id}/>) :
               <div className="arena-empty">Pronto habrá nuevas publicaciones.</div>}
           </div>
-          <div className="arena-editorial-links"><Link to="/promociones">Promociones y condiciones <ArrowUpRight size={16}/></Link><span>Publicidad identificada y sujeta a elegibilidad.</span></div>
         </div>
       </section>
 
-      <section className="arena-final arena-scene">
+      <section className="arena-final arena-scene" aria-labelledby="home-close-title">
         <img className="arena-scene-photo" src="/images/arena/home-final.webp" alt="" aria-hidden="true" width={720} height={240} loading="lazy" decoding="async" />
         <span className="arena-scene-shade" aria-hidden="true" />
         <div className="arena-section-wrap">
-          <div className="arena-final-inner"><div><div className="arena-eyebrow"><span className="arena-cross">✳</span> TU HISTORIA EMPIEZA AQUÍ</div><h2>El próximo nombre en el ranking<br/><em>podría ser el tuyo.</em></h2><p>Sigue tus torneos de póker, consulta el ranking ELO y participa en la comunidad.</p></div><Link to="/register">Crear cuenta <ArrowUpRight size={18}/></Link></div>
+          <div className="arena-final-inner">
+            <div>
+              <h2 id="home-close-title">Tu próximo aprendizaje <em>comienza aquí.</em></h2>
+              <p>Explora los recursos educativos, los análisis y la comunidad de Sharkania.</p>
+            </div>
+            <Link to="/register">Crear cuenta <ArrowUpRight size={18} aria-hidden="true" /></Link>
+          </div>
         </div>
       </section>
     </div>

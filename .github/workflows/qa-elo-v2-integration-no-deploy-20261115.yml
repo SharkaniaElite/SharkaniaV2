@@ -9,7 +9,17 @@ on:
       - .github/workflows/qa-elo-v2-integration-no-deploy-20261115.yml
       - package-lock.json
       - package.json
+      - functions/_middleware.ts
       - src/App.tsx
+      - src/components/layout/**
+      - src/components/search/global-search.tsx
+      - src/lib/api/blog.ts
+      - src/lib/home-content.ts
+      - src/pages/arena-home.*
+      - src/styles/arena-public-bridge.css
+      - tests/home-p0-04.test.mjs
+      - tests/legacy-route-http.test.mjs
+      - tests/navigation-p0-03.test.mjs
 
 permissions:
   contents: read
@@ -51,6 +61,9 @@ jobs:
           tests/ignition-article-banner-contract.test.mjs
           tests/editorial-inline-bold-contract.test.mjs
           tests/news-featured-layout-contract.test.mjs
+          tests/home-p0-04.test.mjs
+          tests/legacy-route-http.test.mjs
+          tests/navigation-p0-03.test.mjs
       - name: Ensure historic SQL remains versioned and the approved candidate is byte-identical
         run: |
           test "$(find supabase/migrations -maxdepth 1 -name '*.sql' -type f | wc -l | tr -d ' ')" = "55"
