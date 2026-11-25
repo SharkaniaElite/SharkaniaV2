@@ -7,7 +7,7 @@ import { EpisodeCover } from "../components/shark-tv/episode-cover";
 import { Button } from "../components/ui/button";
 import { getAllSharkVideos, sharkTvQueryKey } from "../lib/api/shark-tv";
 import { isArenaPreviewHost } from "../lib/arena-preview";
-import { episodeDescription, episodePath, selectSharkTvEpisodes, SHARK_TV_DESCRIPTION, SHARK_TV_TITLE } from "../lib/shark-tv";
+import { episodeCanonicalPath, episodeDescription, selectSharkTvEpisodes, SHARK_TV_DESCRIPTION, SHARK_TV_TITLE } from "../lib/shark-tv";
 import "./shark-tv.css";
 
 export function SharkTvPage() {
@@ -29,7 +29,7 @@ export function SharkTvPage() {
               <p className="shark-tv-label">{featured.table_context?.series || "Episodio destacado"}</p>
               <h2 id="shark-tv-featured-title">{featured.title}</h2>
               <p>{episodeDescription(featured)}</p>
-              <Link className="shark-tv-primary" to={episodePath(featured.id)}>
+              <Link className="shark-tv-primary" to={episodeCanonicalPath(featured)}>
                 <Play size={17} aria-hidden="true" /> Ver episodio
               </Link>
             </div>
@@ -49,7 +49,7 @@ export function SharkTvPage() {
               <ul className="shark-tv-grid">
                 {archive.map(episode => (
                   <li key={episode.id}>
-                    <Link className="shark-tv-card" to={episodePath(episode.id)}>
+                    <Link className="shark-tv-card" to={episodeCanonicalPath(episode)}>
                       <EpisodeCover episode={episode} />
                       <div className="shark-tv-card-copy">
                         {episode.table_context?.series && <p className="shark-tv-label">{episode.table_context.series}</p>}

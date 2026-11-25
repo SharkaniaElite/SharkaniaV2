@@ -26,11 +26,14 @@ export interface SharkEpisode {
 export const SHARK_TV_TITLE = "SharkTV — Vídeos educativos de póker";
 export const SHARK_TV_DESCRIPTION = "Entiende el póker y analiza tus decisiones con revisiones de manos, conceptos de estudio y episodios de Clérigo Analiza.";
 
+const launchRumbleEmbedId = "v7gq0y0";
+const launchRumblePublicId = "v7iwdvi";
+
 export const CLERIGO_EPISODE: SharkEpisode = {
   id: "clerigo-analiza-01",
   title: "Clérigo Analiza #01 — Gané con una escalera… ¿pero hice bien el call?",
-  video_url: "https://rumble.com/embed/v7gq0y0/?pub=4par2u",
-  thumbnail_url: null,
+  video_url: `https://rumble.com/embed/${launchRumbleEmbedId}/?pub=4par2u`,
+  thumbnail_url: "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/blog_images/clerigo_analiza_%20jugue_mal.webp",
   duration: "6:18",
   level: null,
   instructor_name: "Clérigo Póker",
@@ -39,7 +42,7 @@ export const CLERIGO_EPISODE: SharkEpisode = {
   table_context: {
     series: "Clérigo Analiza",
     description: "Una mano de NL25 para repasar las pot odds y evaluar si el call tenía sentido antes de saber cómo terminaría la mano.",
-    public_url: "https://rumble.com/v7iwdvi-gan-con-una-escalera-pero-hice-bien-el-call-clrigo-analiza-01.html",
+    public_url: `https://rumble.com/${launchRumblePublicId}-gan-con-una-escalera-pero-hice-bien-el-call-clrigo-analiza-01.html`,
   },
 };
 
@@ -92,36 +95,58 @@ export function episodeDescription(episode: SharkEpisode) {
     || `Revisa «${episode.title}» y estudia las decisiones de la mano en SharkTV.`;
 }
 
-function embedIdentity(value: unknown) {
-  const embed = getRumbleEmbed(value);
-  return embed?.split("?")[0];
+export const clerigoLaunchFilter = ["rumble.com", "www.rumble.com"].flatMap(host => [
+  `video_url.ilike.https://${host}/embed/${launchRumbleEmbedId}*`,
+  `video_url.ilike.https://${host}/${launchRumblePublicId}*`,
+  `table_context->>public_url.ilike.https://${host}/${launchRumblePublicId}*`,
+]).join(",");
+
+function isLaunchWatchUrl(value: unknown) {
+  const watch = getRumbleWatchUrl(value);
+  return Boolean(watch && new URL(watch).pathname.match(/^\/(v[a-z0-9]+)(?:-|\.html$)/i)?.[1]?.toLowerCase() === launchRumblePublicId);
 }
 
 export function isClerigoLaunch(episode: SharkEpisode) {
+  const embed = getRumbleEmbed(episode.video_url);
   return episode.id === CLERIGO_EPISODE.id
-    || getRumbleWatchUrl(episode.table_context?.public_url ?? episode.video_url) === CLERIGO_EPISODE.table_context?.public_url
-    || embedIdentity(episode.video_url) === embedIdentity(CLERIGO_EPISODE.video_url);
+    || isLaunchWatchUrl(episode.table_context?.public_url)
+    || isLaunchWatchUrl(episode.video_url)
+    || Boolean(embed && new URL(embed).pathname.split("/")[2]?.toLowerCase() === launchRumbleEmbedId);
+}
+
+export function episodeCanonicalPath(episode: SharkEpisode) {
+  return episodePath(isClerigoLaunch(episode) ? CLERIGO_EPISODE.id : episode.id);
 }
 
 export function mergeLaunchEpisode(episode: SharkEpisode): SharkEpisode {
   if (!isClerigoLaunch(episode)) return episode;
+  const context = episode.table_context;
   return {
     ...episode,
-    video_url: getRumbleEmbed(episode.video_url) ?? CLERIGO_EPISODE.video_url,
+    video_url: CLERIGO_EPISODE.video_url,
     duration: episode.duration || CLERIGO_EPISODE.duration,
+    instructor_name: episode.instructor_name || CLERIGO_EPISODE.instructor_name,
     tags: episode.tags?.length ? episode.tags : CLERIGO_EPISODE.tags,
-    table_context: { ...CLERIGO_EPISODE.table_context, ...episode.table_context },
+    thumbnail_url: getEpisodeThumbnail(episode.thumbnail_url) ?? CLERIGO_EPISODE.thumbnail_url,
+    table_context: {
+      ...context,
+      series: (typeof context?.series === "string" && context.series.trim()) || CLERIGO_EPISODE.table_context?.series,
+      description: (typeof context?.description === "string" && context.description.trim()) || CLERIGO_EPISODE.table_context?.description,
+      public_url: CLERIGO_EPISODE.table_context?.public_url,
+    },
   };
 }
 
+export function selectLaunchEpisode(episodes: SharkEpisode[]) {
+  return mergeLaunchEpisode(episodes.find(isClerigoLaunch) ?? CLERIGO_EPISODE);
+}
+
 export function selectSharkTvEpisodes(episodes: SharkEpisode[]) {
-  const launch = episodes.find(isClerigoLaunch);
-  const featured = episodes.find(episode => episode.table_context?.featured === true)
-    ?? launch ?? CLERIGO_EPISODE;
-  const archive = episodes.filter(episode => episode.id !== featured.id
-    && (!isClerigoLaunch(episode) || (!isClerigoLaunch(featured) && episode === launch)));
-  if (!isClerigoLaunch(featured) && !launch) archive.push(CLERIGO_EPISODE);
-  return { featured: mergeLaunchEpisode(featured), archive: archive.map(mergeLaunchEpisode) };
+  const launch = selectLaunchEpisode(episodes);
+  const featured = episodes.find(episode => episode.table_context?.featured === true) ?? launch;
+  const archive = episodes.filter(episode => episode.id !== featured.id && !isClerigoLaunch(episode));
+  if (!isClerigoLaunch(featured)) archive.push(launch);
+  return { featured: isClerigoLaunch(featured) ? launch : featured, archive };
 }
 
 export function videoStructuredData(episode: SharkEpisode) {

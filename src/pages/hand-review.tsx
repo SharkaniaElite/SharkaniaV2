@@ -9,7 +9,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { getSharkVideo, sharkTvQueryKey } from "../lib/api/shark-tv";
 import { isArenaPreviewHost } from "../lib/arena-preview";
-import { episodeDescription, episodePath, getEpisodePlayback, getEpisodeThumbnail, type SharkEpisode } from "../lib/shark-tv";
+import { CLERIGO_EPISODE, episodeCanonicalPath, episodeDescription, episodePath, getEpisodePlayback, getEpisodeThumbnail, type SharkEpisode } from "../lib/shark-tv";
 import "./shark-tv.css";
 
 function EpisodePlayer({ episode }: { episode: SharkEpisode }) {
@@ -158,16 +158,18 @@ export function HandReviewPage() {
   const result = useQuery({
     queryKey: [...sharkTvQueryKey, id],
     queryFn: () => getSharkVideo(id),
+    placeholderData: id === CLERIGO_EPISODE.id ? CLERIGO_EPISODE : undefined,
     staleTime: 5 * 60 * 1000,
   });
   const episode = result.data;
   const embed = episode && getEpisodePlayback(episode).embed;
+  const canonicalPath = episode ? episodeCanonicalPath(episode) : episodePath(id);
   return (
     <PageShell>
       <SEOHead
         title={episode ? `${episode.title} | SharkTV` : "Episodio de SharkTV"}
         description={episode ? episodeDescription(episode) : "Vídeos educativos y análisis de manos de SharkTV."}
-        path={episodePath(id)}
+        path={canonicalPath}
         ogImage={episode ? getEpisodeThumbnail(episode.thumbnail_url) ?? undefined : undefined}
         ogType={embed ? "video.other" : "website"}
         ogVideo={embed || undefined}
@@ -189,8 +191,8 @@ export function HandReviewPage() {
                   {episode.tags?.map(tag => <Badge key={tag} variant="muted">{tag}</Badge>)}
                 </div>
               </header>
-              <EpisodePlayer key={episode.id} episode={episode} />
-              <EpisodeNotes key={episode.id} episode={episode} />
+              <EpisodePlayer key={canonicalPath} episode={episode} />
+              <EpisodeNotes key={canonicalPath} episode={episode} />
             </article>
           ) : result.isPending ? (
             <p className="shark-tv-status" role="status">Cargando el episodio…</p>

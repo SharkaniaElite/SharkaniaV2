@@ -222,12 +222,13 @@ test("SharkTV and launch episode serve canonical, indexable editorial content wi
   const episodePath = "/tv/clerigo-analiza-01";
   const episode = await middleware(makeContext(episodePath, { key: "" }));
   assert.equal(episode.headers.get("x-test-canonical"), "https://sharkania.com" + episodePath);
+  assert.equal(episode.headers.get("x-test-og-image"), sharkTv.CLERIGO_EPISODE.thumbnail_url);
   const html = await episode.text();
   assert.match(html, /Gané con una escalera/);
   assert.match(html, /property="og:video" content="https:\/\/rumble\.com\/embed\/v7gq0y0\/\?pub=4par2u"/);
   assert.doesNotMatch(html, /<iframe|application\/ld\+json/);
 
-  const preview = await middleware(makeContext(episodePath, { origin: "https://qa.sharkaniav2.pages.dev" }));
+  const preview = await middleware(makeContext(episodePath, { origin: "https://qa.sharkaniav2.pages.dev", key: "" }));
   assert.equal(preview.headers.get("x-robots-tag"), "noindex");
   assert.equal(preview.headers.get("x-test-robots"), "noindex, nofollow");
 });
@@ -253,4 +254,26 @@ test("SharkTV uses the stored episode for video schema and noindexes unknown epi
   assert.match(html, /<h1>Análisis &lt;\/script&gt; de prueba<\/h1>/);
   const missing = await middleware(makeContext("/tv/missing"));
   assert.equal(missing.headers.get("x-robots-tag"), "noindex");
+});
+
+test("a stored Clérigo launch updates SEO on its fixed route and shares one canonical with its row ID", async () => {
+  const lookups = [];
+  const stored = {
+    id: "stored-launch", title: "Título actualizado desde Super Admin",
+    video_url: "https://rumble.com/embed/v7gq0y0/",
+    table_context: { description: "Descripción guardada." },
+  };
+  const middleware = loadMiddleware(async (url) => {
+    const request = new URL(url);
+    assert.equal(request.pathname, "/rest/v1/shark_tv_videos");
+    lookups.push(request);
+    return Response.json([stored]);
+  });
+  for (const path of ["/tv/clerigo-analiza-01", "/tv/stored-launch"]) {
+    const response = await middleware(makeContext(path));
+    assert.equal(response.headers.get("x-test-canonical"), "https://sharkania.com/tv/clerigo-analiza-01");
+    assert.match(await response.text(), /Descripción guardada\./);
+  }
+  assert.match(lookups[0].searchParams.get("or"), /video_url\.ilike\.https:\/\/rumble\.com\/embed\/v7gq0y0/);
+  assert.equal(lookups[1].searchParams.get("id"), "eq.stored-launch");
 });

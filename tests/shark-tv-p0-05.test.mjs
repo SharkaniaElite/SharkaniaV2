@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  CLERIGO_EPISODE, episodePath, getEpisodePlayback, getEpisodeThumbnail, getRumbleEmbed,
-  selectSharkTvEpisodes, validateEpisode, videoStructuredData,
+  CLERIGO_EPISODE, episodeCanonicalPath, episodePath, getEpisodePlayback, getEpisodeThumbnail, getRumbleEmbed,
+  selectLaunchEpisode, selectSharkTvEpisodes, validateEpisode, videoStructuredData,
 } from "../src/lib/shark-tv.ts";
 
 const archiveEpisode = {
@@ -16,6 +16,7 @@ const archiveEpisode = {
 test("launch uses the official player URL and a separate public fallback", () => {
   assert.equal(episodePath(CLERIGO_EPISODE.id), "/tv/clerigo-analiza-01");
   assert.equal(CLERIGO_EPISODE.duration, "6:18");
+  assert.equal(getEpisodeThumbnail(CLERIGO_EPISODE.thumbnail_url), "https://nhpjzywfzljtlqaigzed.supabase.co/storage/v1/object/public/blog_images/clerigo_analiza_%20jugue_mal.webp");
   const playback = getEpisodePlayback(CLERIGO_EPISODE);
   assert.equal(playback.embed, "https://rumble.com/embed/v7gq0y0/?pub=4par2u");
   assert.match(playback.externalUrl, /^https:\/\/rumble\.com\/v7iwdvi-/);
@@ -40,6 +41,7 @@ test("catalog keeps archives, merges the stored launch without duplicates and le
   const duplicate = { ...stored, id: "duplicate" };
   const catalog = selectSharkTvEpisodes([stored, duplicate, archiveEpisode]);
   assert.equal(catalog.featured.id, "stored-launch");
+  assert.equal(episodeCanonicalPath(catalog.featured), episodePath(CLERIGO_EPISODE.id));
   assert.equal(catalog.featured.thumbnail_url, stored.thumbnail_url);
   assert.deepEqual(catalog.archive.map(episode => episode.id), ["archive"]);
   const featured = { ...archiveEpisode, table_context: { featured: true } };
@@ -72,4 +74,22 @@ test("schema is generated only when publication date, thumbnail and embed are kn
   assert.equal(data.duration, "PT6M18S");
   assert.equal(data.uploadDate, "2026-11-25T15:00:00.000Z");
   assert.equal(data.embedUrl, archiveEpisode.video_url);
+});
+
+test("the fixed launch path uses stored metadata without changing playback or duplicating the card", () => {
+  const misleadingId = { ...archiveEpisode, video_url: "https://rumble.com/embed/v7gq0y0other/" };
+  const stored = {
+    ...archiveEpisode, id: "stored", thumbnail_url: "", video_url: "https://www.rumble.com/v7iwdvi.html?ref=fixture",
+    table_context: { description: "Descripción editada", series: "", public_url: "" },
+  };
+  const launch = selectLaunchEpisode([misleadingId, stored]);
+  assert.equal(launch.id, "stored");
+  assert.equal(launch.table_context.description, "Descripción editada");
+  assert.equal(launch.table_context.series, "Clérigo Analiza");
+  assert.equal(launch.table_context.public_url, CLERIGO_EPISODE.table_context.public_url);
+  assert.equal(launch.video_url, CLERIGO_EPISODE.video_url);
+  assert.equal(launch.thumbnail_url, CLERIGO_EPISODE.thumbnail_url);
+  assert.equal(episodeCanonicalPath(launch), "/tv/clerigo-analiza-01");
+  const archived = selectSharkTvEpisodes([{ ...archiveEpisode, table_context: { featured: true } }, stored, { ...stored, id: "duplicate" }]);
+  assert.deepEqual(archived.archive.map(episode => episode.id), ["stored"]);
 });

@@ -78,14 +78,14 @@ test("account actions use the existing authentication state and protected routes
   assert.match(app, /path="\/admin\/club"\s+element=\{\s*<ProtectedRoute requiredRole=\{\["club_admin", "super_admin"\]\}/);
 });
 
-test("preview keeps private routes blocked even when the menu advertises their destinations", () => {
+test("preview permits SharkTV reads and keeps private and nested paths blocked", () => {
   const allowlist = app.match(/const READ_ONLY_ARENA_PATHS = \[([\s\S]*?)\];/)[1];
   const patterns = [...allowlist.matchAll(/\/(\^.*?\$)\//g)].map(([, pattern]) => new RegExp(pattern));
   assert.ok(patterns.length > 0);
-  for (const path of ["/tv", "/academia/modulo", "/login", "/register", "/dashboard", "/admin", "/admin/club"]) {
+  for (const path of ["/tv/admin/delete", "/tv-online/1", "/tv/a%2Fb", "/academia/modulo", "/login", "/register", "/dashboard", "/admin", "/admin/club", "/tools/replayer", "/forgot-password", "/update-password"]) {
     assert.ok(!patterns.some((pattern) => pattern.test(path)), path);
   }
-  for (const path of ["/academia", "/tools", "/ranking", "/noticias", "/promociones"]) {
+  for (const path of ["/academia", "/tools", "/ranking", "/noticias", "/promociones", "/tv", "/tv/", "/tv/clerigo-analiza-01", "/tv/123e4567-e89b-12d3-a456-426614174000"]) {
     assert.ok(patterns.some((pattern) => pattern.test(path)), path);
   }
   assert.match(app, /<PreviewReadOnlyGate>\s*<Routes>/);

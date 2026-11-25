@@ -1,6 +1,6 @@
 import {
   CLERIGO_EPISODE, SHARK_TV_TITLE, SHARK_TV_DESCRIPTION, episodeDescription,
-  episodePath, getEpisodePlayback, getEpisodeThumbnail, mergeLaunchEpisode,
+  clerigoLaunchFilter, episodeCanonicalPath, episodePath, getEpisodePlayback, getEpisodeThumbnail, mergeLaunchEpisode, selectLaunchEpisode,
   videoStructuredData, type SharkEpisode,
 } from "../src/lib/shark-tv";
 import { HOME_DESCRIPTION, HOME_HEADING, HOME_INTRO, HOME_TITLE } from "../src/lib/home-content";
@@ -313,15 +313,17 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
 
   const key = env.SUPABASE_ANON_KEY;
   const episodeId = canonicalPath.match(/^\/tv\/([a-z0-9_-]+)$/i)?.[1];
-  const episodeRows = episodeId && episodeId !== CLERIGO_EPISODE.id
-    ? await fetchJson("shark_tv_videos?select=id,title,video_url,thumbnail_url,duration,created_at,table_context&id=eq."
-      + encodeURIComponent(episodeId) + "&limit=1", key)
+  const episodeFields = "id,title,video_url,thumbnail_url,duration,created_at,table_context";
+  const launchPage = episodeId === CLERIGO_EPISODE.id;
+  const episodeLookup = launchPage
+    ? "or=" + encodeURIComponent(`(${clerigoLaunchFilter})`) + "&order=created_at.desc"
+    : "id=eq." + encodeURIComponent(episodeId ?? "") + "&limit=1";
+  const episodeRows: SharkEpisode[] | null = episodeId
+    ? await fetchJson(`shark_tv_videos?select=${episodeFields}&${episodeLookup}`, key)
     : null;
-  const episode = episodeId === CLERIGO_EPISODE.id
-    ? CLERIGO_EPISODE
-    : Array.isArray(episodeRows) && episodeRows[0]?.title
-      ? mergeLaunchEpisode(episodeRows[0] as SharkEpisode)
-      : null;
+  const episodes = Array.isArray(episodeRows) ? episodeRows.filter(row => typeof row?.title === "string") : [];
+  const episode = launchPage ? selectLaunchEpisode(episodes) : episodes[0] ? mergeLaunchEpisode(episodes[0]) : null;
+  if (episode) canonicalPath = episodeCanonicalPath(episode);
   const episodeVideo = episode ? getEpisodePlayback(episode).embed : null;
   const episodeSchema = episode ? videoStructuredData(episode) : null;
   const isSharkTv = canonicalPath === "/tv" || Boolean(episodeId);
