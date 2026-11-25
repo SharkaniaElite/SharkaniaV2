@@ -1,3 +1,8 @@
+import {
+  CLERIGO_EPISODE, SHARK_TV_TITLE, SHARK_TV_DESCRIPTION, episodeDescription,
+  clerigoLaunchFilter, episodeCanonicalPath, episodePath, getEpisodePlayback, getEpisodeThumbnail, mergeLaunchEpisode, selectLaunchEpisode,
+  videoStructuredData, type SharkEpisode,
+} from "../src/lib/shark-tv";
 import { HOME_DESCRIPTION, HOME_HEADING, HOME_INTRO, HOME_TITLE } from "../src/lib/home-content";
 import { getTournamentLifecyclePhase } from "../src/lib/tournament-lifecycle";
 
@@ -36,7 +41,6 @@ const PAGE_META: Record<string, { title: string, desc: string }> = {
   '/blog': { title: 'Blog — Estrategia & Análisis | Sharkania', desc: 'Estrategia, GTO, ICM y análisis del ecosistema de clubes privados.' },
   '/academia': { title: 'Academia de Poker | Sharkania', desc: 'Aprende estrategia de poker con lecciones, módulos y herramientas de estudio.' },
   '/glosario': { title: 'Glosario de Poker | Sharkania', desc: 'Terminología y conceptos esenciales del poker en español.' },
-  '/tv': { title: 'Shark TV | Sharkania', desc: 'Clases, análisis de manos y contenido audiovisual de poker.' },
   '/noticias': { title: 'Noticias y Novedades | Sharkania', desc: 'Mantente al día con la actualidad del circuito.' },
   '/promociones': { title: 'Promociones Exclusivas | Sharkania', desc: 'Bonos de bienvenida, freerolls y beneficios exclusivos.' },
   '/promociones/freeroll-diario': { title: 'Freeroll Diario | Sharkania', desc: 'Información sobre el freeroll diario para jugadores de póker.' },
@@ -308,7 +312,26 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   }
 
   const key = env.SUPABASE_ANON_KEY;
-  const visibleSeoHtml = !isPrivate ? await buildVisibleSeoHtml(canonicalPath, key) : '';
+  const episodeId = canonicalPath.match(/^\/tv\/([a-z0-9_-]+)$/i)?.[1];
+  const episodeFields = "id,title,video_url,thumbnail_url,duration,created_at,table_context";
+  const launchPage = episodeId === CLERIGO_EPISODE.id;
+  const episodeLookup = launchPage
+    ? "or=" + encodeURIComponent(`(${clerigoLaunchFilter})`) + "&order=created_at.desc"
+    : "id=eq." + encodeURIComponent(episodeId ?? "") + "&limit=1";
+  const episodeRows: SharkEpisode[] | null = episodeId
+    ? await fetchJson(`shark_tv_videos?select=${episodeFields}&${episodeLookup}`, key)
+    : null;
+  const episodes = Array.isArray(episodeRows) ? episodeRows.filter(row => typeof row?.title === "string") : [];
+  const episode = launchPage ? selectLaunchEpisode(episodes) : episodes[0] ? mergeLaunchEpisode(episodes[0]) : null;
+  if (episode) canonicalPath = episodeCanonicalPath(episode);
+  const episodeVideo = episode ? getEpisodePlayback(episode).embed : null;
+  const episodeSchema = episode ? videoStructuredData(episode) : null;
+  const isSharkTv = canonicalPath === "/tv" || Boolean(episodeId);
+  const visibleSeoHtml = episode
+    ? `<main><h1>${escapeSeoText(episode.title)}</h1><p>${escapeSeoText(episodeDescription(episode))}</p><a href="/tv">SharkTV</a></main>`
+    : canonicalPath === "/tv"
+      ? `<main><h1>SharkTV</h1><p>${escapeSeoText(SHARK_TV_DESCRIPTION)}</p><a href="${episodePath(CLERIGO_EPISODE.id)}">${escapeSeoText(CLERIGO_EPISODE.title)}</a></main>`
+      : !isPrivate ? await buildVisibleSeoHtml(canonicalPath, key) : "";
 
   // Valores por defecto
   let title = PAGE_META['/'].title;
@@ -320,6 +343,11 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   if (canonicalPath === "/") {
     title = `${HOME_TITLE} | Sharkania`;
     description = HOME_DESCRIPTION;
+  } else if (isSharkTv) {
+    title = episode ? `${episode.title} | SharkTV | Sharkania` : `${SHARK_TV_TITLE} | Sharkania`;
+    description = episode ? episodeDescription(episode) : SHARK_TV_DESCRIPTION;
+    image = getEpisodeThumbnail(episode?.thumbnail_url) ?? image;
+    if (episodeVideo) ogType = "video.other";
   } else if (PAGE_META[canonicalPath]) {
     title = PAGE_META[canonicalPath].title;
     description = PAGE_META[canonicalPath].desc;
@@ -449,13 +477,14 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
     }
   }
 
-  const homePreview = canonicalPath === "/" && url.hostname.endsWith(".pages.dev");
+  const routeNoIndex = isSharkTv && Boolean(episodeId) && !episode;
+  const publicPreview = (canonicalPath === "/" || isSharkTv) && url.hostname.endsWith(".pages.dev");
 
   // 3. INYECTAR METADATOS AL VUELO: Reemplazamos las etiquetas del index.html
   const rewritten = new HTMLRewriter()
     .on('title', { element(e: Element) { e.setInnerContent(title) } })
     .on('meta[name="description"]', { element(e: Element) { e.setAttribute("content", description) } })
-    .on('meta[name="robots"]', { element(e: Element) { e.setAttribute('content', homePreview || isPrivate || (publicTournamentRecord && !publicTournamentRecord.results_uploaded) ? 'noindex, nofollow' : 'index, follow') } })
+    .on('meta[name="robots"]', { element(e: Element) { e.setAttribute('content', publicPreview || routeNoIndex || isPrivate || (publicTournamentRecord && !publicTournamentRecord.results_uploaded) ? 'noindex, nofollow' : 'index, follow') } })
     .on('meta[property="og:title"]', { element(e: Element) { e.setAttribute("content", title) } })
     .on('meta[property="og:description"]', { element(e: Element) { e.setAttribute("content", description) } })
     .on('meta[property="og:image"]', { element(e: Element) { e.setAttribute("content", image) } })
@@ -465,6 +494,15 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
     .on('meta[name="twitter:description"]', { element(e: Element) { e.setAttribute("content", description) } })
     .on('meta[name="twitter:image"]', { element(e: Element) { e.setAttribute("content", image) } })
     .on('link[rel="canonical"]', { element(e: Element) { e.setAttribute('href', `${SITE_URL}${canonicalPath}`) } })
+    .on("head", { element(e: Element) {
+      if (episodeVideo) {
+        e.append(`<meta property="og:video" content="${escapeSeoText(episodeVideo)}"><meta property="og:video:width" content="640"><meta property="og:video:height" content="360">`, { html: true });
+      }
+      if (episodeSchema) {
+        const json = JSON.stringify(episodeSchema).replace(/</g, "\\u003c");
+        e.append(`<script type="application/ld+json">${json}</script>`, { html: true });
+      }
+    } })
     .on('#root', { element(e: Element) { if (visibleSeoHtml) e.prepend(visibleSeoHtml, { html: true }) } })
     .transform(response);
 
@@ -476,7 +514,7 @@ export const onRequest: PagesFunction<{ SUPABASE_ANON_KEY: string }> = async (co
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
   headers.set("Cache-Control", "public, max-age=0, must-revalidate");
-  if (isPrivate || url.hostname.endsWith(".pages.dev") || (publicTournamentRecord && !publicTournamentRecord.results_uploaded)) {
+  if (isPrivate || routeNoIndex || url.hostname.endsWith(".pages.dev") || (publicTournamentRecord && !publicTournamentRecord.results_uploaded)) {
     headers.set("X-Robots-Tag", "noindex");
   }
   return new Response(rewritten.body, {

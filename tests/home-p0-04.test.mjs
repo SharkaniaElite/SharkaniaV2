@@ -67,7 +67,7 @@ test("home renders the approved order, destinations and editorial status", () =>
   assert.deepEqual(destinations(html.slice(positions[1], positions[2])), ["/academia", "/tv", "/tools", "/ranking"]);
   assert.deepEqual(destinations(html.slice(positions[3], positions[4])), ["/academia", "/blog", "/tools", "/glosario"]);
   assert.deepEqual(destinations(html.slice(positions[2], positions[3])), ["/tv"]);
-  assert.match(html, /Serie en preparación/);
+  assert.match(html, /Primer episodio disponible/);
   assert.doesNotMatch(html, /<iframe|<video|rumble\.com/);
   assert.deepEqual(destinations(html.slice(positions[7])), ["/register"]);
   assert.ok(html.includes(homeContent.HOME_DESCRIPTION));

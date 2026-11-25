@@ -107,7 +107,7 @@ const READ_ONLY_ARENA_PATHS = [
  /^\/glosario(?:\/[^/]+)?$/, /^\/sistema-elo$/,
  /^\/academia$/, /^\/terms$/, /^\/privacy$/,
  /^\/promociones$/, /^\/shop$/, /^\/tools$/,
- /^\/tools\/arbol-de-decisiones$/,
+ /^\/tools\/arbol-de-decisiones$/, /^\/tv(?:\/[A-Za-z0-9_-]+)?\/?$/,
  /^\/promociones\/(coinpoker-bono-bienvenida-150-2026|wpt-global-paquete-bienvenida-2026|coinpoker-pgt-kickoff-noviembre-2026)$/
 ];
 function PreviewReadOnlyGate({children}: {children:React.ReactNode}) {

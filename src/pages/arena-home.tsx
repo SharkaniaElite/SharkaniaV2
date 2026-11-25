@@ -271,10 +271,10 @@ export function ArenaHomePage() {
             <div className="arena-originals-copy">
               <SectionHeading id="home-originals-title" eyebrow="Sharkania Originals" title="Clérigo Analiza" />
               <p className="arena-originals-tagline">Cada decisión tiene una razón.</p>
-              <p className="arena-originals-description">Clérigo Póker prepara una serie educativa para revisar manos de su propio historial y explicar el razonamiento detrás de cada jugada.</p>
+              <p className="arena-originals-description">Clérigo Póker revisa manos de su propio historial y explica el razonamiento detrás de cada jugada.</p>
               <div className="arena-originals-actions">
                 <Link className="arena-action-secondary" to="/tv">Explorar SharkTV <ArrowUpRight size={17} aria-hidden="true" /></Link>
-                <span>Serie en preparación</span>
+                <span>Primer episodio disponible</span>
               </div>
             </div>
             <div className="arena-originals-art" aria-hidden="true">
