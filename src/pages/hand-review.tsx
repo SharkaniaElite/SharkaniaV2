@@ -1,33 +1,54 @@
-// src/pages/hand-review.tsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
+import { ArrowLeft, ArrowUpRight, Play } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
-import { ChevronLeft, AlertTriangle, Target, BrainCircuit, Gamepad2, ChevronRight, MonitorPlay } from "lucide-react";
+import { EpisodeCover } from "../components/shark-tv/episode-cover";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { supabase } from "../lib/supabase";
-import { Spinner } from "../components/ui/spinner";
+import { getSharkVideo, sharkTvQueryKey } from "../lib/api/shark-tv";
+import { isArenaPreviewHost } from "../lib/arena-preview";
+import { episodeDescription, episodePath, getEpisodePlayback, getEpisodeThumbnail, type SharkEpisode } from "../lib/shark-tv";
+import "./shark-tv.css";
 
-// Componente estable para Rumble Embed
-function RumbleEmbed({ embedUrl }: { embedUrl: string }) {
+function EpisodePlayer({ episode }: { episode: SharkEpisode }) {
+  const [activated, setActivated] = useState(false);
+  const { embed, externalUrl, rumble } = getEpisodePlayback(episode);
   return (
-    <div className="w-full max-w-[400px] mx-auto rounded-xl overflow-hidden shadow-[0_0_30px_rgba(34,211,238,0.15)] border border-sk-border-2 bg-sk-bg-0 relative aspect-[9/16] md:aspect-[4/5] min-h-[600px]">
-      {/* Skeleton de carga mientras Rumble responde */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center animate-pulse z-0">
-        <div className="w-12 h-12 bg-sk-bg-4 rounded-full mb-4"></div>
-        <div className="h-4 w-32 bg-sk-bg-4 rounded mb-2"></div>
-        <div className="h-3 w-48 bg-sk-bg-4 rounded"></div>
+    <section className="shark-tv-prelude" aria-label="Reproducción del episodio">
+      <div className="shark-tv-player">
+        {embed && activated ? (
+          <iframe
+            ref={frame => frame?.focus()}
+            src={embed}
+            title={`Reproductor de Rumble: ${episode.title}`}
+            loading="lazy"
+            allow="fullscreen; encrypted-media; picture-in-picture"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+        ) : (
+          <>
+            <EpisodeCover episode={episode} />
+            {embed && (
+              <div className="shark-tv-player-action">
+                <button className="shark-tv-primary" type="button" onClick={() => setActivated(true)}>
+                  <Play size={17} aria-hidden="true" /> Cargar reproductor
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
-      
-      <iframe
-        src={embedUrl}
-        className="absolute top-0 left-0 w-full h-full z-10"
-        frameBorder="0"
-        allowFullScreen
-        allow="autoplay; encrypted-media"
-      />
-    </div>
+      {embed && !activated && <p>El reproductor se conecta con Rumble cuando lo cargas.</p>}
+      {!externalUrl && <p>Este episodio no tiene una URL de reproducción disponible.</p>}
+      {externalUrl && (
+        <a className="shark-tv-link justify-self-start" href={externalUrl} target="_blank" rel="noopener noreferrer">
+          {rumble ? "Ver en Rumble" : "Abrir video externo"} <ArrowUpRight size={17} aria-hidden="true" />
+        </a>
+      )}
+    </section>
   );
 }
 
@@ -85,206 +106,102 @@ function renderCard(cardString: string, isBoard = false) {
   );
 }
 
-export function HandReviewPage() {
-  const { id } = useParams<{ id: string }>();
-  const [video, setVideo] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+function EpisodeNotes({ episode }: { episode: SharkEpisode }) {
   const [vote, setVote] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchVideo() {
-      try {
-        const { data, error } = await supabase
-          .from("shark_tv_videos")
-          .select("*")
-          .eq("id", id)
-          .single();
-        
-        if (error) throw error;
-        if (data) setVideo(data);
-      } catch (err) {
-        console.error("Error cargando el video:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (id) {
-      fetchVideo();
-    }
-  }, [id]);
-
-  if (loading) {
-    return (
-      <PageShell>
-        <div className="min-h-screen flex items-center justify-center bg-sk-bg-1">
-          <Spinner size="lg" />
-        </div>
-      </PageShell>
-    );
-  }
-
-  if (!video) {
-    return (
-      <PageShell>
-        <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-          <MonitorPlay size={48} className="text-sk-text-4 mb-4" />
-          <h2 className="text-2xl font-bold text-sk-text-1 mb-2">Video no encontrado</h2>
-          <p className="text-sk-text-3 mb-6">El análisis que buscas no existe o fue eliminado.</p>
-          <Link to="/tv"><Button variant="accent">Volver a SharkTV</Button></Link>
-        </div>
-      </PageShell>
-    );
-  }
-
-  const ctx = video.table_context || {};
+  const context = episode.table_context;
+  const heroCards = Array.isArray(context?.hero_cards) ? context.hero_cards : [];
+  const board = Array.isArray(context?.board) ? context.board : [];
+  const actions = Array.isArray(context?.action_history) ? context.action_history : [];
+  const hasContext = Boolean(context?.hero_position || heroCards.length || board.length || actions.length);
 
   return (
-    <PageShell>
-      <SEOHead title={`${video.title} | SharkTV`} path={`/tv/${video.id}`} />
-      
-      <div className="pt-20 pb-20">
-        <div className="max-w-6xl mx-auto px-6">
-          
-          <Link to="/tv" className="inline-flex items-center gap-1 text-sk-sm text-sk-text-4 hover:text-sk-accent transition-colors mb-6">
-            <ChevronLeft size={16} /> Volver a SharkTV
-          </Link>
-
-          <div className="grid lg:grid-cols-12 gap-8">
-            
-            {/* 🎥 COLUMNA IZQUIERDA: EL VIDEO */}
-            <div className="lg:col-span-7 xl:col-span-8">
-              <div className="mb-6">
-                <div className="flex items-center gap-3 mb-3 flex-wrap">
-                  {(video.tags || []).map((tag: string, i: number) => (
-                    <Badge key={i} variant={i === 0 ? "accent" : "muted"}>{tag}</Badge>
-                  ))}
-                </div>
-                <h1 className="text-3xl md:text-4xl font-black text-sk-text-1 mb-2">
-                  {video.title}
-                </h1>
-                <p className="text-sk-text-3">Analizado por <strong className="text-sk-text-1">{video.instructor_name}</strong></p>
-              </div>
-
-              {/* El Embed de RUMBLE y Call To Action */}
-              <div className="bg-sk-bg-2 p-4 md:p-8 rounded-2xl border border-sk-border-2 mb-8 relative overflow-hidden">
-                <div className="absolute -top-20 -right-20 w-40 h-40 bg-sk-accent/10 blur-[50px] rounded-full pointer-events-none" />
-                
-                <RumbleEmbed embedUrl={video.video_url} />
-                
-                <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-sk-border-2 relative z-10">
-                  <p className="text-center text-[11px] font-mono text-sk-text-3 uppercase tracking-widest mb-3">
-                    ¿Te gustaría enfrentar este field?
-                  </p>
-                  <Link to="/como-jugar-en-clubgg" className="block w-full group">
-                    <Button variant="accent" size="lg" className="w-full h-14 md:h-16 text-sm md:text-md font-black shadow-[0_0_30px_rgba(34,211,238,0.25)] hover:shadow-[0_0_45px_rgba(34,211,238,0.4)] transition-all flex items-center justify-center gap-2 border border-sk-accent/50 group-hover:border-sk-accent">
-                      <Gamepad2 size={22} className="animate-pulse" />
-                      CÓMO JUGAR DONDE JUEGA NICOLÁS
-                      <ChevronRight size={20} className="transition-transform group-hover:translate-x-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Módulo Interactivo */}
-              <div className="bg-gradient-to-r from-sk-bg-2 to-sk-bg-3 border border-sk-accent/20 rounded-xl p-6 md:p-8 shadow-inner">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-sk-accent/10 flex items-center justify-center shrink-0">
-                    <BrainCircuit className="text-sk-accent" size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-sk-text-1 mb-2">Decisión Crítica</h3>
-                    <p className="text-sk-sm text-sk-text-3 mb-6">
-                      Basado en la acción y el rango del rival, ¿Cuál crees que es la línea correcta (GTO o Explotativa) en esta situación específica?
-                    </p>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <Button variant={vote === "fold" ? "accent" : "secondary"} className="h-12 border-sk-red/50 hover:border-sk-red hover:text-sk-red" onClick={() => setVote("fold")}>
-                        Fold
-                      </Button>
-                      <Button variant={vote === "call" ? "accent" : "secondary"} className="h-12 border-sk-green/50 hover:border-sk-green hover:text-sk-green" onClick={() => setVote("call")}>
-                        Call
-                      </Button>
-                      <Button variant={vote === "raise" ? "accent" : "secondary"} className="h-12 border-sk-gold/50 hover:border-sk-gold hover:text-sk-gold" onClick={() => setVote("raise")}>
-                        Raise
-                      </Button>
-                    </div>
-                    {vote && (
-                      <div className="mt-4 p-4 bg-sk-bg-0 border border-sk-border-2 rounded-lg animate-fade-in">
-                        <p className="text-sk-sm text-sk-text-2">
-                          <strong className="text-sk-accent">Veredicto del Analista:</strong> {ctx.analysis_verdict || "Decisión dependiente de factores técnicos explicados en el video."}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+    <div className="shark-tv-detail-grid">
+      <section className="shark-tv-panel space-y-3">
+        <h2>Continúa el análisis</h2>
+        <p>Repasa los conceptos del episodio y aplica el mismo razonamiento al revisar otras manos.</p>
+        <div className="flex flex-wrap gap-x-5">
+          <Link className="shark-tv-link" to="/academia">Academia Sharkania <ArrowUpRight size={15} aria-hidden="true" /></Link>
+          <Link className="shark-tv-link" to="/blog">Estrategia y análisis <ArrowUpRight size={15} aria-hidden="true" /></Link>
+        </div>
+        {context?.analysis_verdict && (
+          <div className="space-y-3 border-t border-sk-border-2 pt-4">
+            <h3>¿Qué decisión tomarías?</h3>
+            <div className="flex flex-wrap gap-2">
+              {["Fold", "Call", "Raise"].map(action => (
+                <Button key={action} variant={vote === action ? "accent" : "secondary"} aria-pressed={vote === action}
+                  className="min-h-11" onClick={() => setVote(action)}>{action}</Button>
+              ))}
             </div>
-
-            {/* 📊 COLUMNA DERECHA: EL HUD EXPERTO */}
-            <div className="lg:col-span-5 xl:col-span-4 space-y-6">
-              
-              <div className="bg-sk-bg-2 border border-sk-border-2 rounded-xl overflow-hidden sticky top-24">
-                <div className="bg-sk-bg-3 p-4 border-b border-sk-border-2 flex items-center gap-2">
-                  <Target className="text-sk-accent" size={18} />
-                  <h3 className="font-bold text-sk-text-1">Contexto de la Mesa</h3>
-                </div>
-                
-                <div className="p-5 space-y-5">
-                  <div className="flex justify-between items-center pb-4 border-b border-sk-border-2">
-                    <div>
-                      <p className="text-[10px] font-mono text-sk-text-4 uppercase mb-1">Posición Hero</p>
-                      <p className="font-bold text-sk-text-1 flex items-center gap-2">
-                        {ctx.hero_position || "No definida"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-mono text-sk-text-4 uppercase mb-1">Nivel</p>
-                      <p className="font-bold text-sk-accent">{video.level || "Avanzado"}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-mono text-sk-text-4 uppercase mb-2">Cartas (Hero)</p>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {(ctx.hero_cards || []).map((card: string) => renderCard(card, false))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-mono text-sk-text-4 uppercase mb-2">Board</p>
-                    <div className="flex gap-1.5">
-                      {(ctx.board || []).map((card: string) => renderCard(card, true))}
-                      {(!ctx.board || ctx.board.length === 0) && <span className="text-sk-xs text-sk-text-4">Preflop</span>}
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-sk-border-2">
-                    <p className="text-[10px] font-mono text-sk-text-4 uppercase mb-2">Dinámica de Apuestas</p>
-                    <ul className="space-y-2 text-sk-sm">
-                      {(ctx.action_history || []).map((h: any, index: number) => (
-                        <li key={index} className="flex justify-between">
-                          <span className="text-sk-text-3">{h.stage}:</span> 
-                          <span className="font-bold text-sk-text-1 text-right max-w-[65%]">{h.action}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="bg-sk-accent-dim border border-sk-accent/20 rounded-lg p-3 mt-4">
-                    <p className="text-[11px] font-bold text-sk-accent flex items-center gap-1 mb-1">
-                      <AlertTriangle size={12} /> Nota Estratégica
-                    </p>
-                    <p className="text-xs text-sk-text-2 leading-relaxed">
-                      "Analiza la textura del board y los rangos percibidos antes de tomar tu decisión. En spots como este, la varianza es alta pero la matemática siempre dicta la rentabilidad a largo plazo."
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
+            {vote && <p role="status"><strong className="text-sk-text-1">Análisis:</strong> {context.analysis_verdict}</p>}
           </div>
+        )}
+      </section>
+      {hasContext && (
+        <aside className="shark-tv-panel space-y-3" aria-label="Contexto de la mano">
+          <h2>Contexto de la mano</h2>
+          {context?.hero_position && <p>Posición: {context.hero_position}</p>}
+          {heroCards.length > 0 && <div><p>Cartas del jugador</p><div className="flex flex-wrap gap-1.5">{heroCards.map(card => renderCard(card))}</div></div>}
+          {board.length > 0 && <div><p>Cartas comunitarias</p><div className="flex flex-wrap gap-1.5">{board.map(card => renderCard(card, true))}</div></div>}
+          {actions.length > 0 && (
+            <ul className="space-y-2">
+              {actions.map(({ stage, action }, index) => <li className="break-words" key={index}><strong>{stage}:</strong> {action}</li>)}
+            </ul>
+          )}
+        </aside>
+      )}
+    </div>
+  );
+}
+
+export function HandReviewPage() {
+  const { id = "" } = useParams<{ id: string }>();
+  const result = useQuery({
+    queryKey: [...sharkTvQueryKey, id],
+    queryFn: () => getSharkVideo(id),
+    staleTime: 5 * 60 * 1000,
+  });
+  const episode = result.data;
+  const embed = episode && getEpisodePlayback(episode).embed;
+  return (
+    <PageShell>
+      <SEOHead
+        title={episode ? `${episode.title} | SharkTV` : "Episodio de SharkTV"}
+        description={episode ? episodeDescription(episode) : "Vídeos educativos y análisis de manos de SharkTV."}
+        path={episodePath(id)}
+        ogImage={episode ? getEpisodeThumbnail(episode.thumbnail_url) ?? undefined : undefined}
+        ogType={embed ? "video.other" : "website"}
+        ogVideo={embed || undefined}
+        noIndex={isArenaPreviewHost() || !episode}
+      />
+      <div className="shark-tv">
+        <div className="shark-tv-shell">
+          <Link className="shark-tv-link" to="/tv"><ArrowLeft size={16} aria-hidden="true" /> Volver a SharkTV</Link>
+          {episode ? (
+            <article>
+              <header className="shark-tv-episode-title space-y-3">
+                {episode.table_context?.series && <p className="shark-tv-label">{episode.table_context.series}</p>}
+                <h1>{episode.title}</h1>
+                <p>{episodeDescription(episode)}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {episode.instructor_name && <p>{episode.instructor_name}</p>}
+                  {episode.duration && <Badge variant="muted">{episode.duration}</Badge>}
+                  {episode.level && <Badge variant="muted">{episode.level}</Badge>}
+                  {episode.tags?.map(tag => <Badge key={tag} variant="muted">{tag}</Badge>)}
+                </div>
+              </header>
+              <EpisodePlayer key={episode.id} episode={episode} />
+              <EpisodeNotes key={episode.id} episode={episode} />
+            </article>
+          ) : result.isPending ? (
+            <p className="shark-tv-status" role="status">Cargando el episodio…</p>
+          ) : result.isError ? (
+            <div className="shark-tv-status" role="status">
+              <p>No pudimos cargar el episodio.</p>
+              <Button variant="secondary" size="sm" onClick={() => void result.refetch()} disabled={result.isFetching}>Reintentar</Button>
+            </div>
+          ) : (
+            <h1 className="shark-tv-episode-title">Episodio no encontrado</h1>
+          )}
         </div>
       </div>
     </PageShell>

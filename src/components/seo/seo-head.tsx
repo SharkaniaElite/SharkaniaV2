@@ -7,7 +7,8 @@ interface SEOHeadProps {
   description?: string;
   path?: string;
   ogImage?: string;
-  ogType?: "website" | "article";
+  ogType?: "website" | "article" | "video.other";
+  ogVideo?: string;
   noIndex?: boolean;
 }
 
@@ -34,6 +35,7 @@ export function SEOHead({
   path,
   ogImage = DEFAULT_OG_IMAGE,
   ogType = "website",
+  ogVideo,
   noIndex = false,
 }: SEOHeadProps) {
   const fullTitle = title === "Inicio"
@@ -57,6 +59,15 @@ export function SEOHead({
     setMetaTag("og:image:width", "1200");
     setMetaTag("og:image:height", "630");
     setMetaTag("og:type", ogType);
+    if (ogVideo) {
+      setMetaTag("og:video", ogVideo);
+      setMetaTag("og:video:width", "640");
+      setMetaTag("og:video:height", "360");
+    } else {
+      for (const property of ["og:video", "og:video:width", "og:video:height"]) {
+        document.querySelector(`meta[property="${property}"]`)?.remove();
+      }
+    }
     setMetaTag("og:site_name", SITE_NAME);
     setMetaTag("og:locale", "es_LA");
 
@@ -81,7 +92,7 @@ export function SEOHead({
       document.head.appendChild(canonical);
     }
     canonical.setAttribute("href", fullUrl);
-  }, [fullTitle, description, fullUrl, ogImage, ogType, noIndex]);
+  }, [fullTitle, description, fullUrl, ogImage, ogType, ogVideo, noIndex]);
 
   return null;
 }

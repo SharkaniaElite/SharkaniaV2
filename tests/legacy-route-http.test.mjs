@@ -1,3 +1,4 @@
+import * as sharkTv from "../src/lib/shark-tv.ts";
 import * as homeContent from "../src/lib/home-content.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -35,6 +36,7 @@ function loadMiddleware(fetchMock) {
       const body = response.text().then((html) => {
         invoke('title', { setInnerContent: (title) => { html = html.replace("<head>", `<head><title>${title}</title>`); } });
         invoke('meta[name="description"]', { setAttribute: (_, value) => { html = html.replace("</head>", `<meta name="description" content="${value}"></head>`); } });
+        invoke("head", { append: (content) => { html = html.replace("</head>", () => content + "</head>"); } });
         invoke('#root', { prepend: (content) => { html = html.replace("<div id='root'>", `<div id='root'>${content}`); } });
         return html;
       });
@@ -49,6 +51,7 @@ function loadMiddleware(fetchMock) {
     require: (specifier) => {
       if (specifier === "../src/lib/tournament-lifecycle") return lifecycle;
       if (specifier === "../src/lib/home-content") return homeContent;
+      if (specifier === "../src/lib/shark-tv") return sharkTv;
       throw new Error("Unexpected import: " + specifier);
     },
   });
@@ -208,4 +211,46 @@ test("home HTML is indexable without JavaScript or Supabase and previews stay no
   const preview = await middleware(makeContext("/", { key: "", origin: "https://qa.sharkaniav2.pages.dev" }));
   assert.equal(preview.headers.get("x-robots-tag"), "noindex");
   assert.equal(preview.headers.get("x-test-robots"), "noindex, nofollow");
+});
+
+test("SharkTV and launch episode serve canonical, indexable editorial content without fetching the database", async () => {
+  const middleware = loadMiddleware(() => assert.fail("No Supabase lookup for known SharkTV editorial pages"));
+  const catalog = await middleware(makeContext("/tv", { key: "" }));
+  assert.equal(catalog.headers.get("x-test-canonical"), "https://sharkania.com/tv");
+  assert.match(await catalog.text(), /<h1>SharkTV<\/h1>.*href="\/tv\/clerigo-analiza-01"/s);
+
+  const episodePath = "/tv/clerigo-analiza-01";
+  const episode = await middleware(makeContext(episodePath, { key: "" }));
+  assert.equal(episode.headers.get("x-test-canonical"), "https://sharkania.com" + episodePath);
+  const html = await episode.text();
+  assert.match(html, /Gané con una escalera/);
+  assert.match(html, /property="og:video" content="https:\/\/rumble\.com\/embed\/v7gq0y0\/\?pub=4par2u"/);
+  assert.doesNotMatch(html, /<iframe|application\/ld\+json/);
+
+  const preview = await middleware(makeContext(episodePath, { origin: "https://qa.sharkaniav2.pages.dev" }));
+  assert.equal(preview.headers.get("x-robots-tag"), "noindex");
+  assert.equal(preview.headers.get("x-test-robots"), "noindex, nofollow");
+});
+
+test("SharkTV uses the stored episode for video schema and noindexes unknown episode pages", async () => {
+  const middleware = loadMiddleware(async (url) => {
+    const request = new URL(url);
+    assert.equal(request.pathname, "/rest/v1/shark_tv_videos");
+    if (request.searchParams.get("id") !== "eq.archived-episode") return Response.json([]);
+    return Response.json([{
+      id: "archived-episode", title: "Análisis </script> de prueba",
+      video_url: "https://rumble.com/embed/vabc123/",
+      created_at: "2026-10-21T13:00:00Z", duration: "3:51",
+      thumbnail_url: "https://example.org/thumbnail.jpg",
+    }]);
+  });
+  const response = await middleware(makeContext("/tv/archived-episode"));
+  assert.equal(response.headers.get("x-test-og-image"), "https://example.org/thumbnail.jpg");
+  const html = await response.text();
+  assert.match(html, /"@type":"VideoObject"/);
+  assert.match(html, /"duration":"PT3M51S"/);
+  assert.match(html, /Análisis \\u003c\/script>/);
+  assert.match(html, /<h1>Análisis &lt;\/script&gt; de prueba<\/h1>/);
+  const missing = await middleware(makeContext("/tv/missing"));
+  assert.equal(missing.headers.get("x-robots-tag"), "noindex");
 });

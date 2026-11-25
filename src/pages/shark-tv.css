@@ -1,0 +1,82 @@
+.shark-tv {
+  --tv-ink: #08141e;
+  --tv-panel: #0e1d2b;
+  --tv-line: #263a4a;
+  --tv-accent: #22d3ee;
+  --tv-text: #f1f5f9;
+  --tv-muted: #94a3b8;
+  background: var(--tv-ink);
+  color: var(--tv-text);
+  min-height: 46vh;
+  padding-block: clamp(2rem, 5vw, 4rem);
+}
+.shark-tv-shell { width: min(1200px, calc(100% - 2rem)); margin-inline: auto; }
+.shark-tv h1, .shark-tv h2, .shark-tv h3 { overflow-wrap: anywhere; font-weight: 800; line-height: 1.15; }
+.shark-tv h1 { font-size: clamp(2rem, 5vw, 3.7rem); letter-spacing: -.04em; }
+.shark-tv h2 { font-size: clamp(1.3rem, 2.6vw, 2rem); letter-spacing: -.025em; }
+.shark-tv h3 { font-size: 1.125rem; }
+.shark-tv p { color: var(--tv-muted); }
+.shark-tv .shark-tv-label { color: var(--tv-accent); font-weight: 700; font-size: .8rem; }
+.shark-tv-heading { margin-bottom: 1.4rem; }
+.shark-tv-heading p { font-size: clamp(1rem, 2.5vw, 1.2rem); margin-top: .45rem; }
+.shark-tv-featured {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: center;
+  border: 1px solid var(--tv-line);
+  border-radius: 1rem;
+  background: var(--tv-panel);
+  overflow: hidden;
+}
+.shark-tv-featured-copy { display: grid; justify-items: start; gap: .8rem; padding: clamp(1.1rem, 4vw, 2.2rem); }
+.shark-tv-cover { position: relative; aspect-ratio: 16 / 9; width: 100%; overflow: hidden; background: #102232; }
+.shark-tv-cover > img, .shark-tv-cover-art { position: absolute; inset: 0; width: 100%; height: 100%; }
+.shark-tv-cover > img { object-fit: cover; }
+.shark-tv-cover-art {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: .65rem;
+  padding: clamp(.9rem, 4.5vw, 2.7rem);
+  background: linear-gradient(90deg, rgb(8 20 30 / .95), rgb(8 20 30 / .45)), url("/images/arena/home-hero.webp") center / cover;
+  color: var(--tv-accent);
+}
+.shark-tv-cover-art span { font-weight: 850; line-height: 1.05; font-size: clamp(1.25rem, 4vw, 2.55rem); }
+.shark-tv-duration {
+  position: absolute;
+  bottom: .6rem;
+  right: .65rem;
+  border-radius: .3rem;
+  background: #08141e;
+  color: var(--tv-text);
+  padding: .15rem .45rem;
+  font-size: .77rem;
+  font-variant-numeric: tabular-nums;
+}
+.shark-tv-primary, .shark-tv-link { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; font-weight: 700; }
+.shark-tv-primary { background: var(--tv-accent); color: var(--tv-ink); padding: .45rem 1rem; border-radius: .5rem; }
+.shark-tv-primary:hover { background: #8af0fb; }
+.shark-tv-link { color: var(--tv-accent); }
+.shark-tv-link:hover { text-decoration: underline; }
+.shark-tv :is(button, a):focus-visible { outline: 2px solid var(--tv-accent); outline-offset: 3px; }
+.shark-tv-archive { margin-block: clamp(2rem, 5vw, 3.5rem) 1.25rem; }
+.shark-tv-archive h2 { margin-bottom: 1rem; }
+.shark-tv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 255px), 1fr)); gap: 1rem; }
+.shark-tv-card { display: block; height: 100%; overflow: hidden; border: 1px solid var(--tv-line); border-radius: .75rem; background: var(--tv-panel); }
+.shark-tv-card:hover { border-color: var(--tv-accent); }
+.shark-tv-card-copy { display: grid; gap: .48rem; padding: 1rem; }
+.shark-tv-status { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem 1rem; border: 1px solid var(--tv-line); border-radius: .75rem; padding: 1rem; }
+.shark-tv-episode-title { margin-block: .75rem; }
+.shark-tv-player { position: relative; width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--tv-line); border-radius: .85rem; overflow: hidden; background: #050b11; }
+.shark-tv-player > iframe { width: 100%; height: 100%; border: 0; }
+.shark-tv-player .shark-tv-cover { position: absolute; inset: 0; height: 100%; }
+.shark-tv-player-action { position: absolute; inset: 0; display: grid; place-items: center; }
+.shark-tv-player-action .shark-tv-primary:focus-visible { outline-offset: 4px; }
+.shark-tv-prelude, .shark-tv-detail-grid { display: grid; gap: 1rem; }
+.shark-tv-detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); margin-top: 1.5rem; }
+.shark-tv-detail-grid > :only-child { grid-column: 1 / -1; }
+.shark-tv-panel { border: 1px solid var(--tv-line); border-radius: .75rem; padding: clamp(.9rem, 3vw, 1.5rem); background: var(--tv-panel); }
+@media (max-width: 700px) {
+  .shark-tv-featured, .shark-tv-detail-grid { grid-template-columns: minmax(0, 1fr); }
+}
