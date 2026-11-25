@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ArrowUpRight, Play } from "lucide-react";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { PageShell } from "../components/layout/page-shell";
 import { SEOHead } from "../components/seo/seo-head";
 import { EpisodeCover } from "../components/shark-tv/episode-cover";
@@ -13,35 +13,20 @@ import { CLERIGO_EPISODE, episodeCanonicalPath, episodeDescription, episodePath,
 import "./shark-tv.css";
 
 function EpisodePlayer({ episode }: { episode: SharkEpisode }) {
-  const [activated, setActivated] = useState(false);
   const { embed, externalUrl, rumble } = getEpisodePlayback(episode);
   return (
     <section className="shark-tv-prelude" aria-label="Reproducción del episodio">
       <div className="shark-tv-player">
-        {embed && activated ? (
+        {embed ? (
           <iframe
-            ref={frame => frame?.focus()}
             src={embed}
             title={`Reproductor de Rumble: ${episode.title}`}
-            loading="lazy"
-            allow="fullscreen; encrypted-media; picture-in-picture"
+            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
           />
-        ) : (
-          <>
-            <EpisodeCover episode={episode} />
-            {embed && (
-              <div className="shark-tv-player-action">
-                <button className="shark-tv-primary" type="button" onClick={() => setActivated(true)}>
-                  <Play size={17} aria-hidden="true" /> Cargar reproductor
-                </button>
-              </div>
-            )}
-          </>
-        )}
+        ) : <EpisodeCover episode={episode} />}
       </div>
-      {embed && !activated && <p>El reproductor se conecta con Rumble cuando lo cargas.</p>}
       {!externalUrl && <p>Este episodio no tiene una URL de reproducción disponible.</p>}
       {externalUrl && (
         <a className="shark-tv-link justify-self-start" href={externalUrl} target="_blank" rel="noopener noreferrer">

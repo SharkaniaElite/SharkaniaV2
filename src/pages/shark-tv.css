@@ -71,8 +71,6 @@
 .shark-tv-player { position: relative; width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--tv-line); border-radius: .85rem; overflow: hidden; background: #050b11; }
 .shark-tv-player > iframe { width: 100%; height: 100%; border: 0; }
 .shark-tv-player .shark-tv-cover { position: absolute; inset: 0; height: 100%; }
-.shark-tv-player-action { position: absolute; inset: 0; display: grid; place-items: center; }
-.shark-tv-player-action .shark-tv-primary:focus-visible { outline-offset: 4px; }
 .shark-tv-prelude, .shark-tv-detail-grid { display: grid; gap: 1rem; }
 .shark-tv-detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); margin-top: 1.5rem; }
 .shark-tv-detail-grid > :only-child { grid-column: 1 / -1; }

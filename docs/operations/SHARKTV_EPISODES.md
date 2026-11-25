@@ -26,4 +26,4 @@ Busca primero el episodio por su título o el enlace de Rumble. Si ya figura en 
 
 El catálogo reconoce el estreno por el ID del embed o de la página pública. Tras registrarlo, muestra una sola tarjeta y usa los metadatos guardados en `/tv/clerigo-analiza-01`. Si hay filas duplicadas, la vista pública elige la coincidencia más reciente. Las filas existentes permanecen disponibles para revisión en Super Admin.
 
-Al revisar una publicación autorizada, comprueba que el catálogo muestre una sola tarjeta del estreno, que su ficha mantenga la ruta anterior y que **Cargar reproductor** y **Ver en Rumble** abran el episodio correcto.
+Al revisar una publicación autorizada, comprueba que el catálogo muestre una sola tarjeta del estreno, que su ficha mantenga la ruta anterior y que el Play de Rumble esté disponible al abrir la ficha. Comprueba también que **Ver en Rumble** lleve al mismo episodio.
