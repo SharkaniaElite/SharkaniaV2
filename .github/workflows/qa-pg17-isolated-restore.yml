@@ -1,0 +1,33 @@
+name: QA isolated PostgreSQL restore
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/qa-pg17-isolated-restore.yml
+      - scripts/recovery/**
+      - tests/pg17-isolated-restore.sh
+      - tests/fixtures/pg17-isolated-restore/**
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-restore:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Pull the pinned public Supabase PostgreSQL image
+        env:
+          IMAGE: docker.io/supabase/postgres@sha256:7bd84e6a1d5322c7b864b9751873a0ac50f48df3f20a776e88114eadb2948fc0
+        run: |
+          docker pull "$IMAGE"
+          image_id=$(docker image inspect --format '{{.Id}}' "$IMAGE")
+          printf 'RECOVERY_IMAGE_ID=%s\n' "$image_id" >> "$GITHUB_ENV"
+      - name: Verify restore, failure handling, and cleanup with synthetic data
+        run: |
+          sudo swapoff --all
+          bash tests/pg17-isolated-restore.sh --supabase-image-id "$RECOVERY_IMAGE_ID"
