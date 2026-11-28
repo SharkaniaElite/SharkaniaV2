@@ -69,7 +69,7 @@ test("Independent admin toggles retain media configurations and preserve editori
   assert.match(banner, /if \(slotCfg\.enabled === false\) return null/);
   assert.match(admin, /aria-checked=\{value\.enabled !== false\}/);
   assert.match(admin, /onChange\(\{ \.\.\.value, enabled: value\.enabled === false \}\)/);
-  assert.match(admin, /Banner editorial intermedio · Liga SHARKANIA \/ Ignition/);
+  assert.match(admin, /title: "Banner editorial intermedio",/);
   assert.match(admin, /Banner editorial final · ClubGG \/ Latin Allin Póker/);
   assert.match(article, /post\.category === "Promociones" \? <PartnerPromotionPanel/);
   assert.match(article, /post\.custom_banner_mid_src \? <ArticleImageBanner/);
