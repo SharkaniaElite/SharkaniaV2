@@ -88,7 +88,7 @@ const SLOT_INFO = {
     mobile:  { size: "350×200 px", label: "Mobile Promocional", hint: "Formato para grilla 2x2 en celular." },
   },
   mid: {
-    title: "Banner editorial intermedio · Liga SHARKANIA / Ignition",
+    title: "Banner editorial intermedio",
     description: "Se inserta después del tercer subtítulo H2. Predeterminado: Liga SHARKANIA en Ignition Poker. Puedes ocultarlo sin borrar las imágenes.",
     desktop: { size: "970×250 px", label: "Billboard editorial PC", hint: "Exporta exactamente 970×250 px; no reutilices imágenes 16:9." },
     mobile:  { size: "640×200 px", label: "Billboard editorial móvil", hint: "Exporta exactamente 640×200 px, distinto al diseño PC." },
